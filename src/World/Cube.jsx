@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import useStore from '../Store/useStore'
@@ -8,6 +8,8 @@ import {getDefaultValue} from "../Utils/defaultValues.js";
 
 export default function Cube() {
     const cubeRef = useRef()
+    const [hovered, setHovered] = useState(false)
+    const [active, setActive] = useState(false)
     const folderRef = useRef(null)
     const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore()
 
@@ -324,17 +326,38 @@ export default function Cube() {
             if (Math.random() < 0.01 && debug?.active) {
                 updateDebugConfig('objects.cube.rotation.y.value', cubeRef.current.rotation.y)
             }
+        if (cubeRef.current) {
+            cubeRef.current.rotation.y += delta * (active ? 1.5 : 0.5)
+            cubeRef.current.rotation.x += delta * (active ? 0.5 : 0.2)
+
+            if (hovered && !active) {
+                cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale * 1.2, 0.1)
+                cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale * 1.2, 0.1)
+                cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale * 1.2, 0.1)
+            } else if (!hovered && !active) {
+                cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale, 0.1)
+                cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale, 0.1)
+                cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale, 0.1)
+            }
         }
     })
 
     return (
-        <mesh ref={cubeRef}>
-            <boxGeometry args={[
-                getDefaultValue('objects.cube.geometry.width', 1),
-                getDefaultValue('objects.cube.geometry.height', 1),
-                getDefaultValue('objects.cube.geometry.depth', 1)
-            ]} />
-            <meshStandardMaterial color={getDefaultValue('objects.cube.material.color', '#ff5533')} />
+        <mesh
+            ref={cubeRef}
+            position={position}
+            scale={scale}
+            onClick={() => setActive(!active)}
+            onPointerOver={() => setHovered(true)}
+            onPointerOut={() => setHovered(false)}
+            castShadow
+        >
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial
+                color={active ? '#ffffff' : color}
+                metalness={active ? 0.8 : 0.3}
+                roughness={active ? 0.2 : 0.7}
+            />
         </mesh>
     )
 }

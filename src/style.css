@@ -17,6 +17,10 @@ canvas {
     height: 100% !important;
 }
 
+canvas:active {
+    cursor: grabbing;
+}
+
 /* Style pour la barre de chargement si nécessaire */
 .loading-bar {
     position: absolute;
@@ -34,4 +38,77 @@ canvas {
     transform: scaleX(0);
     transform-origin: top right;
     transition: transform 1.5s ease-in-out;
+}
+
+/* Style pour la barre de progression de timeline */
+#timeline-progress {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    z-index: 100;
+}
+
+#progress-indicator {
+    height: 100%;
+    width: 0%;
+    background-color: white;
+    border-radius: 2px;
+    transition: width 0.05s ease-out;
+}
+
+/* Bouton d'interaction */
+#interaction-button {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    background-color: #4383f5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    display: none;
+    z-index: 100;
+}
+
+#interaction-button:hover {
+    background-color: #306ad6;
+}
+
+/* Élément de compte à rebours */
+#countdown-element {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 100;
+}
+
+/* Indicateur de débogage */
+#scroll-debug-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #00ff00;
+    font-family: sans-serif;
+    font-size: 14px;
+    border-radius: 4px;
+    z-index: 100;
+    transition: color 0.3s ease;
 }

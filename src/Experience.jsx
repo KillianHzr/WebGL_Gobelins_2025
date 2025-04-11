@@ -1,15 +1,9 @@
-import React, { useEffect, useRef } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import React, { useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import useStore from './Store/useStore'
 import Cube from './World/Cube'
-import Debug from './Utils/Debug'
-import Stats from './Utils/Stats'
-import DebugInitializer from './Utils/DebugInitializer.jsx'
-import Camera from './Core/Camera'
-import Controls from './Core/Controls'
-import Lights from './Core/Lights'
-import { getDefaultValue, initializeLight } from './Utils/defaultValues'
+import ScrollControls from './Core/ScrollControls'
 
 export default function Experience() {
     const { loaded, debug } = useStore()
@@ -45,40 +39,21 @@ export default function Experience() {
     }, [scene, debug]);
 
     return (
-        <>
-            {/* Initialize debug mode based on URL hash */}
-            <DebugInitializer />
-
-            {/* Debug Tools - only render if debug mode is active */}
-            {debug?.active && debug?.showStats && <Stats />}
-            {debug?.active && debug?.showGui && <Debug />}
-            {debug?.active && debug?.showGui && <Camera />}
-            {debug?.active && debug?.showGui && <Controls />}
-            {debug?.active && debug?.showGui && <Lights />}
-
-            {/* Lights with default values from config */}
-            <ambientLight
-                ref={ambientLightRef}
-                intensity={getDefaultValue('lights.defaults.Ambient.0.intensity', 0.5)}
-            />
-            <directionalLight
-                ref={directionalLightRef}
-                position={[1, 2, 3]}
-                intensity={getDefaultValue('lights.defaults.Directional.0.intensity', 1.5)}
-                castShadow={getDefaultValue('lights.defaults.Directional.0.castShadow', true)}
-            />
-
-            {/* Controls */}
-            <OrbitControls makeDefault />
+        <ScrollControls>
+            {/* Lights */}
+            <ambientLight intensity={0.5} />
+            <directionalLight position={[1, 2, 3]} intensity={1.5} />
+            <color attach="background" args={['#1e1e2f']} />
+            <fog attach="fog" color="#1e1e2f" near={1} far={15} />
 
             {/* Objects */}
-            {loaded && <Cube />}
-
-            {/* Ground */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-                <planeGeometry args={[10, 10]} />
-                <shadowMaterial transparent opacity={0.4} />
-            </mesh>
-        </>
+            {loaded && (
+                <>
+                    <Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />
+                    <Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />
+                    <Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />
+                </>
+            )}
+        </ScrollControls>
     )
 }
