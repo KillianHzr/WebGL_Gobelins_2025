@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import useStore from './store/useStore'
+import useStore from './Store/useStore'
 import Cube from './World/Cube'
 
 export default function Experience() {

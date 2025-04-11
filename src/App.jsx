@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import Experience from './Experience'
-import useStore from './store/useStore'
+import useStore from './Store/useStore'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()

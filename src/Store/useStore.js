@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-// Central store for application state
+// Central Store for application state
 const useStore = create((set) => ({
     // Asset loading state
     loaded: false,
