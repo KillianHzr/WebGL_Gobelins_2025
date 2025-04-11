@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
 import { getProject, val } from '@theatre/core';
-import { SheetProvider, useCurrentSheet, editable as e } from '@theatre/r3f';
+import { SheetProvider, useCurrentSheet } from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
+import useStore from '../Store/useStore';
 
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
@@ -34,9 +34,8 @@ function CameraController({ children }) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
 
-    const cameraRef = useRef();
-
-    const { set, size, viewport, camera: defaultCamera } = useThree();
+    const { size, camera } = useThree();
+    const { debug, updateDebugConfig, getDebugConfigValue } = useStore();
 
     const interactions = [
         {
@@ -54,78 +53,43 @@ function CameraController({ children }) {
     ];
 
     useEffect(() => {
-        if (cameraRef.current) {
-            cameraRef.current.aspect = size.width / size.height;
-            cameraRef.current.updateProjectionMatrix();
-        }
-    }, [size]);
-
-    useEffect(() => {
-        if (cameraRef.current) {
-            cameraRef.current.aspect = size.width / size.height;
-            cameraRef.current.updateProjectionMatrix();
-
-            set({ camera: cameraRef.current });
-            console.log("Caméra Theatre.js définie comme caméra par défaut");
-        }
-        return () => {
-            if (defaultCamera) {
-                set({ camera: defaultCamera });
-            }
-        };
-    }, [set, defaultCamera, size]);
-
-    const checkInteractionTriggers = (position) => {
-        interactions.forEach(interaction => {
-            if (!interaction.isActive || interactionStatus[interaction.id] === 'done') {
-                return;
-            }
-
-            const allTriggersMatched = Object.entries(interaction.triggers).every(([axis, value]) => {
-                const currentValue = position[axis];
-                if (axis === 'z') {
-                    return currentValue <= value;
+        // Ajouter le contrôle de la caméra via Theatre.js
+        if (camera && sheet) {
+            // Créer un objet pour stocker les paramètres de la caméra
+            const obj = sheet.object('Camera', {
+                position: {
+                    x: camera.position.x,
+                    y: camera.position.y,
+                    z: camera.position.z
+                },
+                rotation: {
+                    x: camera.rotation.x,
+                    y: camera.rotation.y,
+                    z: camera.rotation.z
                 }
-                const tolerance = 0.1;
-                return Math.abs(currentValue - value) <= tolerance;
             });
 
-            if (allTriggersMatched && isScrollActive) {
-                setIsScrollActive(false);
-                setShowInteractionButton(true);
-                setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
-                console.log(`Interaction "${interaction.name}" déclenchée à la position:`, position);
-            }
-        });
-    };
-
-    const completeInteraction = () => {
-        const currentInteraction = interactions.find(
-            interaction => interactionStatus[interaction.id] === 'waiting'
-        );
-
-        if (currentInteraction) {
-            setInteractionStatus(prev => ({ ...prev, [currentInteraction.id]: 'done' }));
-            startCountdown();
-            console.log(`Interaction "${currentInteraction.name}" terminée`);
-        }
-    };
-
-    const startCountdown = () => {
-        setShowInteractionButton(false);
-        setCountdown(5);
-
-        const interval = setInterval(() => {
-            setCountdown(prevCount => {
-                if (prevCount <= 1) {
-                    clearInterval(interval);
-                    setIsScrollActive(true);
-                    return null;
+            // Écouter les modifications de Theatre.js et les appliquer à la caméra
+            const unsubscribe = obj.onValuesChange((values) => {
+                if (values.position) {
+                    camera.position.x = values.position.x;
+                    camera.position.y = values.position.y;
+                    camera.position.z = values.position.z;
                 }
-                return prevCount - 1;
+                if (values.rotation) {
+                    camera.rotation.x = values.rotation.x;
+                    camera.rotation.y = values.rotation.y;
+                    camera.rotation.z = values.rotation.z;
+                }
+                camera.updateProjectionMatrix();
             });
-        }, 1000);
-    };
+
+            // Nettoyer l'abonnement
+            return () => {
+                unsubscribe();
+            };
+        }
+    }, [camera, sheet]);
 
     useEffect(() => {
         sequenceLengthRef.current = val(sheet.sequence.pointer.length);
@@ -327,6 +291,58 @@ function CameraController({ children }) {
         };
     }, [sheet, isScrollActive]);
 
+    const checkInteractionTriggers = (position) => {
+        interactions.forEach(interaction => {
+            if (!interaction.isActive || interactionStatus[interaction.id] === 'done') {
+                return;
+            }
+
+            const allTriggersMatched = Object.entries(interaction.triggers).every(([axis, value]) => {
+                const currentValue = position[axis];
+                if (axis === 'z') {
+                    return currentValue <= value;
+                }
+                const tolerance = 0.1;
+                return Math.abs(currentValue - value) <= tolerance;
+            });
+
+            if (allTriggersMatched && isScrollActive) {
+                setIsScrollActive(false);
+                setShowInteractionButton(true);
+                setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
+                console.log(`Interaction "${interaction.name}" déclenchée à la position:`, position);
+            }
+        });
+    };
+
+    const completeInteraction = () => {
+        const currentInteraction = interactions.find(
+            interaction => interactionStatus[interaction.id] === 'waiting'
+        );
+
+        if (currentInteraction) {
+            setInteractionStatus(prev => ({ ...prev, [currentInteraction.id]: 'done' }));
+            startCountdown();
+            console.log(`Interaction "${currentInteraction.name}" terminée`);
+        }
+    };
+
+    const startCountdown = () => {
+        setShowInteractionButton(false);
+        setCountdown(5);
+
+        const interval = setInterval(() => {
+            setCountdown(prevCount => {
+                if (prevCount <= 1) {
+                    clearInterval(interval);
+                    setIsScrollActive(true);
+                    return null;
+                }
+                return prevCount - 1;
+            });
+        }, 1000);
+    };
+
     useEffect(() => {
         const debugIndicator = document.getElementById('scroll-debug-indicator');
         if (debugIndicator) {
@@ -368,17 +384,12 @@ function CameraController({ children }) {
     }, [countdown]);
 
     useFrame(() => {
-        if (!cameraRef.current) return;
-
-        if (cameraRef.current.aspect !== size.width / size.height) {
-            cameraRef.current.aspect = size.width / size.height;
-            cameraRef.current.updateProjectionMatrix();
-        }
+        if (!camera) return;
 
         const cameraPosition = {
-            x: cameraRef.current.position.x,
-            y: cameraRef.current.position.y,
-            z: cameraRef.current.position.z
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
         };
 
         setCurrentCameraZ(cameraPosition.z);
@@ -405,17 +416,6 @@ function CameraController({ children }) {
 
     return (
         <>
-            <e.perspectiveCamera
-                ref={cameraRef}
-                theatreKey="Camera"
-                makeDefault
-                position={[3, 2, 6]}
-                rotation={[0, 0, 0]}
-                fov={45}
-                near={0.1}
-                far={200}
-                aspect={size.width / size.height}
-            />
             {children}
         </>
     );

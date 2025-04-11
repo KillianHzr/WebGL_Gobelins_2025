@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react'
-import { useFrame } from '@react-three/fiber'
+import React, {useEffect, useRef, useState} from 'react'
+import {useFrame} from '@react-three/fiber'
 import * as THREE from 'three'
 import useStore from '../Store/useStore'
 import guiConfig from '../Config/guiConfig'
@@ -11,14 +11,12 @@ export default function Cube() {
     const [hovered, setHovered] = useState(false)
     const [active, setActive] = useState(false)
     const folderRef = useRef(null)
-    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore()
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore()
 
     // Animation state avec valeurs par défaut du config
     const animationRef = useRef({
-        enabled: getDebugConfigValue('objects.cube.animation.enabled.value',
-            getDefaultValue('objects.cube.animation.enabled', true)),
-        speed: getDebugConfigValue('objects.cube.animation.speed.value',
-            getDefaultValue('objects.cube.animation.speed', 0.5))
+        enabled: getDebugConfigValue('objects.cube.animation.enabled.value', getDefaultValue('objects.cube.animation.enabled', true)),
+        speed: getDebugConfigValue('objects.cube.animation.speed.value', getDefaultValue('objects.cube.animation.speed', 0.5))
     })
 
     // Appliquer les valeurs par défaut du cube au montage
@@ -91,30 +89,21 @@ export default function Cube() {
 
             // Get saved transform values or use defaults from config
             const savedPosition = {
-                x: getDebugConfigValue('objects.cube.position.x.value',
-                    getDefaultValue('objects.cube.position.x', mesh.position.x)),
-                y: getDebugConfigValue('objects.cube.position.y.value',
-                    getDefaultValue('objects.cube.position.y', mesh.position.y)),
-                z: getDebugConfigValue('objects.cube.position.z.value',
-                    getDefaultValue('objects.cube.position.z', mesh.position.z))
+                x: getDebugConfigValue('objects.cube.position.x.value', getDefaultValue('objects.cube.position.x', mesh.position.x)),
+                y: getDebugConfigValue('objects.cube.position.y.value', getDefaultValue('objects.cube.position.y', mesh.position.y)),
+                z: getDebugConfigValue('objects.cube.position.z.value', getDefaultValue('objects.cube.position.z', mesh.position.z))
             }
 
             const savedRotation = {
-                x: getDebugConfigValue('objects.cube.rotation.x.value',
-                    getDefaultValue('objects.cube.rotation.x', mesh.rotation.x)),
-                y: getDebugConfigValue('objects.cube.rotation.y.value',
-                    getDefaultValue('objects.cube.rotation.y', mesh.rotation.y)),
-                z: getDebugConfigValue('objects.cube.rotation.z.value',
-                    getDefaultValue('objects.cube.rotation.z', mesh.rotation.z))
+                x: getDebugConfigValue('objects.cube.rotation.x.value', getDefaultValue('objects.cube.rotation.x', mesh.rotation.x)),
+                y: getDebugConfigValue('objects.cube.rotation.y.value', getDefaultValue('objects.cube.rotation.y', mesh.rotation.y)),
+                z: getDebugConfigValue('objects.cube.rotation.z.value', getDefaultValue('objects.cube.rotation.z', mesh.rotation.z))
             }
 
             const savedScale = {
-                x: getDebugConfigValue('objects.cube.scale.x.value',
-                    getDefaultValue('objects.cube.scale.x', mesh.scale.x)),
-                y: getDebugConfigValue('objects.cube.scale.y.value',
-                    getDefaultValue('objects.cube.scale.y', mesh.scale.y)),
-                z: getDebugConfigValue('objects.cube.scale.z.value',
-                    getDefaultValue('objects.cube.scale.z', mesh.scale.z))
+                x: getDebugConfigValue('objects.cube.scale.x.value', getDefaultValue('objects.cube.scale.x', mesh.scale.x)),
+                y: getDebugConfigValue('objects.cube.scale.y.value', getDefaultValue('objects.cube.scale.y', mesh.scale.y)),
+                z: getDebugConfigValue('objects.cube.scale.z.value', getDefaultValue('objects.cube.scale.z', mesh.scale.z))
             }
 
             // Apply saved transforms from GUI if they exist, or from defaults
@@ -125,29 +114,17 @@ export default function Cube() {
             // Position controls
             const posFolder = cubeFolder.addFolder('Position')
 
-            posFolder.add(mesh.position, 'x',
-                guiConfig.objects.cube.position.x.min,
-                guiConfig.objects.cube.position.x.max,
-                guiConfig.objects.cube.position.x.step
-            ).name(guiConfig.objects.cube.position.x.name)
+            posFolder.add(mesh.position, 'x', guiConfig.objects.cube.position.x.min, guiConfig.objects.cube.position.x.max, guiConfig.objects.cube.position.x.step).name(guiConfig.objects.cube.position.x.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.position.x.value', value)
                 })
 
-            posFolder.add(mesh.position, 'y',
-                guiConfig.objects.cube.position.y.min,
-                guiConfig.objects.cube.position.y.max,
-                guiConfig.objects.cube.position.y.step
-            ).name(guiConfig.objects.cube.position.y.name)
+            posFolder.add(mesh.position, 'y', guiConfig.objects.cube.position.y.min, guiConfig.objects.cube.position.y.max, guiConfig.objects.cube.position.y.step).name(guiConfig.objects.cube.position.y.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.position.y.value', value)
                 })
 
-            posFolder.add(mesh.position, 'z',
-                guiConfig.objects.cube.position.z.min,
-                guiConfig.objects.cube.position.z.max,
-                guiConfig.objects.cube.position.z.step
-            ).name(guiConfig.objects.cube.position.z.name)
+            posFolder.add(mesh.position, 'z', guiConfig.objects.cube.position.z.min, guiConfig.objects.cube.position.z.max, guiConfig.objects.cube.position.z.step).name(guiConfig.objects.cube.position.z.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.position.z.value', value)
                 })
@@ -155,29 +132,17 @@ export default function Cube() {
             // Rotation controls
             const rotFolder = cubeFolder.addFolder('Rotation')
 
-            rotFolder.add(mesh.rotation, 'x',
-                guiConfig.objects.cube.rotation.x.min,
-                guiConfig.objects.cube.rotation.x.max,
-                guiConfig.objects.cube.rotation.x.step
-            ).name(guiConfig.objects.cube.rotation.x.name)
+            rotFolder.add(mesh.rotation, 'x', guiConfig.objects.cube.rotation.x.min, guiConfig.objects.cube.rotation.x.max, guiConfig.objects.cube.rotation.x.step).name(guiConfig.objects.cube.rotation.x.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.rotation.x.value', value)
                 })
 
-            rotFolder.add(mesh.rotation, 'y',
-                guiConfig.objects.cube.rotation.y.min,
-                guiConfig.objects.cube.rotation.y.max,
-                guiConfig.objects.cube.rotation.y.step
-            ).name(guiConfig.objects.cube.rotation.y.name)
+            rotFolder.add(mesh.rotation, 'y', guiConfig.objects.cube.rotation.y.min, guiConfig.objects.cube.rotation.y.max, guiConfig.objects.cube.rotation.y.step).name(guiConfig.objects.cube.rotation.y.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.rotation.y.value', value)
                 })
 
-            rotFolder.add(mesh.rotation, 'z',
-                guiConfig.objects.cube.rotation.z.min,
-                guiConfig.objects.cube.rotation.z.max,
-                guiConfig.objects.cube.rotation.z.step
-            ).name(guiConfig.objects.cube.rotation.z.name)
+            rotFolder.add(mesh.rotation, 'z', guiConfig.objects.cube.rotation.z.min, guiConfig.objects.cube.rotation.z.max, guiConfig.objects.cube.rotation.z.step).name(guiConfig.objects.cube.rotation.z.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.rotation.z.value', value)
                 })
@@ -185,29 +150,17 @@ export default function Cube() {
             // Scale controls
             const scaleFolder = cubeFolder.addFolder('Scale')
 
-            scaleFolder.add(mesh.scale, 'x',
-                guiConfig.objects.cube.scale.x.min,
-                guiConfig.objects.cube.scale.x.max,
-                guiConfig.objects.cube.scale.x.step
-            ).name(guiConfig.objects.cube.scale.x.name)
+            scaleFolder.add(mesh.scale, 'x', guiConfig.objects.cube.scale.x.min, guiConfig.objects.cube.scale.x.max, guiConfig.objects.cube.scale.x.step).name(guiConfig.objects.cube.scale.x.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.scale.x.value', value)
                 })
 
-            scaleFolder.add(mesh.scale, 'y',
-                guiConfig.objects.cube.scale.y.min,
-                guiConfig.objects.cube.scale.y.max,
-                guiConfig.objects.cube.scale.y.step
-            ).name(guiConfig.objects.cube.scale.y.name)
+            scaleFolder.add(mesh.scale, 'y', guiConfig.objects.cube.scale.y.min, guiConfig.objects.cube.scale.y.max, guiConfig.objects.cube.scale.y.step).name(guiConfig.objects.cube.scale.y.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.scale.y.value', value)
                 })
 
-            scaleFolder.add(mesh.scale, 'z',
-                guiConfig.objects.cube.scale.z.min,
-                guiConfig.objects.cube.scale.z.max,
-                guiConfig.objects.cube.scale.z.step
-            ).name(guiConfig.objects.cube.scale.z.name)
+            scaleFolder.add(mesh.scale, 'z', guiConfig.objects.cube.scale.z.min, guiConfig.objects.cube.scale.z.max, guiConfig.objects.cube.scale.z.step).name(guiConfig.objects.cube.scale.z.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.scale.z.value', value)
                 })
@@ -252,21 +205,13 @@ export default function Cube() {
                 })
 
             // Roughness control
-            materialFolder.add(material, 'roughness',
-                guiConfig.objects.cube.material.roughness.min,
-                guiConfig.objects.cube.material.roughness.max,
-                guiConfig.objects.cube.material.roughness.step
-            ).name(guiConfig.objects.cube.material.roughness.name)
+            materialFolder.add(material, 'roughness', guiConfig.objects.cube.material.roughness.min, guiConfig.objects.cube.material.roughness.max, guiConfig.objects.cube.material.roughness.step).name(guiConfig.objects.cube.material.roughness.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.material.roughness.value', value)
                 })
 
             // Metalness control
-            materialFolder.add(material, 'metalness',
-                guiConfig.objects.cube.material.metalness.min,
-                guiConfig.objects.cube.material.metalness.max,
-                guiConfig.objects.cube.material.metalness.step
-            ).name(guiConfig.objects.cube.material.metalness.name)
+            materialFolder.add(material, 'metalness', guiConfig.objects.cube.material.metalness.min, guiConfig.objects.cube.material.metalness.max, guiConfig.objects.cube.material.metalness.step).name(guiConfig.objects.cube.material.metalness.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.material.metalness.value', value)
                 })
@@ -280,11 +225,7 @@ export default function Cube() {
                     updateDebugConfig('objects.cube.animation.enabled.value', value)
                 })
 
-            animFolder.add(animationRef.current, 'speed',
-                guiConfig.objects.cube.animation.speed.min,
-                guiConfig.objects.cube.animation.speed.max,
-                guiConfig.objects.cube.animation.speed.step
-            ).name(guiConfig.objects.cube.animation.speed.name)
+            animFolder.add(animationRef.current, 'speed', guiConfig.objects.cube.animation.speed.min, guiConfig.objects.cube.animation.speed.max, guiConfig.objects.cube.animation.speed.step).name(guiConfig.objects.cube.animation.speed.name)
                 .onChange(value => {
                     updateDebugConfig('objects.cube.animation.speed.value', value)
                 })
@@ -319,45 +260,44 @@ export default function Cube() {
 
     // Animation
     useFrame((state, delta) => {
-        if (cubeRef.current && animationRef.current.enabled) {
-            cubeRef.current.rotation.y += delta * animationRef.current.speed
-
-            // Update the stored rotation in the config (only occasionally to avoid too many updates)
-            if (Math.random() < 0.01 && debug?.active) {
-                updateDebugConfig('objects.cube.rotation.y.value', cubeRef.current.rotation.y)
-            }
-        if (cubeRef.current) {
-            cubeRef.current.rotation.y += delta * (active ? 1.5 : 0.5)
-            cubeRef.current.rotation.x += delta * (active ? 0.5 : 0.2)
-
-            if (hovered && !active) {
-                cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale * 1.2, 0.1)
-                cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale * 1.2, 0.1)
-                cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale * 1.2, 0.1)
-            } else if (!hovered && !active) {
-                cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale, 0.1)
-                cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale, 0.1)
-                cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale, 0.1)
-            }
-        }
+        // if (cubeRef.current && animationRef.current.enabled) {
+        //     cubeRef.current.rotation.y += delta * animationRef.current.speed
+        //
+        //     // Update the stored rotation in the config (only occasionally to avoid too many updates)
+        //     if (Math.random() < 0.01 && debug?.active) {
+        //         updateDebugConfig('objects.cube.rotation.y.value', cubeRef.current.rotation.y)
+        //     }
+        //     if (cubeRef.current) {
+        //         cubeRef.current.rotation.y += delta * (active ? 1.5 : 0.5)
+        //         cubeRef.current.rotation.x += delta * (active ? 0.5 : 0.2)
+        //
+        //         if (hovered && !active) {
+        //             cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale * 1.2, 0.1)
+        //             cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale * 1.2, 0.1)
+        //             cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale * 1.2, 0.1)
+        //         } else if (!hovered && !active) {
+        //             cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale, 0.1)
+        //             cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale, 0.1)
+        //             cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale, 0.1)
+        //         }
+        //     }
+        // }
     })
 
-    return (
-        <mesh
-            ref={cubeRef}
-            position={position}
-            scale={scale}
-            onClick={() => setActive(!active)}
-            onPointerOver={() => setHovered(true)}
-            onPointerOut={() => setHovered(false)}
-            castShadow
-        >
-            <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial
-                color={active ? '#ffffff' : color}
-                metalness={active ? 0.8 : 0.3}
-                roughness={active ? 0.2 : 0.7}
-            />
-        </mesh>
-    )
+    return (<mesh
+        ref={cubeRef}
+        position={[-2, 0, 0]}
+        scale={ [1, 1, 1] }
+        onClick={() => setActive(!active)}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        castShadow
+    >
+        <boxGeometry args={[1, 1, 1]}/>
+        <meshStandardMaterial
+            color={active ? '#ffffff' : '#ff5533'}
+            metalness={active ? 0.8 : 0.3}
+            roughness={active ? 0.2 : 0.7}
+        />
+    </mesh>)
 }

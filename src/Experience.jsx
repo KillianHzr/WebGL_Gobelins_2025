@@ -1,13 +1,20 @@
-import React, { useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import React, {useEffect, useRef} from 'react'
+import {useFrame, useThree} from '@react-three/fiber'
+import {OrbitControls} from '@react-three/drei'
 import useStore from './Store/useStore'
 import Cube from './World/Cube'
 import ScrollControls from './Core/ScrollControls'
+import {initializeLight} from "./Utils/defaultValues.js";
+import DebugInitializer from "./Utils/DebugInitializer.jsx";
+import Debug from "./Utils/Debug.jsx";
+import Camera from "./Core/Camera.jsx";
+import Controls from "./Core/Controls.jsx";
+import Lights from "./Core/Lights.jsx";
+import Stats from "./Utils/Stats.jsx";
 
 export default function Experience() {
-    const { loaded, debug } = useStore()
-    const { scene } = useThree()
+    const {loaded, debug} = useStore()
+    const {scene} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
 
@@ -38,22 +45,33 @@ export default function Experience() {
         }
     }, [scene, debug]);
 
-    return (
+    return (<>
+
+        {/* Initialize debug mode based on URL hash */}
+        <DebugInitializer/>
+
+        {/* Debug Tools - only render if debug mode is active */}
+        {debug?.active && debug?.showStats && <Stats/>}
+        {debug?.active && debug?.showStats && <Controls/>}
+        {debug?.active && debug?.showGui && <Debug/>}
+        {debug?.active && debug?.showGui && <Camera/>}
+        {debug?.active && debug?.showGui && <Controls/>}
+        {debug?.active && debug?.showGui && <Lights/>}
+
         <ScrollControls>
             {/* Lights */}
-            <ambientLight intensity={0.5} />
-            <directionalLight position={[1, 2, 3]} intensity={1.5} />
-            <color attach="background" args={['#1e1e2f']} />
-            <fog attach="fog" color="#1e1e2f" near={1} far={15} />
+            <ambientLight intensity={0.5}/>
+            <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+            <color attach="background" args={['#1e1e2f']}/>
+            <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
 
             {/* Objects */}
-            {loaded && (
-                <>
-                    <Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />
-                    <Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />
-                    <Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />
-                </>
-            )}
+            {loaded && (<>
+                <Cube/>
+                {/*<Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />*/}
+                {/*<Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />*/}
+                {/*<Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />*/}
+            </>)}
         </ScrollControls>
-    )
+    </>)
 }

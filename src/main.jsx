@@ -7,8 +7,8 @@ import studio from '@theatre/studio'
 import extension from '@theatre/r3f/dist/extension'
 
 // Activer Theatre.js Studio en mode développement
-// studio.extend(extension)
-// studio.initialize()
+studio.extend(extension)
+studio.initialize()
 
 document.addEventListener('wheel', (e) => {
     if (!e.target.closest('.theatre-studio-root')) {
