@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { WebGLRenderer } from "three";
 import App from "../App";
-import EventEmitter from "../Utils/EventEmitter";
+import EventEmitter from "../Utils/EventEmitter.jsx";
 
 export default function Renderer() {
     const appRef = useRef(null);
