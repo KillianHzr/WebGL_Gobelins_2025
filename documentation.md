@@ -73,20 +73,67 @@ technologies.
 └── README.md         # Documentation d'introduction
 ```
 
-## Fonctionnalités implémentées
+## Principales Features de Développement
 
-*Note: Cette section sera mise à jour au fur et à mesure que les fonctionnalités seront développées.*
+### 1. Système de Débogage Interactif
 
-| Fonctionnalité | Description | Statut | Emplacement |
-|----------------|-------------|--------|-------------|
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
-|                |             |        |             |
+**Fichiers Clés :**
+- `src/Utils/DebugInitializer.jsx`: Point d'entrée pour l'initialisation du mode debug
+- `src/Store/useStore.js`: Gestion centralisée de l'état de débogage
+- `src/Config/guiConfig.js`: Configuration des contrôles de debug
+- Composants spécifiques de debug : `Camera.jsx`, `Lights.jsx`, `Cube.jsx`, `Debug.jsx`
 
+**Interconnexion :**
+- `useStore` gère l'état global du debug via un hook Zustand
+- `DebugInitializer` crée l'instance GUI basée sur l'état du debug
+- Les composants individuels (`Camera`, `Lights`, etc.) utilisent `useStore` pour accéder et mettre à jour les configurations de debug
+- Le mode debug s'active via le hash URL (`#debug`)
 
+### 2. Configuration Dynamique et Persistance
+
+**Fichiers Clés :**
+- `src/Utils/defaultValues.js`: Utilitaires pour extraire et appliquer des valeurs par défaut
+- `src/Store/useStore.js`: Méthodes pour sauvegarder et charger des configurations
+- `src/Utils/DebugInitializer.jsx`: Fonctionnalités d'export/import de configuration
+
+**Interconnexion :**
+- `defaultValues.js` fournit des méthodes pour initialiser des objets avec des configurations par défaut
+- `useStore` permet de stocker et récupérer des configurations dynamiques
+- `DebugInitializer` offre des fonctions pour exporter et importer des configurations complètes
+
+### 3. Système de Statistiques et Métriques de Performance
+
+**Fichiers Clés :**
+- `src/Utils/Stats.jsx`: Composant de rendu des statistiques de performance
+- `src/Store/useStore.js`: Gestion de l'état d'affichage des stats
+- `experience.jsx`: Intégration conditionnelle des stats de debug
+
+**Interconnexion :**
+- `useStore` contrôle l'affichage des statistiques via le mode debug
+- `Stats.jsx` récupère les informations de rendu via `useThree()`
+- Le composant `Experience` rend conditionnellement les stats basé sur l'état de debug
+
+## Flux de Données et Interactions
+
+1. L'utilisateur active le mode debug via le hash URL
+2. `useStore` met à jour l'état global de debug
+3. `DebugInitializer` crée l'interface GUI
+4. Les composants individuels (`Camera`, `Lights`, `Cube`) s'abonnent à cet état
+5. Chaque composant peut modifier et persister ses propres configurations
+6. Les valeurs par défaut sont toujours disponibles via `defaultValues.js`
+
+## Points Clés de Conception
+
+- **Découplage :** Chaque composant gère ses propres contrôles de debug
+- **Flexibilité :** Configuration facilement exportable et importable
+- **Performance :** Rendu conditionnel des outils de debug
+- **Extensibilité :** Ajout facile de nouveaux contrôles et configurations
+
+## Fonctionnalités Implémentées
+
+| Fonctionnalité        | Description                                       | Statut     | Emplacement                                                                     |
+|-----------------------|---------------------------------------------------|------------|---------------------------------------------------------------------------------|
+| Setup Caméra          | Configuration initiale de la caméra 3D            | Implémenté | `src/Core/Camera.jsx`                                                           |
+| Setup GUI de Debug    | Interface de débogage pour le développement       | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js` |
+| Analyses de Métriques | Système de suivi des performances et statistiques | Implémenté | `src/Utils/Stats.js`                                                            |
 
