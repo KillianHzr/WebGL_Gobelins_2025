@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import useStore from '../Store/useStore';
+import guiConfig from '../Config/guiConfig';
 
 export default function Controls() {
     const { gl } = useThree();
-    const { debug, gui } = useStore();
+    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
     const folderRef = useRef(null);
 
     useEffect(() => {
@@ -17,39 +18,96 @@ export default function Controls() {
                 const orbitControls = controls[0];
                 console.log("Setting up controls debug UI", orbitControls);
 
+                // Apply saved values if they exist
+                const config = guiConfig.controls;
+                const basicConfig = config.basic;
+                const limitsConfig = config.limits;
+
                 // Create controls folder
-                const controlsFolder = gui.addFolder('Controls');
+                const controlsFolder = gui.addFolder(config.folder);
                 folderRef.current = controlsFolder;
 
                 // Basic Controls settings
-                controlsFolder.add(orbitControls, 'enableDamping').name('Damping');
-                controlsFolder.add(orbitControls, 'dampingFactor', 0, 1, 0.01).name('Damping Factor');
-                controlsFolder.add(orbitControls, 'enableZoom').name('Allow Zoom');
-                controlsFolder.add(orbitControls, 'zoomSpeed', 0.1, 5, 0.1).name('Zoom Speed');
-                controlsFolder.add(orbitControls, 'enableRotate').name('Allow Rotate');
-                controlsFolder.add(orbitControls, 'rotateSpeed', 0.1, 5, 0.1).name('Rotate Speed');
-                controlsFolder.add(orbitControls, 'enablePan').name('Allow Pan');
-                controlsFolder.add(orbitControls, 'panSpeed', 0.1, 5, 0.1).name('Pan Speed');
+                // Apply saved values for basic controls
+                Object.keys(basicConfig).forEach(key => {
+                    if (orbitControls[key] !== undefined) {
+                        const savedValue = getDebugConfigValue(`controls.basic.${key}.value`, orbitControls[key]);
+                        orbitControls[key] = savedValue;
+
+                        // Create control
+                        const control = basicConfig[key].min !== undefined ?
+                            controlsFolder.add(
+                                orbitControls,
+                                key,
+                                basicConfig[key].min,
+                                basicConfig[key].max,
+                                basicConfig[key].step
+                            ).name(basicConfig[key].name) :
+                            controlsFolder.add(orbitControls, key).name(basicConfig[key].name);
+
+                        // Update config on change
+                        control.onChange(value => {
+                            updateDebugConfig(`controls.basic.${key}.value`, value);
+                        });
+                    }
+                });
 
                 // Auto-rotation
-                const rotationFolder = controlsFolder.addFolder('Auto Rotation');
-                rotationFolder.add(orbitControls, 'autoRotate').name('Enable');
-                rotationFolder.add(orbitControls, 'autoRotateSpeed', -10, 10, 0.1).name('Speed');
+                const rotationFolder = controlsFolder.addFolder(config.autoRotation.folder);
+
+                // Apply saved auto-rotation settings
+                const savedAutoRotate = getDebugConfigValue('controls.autoRotation.autoRotate.value', orbitControls.autoRotate);
+                const savedAutoRotateSpeed = getDebugConfigValue('controls.autoRotation.autoRotateSpeed.value', orbitControls.autoRotateSpeed);
+
+                orbitControls.autoRotate = savedAutoRotate;
+                orbitControls.autoRotateSpeed = savedAutoRotateSpeed;
+
+                // Create auto-rotation controls
+                const autoRotateControl = rotationFolder.add(
+                    orbitControls,
+                    'autoRotate'
+                ).name(config.autoRotation.autoRotate.name);
+
+                autoRotateControl.onChange(value => {
+                    updateDebugConfig('controls.autoRotation.autoRotate.value', value);
+                });
+
+                const autoRotateSpeedControl = rotationFolder.add(
+                    orbitControls,
+                    'autoRotateSpeed',
+                    config.autoRotation.autoRotateSpeed.min,
+                    config.autoRotation.autoRotateSpeed.max,
+                    config.autoRotation.autoRotateSpeed.step
+                ).name(config.autoRotation.autoRotateSpeed.name);
+
+                autoRotateSpeedControl.onChange(value => {
+                    updateDebugConfig('controls.autoRotation.autoRotateSpeed.value', value);
+                });
 
                 // Limits
-                const limitsFolder = controlsFolder.addFolder('Limits');
+                const limitsFolder = controlsFolder.addFolder(config.limits.folder);
 
-                // Min/Max Polar Angle (vertical rotation limits)
-                limitsFolder.add(orbitControls, 'minPolarAngle', 0, Math.PI, 0.01).name('Min Vertical');
-                limitsFolder.add(orbitControls, 'maxPolarAngle', 0, Math.PI, 0.01).name('Max Vertical');
+                // Apply saved limits
+                Object.keys(limitsConfig).forEach(key => {
+                    if (orbitControls[key] !== undefined) {
+                        const savedValue = getDebugConfigValue(`controls.limits.${key}.value`, orbitControls[key]);
+                        orbitControls[key] = savedValue;
 
-                // Min/Max Azimuth Angle (horizontal rotation limits)
-                limitsFolder.add(orbitControls, 'minAzimuthAngle', -Math.PI, Math.PI, 0.01).name('Min Horizontal');
-                limitsFolder.add(orbitControls, 'maxAzimuthAngle', -Math.PI, Math.PI, 0.01).name('Max Horizontal');
+                        // Create control
+                        const control = limitsFolder.add(
+                            orbitControls,
+                            key,
+                            limitsConfig[key].min,
+                            limitsConfig[key].max,
+                            limitsConfig[key].step
+                        ).name(limitsConfig[key].name);
 
-                // Min/Max Distance (zoom limits)
-                limitsFolder.add(orbitControls, 'minDistance', 0, 20, 0.1).name('Min Distance');
-                limitsFolder.add(orbitControls, 'maxDistance', 0, 1000, 1).name('Max Distance');
+                        // Update config on change
+                        control.onChange(value => {
+                            updateDebugConfig(`controls.limits.${key}.value`, value);
+                        });
+                    }
+                });
             }
         }
 
@@ -60,7 +118,7 @@ export default function Controls() {
                 folderRef.current = null;
             }
         };
-    }, [debug, gui, gl]);
+    }, [debug, gui, gl, updateDebugConfig, getDebugConfigValue]);
 
     return null;
 }

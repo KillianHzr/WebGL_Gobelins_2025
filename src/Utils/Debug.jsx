@@ -1,85 +1,141 @@
-import React, { useEffect, useRef } from 'react';
+import React, {useEffect, useRef} from 'react';
 import * as THREE from 'three';
-import { useThree } from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
+import guiConfig from '../Config/guiConfig';
 
 const Debug = () => {
-    const { gl, scene } = useThree();
-    const { debug, gui } = useStore();
+    const {gl, scene} = useThree();
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const foldersRef = useRef([]);
 
     useEffect(() => {
         if (!debug?.active || !debug?.showGui || !gui) return;
 
         // Add scene controls
-        const sceneFolder = gui.addFolder('Scene');
+        const sceneFolder = gui.addFolder(guiConfig.scene.folder);
+        if (guiConfig.gui.closeFolders) {
+            sceneFolder.close();
+        }
+        // Get saved values or use defaults
+        const savedBackground = getDebugConfigValue('scene.background.value', guiConfig.scene.background.color);
+        const savedFogEnabled = getDebugConfigValue('scene.fog.enabled.value', false);
+        const savedFogColor = getDebugConfigValue('scene.fog.color.value', guiConfig.scene.fog.color.color);
+        const savedFogNear = getDebugConfigValue('scene.fog.near.value', guiConfig.scene.fog.near.min);
+        const savedFogFar = getDebugConfigValue('scene.fog.far.value', guiConfig.scene.fog.far.min);
+
+        // Apply saved values
+        scene.background = new THREE.Color(savedBackground);
+        if (savedFogEnabled) {
+            scene.fog = new THREE.Fog(savedFogColor, savedFogNear, savedFogFar);
+        }
+
         const sceneSettings = {
-            background: '#000000',
-            fogEnabled: false,
-            fogColor: '#ffffff',
-            fogNear: 1,
-            fogFar: 10
+            background: savedBackground,
+            fogEnabled: savedFogEnabled,
+            fogColor: savedFogColor,
+            fogNear: savedFogNear,
+            fogFar: savedFogFar
         };
 
-        sceneFolder.addColor(sceneSettings, 'background').onChange(value => {
+        // Background control
+        const bgControl = sceneFolder.addColor(sceneSettings, 'background')
+            .name(guiConfig.scene.background.name);
+
+        bgControl.onChange(value => {
             scene.background = new THREE.Color(value);
+            updateDebugConfig('scene.background.value', value);
         });
 
-        sceneFolder.add(sceneSettings, 'fogEnabled').name('fog').onChange(value => {
+        // Fog enabled control
+        const fogEnabledControl = sceneFolder.add(sceneSettings, 'fogEnabled')
+            .name(guiConfig.scene.fog.enabled.name);
+
+        fogEnabledControl.onChange(value => {
             if (value) {
-                scene.fog = new THREE.Fog(
-                    sceneSettings.fogColor,
-                    sceneSettings.fogNear,
-                    sceneSettings.fogFar
-                );
+                scene.fog = new THREE.Fog(sceneSettings.fogColor, sceneSettings.fogNear, sceneSettings.fogFar);
             } else {
                 scene.fog = null;
             }
+            updateDebugConfig('scene.fog.enabled.value', value);
         });
 
-        sceneFolder.addColor(sceneSettings, 'fogColor').onChange(value => {
+        // Fog color control
+        const fogColorControl = sceneFolder.addColor(sceneSettings, 'fogColor')
+            .name(guiConfig.scene.fog.color.name);
+
+        fogColorControl.onChange(value => {
             if (scene.fog) {
                 scene.fog.color = new THREE.Color(value);
             }
+            updateDebugConfig('scene.fog.color.value', value);
         });
 
-        sceneFolder.add(sceneSettings, 'fogNear', 0, 10).onChange(value => {
+        // Fog near control
+        const fogNearControl = sceneFolder.add(sceneSettings, 'fogNear', guiConfig.scene.fog.near.min, guiConfig.scene.fog.near.max, guiConfig.scene.fog.near.step).name(guiConfig.scene.fog.near.name);
+
+        fogNearControl.onChange(value => {
             if (scene.fog) {
                 scene.fog.near = value;
             }
+            updateDebugConfig('scene.fog.near.value', value);
         });
 
-        sceneFolder.add(sceneSettings, 'fogFar', 0, 50).onChange(value => {
+        // Fog far control
+        const fogFarControl = sceneFolder.add(sceneSettings, 'fogFar', guiConfig.scene.fog.far.min, guiConfig.scene.fog.far.max, guiConfig.scene.fog.far.step).name(guiConfig.scene.fog.far.name);
+
+        fogFarControl.onChange(value => {
             if (scene.fog) {
                 scene.fog.far = value;
             }
+            updateDebugConfig('scene.fog.far.value', value);
         });
 
         // Add renderer controls
-        const rendererFolder = gui.addFolder('Renderer');
+        const rendererFolder = gui.addFolder(guiConfig.renderer.folder);
+        if (guiConfig.gui.closeFolders) {
+            rendererFolder.close();
+
+        }
+
+        // Get saved renderer values
+        const savedShadowMap = getDebugConfigValue('renderer.shadowMap.value', true);
+        const savedToneMapping = getDebugConfigValue('renderer.toneMapping.value', guiConfig.renderer.toneMapping.default);
+        const savedExposure = getDebugConfigValue('renderer.toneMappingExposure.value', 1);
+
+        // Apply saved values
+        gl.shadowMap.enabled = savedShadowMap;
+        gl.toneMapping = savedToneMapping;
+        gl.toneMappingExposure = savedExposure;
+
         const rendererSettings = {
-            shadowMap: true,
-            toneMapping: 4, // ACESFilmic by default
-            toneMappingExposure: 1
+            shadowMap: savedShadowMap, toneMapping: savedToneMapping, toneMappingExposure: savedExposure
         };
 
-        rendererFolder.add(rendererSettings, 'shadowMap').onChange(value => {
+        // Shadow map control
+        const shadowMapControl = rendererFolder.add(rendererSettings, 'shadowMap')
+            .name(guiConfig.renderer.shadowMap.name);
+
+        shadowMapControl.onChange(value => {
             gl.shadowMap.enabled = value;
             gl.shadowMap.needsUpdate = true;
+            updateDebugConfig('renderer.shadowMap.value', value);
         });
 
-        rendererFolder.add(rendererSettings, 'toneMapping', {
-            'None': THREE.NoToneMapping,
-            'Linear': THREE.LinearToneMapping,
-            'Reinhard': THREE.ReinhardToneMapping,
-            'Cineon': THREE.CineonToneMapping,
-            'ACESFilmic': THREE.ACESFilmicToneMapping
-        }).onChange(value => {
+        // Tone mapping control
+        const toneMappingControl = rendererFolder.add(rendererSettings, 'toneMapping', guiConfig.renderer.toneMapping.options).name(guiConfig.renderer.toneMapping.name);
+
+        toneMappingControl.onChange(value => {
             gl.toneMapping = Number(value);
+            updateDebugConfig('renderer.toneMapping.value', Number(value));
         });
 
-        rendererFolder.add(rendererSettings, 'toneMappingExposure', 0, 5, 0.01).onChange(value => {
+        // Exposure control
+        const exposureControl = rendererFolder.add(rendererSettings, 'toneMappingExposure', guiConfig.renderer.toneMappingExposure.min, guiConfig.renderer.toneMappingExposure.max, guiConfig.renderer.toneMappingExposure.step).name(guiConfig.renderer.toneMappingExposure.name);
+
+        exposureControl.onChange(value => {
             gl.toneMappingExposure = value;
+            updateDebugConfig('renderer.toneMappingExposure.value', value);
         });
 
         // Store folders for cleanup
@@ -95,7 +151,7 @@ const Debug = () => {
                 });
             }
         };
-    }, [gl, scene, debug, gui]);
+    }, [gl, scene, debug, gui, updateDebugConfig, getDebugConfigValue]);
 
     return null; // This component doesn't render any React elements
 };
