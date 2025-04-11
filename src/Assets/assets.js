@@ -1,11 +1,14 @@
+// Structure d'un asset:
 // {
-//     name: '',
-//     type: '',
-//     path: '',
-//     license: '',
-//     author: '',
-//     url: ''
+//     name: '',    // Identifiant unique
+//     type: '',    // Type d'asset: texture, exr, hdr, fbx, gltf, material
+//     path: '',    // Chemin vers le fichier
+//     license: '', // Information sur la licence
+//     author: '',  // Auteur de l'asset
+//     url: ''      // URL source
 // }
 
-export default [
-]
+// Définition des assets à charger
+const assets = [];
+
+export default assets;

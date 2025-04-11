@@ -1,21 +1,37 @@
-*
-{
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
 
 html,
-body
-{
+body,
+#root {
+    width: 100%;
+    height: 100%;
     overflow: hidden;
 }
 
-.webgl
-{
-    position: fixed;
-    top: 0;
-    left: 0;
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Style pour la barre de chargement si nécessaire */
+.loading-bar {
+    position: absolute;
+    top: 50%;
     width: 100%;
-    height: 100%;
-    outline: none;
+    height: 2px;
+    background: #ffffff;
+    transform-origin: top left;
+    transform: scaleX(0);
+    transition: transform 0.5s;
+    z-index: 10;
+}
+
+.loading-bar.ended {
+    transform: scaleX(0);
+    transform-origin: top right;
+    transition: transform 1.5s ease-in-out;
 }
