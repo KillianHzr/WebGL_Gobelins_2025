@@ -48,6 +48,7 @@ technologies.
 │   ├── Hooks/        # Hooks React personnalisés
 │   │   ├── useAnimationLoop.js  # Animation loop
 │   │   ├── useCanvasSize.js     # Gestion taille du canvas
+│   │   ├── useDragGesture.js     # Détection de drag sur objets
 │   │   ├── useObjectClick.js    # Détection de clic sur objets
 │   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
@@ -147,6 +148,7 @@ technologies.
 | Analyses de Métriques           | Système de suivi des performances et statistiques                         | Implémenté | `src/Utils/Stats.js`                                                                                                 |
 | Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
 | Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
+| Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 
 ## Fonctionnement des features de documentation
 
@@ -196,3 +198,22 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
     * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
+### 6. Système de Drag Gestures Personnalisés
+
+* Implémenté dans `useDragGesture.js`
+* Hook personnalisé pour gérer les interactions de glissement (drag) sur des objets 3D
+* Fonctionnalités avancées de détection de gestes :
+  * Configuration flexible de la direction du drag (horizontal, vertical, directionnel)
+  * Détection précise basée sur la distance minimale et l'orientation
+  * Support des interactions sur écrans tactiles et souris
+  * Gestion complète du cycle de vie du drag :
+    * `onDragStart` : Déclenché au début du glissement
+    * `onDragEnd` : Appelé à la fin du mouvement, réussi ou annulé
+    * `onDragSuccess` : Spécifiquement pour les drags qui respectent les critères
+* Paramètres configurables :
+  * `minDistance` : Distance minimale pour déclencher un drag
+  * `direction` : Restriction de l'orientation du glissement
+  * `debug` : Mode de débogage avec logs détaillés
+* Intégration avec le système de raycasting pour s'assurer que le drag commence sur l'objet ciblé
+* Utilisé dans `Cube.jsx` pour créer des interactions interactives dans l'expérience
+* Permet de créer des interactions utilisateur complexes et personnalisées dans un environnement 3D
