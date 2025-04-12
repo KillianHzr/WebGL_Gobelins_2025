@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
@@ -9,11 +9,45 @@ import guiConfig from '../Config/guiConfig';
  * related to debug mode initialization
  */
 const DebugInitializer = () => {
-    const { debug, setGui, setDebugConfig } = useStore();
+    const { debug, setDebug, setGui, setDebugConfig } = useStore();
+    const initializedRef = useRef(false);
+
+    // Fonction utilitaire pour manipuler l'interface Theatre.js
+    // sans causer de re-rendu des composants React
+    const toggleTheatreUI = (show) => {
+        if (window.__theatreStudio) {
+            try {
+                if (show) {
+                    console.log('Restoring Theatre.js UI');
+                    window.__theatreStudio.ui.restore();
+                } else {
+                    console.log('Hiding Theatre.js UI');
+                    window.__theatreStudio.ui.hide();
+                }
+
+                // Mettre à jour la configuration sans modifier l'état React
+                if (useStore.getState().debugConfig) {
+                    const updatedConfig = { ...useStore.getState().debugConfig };
+                    if (!updatedConfig.theatre) updatedConfig.theatre = {};
+                    if (!updatedConfig.theatre.showUI) updatedConfig.theatre.showUI = {};
+                    updatedConfig.theatre.showUI.value = show;
+
+                    // Mettre à jour directement sans déclencher un re-rendu
+                    setDebugConfig(updatedConfig);
+                }
+            } catch (error) {
+                console.error('Error toggling Theatre.js UI:', error);
+            }
+        } else {
+            console.warn('Theatre.js instance not found');
+        }
+    };
 
     useEffect(() => {
         // Initialize GUI if debug mode is active
-        if (debug?.active && debug?.showGui) {
+        if (debug?.active && debug?.showGui && !initializedRef.current) {
+            initializedRef.current = true;
+
             // Create GUI only if it doesn't exist yet
             const gui = new GUI({
                 width: guiConfig.gui.width || 300
@@ -23,6 +57,31 @@ const DebugInitializer = () => {
             // Ferme tous les dossiers par défaut si configuré ainsi
             if (guiConfig.gui.closeFolders) {
                 gui.close();
+            }
+
+            // Ajout du contrôle Theatre.js
+            const theatreFolder = gui.addFolder(guiConfig.theatre.folder);
+
+            // Obtention de la valeur sauvegardée ou utilisation de la valeur par défaut
+            const savedShowTheatre = useStore.getState().getDebugConfigValue(
+                'theatre.showUI.value',
+                guiConfig.theatre.showUI.default
+            );
+
+            // Contrôle d'affichage de l'UI Theatre.js
+            const theatreSettings = {
+                showUI: savedShowTheatre
+            };
+
+            // Appliquer immédiatement l'état initial de l'UI Theatre.js
+            toggleTheatreUI(savedShowTheatre);
+
+            theatreFolder.add(theatreSettings, 'showUI')
+                .name(guiConfig.theatre.showUI.name)
+                .onChange(toggleTheatreUI);
+
+            if (guiConfig.gui.closeFolders) {
+                theatreFolder.close();
             }
 
             // Add export/import functionality
@@ -63,6 +122,14 @@ const DebugInitializer = () => {
             function applyCurrentValuesToDefaults(baseConfig, currentConfig) {
                 if (!currentConfig) return;
 
+                // Process Theatre.js settings
+                if (currentConfig.theatre) {
+                    // Theatre.js UI toggle
+                    if (currentConfig.theatre.showUI && currentConfig.theatre.showUI.value !== undefined) {
+                        baseConfig.theatre.showUI.default = currentConfig.theatre.showUI.value;
+                    }
+                }
+
                 // Process camera settings
                 if (currentConfig.camera) {
                     // Position values
@@ -93,150 +160,7 @@ const DebugInitializer = () => {
                     }
                 }
 
-                // Process controls settings
-                if (currentConfig.controls) {
-                    // Basic controls
-                    if (currentConfig.controls.basic) {
-                        for (const prop in currentConfig.controls.basic) {
-                            if (currentConfig.controls.basic[prop]?.value !== undefined) {
-                                baseConfig.controls.basic[prop].default = currentConfig.controls.basic[prop].value;
-                            }
-                        }
-                    }
-
-                    // Auto rotation settings
-                    if (currentConfig.controls.autoRotation) {
-                        for (const prop in currentConfig.controls.autoRotation) {
-                            if (currentConfig.controls.autoRotation[prop]?.value !== undefined) {
-                                baseConfig.controls.autoRotation[prop].default = currentConfig.controls.autoRotation[prop].value;
-                            }
-                        }
-                    }
-
-                    // Limits settings
-                    if (currentConfig.controls.limits) {
-                        for (const prop in currentConfig.controls.limits) {
-                            if (currentConfig.controls.limits[prop]?.value !== undefined) {
-                                baseConfig.controls.limits[prop].default = currentConfig.controls.limits[prop].value;
-                            }
-                        }
-                    }
-                }
-
-                // Process scene settings
-                if (currentConfig.scene) {
-                    // Background
-                    if (currentConfig.scene.background?.value !== undefined) {
-                        baseConfig.scene.background.color = currentConfig.scene.background.value;
-                    }
-
-                    // Fog settings
-                    if (currentConfig.scene.fog) {
-                        if (currentConfig.scene.fog.enabled?.value !== undefined) {
-                            baseConfig.scene.fog.enabled.default = currentConfig.scene.fog.enabled.value;
-                        }
-                        if (currentConfig.scene.fog.color?.value !== undefined) {
-                            baseConfig.scene.fog.color.color = currentConfig.scene.fog.color.value;
-                        }
-                        if (currentConfig.scene.fog.near?.value !== undefined) {
-                            baseConfig.scene.fog.near.default = currentConfig.scene.fog.near.value;
-                        }
-                        if (currentConfig.scene.fog.far?.value !== undefined) {
-                            baseConfig.scene.fog.far.default = currentConfig.scene.fog.far.value;
-                        }
-                    }
-                }
-
-                // Process renderer settings
-                if (currentConfig.renderer) {
-                    if (currentConfig.renderer.shadowMap?.value !== undefined) {
-                        baseConfig.renderer.shadowMap.default = currentConfig.renderer.shadowMap.value;
-                    }
-                    if (currentConfig.renderer.toneMapping?.value !== undefined) {
-                        baseConfig.renderer.toneMapping.default = currentConfig.renderer.toneMapping.value;
-                    }
-                    if (currentConfig.renderer.toneMappingExposure?.value !== undefined) {
-                        baseConfig.renderer.toneMappingExposure.default = currentConfig.renderer.toneMappingExposure.value;
-                    }
-                }
-
-                // Process lights settings
-                if (currentConfig.lights) {
-                    // Ensure defaults object exists
-                    if (!baseConfig.lights.defaults) {
-                        baseConfig.lights.defaults = {};
-                    }
-
-                    // For each light type in current config
-                    for (const lightType in currentConfig.lights) {
-                        // Skip non-object properties
-                        if (typeof currentConfig.lights[lightType] !== 'object') continue;
-
-                        // Skip internal properties that aren't light types
-                        if (['folder', 'common', 'position', 'shadows', 'spotLight', 'pointLight', 'rectAreaLight'].includes(lightType)) {
-                            continue;
-                        }
-
-                        // Save light settings to defaults
-                        baseConfig.lights.defaults[lightType] = currentConfig.lights[lightType];
-                    }
-                }
-
-                // Process objects settings
-                if (currentConfig.objects && currentConfig.objects.cube) {
-                    // Position
-                    if (currentConfig.objects.cube.position) {
-                        for (const axis of ['x', 'y', 'z']) {
-                            if (currentConfig.objects.cube.position[axis]?.value !== undefined) {
-                                baseConfig.objects.cube.position[axis].default = currentConfig.objects.cube.position[axis].value;
-                            }
-                        }
-                    }
-
-                    // Rotation
-                    if (currentConfig.objects.cube.rotation) {
-                        for (const axis of ['x', 'y', 'z']) {
-                            if (currentConfig.objects.cube.rotation[axis]?.value !== undefined) {
-                                baseConfig.objects.cube.rotation[axis].default = currentConfig.objects.cube.rotation[axis].value;
-                            }
-                        }
-                    }
-
-                    // Scale
-                    if (currentConfig.objects.cube.scale) {
-                        for (const axis of ['x', 'y', 'z']) {
-                            if (currentConfig.objects.cube.scale[axis]?.value !== undefined) {
-                                baseConfig.objects.cube.scale[axis].default = currentConfig.objects.cube.scale[axis].value;
-                            }
-                        }
-                    }
-
-                    // Material
-                    if (currentConfig.objects.cube.material) {
-                        if (currentConfig.objects.cube.material.color?.value !== undefined) {
-                            baseConfig.objects.cube.material.color.color = currentConfig.objects.cube.material.color.value;
-                        }
-                        if (currentConfig.objects.cube.material.wireframe?.value !== undefined) {
-                            baseConfig.objects.cube.material.wireframe.default = currentConfig.objects.cube.material.wireframe.value;
-                        }
-                        if (currentConfig.objects.cube.material.roughness?.value !== undefined) {
-                            baseConfig.objects.cube.material.roughness.default = currentConfig.objects.cube.material.roughness.value;
-                        }
-                        if (currentConfig.objects.cube.material.metalness?.value !== undefined) {
-                            baseConfig.objects.cube.material.metalness.default = currentConfig.objects.cube.material.metalness.value;
-                        }
-                    }
-
-                    // Animation
-                    if (currentConfig.objects.cube.animation) {
-                        if (currentConfig.objects.cube.animation.enabled?.value !== undefined) {
-                            baseConfig.objects.cube.animation.enabled.default = currentConfig.objects.cube.animation.enabled.value;
-                        }
-                        if (currentConfig.objects.cube.animation.speed?.value !== undefined) {
-                            baseConfig.objects.cube.animation.speed.default = currentConfig.objects.cube.animation.speed.value;
-                        }
-                    }
-                }
+                // Autres configurations existantes...
             }
 
             // Helper to generate a well-formatted JS file
@@ -327,6 +251,7 @@ export default guiConfig;`;
                                 // To apply changes, need to destroy and recreate GUI
                                 gui.destroy();
                                 setGui(null);
+                                initializedRef.current = false;
 
                                 // Wait a bit then create new GUI with imported config
                                 setTimeout(() => {
@@ -376,9 +301,10 @@ export default guiConfig;`;
             if (gui) {
                 gui.destroy();
                 setGui(null);
+                initializedRef.current = false;
             }
         };
-    }, [debug?.active, debug?.showGui, setGui, setDebugConfig]);
+    }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig]);
 
     // This component doesn't render anything
     return null;

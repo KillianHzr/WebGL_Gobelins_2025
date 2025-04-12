@@ -136,4 +136,37 @@ technologies.
 | Setup Caméra          | Configuration initiale de la caméra 3D            | Implémenté | `src/Core/Camera.jsx`                                                           |
 | Setup GUI de Debug    | Interface de débogage pour le développement       | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js` |
 | Analyses de Métriques | Système de suivi des performances et statistiques | Implémenté | `src/Utils/Stats.js`                                                            |
+| Mouvement de Caméra au Scroll | Contrôle de la caméra via le défilement   | Implémenté | `src/Core/ScrollControls.jsx`                                                   |
 
+## Fonctionnement des features de documentation
+
+La documentation (`documentation.md`) décrit quatre fonctionnalités principales:
+
+### 1. Setup Caméra
+* Implémenté dans `Camera.jsx`
+* Utilise `useThree()` pour accéder à la caméra Three.js
+* Applique les valeurs par défaut de `guiConfig.js`
+* En mode debug, ajoute des contrôles pour position, rotation, FOV, etc.
+* Les valeurs sont persistées dans le store et peuvent être restaurées
+
+### 2. Setup GUI de Debug
+* Implémenté dans `DebugInitializer.jsx` avec `guiConfig.js`
+* L'interface est construite avec lil-gui
+* Activé par le hash URL `#debug`
+* Permet d'exporter/importer des configurations complètes
+* Organise les contrôles par catégories (caméra, lumières, objets, etc.)
+
+### 3. Analyses de Métriques
+* Implémenté dans `Stats.jsx`
+* Utilise `stats.js` pour afficher les FPS, temps de rendu, etc.
+* Ajoute des informations spécifiques à WebGL (triangles, appels de rendu, etc.)
+* Affiché uniquement quand `debug.showStats` est actif
+* Les métriques sont mises à jour à chaque frame
+
+### 4. Mouvement de Caméra au Scroll
+* Implémenté dans `ScrollControls.jsx`
+* Utilise Theatre.js pour définir une séquence d'animation
+* Capture les événements de défilement et les normalise pour tous les périphériques
+* Fait progresser la timeline en fonction du défilement avec effet d'inertie
+* Permet des points d'arrêt interactifs à des positions prédéfinies
+* Affiche une barre de progression pour visualiser la position dans la séquence

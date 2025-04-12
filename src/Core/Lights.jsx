@@ -404,7 +404,6 @@ export default function Lights() {
         // Cleanup function
         return () => {
             if (folderRef.current && gui) {
-                gui.removeFolder(folderRef.current);
                 folderRef.current = null;
             }
         };

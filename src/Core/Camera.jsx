@@ -185,9 +185,10 @@ export default function Camera() {
 
         // Cleanup function
         return () => {
-            if (folderRef.current && gui) {
-                gui.removeFolder(folderRef.current);
+            if (folderRef.current) {
+                // Simplement nettoyer la référence
                 folderRef.current = null;
+                console.log('Camera folder cleanup - reference cleared');
             }
         };
     }, [camera, debug, gui, gl, updateDebugConfig, getDebugConfigValue]);

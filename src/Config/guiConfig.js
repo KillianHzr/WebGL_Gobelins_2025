@@ -3,13 +3,26 @@
  * Ce fichier contient toutes les configurations pour les contrôles du GUI
  */
 
+/**
+ * Configuration centralisée pour l'interface GUI de debugging
+ * Ce fichier contient toutes les configurations pour les contrôles du GUI
+ */
+
 const guiConfig = {
     gui: {
         title: "Debug Controls",
         width: 300,
         closeFolders: true
     },
+    theatre: {
+        folder: "Theatre.js",
+        showUI: {
+            name: "Afficher UI Theatre",
+            default: true
+        }
+    },
     camera: {
+        // Configuration caméra existante...
         folder: "Camera",
         position: {
             x: {

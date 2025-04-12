@@ -246,7 +246,7 @@ export default function Cube() {
                 const objectsFolder = gui.folders.find(folder => folder.name === guiConfig.objects.folder)
                 if (objectsFolder) {
                     // Remove the cube folder from the objects folder
-                    objectsFolder.removeFolder(folderRef.current)
+                    folderRef.current = null;
 
                     // If objects folder is now empty, remove it too
                     if (objectsFolder.folders.length === 0) {

@@ -114,7 +114,6 @@ export default function Controls() {
         // Cleanup function
         return () => {
             if (folderRef.current && gui) {
-                gui.removeFolder(folderRef.current);
                 folderRef.current = null;
             }
         };

@@ -14,14 +14,17 @@ const StatsComponent = () => {
         const statsContainer = document.createElement('div');
         statsContainer.style.cssText = `
             position:fixed;
-            top:0;
-            left:0;
+            bottom:10px;
+            left:10px;
             z-index:1000;
             color:white;
             font-family:monospace;
             padding:10px;
             background:rgba(0,0,0,0.7);
             line-height:1.4;
+            border-radius:4px;
+            box-shadow:0 2px 5px rgba(0,0,0,0.3);
+            max-width:300px;
         `;
         document.body.appendChild(statsContainer);
 
@@ -30,7 +33,7 @@ const StatsComponent = () => {
             display:flex;
             gap:5px;
             transform:scale(1.0);
-            transform-origin:top left;
+            transform-origin:bottom left;
         `;
         statsContainer.appendChild(miniStatsContainer);
 

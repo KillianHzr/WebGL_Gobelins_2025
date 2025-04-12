@@ -20,11 +20,16 @@ const useStore = create((set, get) => ({
     debug: {
         active: isDebugEnabled(),     // Enable debug features only if #debug in URL
         showStats: isDebugEnabled(),  // Show performance statistics
-        showGui: isDebugEnabled()     // Show control panel
+        showGui: isDebugEnabled(),    // Show control panel
+        showTheatre: isDebugEnabled() // Show Theatre.js Studio interface
     },
     setDebug: (debugSettings) => set(state => ({
         debug: { ...state.debug, ...debugSettings }
     })),
+
+    // Theatre.js Studio instance
+    theatreStudio: null,
+    setTheatreStudio: (studio) => set({ theatreStudio: studio }),
 
     // GUI instance (shared among all components)
     gui: null,
@@ -70,6 +75,26 @@ const useStore = create((set, get) => ({
         }
 
         return current;
+    },
+
+    updateDebugConfigWithoutRender: (path, value) => {
+        const config = { ...get().debugConfig };
+        let current = config;
+        const parts = path.split('.');
+
+        // Naviguer jusqu'à l'avant-dernière partie du chemin
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!current[parts[i]]) {
+                current[parts[i]] = {};
+            }
+            current = current[parts[i]];
+        }
+
+        // Définir la valeur au chemin final
+        current[parts[parts.length - 1]] = value;
+
+        // Mettre à jour la config sans déclencher de re-rendu
+        get().setDebugConfig(config);
     }
 }))
 
@@ -77,11 +102,26 @@ const useStore = create((set, get) => ({
 if (typeof window !== 'undefined') {
     window.addEventListener('hashchange', () => {
         const debugEnabled = isDebugEnabled();
+        const currentState = useStore.getState();
+
+        // Mise à jour du mode debug
         useStore.getState().setDebug({
             active: debugEnabled,
             showStats: debugEnabled,
-            showGui: debugEnabled
+            showGui: debugEnabled,
+            showTheatre: debugEnabled
         });
+
+        // Gestion de l'interface Theatre.js si elle a été initialisée
+        if (window.__theatreStudio) {
+            if (debugEnabled) {
+                // Restaurer l'interface Theatre.js
+                window.__theatreStudio.ui.restore();
+            } else {
+                // Masquer l'interface Theatre.js
+                window.__theatreStudio.ui.hide();
+            }
+        }
     });
 }
 

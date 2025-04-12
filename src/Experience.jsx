@@ -22,6 +22,8 @@ export default function Experience() {
     useEffect(() => {
         // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
         if (!debug?.active) {
+            window.__theatreStudio.ui.hide();
+
             scene.traverse((object) => {
                 if (object.isLight) {
                     const lightType = object.type.replace('Light', '');

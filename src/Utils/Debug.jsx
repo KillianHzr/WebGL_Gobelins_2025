@@ -144,11 +144,11 @@ const Debug = () => {
         // Cleanup on unmount - remove folders but don't destroy GUI
         return () => {
             if (gui) {
-                foldersRef.current.forEach(folder => {
-                    if (folder && gui.folders.includes(folder)) {
-                        gui.removeFolder(folder);
-                    }
-                });
+                // Dans lil-gui, on ne peut pas supprimer directement un dossier
+                // La solution est de détruire l'interface complète ou de la reconstruire
+                // Mais on peut marquer nos références comme nulles pour éviter les fuites mémoire
+                foldersRef.current = [];
+                console.log('Debug folders cleanup - references cleared');
             }
         };
     }, [gl, scene, debug, gui, updateDebugConfig, getDebugConfigValue]);
