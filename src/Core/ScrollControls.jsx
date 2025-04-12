@@ -45,18 +45,21 @@ function CameraController({ children }) {
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
 
+    // Définition des points d'interaction avec leurs types
     const interactions = [
         {
             id: 'firstStop',
             name: 'Premier arrêt',
             triggers: { x: 4.9 },
-            isActive: true
+            isActive: true,
+            interactionType: 'click' // Requiert un clic
         },
         {
             id: 'secondStop',
             name: 'Second arrêt',
             triggers: { x: -6, y: 2.1 },
-            isActive: true
+            isActive: true,
+            interactionType: 'drag' // Requiert un drag horizontal
         }
     ];
 
@@ -282,7 +285,7 @@ function CameraController({ children }) {
                 document.body.appendChild(progressBar);
             }
 
-            // Instruction for cube interaction
+            // Instruction pour cube interaction
             if (!document.getElementById('interaction-instruction')) {
                 const instruction = document.createElement('div');
                 instruction.id = 'interaction-instruction';
@@ -331,14 +334,27 @@ function CameraController({ children }) {
 
         const instruction = document.getElementById('interaction-instruction');
         if (instruction) {
-            instruction.style.display = isWaitingForInteraction ? 'block' : 'none';
+            // Mettre à jour le texte d'instruction en fonction de l'étape
+            if (isWaitingForInteraction) {
+                const currentInteraction = interactions.find(i => i.id === interactionStep);
+                if (currentInteraction) {
+                    if (currentInteraction.interactionType === 'click') {
+                        instruction.textContent = 'Cliquez sur le cube pour continuer';
+                    } else if (currentInteraction.interactionType === 'drag') {
+                        instruction.textContent = 'Glissez le cube horizontalement pour continuer';
+                    }
+                }
+                instruction.style.display = 'block';
+            } else {
+                instruction.style.display = 'none';
+            }
         }
 
         // Vérifier si l'écoute n'est pas déjà active
         if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
             clickListener.startListening();
         }
-    }, [allowScroll, isWaitingForInteraction, clickListener]);
+    }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener]);
 
     const checkInteractionTriggers = (position) => {
         // Récupérer la liste des interactions complétées avec une valeur par défaut
@@ -361,7 +377,7 @@ function CameraController({ children }) {
 
             // Si toutes les conditions de position sont remplies et que le défilement est actuellement autorisé
             if (allTriggersMatched && allowScroll) {
-                console.log(`Point d'interaction atteint: ${interaction.id} - ${interaction.name}`);
+                console.log(`Point d'interaction atteint: ${interaction.id} - ${interaction.name} (type: ${interaction.interactionType})`);
 
                 // Bloquer le défilement
                 setAllowScroll(false);
@@ -376,19 +392,6 @@ function CameraController({ children }) {
                 setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
             }
         });
-    };
-
-    // Cette fonction n'est plus nécessaire car le clic est géré par le hook useObjectClick dans Cube.jsx
-    const completeManualInteraction = () => {
-        setShowInteractionButton(false);
-        setInteractionStatus(prev => {
-            const currentStep = Object.keys(prev).find(key => prev[key] === 'waiting');
-            if (currentStep) {
-                return { ...prev, [currentStep]: 'done' };
-            }
-            return prev;
-        });
-        startCountdown();
     };
 
     const startCountdown = () => {

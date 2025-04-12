@@ -5,11 +5,13 @@ import useStore from '../Store/useStore'
 import guiConfig from '../Config/guiConfig'
 import { getDefaultValue } from "../Utils/defaultValues.js";
 import useObjectClick from '../Hooks/useObjectClick';
+import useDragGesture from '../Hooks/useDragGesture';
 
 export default function Cube() {
     const cubeRef = useRef()
     const [hovered, setHovered] = useState(false)
     const [active, setActive] = useState(false)
+    const [dragging, setDragging] = useState(false)
     const folderRef = useRef(null)
     const { debug, gui, updateDebugConfig, getDebugConfigValue, clickListener, interaction } = useStore()
 
@@ -30,9 +32,38 @@ export default function Cube() {
             setActive(prev => !prev);
 
             // Si nous sommes en attente d'une interaction, la compléter
-            if (interaction?.waitingForInteraction) {
+            if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
                 interaction.completeInteraction();
-                console.log('Interaction complétée via clic sur le cube');
+                console.log('Interaction complétée via clic sur le cube (firstStop)');
+            }
+        }
+    });
+
+    // Utiliser le hook pour détecter les drags sur le cube
+    const { isDragging } = useDragGesture({
+        objectRef: cubeRef,
+        enabled: true,
+        minDistance: 100, // 50 pixels minimum de glissement
+        direction: 'horizontal', // Seulement les glissements horizontaux
+        debug: debug?.active,
+        onDragStart: (data) => {
+            console.log('Drag started on cube');
+            setDragging(true);
+        },
+        onDragEnd: (data) => {
+            console.log('Drag ended on cube', data);
+            setDragging(false);
+        },
+        onDragSuccess: (data) => {
+            console.log('Successful drag detected:', data);
+
+            // Changer l'apparence du cube lors d'un drag réussi
+            setActive(prev => !prev);
+
+            // Si nous sommes en attente d'une interaction et que c'est le second arrêt, la compléter
+            if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
+                interaction.completeInteraction();
+                console.log('Interaction complétée via drag sur le cube (secondStop)');
             }
         }
     });
@@ -290,6 +321,10 @@ export default function Cube() {
     // Animation
     useFrame((state, delta) => {
         // Animation code if needed
+        if (dragging && cubeRef.current) {
+            // Optionnel: ajouter une animation subtile pendant le drag
+            cubeRef.current.rotation.y += delta * 2;
+        }
     })
 
     return (<mesh
@@ -302,9 +337,10 @@ export default function Cube() {
     >
         <boxGeometry args={[1, 1, 1]}/>
         <meshStandardMaterial
-            color={active ? '#ffffff' : '#ff5533'}
-            metalness={active ? 0.8 : 0.3}
-            roughness={active ? 0.2 : 0.7}
+            color={active ? '#ffffff' : (hovered ? '#ff9f6b' : '#ff5533')}
+            metalness={active ? 0.8 : (dragging ? 0.6 : 0.3)}
+            roughness={active ? 0.2 : (dragging ? 0.4 : 0.7)}
+            emissive={dragging ? new THREE.Color('#331100') : new THREE.Color('#000000')}
         />
     </mesh>)
 }
