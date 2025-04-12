@@ -32,8 +32,10 @@ technologies.
 │       └── environmentMap/ # Maps d'environnement
 ├── src/              # Code source
 │   ├── Assets/       # Gestion des assets
-│   │   ├── AssetManager.jsx # Gestionnaire d'assets
-│   │   └── assets.js # Liste des assets à charger
+│   │   ├── AssetManager.jsx  # Gestionnaire d'assets
+│   │   └── assets.js         # Liste des assets à charger
+│   ├── Config/       # Configuration
+│   │   └── guiConfig.js      # Configuration de l'interface de debug
 │   ├── Core/         # Composants principaux
 │   │   ├── Camera.jsx        # Gestion de la caméra
 │   │   ├── Clock.jsx         # Gestion du temps
@@ -41,19 +43,25 @@ technologies.
 │   │   ├── Lights.jsx        # Éclairage de la scène
 │   │   ├── PostProcessing.jsx # Effets post-processing
 │   │   ├── Renderer.jsx      # Rendu Three.js
-│   │   └── Scene.jsx         # Scène principale
+│   │   ├── Scene.jsx         # Scène principale
+│   │   └── ScrollControls.jsx # Contrôle du défilement et interactions
 │   ├── Hooks/        # Hooks React personnalisés
 │   │   ├── useAnimationLoop.js  # Animation loop
-│   │   └── useCanvasSize.js     # Gestion taille du canvas
+│   │   ├── useCanvasSize.js     # Gestion taille du canvas
+│   │   ├── useObjectClick.js    # Détection de clic sur objets
+│   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
-│   │   └── useStore.js       # Store Zustand
+│   │   ├── clickListenerSlice.js # Tranche pour la gestion des clics
+│   │   └── useStore.js          # Store Zustand central
 │   ├── Utils/        # Utilitaires
-│   │   ├── Debug.js          # Outils de débogage
-│   │   ├── EventEmitter.js   # Gestion des événements
-│   │   ├── Loader.js         # Chargement des assets
-│   │   ├── Math.js           # Fonctions mathématiques
-│   │   ├── RayCaster.js      # Détection d'intersections
-│   │   └── Stats.js          # Statistiques de performance
+│   │   ├── Debug.jsx          # Interface de débogage
+│   │   ├── DebugInitializer.jsx # Initialisation du debug
+│   │   ├── defaultValues.js   # Valeurs par défaut
+│   │   ├── EventEmitter.jsx   # Gestion des événements
+│   │   ├── Loader.jsx         # Chargement des assets
+│   │   ├── Math.jsx           # Fonctions mathématiques
+│   │   ├── RayCaster.jsx      # Détection d'intersections
+│   │   └── Stats.jsx          # Statistiques de performance
 │   ├── World/        # Éléments du monde
 │   │   ├── Character.jsx     # Personnage
 │   │   ├── Cube.jsx          # Objet cube
@@ -86,7 +94,8 @@ technologies.
 **Interconnexion :**
 - `useStore` gère l'état global du debug via un hook Zustand
 - `DebugInitializer` crée l'instance GUI basée sur l'état du debug
-- Les composants individuels (`Camera`, `Lights`, etc.) utilisent `useStore` pour accéder et mettre à jour les configurations de debug
+- Les composants individuels (`Camera`, `Lights`, etc.) utilisent `useStore` pour accéder et mettre à jour les
+  configurations de debug
 - Le mode debug s'active via le hash URL (`#debug`)
 
 ### 2. Configuration Dynamique et Persistance
@@ -131,12 +140,13 @@ technologies.
 
 ## Fonctionnalités Implémentées
 
-| Fonctionnalité        | Description                                       | Statut     | Emplacement                                                                     |
-|-----------------------|---------------------------------------------------|------------|---------------------------------------------------------------------------------|
-| Setup Caméra          | Configuration initiale de la caméra 3D            | Implémenté | `src/Core/Camera.jsx`                                                           |
-| Setup GUI de Debug    | Interface de débogage pour le développement       | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js` |
-| Analyses de Métriques | Système de suivi des performances et statistiques | Implémenté | `src/Utils/Stats.js`                                                            |
-| Mouvement de Caméra au Scroll | Contrôle de la caméra via le défilement   | Implémenté | `src/Core/ScrollControls.jsx`                                                   |
+| Fonctionnalité                  | Description                                                               | Statut     | Emplacement                                                                                                          |
+|---------------------------------|---------------------------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------|
+| Setup Caméra                    | Configuration initiale de la caméra 3D                                    | Implémenté | `src/Core/Camera.jsx`                                                                                                |
+| Setup GUI de Debug              | Interface de débogage pour le développement                               | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                      |
+| Analyses de Métriques           | Système de suivi des performances et statistiques                         | Implémenté | `src/Utils/Stats.js`                                                                                                 |
+| Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
+| Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 
 ## Fonctionnement des features de documentation
 
@@ -170,3 +180,19 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Fait progresser la timeline en fonction du défilement avec effet d'inertie
 * Permet des points d'arrêt interactifs à des positions prédéfinies
 * Affiche une barre de progression pour visualiser la position dans la séquence
+
+### 5. Détection de Clic sur Objets 3D
+
+* Implémenté via plusieurs composants interconnectés dans une architecture modulaire
+* Le composant `RayCaster.jsx` agit comme provider central qui gère le lancement de rayons et la détection
+  d'intersections
+* Deux hooks personnalisés sont disponibles pour l'implémentation :
+    * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
+    * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
+* L'état d'écoute est géré de façon centralisée via `clickListenerSlice` dans le store Zustand
+* Permet de facilement :
+    * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
+    * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
+    * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
+* S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
+  utilisateur aux moments clés de l'expérience
