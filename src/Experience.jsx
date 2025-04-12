@@ -11,6 +11,8 @@ import Camera from "./Core/Camera.jsx";
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
+import RayCaster from "./Utils/RayCaster.jsx";
+import { EventEmitterProvider } from './Utils/EventEmitter';
 
 export default function Experience() {
     const {loaded, debug} = useStore()
@@ -22,7 +24,9 @@ export default function Experience() {
     useEffect(() => {
         // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
         if (!debug?.active) {
-            window.__theatreStudio.ui.hide();
+            if (window.__theatreStudio) {
+                window.__theatreStudio.ui.hide();
+            }
 
             scene.traverse((object) => {
                 if (object.isLight) {
@@ -47,33 +51,37 @@ export default function Experience() {
         }
     }, [scene, debug]);
 
-    return (<>
+    return (
+        <EventEmitterProvider>
+            {/* Initialize debug mode based on URL hash */}
+            <DebugInitializer/>
 
-        {/* Initialize debug mode based on URL hash */}
-        <DebugInitializer/>
+            {/* Debug Tools - only render if debug mode is active */}
+            {debug?.active && debug?.showStats && <Stats/>}
+            {debug?.active && debug?.showStats && <Controls/>}
+            {debug?.active && debug?.showGui && <Debug/>}
+            {debug?.active && debug?.showGui && <Camera/>}
+            {debug?.active && debug?.showGui && <Controls/>}
+            {debug?.active && debug?.showGui && <Lights/>}
 
-        {/* Debug Tools - only render if debug mode is active */}
-        {debug?.active && debug?.showStats && <Stats/>}
-        {debug?.active && debug?.showStats && <Controls/>}
-        {debug?.active && debug?.showGui && <Debug/>}
-        {debug?.active && debug?.showGui && <Camera/>}
-        {debug?.active && debug?.showGui && <Controls/>}
-        {debug?.active && debug?.showGui && <Lights/>}
+            {/* Ajout du système de raycasting */}
+            <RayCaster>
+                <ScrollControls>
+                    {/* Lights */}
+                    <ambientLight intensity={0.5}/>
+                    <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+                    <color attach="background" args={['#1e1e2f']}/>
+                    <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
 
-        <ScrollControls>
-            {/* Lights */}
-            <ambientLight intensity={0.5}/>
-            <directionalLight position={[1, 2, 3]} intensity={1.5}/>
-            <color attach="background" args={['#1e1e2f']}/>
-            <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
-
-            {/* Objects */}
-            {loaded && (<>
-                <Cube/>
-                {/*<Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />*/}
-                {/*<Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />*/}
-                {/*<Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />*/}
-            </>)}
-        </ScrollControls>
-    </>)
+                    {/* Objects */}
+                    {loaded && (<>
+                        <Cube/>
+                        {/*<Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />*/}
+                        {/*<Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />*/}
+                        {/*<Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />*/}
+                    </>)}
+                </ScrollControls>
+            </RayCaster>
+        </EventEmitterProvider>
+    )
 }

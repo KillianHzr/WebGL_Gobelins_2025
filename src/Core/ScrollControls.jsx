@@ -28,14 +28,22 @@ function CameraController({ children }) {
     const timelinePositionRef = useRef(0);
     const scrollVelocity = useRef(0);
     const [scrollDirection, setScrollDirection] = useState(0);
-    const [isScrollActive, setIsScrollActive] = useState(true);
     const [showInteractionButton, setShowInteractionButton] = useState(false);
     const [countdown, setCountdown] = useState(null);
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
 
     const { size, camera } = useThree();
-    const { debug, updateDebugConfig, getDebugConfigValue } = useStore();
+    const { debug, updateDebugConfig, getDebugConfigValue, clickListener } = useStore();
+
+    // Get interaction state from the store
+    const isWaitingForInteraction = useStore(state => state.interaction?.waitingForInteraction);
+    const allowScroll = useStore(state => state.interaction?.allowScroll !== false);
+    const interactionStep = useStore(state => state.interaction?.currentStep);
+    const completeInteraction = useStore(state => state.interaction?.completeInteraction);
+    const setAllowScroll = useStore(state => state.interaction?.setAllowScroll);
+    const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
+    const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
 
     const interactions = [
         {
@@ -138,13 +146,13 @@ function CameraController({ children }) {
         let lastTouchY = 0;
 
         const handleTouchStart = (e) => {
-            if (!isScrollActive) return;
+            if (!allowScroll) return;
             touchStartY = e.touches[0].clientY;
             lastTouchY = touchStartY;
         };
 
         const handleTouchMove = (e) => {
-            if (!isScrollActive) return;
+            if (!allowScroll) return;
 
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
@@ -160,7 +168,7 @@ function CameraController({ children }) {
         };
 
         const handleWheel = (e) => {
-            if (!isScrollActive) return;
+            if (!allowScroll) return;
 
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
@@ -273,6 +281,28 @@ function CameraController({ children }) {
                 progressBar.appendChild(progressIndicator);
                 document.body.appendChild(progressBar);
             }
+
+            // Instruction for cube interaction
+            if (!document.getElementById('interaction-instruction')) {
+                const instruction = document.createElement('div');
+                instruction.id = 'interaction-instruction';
+                instruction.style.position = 'fixed';
+                instruction.style.top = '25%';
+                instruction.style.left = '50%';
+                instruction.style.transform = 'translate(-50%, -50%)';
+                instruction.style.fontSize = '24px';
+                instruction.style.fontWeight = 'bold';
+                instruction.style.color = 'white';
+                instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                instruction.style.padding = '15px 25px';
+                instruction.style.borderRadius = '8px';
+                instruction.style.textAlign = 'center';
+                instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+                instruction.style.zIndex = '100';
+                instruction.style.display = 'none';
+                instruction.textContent = 'Cliquez sur le cube pour continuer';
+                document.body.appendChild(instruction);
+            }
         };
 
         createUI();
@@ -284,16 +314,39 @@ function CameraController({ children }) {
                 canvasElement.removeEventListener('touchmove', handleTouchMove);
             }
 
-            ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress'].forEach(id => {
+            ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.remove();
             });
         };
-    }, [sheet, isScrollActive]);
+    }, [sheet, allowScroll]);
+
+    // Update UI based on interaction state
+    useEffect(() => {
+        const debugIndicator = document.getElementById('scroll-debug-indicator');
+        if (debugIndicator) {
+            debugIndicator.textContent = allowScroll ? 'Scroll actif' : 'Scroll inactif';
+            debugIndicator.style.color = allowScroll ? '#00ff00' : '#ff0000';
+        }
+
+        const instruction = document.getElementById('interaction-instruction');
+        if (instruction) {
+            instruction.style.display = isWaitingForInteraction ? 'block' : 'none';
+        }
+
+        // Vérifier si l'écoute n'est pas déjà active
+        if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
+            clickListener.startListening();
+        }
+    }, [allowScroll, isWaitingForInteraction, clickListener]);
 
     const checkInteractionTriggers = (position) => {
+        // Récupérer la liste des interactions complétées avec une valeur par défaut
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
         interactions.forEach(interaction => {
-            if (!interaction.isActive || interactionStatus[interaction.id] === 'done') {
+            // Ignorer les interactions déjà complétées
+            if (!interaction.isActive || completedInteractions[interaction.id]) {
                 return;
             }
 
@@ -306,57 +359,52 @@ function CameraController({ children }) {
                 return Math.abs(currentValue - value) <= tolerance;
             });
 
-            if (allTriggersMatched && isScrollActive) {
-                setIsScrollActive(false);
-                setShowInteractionButton(true);
+            // Si toutes les conditions de position sont remplies et que le défilement est actuellement autorisé
+            if (allTriggersMatched && allowScroll) {
+                console.log(`Point d'interaction atteint: ${interaction.id} - ${interaction.name}`);
+
+                // Bloquer le défilement
+                setAllowScroll(false);
+
+                // Indiquer que nous attendons une interaction de l'utilisateur
+                setWaitingForInteraction(true);
+
+                // Enregistrer l'étape actuelle
+                setCurrentStep(interaction.id);
+
+                // Mettre à jour l'état local
                 setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
-                console.log(`Interaction "${interaction.name}" déclenchée à la position:`, position);
             }
         });
     };
 
-    const completeInteraction = () => {
-        const currentInteraction = interactions.find(
-            interaction => interactionStatus[interaction.id] === 'waiting'
-        );
-
-        if (currentInteraction) {
-            setInteractionStatus(prev => ({ ...prev, [currentInteraction.id]: 'done' }));
-            startCountdown();
-            console.log(`Interaction "${currentInteraction.name}" terminée`);
-        }
+    // Cette fonction n'est plus nécessaire car le clic est géré par le hook useObjectClick dans Cube.jsx
+    const completeManualInteraction = () => {
+        setShowInteractionButton(false);
+        setInteractionStatus(prev => {
+            const currentStep = Object.keys(prev).find(key => prev[key] === 'waiting');
+            if (currentStep) {
+                return { ...prev, [currentStep]: 'done' };
+            }
+            return prev;
+        });
+        startCountdown();
     };
 
     const startCountdown = () => {
-        setShowInteractionButton(false);
         setCountdown(5);
 
         const interval = setInterval(() => {
             setCountdown(prevCount => {
                 if (prevCount <= 1) {
                     clearInterval(interval);
-                    setIsScrollActive(true);
+                    setAllowScroll(true);
                     return null;
                 }
                 return prevCount - 1;
             });
         }, 1000);
     };
-
-    useEffect(() => {
-        const debugIndicator = document.getElementById('scroll-debug-indicator');
-        if (debugIndicator) {
-            debugIndicator.textContent = isScrollActive ? 'Scroll actif' : 'Scroll inactif';
-            debugIndicator.style.color = isScrollActive ? '#00ff00' : '#ff0000';
-        }
-    }, [isScrollActive]);
-
-    useEffect(() => {
-        const button = document.getElementById('interaction-button');
-        if (button) {
-            button.style.display = showInteractionButton ? 'block' : 'none';
-        }
-    }, [showInteractionButton]);
 
     useEffect(() => {
         const countdownEl = document.getElementById('countdown-element');
@@ -394,9 +442,11 @@ function CameraController({ children }) {
 
         setCurrentCameraZ(cameraPosition.z);
 
+        // Vérifier les déclencheurs d'interaction
         checkInteractionTriggers(cameraPosition);
 
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && isScrollActive) {
+        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
             timelinePositionRef.current += scrollVelocity.current;
             timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
             sheet.sequence.position = timelinePositionRef.current;

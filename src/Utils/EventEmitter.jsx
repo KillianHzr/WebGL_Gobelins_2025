@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, createContext, useContext } from 'react';
 
-const EventEmitter = () => {
+// Singleton pour stocker l'instance de l'EventEmitter
+let emitterInstance = null;
+
+// Contexte React pour accéder à l'EventEmitter
+const EventEmitterContext = createContext(null);
+
+// EventEmitter composant
+const EventEmitter = forwardRef((props, ref) => {
     const [callbacks, setCallbacks] = useState({ base: {} });
 
     const resolveNames = (_names) => {
@@ -188,11 +195,96 @@ const EventEmitter = () => {
         return finalResult;
     };
 
+    // Exposer les méthodes via useImperativeHandle pour les rendre accessibles via ref
+    useImperativeHandle(ref, () => {
+        const methods = {
+            on,
+            off,
+            trigger
+        };
+
+        // Stocker l'instance pour le singleton
+        emitterInstance = methods;
+
+        return methods;
+    });
+
+    // Le composant n'a pas besoin de rendre quoi que ce soit de visible
+    return null;
+});
+
+/**
+ * Fournisseur du contexte pour l'émetteur d'événements
+ */
+export const EventEmitterProvider = ({ children }) => {
+    const emitterRef = React.useRef(null);
+
+    // Mémoiser les méthodes d'événements
+    const emitterMethods = React.useMemo(() => ({
+        on: (...args) => emitterRef.current?.on(...args),
+        off: (...args) => emitterRef.current?.off(...args),
+        trigger: (...args) => emitterRef.current?.trigger(...args)
+    }), []);
+
     return (
-        <div className="event-emitter">
-            {/* EventEmitter component content */}
-        </div>
+        <EventEmitterContext.Provider value={emitterMethods}>
+            <EventEmitter ref={emitterRef} />
+            {children}
+        </EventEmitterContext.Provider>
     );
+};
+
+/**
+ * Hook pour utiliser l'émetteur d'événements
+ */
+export const useEventEmitter = () => {
+    const context = useContext(EventEmitterContext);
+
+    if (!context) {
+        throw new Error('useEventEmitter must be used within an EventEmitterProvider');
+    }
+
+    return context;
+};
+
+/**
+ * API simpifiée pour accéder à l'émetteur d'événements de manière globale
+ */
+export const EventBus = {
+    /**
+     * Émet un événement
+     */
+    trigger: (eventName, data) => {
+        if (emitterInstance) {
+            emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
+        } else {
+            console.warn('EventEmitter not initialized yet');
+        }
+    },
+
+    /**
+     * S'abonne à un événement
+     */
+    on: (eventName, callback) => {
+        if (emitterInstance) {
+            emitterInstance.on(eventName, callback);
+            return () => emitterInstance.off(eventName);
+        } else {
+            console.warn('EventEmitter not initialized yet');
+            return () => {};
+        }
+    },
+
+    /**
+     * Se désabonne d'un événement
+     */
+    off: (eventName) => {
+        if (emitterInstance) {
+            emitterInstance.off(eventName);
+        } else {
+            console.warn('EventEmitter not initialized yet');
+        }
+    }
 };
 
 export default EventEmitter;

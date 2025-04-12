@@ -1,17 +1,41 @@
-import React, {useEffect, useRef, useState} from 'react'
-import {useFrame} from '@react-three/fiber'
+import React, { useEffect, useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import useStore from '../Store/useStore'
 import guiConfig from '../Config/guiConfig'
-import {getDefaultValue} from "../Utils/defaultValues.js";
-
+import { getDefaultValue } from "../Utils/defaultValues.js";
+import useObjectClick from '../Hooks/useObjectClick';
 
 export default function Cube() {
     const cubeRef = useRef()
     const [hovered, setHovered] = useState(false)
     const [active, setActive] = useState(false)
     const folderRef = useRef(null)
-    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore()
+    const { debug, gui, updateDebugConfig, getDebugConfigValue, clickListener, interaction } = useStore()
+
+    // Activer l'écoute des clics au montage
+    useEffect(() => {
+        if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
+            clickListener.startListening();
+        }
+    }, [clickListener]);
+
+    // Utiliser le hook pour détecter les clics sur le cube
+    useObjectClick({
+        objectRef: cubeRef,
+        enabled: true,
+        debug: debug?.active,
+        onClick: (intersection, event) => {
+            // Inverser l'état du cube quand il est cliqué
+            setActive(prev => !prev);
+
+            // Si nous sommes en attente d'une interaction, la compléter
+            if (interaction?.waitingForInteraction) {
+                interaction.completeInteraction();
+                console.log('Interaction complétée via clic sur le cube');
+            }
+        }
+    });
 
     // Animation state avec valeurs par défaut du config
     const animationRef = useRef({
@@ -23,6 +47,11 @@ export default function Cube() {
     useEffect(() => {
         if (cubeRef.current) {
             const mesh = cubeRef.current;
+
+            // Donner un nom explicite au cube pour faciliter le débogage
+            mesh.name = 'MainCube';
+            console.log('[Cube] Initialized with name:', mesh.name, 'and UUID:', mesh.uuid);
+
 
             // Appliquer les positions par défaut
             const posX = getDefaultValue('objects.cube.position.x', 0);
@@ -260,35 +289,13 @@ export default function Cube() {
 
     // Animation
     useFrame((state, delta) => {
-        // if (cubeRef.current && animationRef.current.enabled) {
-        //     cubeRef.current.rotation.y += delta * animationRef.current.speed
-        //
-        //     // Update the stored rotation in the config (only occasionally to avoid too many updates)
-        //     if (Math.random() < 0.01 && debug?.active) {
-        //         updateDebugConfig('objects.cube.rotation.y.value', cubeRef.current.rotation.y)
-        //     }
-        //     if (cubeRef.current) {
-        //         cubeRef.current.rotation.y += delta * (active ? 1.5 : 0.5)
-        //         cubeRef.current.rotation.x += delta * (active ? 0.5 : 0.2)
-        //
-        //         if (hovered && !active) {
-        //             cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale * 1.2, 0.1)
-        //             cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale * 1.2, 0.1)
-        //             cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale * 1.2, 0.1)
-        //         } else if (!hovered && !active) {
-        //             cubeRef.current.scale.x = THREE.MathUtils.lerp(cubeRef.current.scale.x, scale, 0.1)
-        //             cubeRef.current.scale.y = THREE.MathUtils.lerp(cubeRef.current.scale.y, scale, 0.1)
-        //             cubeRef.current.scale.z = THREE.MathUtils.lerp(cubeRef.current.scale.z, scale, 0.1)
-        //         }
-        //     }
-        // }
+        // Animation code if needed
     })
 
     return (<mesh
         ref={cubeRef}
         position={[-2, 0, 0]}
-        scale={ [1, 1, 1] }
-        onClick={() => setActive(!active)}
+        scale={[1, 1, 1]}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
         castShadow
