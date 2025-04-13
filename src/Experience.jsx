@@ -13,6 +13,7 @@ import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
 import { EventEmitterProvider } from './Utils/EventEmitter';
+import ForestSceneWrapper from './World/ForestSceneWrapper'; // Utilisation du wrapper
 
 export default function Experience() {
     const {loaded, debug} = useStore()
@@ -74,12 +75,10 @@ export default function Experience() {
                     <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
 
                     {/* Objects */}
-                    {loaded && (<>
-                        <Cube/>
-                        {/*<Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />*/}
-                        {/*<Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />*/}
-                        {/*<Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />*/}
-                    </>)}
+                    {/*<Cube/>*/}
+
+                    {/* Utiliser le wrapper qui gère le chargement des assets */}
+                    <ForestSceneWrapper />
                 </ScrollControls>
             </RayCaster>
         </EventEmitterProvider>

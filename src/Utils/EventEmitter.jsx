@@ -1,7 +1,25 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, createContext, useContext } from 'react';
 
 // Singleton pour stocker l'instance de l'EventEmitter
-let emitterInstance = null;
+// Initialisé immédiatement avec des méthodes de base pour éviter les "not initialized yet"
+let emitterInstance = {
+    on: (eventName, callback) => {
+        console.warn('EventEmitter on() called before initialization, will be queued');
+        queuedEvents.push({ type: 'on', eventName, callback });
+        return () => {};
+    },
+    off: (eventName) => {
+        console.warn('EventEmitter off() called before initialization, will be queued');
+        queuedEvents.push({ type: 'off', eventName });
+    },
+    trigger: (eventName, data) => {
+        console.warn('EventEmitter trigger() called before initialization, will be queued');
+        queuedEvents.push({ type: 'trigger', eventName, data });
+    }
+};
+
+// File d'attente pour les événements appelés avant l'initialisation
+const queuedEvents = [];
 
 // Contexte React pour accéder à l'EventEmitter
 const EventEmitterContext = createContext(null);
@@ -206,6 +224,18 @@ const EventEmitter = forwardRef((props, ref) => {
         // Stocker l'instance pour le singleton
         emitterInstance = methods;
 
+        // Traiter la file d'attente des événements
+        while (queuedEvents.length > 0) {
+            const event = queuedEvents.shift();
+            if (event.type === 'on') {
+                methods.on(event.eventName, event.callback);
+            } else if (event.type === 'off') {
+                methods.off(event.eventName);
+            } else if (event.type === 'trigger') {
+                methods.trigger(event.eventName, event.data);
+            }
+        }
+
         return methods;
     });
 
@@ -255,35 +285,22 @@ export const EventBus = {
      * Émet un événement
      */
     trigger: (eventName, data) => {
-        if (emitterInstance) {
-            emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
-        } else {
-            console.warn('EventEmitter not initialized yet');
-        }
+        emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
     },
 
     /**
      * S'abonne à un événement
      */
     on: (eventName, callback) => {
-        if (emitterInstance) {
-            emitterInstance.on(eventName, callback);
-            return () => emitterInstance.off(eventName);
-        } else {
-            console.warn('EventEmitter not initialized yet');
-            return () => {};
-        }
+        emitterInstance.on(eventName, callback);
+        return () => emitterInstance.off(eventName);
     },
 
     /**
      * Se désabonne d'un événement
      */
     off: (eventName) => {
-        if (emitterInstance) {
-            emitterInstance.off(eventName);
-        } else {
-            console.warn('EventEmitter not initialized yet');
-        }
+        emitterInstance.off(eventName);
     }
 };
 
