@@ -24,12 +24,22 @@ technologies.
 ├── node_modules/     # Dépendances installées
 ├── static/           # Ressources statiques
 │   ├── draco/        # Compression Draco pour les modèles 3D
+│   │   ├── envmap/   # Maps d'environnement pour Draco
+│   │   │   └── DayEnvironmentHDRI048_2K-HDR.exr  # Map d'environnement HDR
 │   │   └── gltf/     # Support GLTF pour Draco
-│   ├── models/       # Modèles 3D
-│   │   └── Fox/      # Modèle du renard
-│   └── textures/     # Textures
-│       ├── dirt/     # Textures de sol
-│       └── environmentMap/ # Maps d'environnement
+│   │       ├── draco_decoder.js
+│   │       ├── draco_decoder.wasm
+│   │       ├── draco_encoder.js
+│   │       ├── draco_wasm_wrapper.js
+│   │       └── README.md
+│   └── models/       # Modèles 3D
+│       ├── forest/   # Modèles de forêt
+│       │   └── tree/ # Modèles d'arbres
+│       │       ├── Tree1.glb
+│       │       ├── Tree2.glb
+│       │       └── Tree3.glb
+│       ├── Map.glb     # Modèle du renard
+│       └── textures/ # Textures
 ├── src/              # Code source
 │   ├── Assets/       # Gestion des assets
 │   │   ├── AssetManager.jsx  # Gestionnaire d'assets
@@ -64,12 +74,16 @@ technologies.
 │   │   ├── RayCaster.jsx      # Détection d'intersections
 │   │   └── Stats.jsx          # Statistiques de performance
 │   ├── World/        # Éléments du monde
-│   │   ├── Character.jsx     # Personnage
-│   │   ├── Cube.jsx          # Objet cube
-│   │   ├── Particles.jsx     # Système de particules
-│   │   ├── Physics.jsx       # Système physique
-│   │   ├── Sky.jsx           # Ciel
-│   │   └── Terrain.jsx       # Terrain
+│   │   ├── Character.jsx      # Personnage
+│   │   ├── Cube.jsx           # Objet cube
+│   │   ├── Forest.jsx         # Forêt
+│   │   ├── ForestScene.jsx    # Scène de forêt
+│   │   ├── ForestSceneWrapper.jsx # Wrapper pour la scène de forêt
+│   │   ├── Map.jsx            # Carte du monde
+│   │   ├── Particles.jsx      # Système de particules
+│   │   ├── Physics.jsx        # Système physique
+│   │   ├── Sky.jsx            # Ciel
+│   │   └── Terrain.jsx        # Terrain
 │   ├── App.jsx       # Composant racine
 │   ├── Experience.jsx # Composant principal de l'expérience
 │   ├── index.html    # Fichier HTML principal
@@ -149,6 +163,7 @@ technologies.
 | Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
 | Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 | Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
+| Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx` |
 
 ## Fonctionnement des features de documentation
 
@@ -189,15 +204,16 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Le composant `RayCaster.jsx` agit comme provider central qui gère le lancement de rayons et la détection
   d'intersections
 * Deux hooks personnalisés sont disponibles pour l'implémentation :
-    * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
-    * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
+  * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
+  * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
 * L'état d'écoute est géré de façon centralisée via `clickListenerSlice` dans le store Zustand
 * Permet de facilement :
-    * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
-    * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
-    * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
+  * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
+  * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
+  * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
+
 ### 6. Système de Drag Gestures Personnalisés
 
 * Implémenté dans `useDragGesture.js`
@@ -217,3 +233,31 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Intégration avec le système de raycasting pour s'assurer que le drag commence sur l'objet ciblé
 * Utilisé dans `Cube.jsx` pour créer des interactions interactives dans l'expérience
 * Permet de créer des interactions utilisateur complexes et personnalisées dans un environnement 3D
+
+### 7. Chargement et Optimisation de Modèles 3D
+
+* Implémenté via une architecture en couches avec plusieurs composants spécialisés :
+  * `AssetManager.jsx` : Gestionnaire central responsable du chargement et de l'optimisation des modèles
+  * `assets.js` : Définition déclarative des assets à charger avec leurs métadonnées
+  * `ForestSceneWrapper.jsx` : Composant enveloppant qui gère la transition entre le chargement et l'affichage
+  * `Forest.jsx` : Composant d'affichage optimisé qui implémente les techniques de rendu efficaces
+* Fonctionnalités d'optimisation avancées :
+  * **Partage de matériaux** : Système de cache qui permet la réutilisation de matériaux similaires
+  * **Occlusion Culling** : Technique qui évite de rendre les objets non visibles par la caméra
+  * **Frustum Culling** : Ne traite que les objets dans le champ de vision de la caméra
+  * **Level of Detail (LOD)** : Ajuste la complexité des modèles en fonction de leur distance
+  * **Material Batching** : Regroupe les objets avec des matériaux similaires pour réduire les drawcalls
+* Stratégies d'optimisation des performances :
+  * Calcul et mise en cache des boundingSpheres pour accélérer le culling
+  * Suppression d'attributs non essentiels pour les objets éloignés
+  * Application automatique de niveaux de détails basée sur la distance à la caméra
+  * Système de vérification robuste pour garantir le chargement complet des modèles
+* Mesures de sécurité :
+  * Traitement des erreurs lors du chargement et de l'optimisation
+  * Fallbacks pour les assets manquants ou corrompus
+  * Nettoyage méthodique des ressources WebGL lors du démontage des composants
+* Résultats mesurables :
+  * Réduction significative du nombre de drawcalls (de plusieurs dizaines à moins de 10)
+  * Optimisation du nombre de triangles rendus
+  * Amélioration des performances globales, particulièrement sur les appareils mobiles
+  * Interface utilisateur fluide même avec des scènes complexes
