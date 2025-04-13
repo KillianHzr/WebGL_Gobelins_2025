@@ -18,6 +18,9 @@ const AssetManager = React.forwardRef((props, ref) => {
     const loadingOverlayRef = useRef(null);
     const loadingBarRef = useRef(null);
 
+    // Cache pour les matériaux partagés
+    const sharedMaterialsRef = useRef({});
+
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadedCount, setLoadedCount] = useState(0);
     const loadingCount = assets.length;
@@ -46,11 +49,62 @@ const AssetManager = React.forwardRef((props, ref) => {
         return itemsRef.current[name];
     };
 
+    // Optimise un modèle GLTF pour réduire les drawcalls
+    const optimizeGltfModel = (gltfModel) => {
+        if (!gltfModel || !gltfModel.scene) return gltfModel;
+
+        try {
+            // Optimiser les matériaux - partager les matériaux similaires
+            gltfModel.scene.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    // Partager les matériaux
+                    if (Array.isArray(child.material)) {
+                        child.material = child.material.map(mat => {
+                            const key = mat.type + '_' + (mat.color ? mat.color.getHexString() : 'nocolor');
+                            if (!sharedMaterialsRef.current[key]) {
+                                sharedMaterialsRef.current[key] = mat;
+                            }
+                            return sharedMaterialsRef.current[key];
+                        });
+                    } else {
+                        const key = child.material.type + '_' + (child.material.color ? child.material.color.getHexString() : 'nocolor');
+                        if (!sharedMaterialsRef.current[key]) {
+                            sharedMaterialsRef.current[key] = child.material;
+                        } else {
+                            child.material = sharedMaterialsRef.current[key];
+                        }
+                    }
+
+                    // Désactiver les shadows pour les petits objets
+                    // Vérification plus robuste du boundingSphere
+                    if (child.geometry) {
+                        // Calculer la boundingSphere si elle n'existe pas
+                        if (!child.geometry.boundingSphere) {
+                            child.geometry.computeBoundingSphere();
+                        }
+
+                        // Vérifier si boundingSphere existe maintenant et appliquer la logique
+                        if (child.geometry.boundingSphere && child.geometry.boundingSphere.radius < 0.5) {
+                            child.castShadow = false;
+                            child.receiveShadow = false;
+                        }
+                    }
+                }
+            });
+
+            return gltfModel;
+        } catch (error) {
+            console.error("Error optimizing GLTF model:", error);
+            return gltfModel; // Retourner le modèle non optimisé en cas d'erreur
+        }
+    };
+
     // Exposer les fonctions via la référence React
     React.useImperativeHandle(ref, () => ({
         getItem,
         getItemNamesOfType,
-        items: itemsRef.current
+        items: itemsRef.current,
+        sharedMaterials: sharedMaterialsRef.current
     }));
 
     // Initialiser tout
@@ -59,6 +113,11 @@ const AssetManager = React.forwardRef((props, ref) => {
 
         // Configurer le stockage des éléments
         itemsRef.current = {};
+
+        // Initialiser le cache de matériaux
+        sharedMaterialsRef.current = {};
+        // Rendre le cache de matériaux accessible globalement
+        window.sharedMaterials = sharedMaterialsRef.current;
 
         // Initialiser l'interface utilisateur de chargement
         initProgressBar();
@@ -95,6 +154,15 @@ const AssetManager = React.forwardRef((props, ref) => {
             if (loadersRef.current?.gltf?.dracoLoader) {
                 loadersRef.current.gltf.dracoLoader.dispose();
             }
+
+            // Nettoyer les matériaux partagés
+            Object.values(sharedMaterialsRef.current).forEach(material => {
+                if (material && material.dispose) {
+                    material.dispose();
+                }
+            });
+            sharedMaterialsRef.current = {};
+            window.sharedMaterials = null;
 
             // Nettoyer les références
             loadersRef.current = null;
@@ -211,8 +279,45 @@ const AssetManager = React.forwardRef((props, ref) => {
     const loadAssets = () => {
         console.log(`AssetManager: Starting to load ${assets.length} assets`);
 
+        // Pour éviter les doublons, garder une trace des URL déjà chargées
+        const loadedUrls = new Set();
+
         for (const asset of assets) {
             console.log(`AssetManager: Loading asset ${asset.name} (${asset.type}) from ${asset.path}`);
+
+            // Vérifier si l'URL a déjà été chargée
+            if (loadedUrls.has(asset.path)) {
+                console.log(`AssetManager: Asset ${asset.name} has the same URL as a previously loaded asset, reusing...`);
+                // Rechercher le nom de l'asset déjà chargé avec cette URL
+                let sourceAssetName = null;
+                for (const key in itemsRef.current) {
+                    const loadedAsset = assets.find(a => a.name === key);
+                    if (loadedAsset && loadedAsset.path === asset.path) {
+                        sourceAssetName = key;
+                        break;
+                    }
+                }
+
+                // Si on a trouvé la source, copier la référence
+                if (sourceAssetName && itemsRef.current[sourceAssetName]) {
+                    // Cloner l'objet pour éviter les problèmes de référence
+                    if (asset.type.toLowerCase() === "gltf" && itemsRef.current[sourceAssetName].scene) {
+                        // Pour GLTF, cloner la scène
+                        const clonedModel = {
+                            scene: itemsRef.current[sourceAssetName].scene.clone(),
+                            animations: itemsRef.current[sourceAssetName].animations
+                        };
+                        loadComplete(asset, clonedModel);
+                    } else {
+                        // Pour d'autres types, réutiliser simplement la référence
+                        loadComplete(asset, itemsRef.current[sourceAssetName]);
+                    }
+                    continue;
+                }
+            }
+
+            // Ajouter l'URL à l'ensemble des URLs chargées
+            loadedUrls.add(asset.path);
 
             if (asset.type.toLowerCase() === "texture") {
                 loadersRef.current.texture.load(asset.path,
@@ -267,7 +372,9 @@ const AssetManager = React.forwardRef((props, ref) => {
                 loadersRef.current.gltf.load(
                     asset.path,
                     (model) => {
-                        loadComplete(asset, model);
+                        // Optimiser le modèle pour réduire les drawcalls
+                        const optimizedModel = optimizeGltfModel(model);
+                        loadComplete(asset, optimizedModel);
                     },
                     (progress) => {
                         // Progress callback (optional)
