@@ -27,6 +27,10 @@ const useStore = create((set, get) => ({
         debug: { ...state.debug, ...debugSettings }
     })),
 
+    // OrbitControls state
+    orbitControlsEnabled: false,
+    setOrbitControlsEnabled: (enabled) => set({ orbitControlsEnabled: enabled }),
+
     // Theatre.js Studio instance
     theatreStudio: null,
     setTheatreStudio: (studio) => set({ theatreStudio: studio }),
@@ -75,26 +79,6 @@ const useStore = create((set, get) => ({
         }
 
         return current;
-    },
-
-    updateDebugConfigWithoutRender: (path, value) => {
-        const config = { ...get().debugConfig };
-        let current = config;
-        const parts = path.split('.');
-
-        // Naviguer jusqu'à l'avant-dernière partie du chemin
-        for (let i = 0; i < parts.length - 1; i++) {
-            if (!current[parts[i]]) {
-                current[parts[i]] = {};
-            }
-            current = current[parts[i]];
-        }
-
-        // Définir la valeur au chemin final
-        current[parts[parts.length - 1]] = value;
-
-        // Mettre à jour la config sans déclencher de re-rendu
-        get().setDebugConfig(config);
     },
 
     // Système de détection des clics
@@ -163,7 +147,7 @@ const useStore = create((set, get) => ({
             }
         })),
 
-        // Compléter une interaction (utilisé lorsqu'on détecte un clic sur un objet)
+        // Compléter une interaction
         completeInteraction: () => {
             const state = get();
             if (!state.interaction.waitingForInteraction) return;

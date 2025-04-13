@@ -60,44 +60,6 @@ canvas:active {
     transition: width 0.05s ease-out;
 }
 
-/* Bouton d'interaction */
-#interaction-button {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 15px 30px;
-    background-color: #4383f5;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
-    display: none;
-    z-index: 100;
-}
-
-#interaction-button:hover {
-    background-color: #306ad6;
-}
-
-/* Élément de compte à rebours */
-#countdown-element {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 36px;
-    font-weight: bold;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 100;
-}
-
 /* Indicateur de débogage */
 #scroll-debug-indicator {
     position: fixed;
@@ -111,4 +73,14 @@ canvas:active {
     border-radius: 4px;
     z-index: 100;
     transition: color 0.3s ease;
+}
+
+/* Style pour le panneau Theatre.js */
+.theatre-studio-root {
+    z-index: 1000 !important;
+}
+
+/* Style pour les contrôles GUI */
+.lil-gui {
+    z-index: 1001 !important;
 }

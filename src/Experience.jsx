@@ -1,87 +1,117 @@
-import React, {useEffect, useRef} from 'react'
-import {useFrame, useThree} from '@react-three/fiber'
-import {OrbitControls} from '@react-three/drei'
+import React, { useEffect, useRef, useState, Suspense, useMemo } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import * as THREE from 'three'
 import useStore from './Store/useStore'
-import Cube from './World/Cube'
 import ScrollControls from './Core/ScrollControls'
-import {initializeLight} from "./Utils/defaultValues.js";
-import DebugInitializer from "./Utils/DebugInitializer.jsx";
-import Debug from "./Utils/Debug.jsx";
-import Camera from "./Core/Camera.jsx";
-import Controls from "./Core/Controls.jsx";
-import Lights from "./Core/Lights.jsx";
-import Stats from "./Utils/Stats.jsx";
-import RayCaster from "./Utils/RayCaster.jsx";
-import { EventEmitterProvider } from './Utils/EventEmitter';
+import DebugInitializer from "./Utils/DebugInitializer.jsx"
+import { EventEmitterProvider } from './Utils/EventEmitter'
+import { TreeModel, TreeFallback } from './World/TreeModel'
+import {OrbitControls} from "@react-three/drei";
 
 export default function Experience() {
-    const {loaded, debug} = useStore()
-    const {scene} = useThree()
-    const ambientLightRef = useRef()
-    const directionalLightRef = useRef()
+    const { debug, loaded, setLoaded } = useStore();
+    const { scene } = useThree();
 
-    // Appliquer les valeurs par défaut aux lumières lors du montage
+    // État pour les contrôles de caméra
+    const orbitControlsEnabled = useStore(state => state.orbitControlsEnabled || false);
+
+    // Afficher l'UI de Theatre.js si le mode debug est activé
     useEffect(() => {
-        // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
-        if (!debug?.active) {
-            if (window.__theatreStudio) {
-                window.__theatreStudio.ui.hide();
-            }
-
-            scene.traverse((object) => {
-                if (object.isLight) {
-                    const lightType = object.type.replace('Light', '');
-
-                    // Trouver l'index de cette lumière parmi les autres du même type
-                    let index = 0;
-                    let foundLights = 0;
-                    scene.traverse((obj) => {
-                        if (obj.isLight && obj.type === object.type) {
-                            if (obj === object) {
-                                index = foundLights;
-                            }
-                            foundLights++;
-                        }
-                    });
-
-                    // Initialiser avec les valeurs par défaut
-                    initializeLight(object, lightType, index);
-                }
-            });
+        if (debug?.active && debug?.showTheatre && window.__theatreStudio) {
+            window.__theatreStudio.ui.restore();
         }
-    }, [scene, debug]);
+
+        setLoaded(true);
+    }, [debug, setLoaded]);
 
     return (
         <EventEmitterProvider>
-            {/* Initialize debug mode based on URL hash */}
-            <DebugInitializer/>
+            {/* Initialize debug mode */}
+            <DebugInitializer />
 
-            {/* Debug Tools - only render if debug mode is active */}
-            {debug?.active && debug?.showStats && <Stats/>}
-            {debug?.active && debug?.showStats && <Controls/>}
-            {debug?.active && debug?.showGui && <Debug/>}
-            {debug?.active && debug?.showGui && <Camera/>}
-            {debug?.active && debug?.showGui && <Controls/>}
-            {debug?.active && debug?.showGui && <Lights/>}
+            {/* OrbitControls conditionnel */}
+            {orbitControlsEnabled && <OrbitControls enableDamping dampingFactor={0.05} />}
 
-            {/* Ajout du système de raycasting */}
-            <RayCaster>
-                <ScrollControls>
-                    {/* Lights */}
-                    <ambientLight intensity={0.5}/>
-                    <directionalLight position={[1, 2, 3]} intensity={1.5}/>
-                    <color attach="background" args={['#1e1e2f']}/>
-                    <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
+            <ScrollControls>
+                {/* Éclairage */}
+                <ambientLight intensity={0.3} />
+                <directionalLight
+                    position={[10, 20, 5]}
+                    intensity={1.5}
+                    castShadow
+                    shadow-camera-far={100}
+                    shadow-camera-left={-20}
+                    shadow-camera-right={20}
+                    shadow-camera-top={20}
+                    shadow-camera-bottom={-20}
+                    shadow-mapSize-width={2048}
+                    shadow-mapSize-height={2048}
+                />
+                <hemisphereLight intensity={0.4} />
 
-                    {/* Objects */}
-                    {loaded && (<>
-                        <Cube/>
-                        {/*<Cube position={[-2, 0, 0]} scale={1} color="#ff5533" />*/}
-                        {/*<Cube position={[0, 0, -2]} scale={1.5} color="#5eead4" />*/}
-                        {/*<Cube position={[2, 0, -4]} scale={2} color="#ffcc00" />*/}
-                    </>)}
-                </ScrollControls>
-            </RayCaster>
+                {/* Environment */}
+                <color attach="background" args={['#87CEEB']} />
+
+                {loaded && (
+                    <>
+                        <GroundPlane />
+                        <TreesGroup />
+                        <fog attach="fog" args={['#87CEEB', 1, 100]} />
+                    </>
+                )}
+            </ScrollControls>
         </EventEmitterProvider>
     )
+}
+
+// Composant pour le terrain - plus étroit mais plus long
+function GroundPlane() {
+    return (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, -150]} receiveShadow>
+            <planeGeometry args={[40, 400]} /> {/* Largeur réduite à 40, longueur réduite à 400 */}
+            <meshStandardMaterial color="#2d572c" roughness={0.8} />
+        </mesh>
+    )
+}
+
+// Composant pour gérer un groupe d'arbres adaptés au nouveau terrain
+function TreesGroup() {
+    const treesCount = 100;
+
+    // Générer des positions aléatoires pour les arbres
+    const treePositions = useMemo(() => {
+        const positions = [];
+        for (let i = 0; i < treesCount; i++) {
+            // Distribuer les arbres sur la zone ajustée
+            const x = Math.random() * 35 - 17.5; // de -17.5 à 17.5 (terrain de largeur 40)
+            const z = Math.random() * 380 - 330; // de -330 à 50 (terrain de longueur 400)
+            const scale = 0.8 + Math.random() * 0.6; // Taille variée
+            const rotation = Math.random() * Math.PI * 2; // Rotation aléatoire
+            const modelType = Math.floor(Math.random() * 2); // 0 ou 1 pour le type d'arbre
+
+            positions.push({
+                position: [x, 0, z],
+                scale: scale,
+                rotation: [0, rotation, 0],
+                modelIndex: modelType,
+                key: i
+            });
+        }
+        return positions;
+    }, []);
+
+    return (
+        <group>
+            {treePositions.map((props, index) => (
+                <Suspense key={index} fallback={<TreeFallback {...props} />}>
+                    <TreeModel
+                        position={props.position}
+                        scale={props.scale}
+                        rotation={props.rotation}
+                        modelIndex={props.modelIndex}
+                    />
+                </Suspense>
+            ))}
+        </group>
+    );
 }
