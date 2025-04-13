@@ -9,13 +9,15 @@ export default function App() {
     const { loaded, setLoaded } = useStore()
     const assetManagerRef = useRef(null)
     const [assetsLoaded, setAssetsLoaded] = useState(false)
+    const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
 
-    // Handle asset loading
+    // Handle asset loading - Using a stable dependency array
     useEffect(() => {
         // Créer une référence globale à l'AssetManager
-        if (assetManagerRef.current) {
+        if (assetManagerRef.current && !isAssetManagerInitialized) {
             window.assetManager = assetManagerRef.current;
             console.log('AssetManager reference set to window.assetManager');
+            setIsAssetManagerInitialized(true);
         }
 
         // Émettre un événement pour prévenir quand
@@ -31,7 +33,7 @@ export default function App() {
         return () => {
             forestSceneReadyUnsubscribe();
         };
-    }, [assetManagerRef.current]);
+    }, [isAssetManagerInitialized, setLoaded]); // Dépendances stables
 
     const onAssetsReady = () => {
         // Callback passé au AssetManager
@@ -45,15 +47,8 @@ export default function App() {
             <AssetManager
                 ref={assetManagerRef}
                 onReady={onAssetsReady}
+                key="assetManager" // Clé stable pour éviter les remontages
             />
-
-            {/* Loading indicator (optional) */}
-            {!loaded && (
-                <div className="loading-overlay">
-                    <div className="loading-bar"></div>
-                    <div className="loading-text">Loading...</div>
-                </div>
-            )}
 
             {/* Canvas for 3D content */}
             <Canvas

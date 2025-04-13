@@ -1,4 +1,4 @@
-import React, {useEffect, useRef} from 'react'
+import React, {useEffect, useMemo, useRef} from 'react'
 import {useFrame, useThree} from '@react-three/fiber'
 import {OrbitControls} from '@react-three/drei'
 import useStore from './Store/useStore'
@@ -75,10 +75,12 @@ export default function Experience() {
                     <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
 
                     {/* Objects */}
-                    {/*<Cube/>*/}
+                    <Cube/>
 
                     {/* Utiliser le wrapper qui gère le chargement des assets */}
-                    <ForestSceneWrapper />
+                    {useMemo(() => (
+                        <ForestSceneWrapper />
+                    ), [])}
                 </ScrollControls>
             </RayCaster>
         </EventEmitterProvider>

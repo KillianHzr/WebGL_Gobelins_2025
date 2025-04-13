@@ -56,24 +56,24 @@ export default function Forest() {
 
             // Define positions for different tree types
             const tree1Positions = [
-                { x: 5, y: 0, z: 3 },
-                // { x: -4, y: 0, z: 5 },
-                // { x: 7, y: 0, z: -2 },
-                // { x: -6, y: 0, z: -4 }
+                { x: 5, y: 0, z: -3 },
+                { x: 4, y: 0, z: -5 },
+                { x: 7, y: 0, z: -2 },
+                { x: 6, y: 0, z: -4 }
             ];
 
             const tree2Positions = [
                 { x: 3, y: 0, z: -5 },
-                // { x: -2, y: 0, z: 7 },
-                // { x: 8, y: 0, z: 4 },
-                // { x: -7, y: 0, z: -1 }
+                { x: 2, y: 0, z: -7 },
+                { x: 8, y: 0, z: -4 },
+                { x: 7, y: 0, z: -1 }
             ];
 
             const tree3Positions = [
-                { x: 1, y: 0, z: 6 },
-                // { x: -5, y: 0, z: -3 },
-                // { x: 6, y: 0, z: 1 },
-                // { x: -3, y: 0, z: -6 }
+                { x: 1, y: 0, z: -6 },
+                { x: 5, y: 0, z: -3 },
+                { x: 6, y: 0, z: -1 },
+                { x: 3, y: 0, z: -6 }
             ];
 
             // Create trees of each type

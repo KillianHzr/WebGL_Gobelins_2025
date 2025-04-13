@@ -151,6 +151,9 @@ const AssetManager = React.forwardRef((props, ref) => {
                 console.log('AssetManager: All assets loaded successfully');
                 setLoadingComplete(true);
 
+                // Ajouter cette ligne pour marquer les items comme chargés
+                itemsRef.current.loaded = true;
+
                 // Appeler le callback onReady et déclencher l'événement
                 if (onReady) {
                     console.log('AssetManager: Calling onReady callback');
