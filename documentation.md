@@ -12,7 +12,7 @@ technologies.
 - Framework: React
 - Rendu 3D: Three.js (@react-three/fiber, @react-three/drei)
 - Animation: GSAP, Blender (animations importées)
-- Audio: Howler.js
+- Audio: Howler.js (gestion complète du son ambiant et des effets sonores)
 - Gestion d'état: Zustand
 - Debugging: lil-gui, stats.js
 - Timeline: Theatre.js
@@ -27,6 +27,9 @@ technologies.
 │   │   └── gltf/     # Support GLTF pour Draco
 │   ├── models/       # Modèles 3D
 │   │   └── Fox/      # Modèle du renard
+│   ├── sounds/       # Fichiers audio
+│   │   ├── ambient.mp3  # Son d'ambiance
+│   │   └── click.mp3    # Son de clic
 │   └── textures/     # Textures
 │       ├── dirt/     # Textures de sol
 │       └── environmentMap/ # Maps d'environnement
@@ -52,9 +55,11 @@ technologies.
 │   │   ├── useObjectClick.js    # Détection de clic sur objets
 │   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
+│   │   ├── audioSlice.js      # Tranche pour la gestion du son
 │   │   ├── clickListenerSlice.js # Tranche pour la gestion des clics
 │   │   └── useStore.js          # Store Zustand central
 │   ├── Utils/        # Utilitaires
+│   │   ├── AudioManager.jsx   # Gestionnaire audio avec Howler.js
 │   │   ├── Debug.jsx          # Interface de débogage
 │   │   ├── DebugInitializer.jsx # Initialisation du debug
 │   │   ├── defaultValues.js   # Valeurs par défaut
@@ -89,7 +94,7 @@ technologies.
 **Fichiers Clés :**
 - `src/Utils/DebugInitializer.jsx`: Point d'entrée pour l'initialisation du mode debug
 - `src/Store/useStore.js`: Gestion centralisée de l'état de débogage
-- `src/Config/guiConfig.js`: Configuration des contrôles de debug
+- `src/Config/guiConfig.js`: Configuration des contrôles du GUI
 - Composants spécifiques de debug : `Camera.jsx`, `Lights.jsx`, `Cube.jsx`, `Debug.jsx`
 
 **Interconnexion :**
@@ -123,6 +128,27 @@ technologies.
 - `Stats.jsx` récupère les informations de rendu via `useThree()`
 - Le composant `Experience` rend conditionnellement les stats basé sur l'état de debug
 
+### 4. Système Audio Intégré
+
+**Fichiers Clés :**
+- `src/Utils/AudioManager.jsx`: Gestionnaire audio central utilisant Howler.js
+- `src/Store/audioSlice.js`: Tranche Zustand pour l'état audio
+- `src/Utils/DebugInitializer.jsx`: Contrôles audio dans l'interface de debug
+- `src/World/Cube.jsx`: Intégration du son dans les interactions
+
+**Interconnexion :**
+- `AudioManager` expose une instance unique (singleton) pour la gestion des sons
+- `audioSlice` gère l'état audio dans le store global
+- `DebugInitializer` fournit des contrôles pour le son d'ambiance et le volume
+- Les composants interactifs (`Cube`) déclenchent des sons lors des interactions
+
+**Fonctionnalités :**
+- Lecture, pause et reprise du son d'ambiance
+- Effets de fondu (fade) lors des transitions pause/reprise
+- Déclenchement de sons ponctuels lors des interactions
+- Contrôle du volume global via l'interface de debug
+- Isolation des sons (un son ponctuel peut jouer pendant que le son d'ambiance est actif)
+
 ## Flux de Données et Interactions
 
 1. L'utilisateur active le mode debug via le hash URL
@@ -131,6 +157,7 @@ technologies.
 4. Les composants individuels (`Camera`, `Lights`, `Cube`) s'abonnent à cet état
 5. Chaque composant peut modifier et persister ses propres configurations
 6. Les valeurs par défaut sont toujours disponibles via `defaultValues.js`
+7. Les interactions utilisateur déclenchent des événements audio via `AudioManager`
 
 ## Points Clés de Conception
 
@@ -138,6 +165,7 @@ technologies.
 - **Flexibilité :** Configuration facilement exportable et importable
 - **Performance :** Rendu conditionnel des outils de debug
 - **Extensibilité :** Ajout facile de nouveaux contrôles et configurations
+- **Modularité :** Gestion audio centralisée via un système de singleton accessible partout
 
 ## Fonctionnalités Implémentées
 
@@ -149,6 +177,7 @@ technologies.
 | Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
 | Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 | Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
+| Système Audio                   | Gestion complète des sons ambiant et ponctuels, avec effets de fondu      | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`      |
 
 ## Fonctionnement des features de documentation
 
@@ -189,15 +218,16 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Le composant `RayCaster.jsx` agit comme provider central qui gère le lancement de rayons et la détection
   d'intersections
 * Deux hooks personnalisés sont disponibles pour l'implémentation :
-    * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
-    * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
+  * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
+  * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
 * L'état d'écoute est géré de façon centralisée via `clickListenerSlice` dans le store Zustand
 * Permet de facilement :
-    * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
-    * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
-    * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
+  * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
+  * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
+  * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
+
 ### 6. Système de Drag Gestures Personnalisés
 
 * Implémenté dans `useDragGesture.js`
@@ -217,3 +247,21 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Intégration avec le système de raycasting pour s'assurer que le drag commence sur l'objet ciblé
 * Utilisé dans `Cube.jsx` pour créer des interactions interactives dans l'expérience
 * Permet de créer des interactions utilisateur complexes et personnalisées dans un environnement 3D
+
+### 7. Système Audio Intégré
+
+* Implémenté dans `AudioManager.jsx` avec Howler.js
+* Architecture singleton pour une gestion audio centralisée
+* Fonctionnalités complètes :
+  * **Son d'ambiance** : lecture en boucle, pause, reprise
+  * **Effets de fondu** : transitions douces lors des pauses/reprises (fade in/out)
+  * **Sons ponctuels** : sons déclenchés par des interactions spécifiques
+  * **Contrôle du volume** : réglage global via l'interface de debug
+* Intégration avec le système d'interaction :
+  * Déclenchement de sons lors des clics sur le cube
+  * Déclenchement de sons lors des drags réussis
+* Interface de debug dédiée :
+  * Boutons pour jouer, mettre en pause et reprendre le son d'ambiance
+  * Slider pour ajuster le volume global
+* Capacité à jouer des sons ponctuels sans interrompre le son d'ambiance
+* Architecture extensible permettant d'ajouter facilement de nouveaux sons

@@ -13,6 +13,7 @@ import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
 import { EventEmitterProvider } from './Utils/EventEmitter';
+import AudioManagerComponent from './Utils/AudioManager';
 
 export default function Experience() {
     const {loaded, debug} = useStore()
@@ -55,6 +56,9 @@ export default function Experience() {
         <EventEmitterProvider>
             {/* Initialize debug mode based on URL hash */}
             <DebugInitializer/>
+
+            {/* Initialize audio system */}
+            <AudioManagerComponent />
 
             {/* Debug Tools - only render if debug mode is active */}
             {debug?.active && debug?.showStats && <Stats/>}

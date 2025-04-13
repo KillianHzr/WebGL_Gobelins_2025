@@ -6,6 +6,7 @@ import guiConfig from '../Config/guiConfig'
 import { getDefaultValue } from "../Utils/defaultValues.js";
 import useObjectClick from '../Hooks/useObjectClick';
 import useDragGesture from '../Hooks/useDragGesture';
+import { audioManager } from '../Utils/AudioManager';
 
 export default function Cube() {
     const cubeRef = useRef()
@@ -30,6 +31,9 @@ export default function Cube() {
         onClick: (intersection, event) => {
             // Inverser l'état du cube quand il est cliqué
             setActive(prev => !prev);
+
+            // Jouer un son de clic
+            audioManager.playSound('click');
 
             // Si nous sommes en attente d'une interaction, la compléter
             if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
@@ -56,6 +60,9 @@ export default function Cube() {
         },
         onDragSuccess: (data) => {
             console.log('Successful drag detected:', data);
+
+            // Jouer un son de clic lors d'un drag réussi
+            audioManager.playSound('drag');
 
             // Changer l'apparence du cube lors d'un drag réussi
             setActive(prev => !prev);
