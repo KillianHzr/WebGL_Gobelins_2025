@@ -67,20 +67,85 @@ class AudioManager {
         return this.sounds.get(id);
     }
 
-    // Jouer un son
-    playSound(id) {
+    /**
+     * Joue un son avec possibilité d'effet de fondu
+     * @param {string} id - Identifiant du son
+     * @param {Object} options - Options de lecture
+     * @param {boolean} options.fade - Activer l'effet de fondu
+     * @param {number} options.fadeTime - Durée du fondu en ms
+     * @param {number} options.volume - Volume du son (0-1)
+     * @returns {number|null} - ID du son joué ou null
+     */
+    playSound(id, options = {}) {
         const sound = this.getSound(id);
-        if (sound) {
+        if (!sound) {
+            console.warn(`Sound '${id}' not found`);
+            return null;
+        }
+
+        // Options par défaut
+        const {
+            fade = false,
+            fadeTime = this.fadeTime,
+            volume = sound._volume
+        } = options;
+
+        if (fade) {
+            // Jouer avec effet de fondu
+            console.log(`Playing sound '${id}' with fade effect (${fadeTime}ms)`);
+
+            // Régler le volume initial à 0
+            sound.volume(0);
+
+            // Jouer le son
+            const soundId = sound.play();
+
+            // Appliquer le fondu
+            sound.fade(0, volume, fadeTime, soundId);
+
+            return soundId;
+        } else {
+            // Jouer normalement
             return sound.play();
         }
-        console.warn(`Sound '${id}' not found`);
-        return null;
     }
 
-    // Arrêter un son
-    stopSound(id) {
+    /**
+     * Arrête un son avec possibilité d'effet de fondu
+     * @param {string} id - Identifiant du son
+     * @param {Object} options - Options d'arrêt
+     * @param {boolean} options.fade - Activer l'effet de fondu
+     * @param {number} options.fadeTime - Durée du fondu en ms
+     */
+    stopSound(id, options = {}) {
         const sound = this.getSound(id);
-        if (sound) {
+        if (!sound) {
+            console.warn(`Sound '${id}' not found`);
+            return;
+        }
+
+        // Options par défaut
+        const {
+            fade = false,
+            fadeTime = this.fadeTime
+        } = options;
+
+        if (fade) {
+            // Arrêter avec effet de fondu
+            console.log(`Stopping sound '${id}' with fade effect (${fadeTime}ms)`);
+
+            // Enregistrer le volume actuel
+            const currentVolume = sound.volume();
+
+            // Appliquer le fondu
+            sound.fade(currentVolume, 0, fadeTime);
+
+            // Arrêter le son après le fondu
+            setTimeout(() => {
+                sound.stop();
+            }, fadeTime);
+        } else {
+            // Arrêter immédiatement
             sound.stop();
         }
     }

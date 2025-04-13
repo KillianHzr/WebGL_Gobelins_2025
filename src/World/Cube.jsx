@@ -32,8 +32,10 @@ export default function Cube() {
             // Inverser l'état du cube quand il est cliqué
             setActive(prev => !prev);
 
-            // Jouer un son de clic
-            audioManager.playSound('click');
+            // Jouer un son de clic avec effet de fondu
+            audioManager.playSound('click', {
+                volume: 0.8
+            });
 
             // Si nous sommes en attente d'une interaction, la compléter
             if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
@@ -61,8 +63,12 @@ export default function Cube() {
         onDragSuccess: (data) => {
             console.log('Successful drag detected:', data);
 
-            // Jouer un son de clic lors d'un drag réussi
-            audioManager.playSound('drag');
+            // Jouer un son de réussite avec un fondu plus long
+            audioManager.playSound('drag', {
+                fade: true,
+                fadeTime: 800,
+                volume: 1.0
+            });
 
             // Changer l'apparence du cube lors d'un drag réussi
             setActive(prev => !prev);
