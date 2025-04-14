@@ -53,6 +53,14 @@ class AudioManager {
             onload: () => console.log('Drag sound loaded'),
             onloaderror: (id, error) => console.error('Error loading drag sound:', error)
         });
+
+        this.addSound('capture', {
+            src: ['/audios/camera_shutter.wav'],
+            volume: 0.8,
+            preload: true,
+            onload: () => console.log('Camera sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading camera sound:', error)
+        });
     }
 
     // Ajouter un son à la collection

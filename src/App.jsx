@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import Experience from './Experience'
 import useStore from './Store/useStore'
+import CaptureInterface from './Utils/CaptureInterface.jsx'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
@@ -19,11 +20,16 @@ export default function App() {
     }, [])
 
     return (
-        <Canvas
-            gl={{ preserveDrawingBuffer: true }}
-            shadows
-        >
-            <Experience />
-        </Canvas>
+        <>
+            {/* Interface d'appareil photo - en dehors du Canvas */}
+            <CaptureInterface />
+
+            <Canvas
+                gl={{ preserveDrawingBuffer: true }}
+                shadows
+            >
+                <Experience />
+            </Canvas>
+        </>
     )
 }

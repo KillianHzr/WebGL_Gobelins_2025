@@ -37,10 +37,18 @@ export default function Cube() {
                 volume: 0.8
             });
 
-            // Si nous sommes en attente d'une interaction, la compléter
+            // Si nous sommes en attente d'une interaction pour le premier arrêt,
+            // afficher l'interface d'appareil photo au lieu de compléter l'interaction
             if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
+                if (interaction.setShowCaptureInterface) {
+                    interaction.setShowCaptureInterface(true);
+                    console.log('Affichage de l\'interface d\'appareil photo suite au clic (firstStop)');
+                }
+            }
+            // Pour les autres interactions comme secondStop, continuer à compléter normalement
+            else if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
                 interaction.completeInteraction();
-                console.log('Interaction complétée via clic sur le cube (firstStop)');
+                console.log('Interaction complétée via clic sur le cube (secondStop)');
             }
         }
     });

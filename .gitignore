@@ -10,6 +10,9 @@ lerna-debug.log*
 # Dependency directories
 node_modules/
 
+# Build directories
+dist/
+
 # dotenv environment variable files
 .env
 .env.development.local

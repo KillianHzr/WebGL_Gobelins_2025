@@ -139,8 +139,16 @@ const useStore = create((set, get) => ({
         allowScroll: true,
         waitingForInteraction: false,
         completedInteractions: {},
+        showCaptureInterface: false,
 
-        // Définir l'étape actuelle
+        setShowCaptureInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showCaptureInterface: show
+            }
+        })),
+
+        // Méthodes existantes
         setCurrentStep: (step) => set(state => ({
             interaction: {
                 ...state.interaction,
