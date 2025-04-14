@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createAudioSlice } from './audioSlice'
+import { createAudioSlice } from './AudioSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
