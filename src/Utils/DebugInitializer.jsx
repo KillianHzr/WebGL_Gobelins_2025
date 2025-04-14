@@ -79,36 +79,12 @@ const DebugInitializer = () => {
                     setOrbitControlsEnabled(value);
                 });
 
-            // Dossier pour le contrôle du défilement
-            const scrollFolder = gui.addFolder('Scroll Controls');
-
-            // Récupérer la valeur sauvegardée ou utiliser la valeur par défaut
-            const savedScrollSpeed = useStore.getState().getDebugConfigValue?.('scroll.speed.value', 0.5) || 0.5;
-            const scrollSettings = { speed: savedScrollSpeed };
-
-            // Ajouter le contrôle pour la vitesse du défilement
-            scrollFolder.add(scrollSettings, 'speed', 0.1, 2.0, 0.1)
-                .name('Scroll Speed')
-                .onChange((value) => {
-                    if (useStore.getState().updateDebugConfig) {
-                        useStore.getState().updateDebugConfig('scroll.speed.value', value);
-                    }
-                });
-
-            // Maintenir le dossier ouvert
-            scrollFolder.open();
-
             // Initialize debug config in store if not already set
             if (!useStore.getState().debugConfig) {
                 const initialConfig = {
                     theatre: {
                         showUI: {
                             value: debug.showTheatre
-                        }
-                    },
-                    scroll: {
-                        speed: {
-                            value: 0.5 // Valeur par défaut plus faible pour la vitesse de défilement
                         }
                     },
                     camera: {

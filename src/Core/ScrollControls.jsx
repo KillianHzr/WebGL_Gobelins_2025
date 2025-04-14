@@ -227,7 +227,7 @@ function CameraController({ children }) {
             const scrollFolder = gui.addFolder('Scroll Controls');
 
             // Ajouter le contrôle pour la vitesse du défilement
-            scrollFolder.add(scrollSpeedRef.current, 'value', 0.1, 2.0, 0.1)
+            scrollFolder.add(scrollSpeedRef.current, 'value', 0, 10.0, 0.1)
                 .name('Scroll Speed')
                 .onChange((value) => {
                     updateDebugConfig('scroll.speed.value', value);
