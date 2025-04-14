@@ -286,26 +286,26 @@ function CameraController({ children }) {
             }
 
             // Instruction pour cube interaction
-            if (!document.getElementById('interaction-instruction')) {
-                const instruction = document.createElement('div');
-                instruction.id = 'interaction-instruction';
-                instruction.style.position = 'fixed';
-                instruction.style.top = '25%';
-                instruction.style.left = '50%';
-                instruction.style.transform = 'translate(-50%, -50%)';
-                instruction.style.fontSize = '24px';
-                instruction.style.fontWeight = 'bold';
-                instruction.style.color = 'white';
-                instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-                instruction.style.padding = '15px 25px';
-                instruction.style.borderRadius = '8px';
-                instruction.style.textAlign = 'center';
-                instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-                instruction.style.zIndex = '100';
-                instruction.style.display = 'none';
-                instruction.textContent = 'Cliquez sur le cube pour continuer';
-                document.body.appendChild(instruction);
-            }
+            // if (!document.getElementById('interaction-instruction')) {
+            //     const instruction = document.createElement('div');
+            //     instruction.id = 'interaction-instruction';
+            //     instruction.style.position = 'fixed';
+            //     instruction.style.top = '25%';
+            //     instruction.style.left = '50%';
+            //     instruction.style.transform = 'translate(-50%, -50%)';
+            //     instruction.style.fontSize = '24px';
+            //     instruction.style.fontWeight = 'bold';
+            //     instruction.style.color = 'white';
+            //     instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            //     instruction.style.padding = '15px 25px';
+            //     instruction.style.borderRadius = '8px';
+            //     instruction.style.textAlign = 'center';
+            //     instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            //     instruction.style.zIndex = '100';
+            //     instruction.style.display = 'none';
+            //     instruction.textContent = 'Cliquez sur le cube pour continuer';
+            //     document.body.appendChild(instruction);
+            // }
         };
 
         createUI();
