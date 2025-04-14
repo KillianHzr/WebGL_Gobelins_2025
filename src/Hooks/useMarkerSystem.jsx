@@ -32,8 +32,8 @@ const useMarkerSystem = (objectRef, options = {}) => {
         customAction = null,  // Action personnalisée lors de l'interaction
         requiredInteractionStep = null, // Étape d'interaction spécifique requise
         autoShowMarker = true, // Afficher automatiquement le marqueur au survol
-        showMarkerDelay = 300, // Délai avant d'afficher le marqueur (en ms)
-        hideMarkerDelay = 200, // Délai avant de cacher le marqueur (en ms)
+        showMarkerDelay = 0, // Délai avant d'afficher le marqueur (en ms)
+        hideMarkerDelay = 0, // Délai avant de cacher le marqueur (en ms)
         onInteractionComplete = null, // Callback après une interaction réussie
         onMarkerClick = null, // Callback lors du clic sur le marqueur
         onHover = null, // Callback lors du survol de l'objet

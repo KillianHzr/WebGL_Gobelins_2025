@@ -203,31 +203,16 @@ export default function Experience() {
             {/* Ajout du système de raycasting */}
             <RayCaster>
                 {/* Intégration du système de marqueurs interactifs avec la configuration */}
-                <InteractiveMarkersProvider config={demoMarkerConfig}>
+                <InteractiveMarkersProvider>
                     <ScrollControls>
                         {/* Lights */}
                         <ambientLight intensity={0.5}/>
                         <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                         <color attach="background" args={['#1e1e2f']}/>
-                        <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
-
                         {/* Objects */}
                         {loaded && (
                             <>
                                 <Cube/>
-
-                                {/* Marqueurs interactifs */}
-                                {markersVisible && (
-                                    <>
-                                        {demoMarkerConfig.markers.map(marker => (
-                                            <InteractiveMarker
-                                                key={marker.id}
-                                                markerId={marker.id}
-                                                showTooltip={true}
-                                            />
-                                        ))}
-                                    </>
-                                )}
                             </>
                         )}
                     </ScrollControls>
