@@ -1,138 +1,181 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from 'three';
 import { useThree, useFrame } from '@react-three/fiber';
-import useStore from '../Store/useStore';
 
 /**
- * Composant qui crée un effet de contour lumineux (glow) pour les objets interactifs
+ * Composant qui crée un effet de contour (outline) pour n'importe quel modèle 3D
+ * Simule un effet de post-processing en utilisant une technique de "silhouette"
+ *
  * @param {Object} props - Propriétés du composant
  * @param {React.RefObject} props.objectRef - Référence à l'objet à entourer
  * @param {boolean} props.active - Indique si l'effet est actif
- * @param {string} props.color - Couleur de l'effet (par défaut blanc)
- * @param {number} props.intensity - Intensité de l'effet (1-10)
+ * @param {string} props.color - Couleur du contour (par défaut blanc)
+ * @param {number} props.thickness - Épaisseur du contour (0.01-0.1)
+ * @param {number} props.intensity - Intensité lumineuse du contour (1-10)
  * @param {number} props.pulseSpeed - Vitesse de pulsation (0 pour désactiver)
- * @returns {React.Component} Composant de l'effet
  */
-const OutlineEffect = ({
-                           objectRef,
-                           active = false,
-                           color = '#ffffff',
-                           thickness = 0.05,
-                           intensity = 5,
-                           pulseSpeed = 1.5
-                       }) => {
-    const outlineMeshRef = useRef();
-    const materialRef = useRef();
+const OutlineEffect = forwardRef(({
+                                      objectRef,
+                                      active = false,
+                                      color = '#ffffff',
+                                      thickness = 0.03,
+                                      intensity = 5,
+                                      pulseSpeed = 1.2
+                                  }, ref) => {
+    const outlineRef = useRef();
+    const pulseRef = useRef({ value: 0, direction: 1 });
     const { scene } = useThree();
 
-    // Variables pour l'animation de pulsation
-    const pulseRef = useRef({
-        value: 0,
-        direction: 1
-    });
+    // Exposer des méthodes et propriétés via la référence
+    useImperativeHandle(ref, () => ({
+        outlineGroup: outlineRef.current,
 
-    // Créer le matériau d'outline une seule fois
+        // Méthode pour définir la visibilité du contour
+        setVisible: (visible) => {
+            if (outlineRef.current) {
+                outlineRef.current.visible = visible;
+            }
+        },
+
+        // Méthode pour changer la couleur en cours d'exécution
+        setColor: (newColor) => {
+            if (outlineRef.current) {
+                outlineRef.current.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.color.set(newColor);
+                    }
+                });
+            }
+        },
+
+        setThickness: (newThickness) => {
+            if (outlineRef.current) {
+                outlineRef.current.traverse(child => {
+                    if (child.isMesh && child.userData.original) {
+                        const original = child.userData.original;
+                        child.scale.copy(original.scale).multiplyScalar(1 + newThickness);
+                    }
+                });
+            }
+        },
+
+        getState: () => ({ active, color, thickness, intensity, pulseSpeed })
+    }));
+
     useEffect(() => {
-        materialRef.current = new THREE.ShaderMaterial({
-            uniforms: {
-                color: { value: new THREE.Color(color) },
-                intensity: { value: intensity },
-                pulse: { value: 0 }
-            },
-            vertexShader: `
-        void main() {
-          vec3 pos = position;
-          // Ajuster légèrement les vertices vers l'extérieur
-          // pour créer l'effet d'outline
-          vec3 normal = normalize(normalMatrix * normal);
-          pos += normal * ${thickness.toFixed(4)};
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        if (!objectRef?.current || !scene) return;
+
+        try {
+            if (outlineRef.current) {
+                scene.remove(outlineRef.current);
+
+                if (outlineRef.current.children) {
+                    outlineRef.current.children.forEach(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m && m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
+
+            // Créer un groupe pour contenir les meshes de contour
+            const outlineGroup = new THREE.Group();
+            outlineGroup.visible = active;
+            outlineGroup.name = 'OutlineEffect';
+
+            // Fonction pour créer un matériau de contour plus éclatant
+            const createOutlineMaterial = () => {
+                return new THREE.MeshBasicMaterial({
+                    color: new THREE.Color(color).multiplyScalar(2.0),
+                    side: THREE.BackSide,
+                    transparent: true,
+                    opacity: Math.min(1, intensity * 0.7),
+                    depthWrite: false,
+                    blending: THREE.AdditiveBlending,
+                    toneMapped: false
+                });
+            };
+
+            // Fonction récursive pour traiter tous les meshes dans l'objet
+            const processObject = (object, parent = outlineGroup) => {
+                if (object.type === 'Mesh' && object.geometry) {
+                    const outlineMaterial = createOutlineMaterial();
+                    const outlineMesh = new THREE.Mesh(object.geometry.clone(), outlineMaterial);
+
+                    outlineMesh.position.copy(object.position);
+                    outlineMesh.rotation.copy(object.rotation);
+                    outlineMesh.scale.copy(object.scale).multiplyScalar(1 + thickness);
+
+                    outlineMesh.userData.original = object;
+
+                    parent.add(outlineMesh);
+                }
+
+                if (object.children && object.children.length > 0) {
+                    const childGroup = new THREE.Group();
+                    childGroup.position.copy(object.position);
+                    childGroup.rotation.copy(object.rotation);
+                    childGroup.scale.copy(object.scale);
+                    parent.add(childGroup);
+
+                    object.children.forEach(child => {
+                        processObject(child, childGroup);
+                    });
+                }
+            };
+
+            processObject(objectRef.current);
+
+            scene.add(outlineGroup);
+            outlineRef.current = outlineGroup;
+        } catch (error) {
+            console.error("Erreur lors de la création de l'effet de contour:", error);
         }
-      `,
-            fragmentShader: `
-        uniform vec3 color;
-        uniform float intensity;
-        uniform float pulse;
 
-        void main() {
-          // Combiner la couleur de base avec l'intensité et la pulsation
-          float glowIntensity = intensity * (1.0 + 0.5 * pulse);
-          gl_FragColor = vec4(color * glowIntensity, 1.0);
-        }
-      `,
-            side: THREE.BackSide,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
-    }, [color, intensity, thickness]);
-
-    // Mettre à jour l'outline lorsque l'objet cible change
-    useEffect(() => {
-        if (!objectRef?.current || !materialRef.current) return;
-
-        // Nettoyer l'ancien mesh s'il existe
-        if (outlineMeshRef.current) {
-            scene.remove(outlineMeshRef.current);
-            outlineMeshRef.current.geometry.dispose();
-        }
-
-        // Créer un nouveau mesh basé sur la géométrie de l'objet cible
-        const targetGeometry = objectRef.current.geometry;
-        if (targetGeometry) {
-            const outlineMesh = new THREE.Mesh(targetGeometry.clone(), materialRef.current);
-
-            // Copier la transformation de l'objet cible
-            outlineMesh.position.copy(objectRef.current.position);
-            outlineMesh.rotation.copy(objectRef.current.rotation);
-            outlineMesh.scale.copy(objectRef.current.scale);
-
-            // Suivre les transformations de l'objet parent
-            outlineMesh.userData.target = objectRef.current;
-
-            // Référencer le mesh pour les mises à jour
-            outlineMeshRef.current = outlineMesh;
-
-            // Rendre invisible par défaut (jusqu'à ce que 'active' soit true)
-            outlineMesh.visible = active;
-
-            // Ajouter à la scène
-            scene.add(outlineMesh);
-        }
-
-        // Nettoyer lors du démontage
         return () => {
-            if (outlineMeshRef.current) {
-                scene.remove(outlineMeshRef.current);
-                outlineMeshRef.current.geometry.dispose();
+            try {
+                if (outlineRef.current) {
+                    scene.remove(outlineRef.current);
+
+                    outlineRef.current.traverse(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m && m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    });
+
+                    outlineRef.current = null;
+                }
+            } catch (error) {
+                console.error("Erreur lors du nettoyage de l'effet de contour:", error);
             }
         };
-    }, [objectRef?.current, scene, materialRef.current]);
+    }, [objectRef?.current, scene, color, thickness, intensity]);
 
-    // Mettre à jour la visibilité en fonction de l'état 'active'
+    // Mettre à jour la visibilité
     useEffect(() => {
-        if (outlineMeshRef.current) {
-            outlineMeshRef.current.visible = active;
+        if (outlineRef.current) {
+            outlineRef.current.visible = active;
         }
     }, [active]);
 
-    // Animation de l'effet de pulsation
+    // Animation de pulsation
     useFrame((state, delta) => {
-        if (!outlineMeshRef.current || !materialRef.current || pulseSpeed === 0) return;
+        if (!outlineRef.current || !active || pulseSpeed <= 0) return;
 
-        // Mettre à jour la position et la rotation pour suivre l'objet cible
-        if (objectRef?.current) {
-            outlineMeshRef.current.position.copy(objectRef.current.position);
-            outlineMeshRef.current.rotation.copy(objectRef.current.rotation);
-            outlineMeshRef.current.scale.copy(objectRef.current.scale);
-        }
-
-        // Mettre à jour l'effet de pulsation
-        if (active && pulseSpeed > 0) {
-            // Calculer la nouvelle valeur de pulsation
+        try {
+            // Mettre à jour la valeur de pulsation
             pulseRef.current.value += delta * pulseSpeed * pulseRef.current.direction;
 
-            // Inverser la direction si nécessaire
             if (pulseRef.current.value >= 1) {
                 pulseRef.current.value = 1;
                 pulseRef.current.direction = -1;
@@ -141,13 +184,36 @@ const OutlineEffect = ({
                 pulseRef.current.direction = 1;
             }
 
-            // Mettre à jour l'uniform du shader
-            materialRef.current.uniforms.pulse.value = pulseRef.current.value;
+            // Facteur de pulsation (entre 0.8 et 1.2)
+            const pulseFactor = 1 + (0.4 * pulseRef.current.value - 0.2);
+
+            // Mettre à jour les meshes de contour
+            outlineRef.current.traverse(child => {
+                if (child.isMesh && child.userData.original) {
+                    const original = child.userData.original;
+
+                    child.position.copy(original.position);
+                    child.rotation.copy(original.rotation);
+
+                    child.scale.copy(original.scale).multiplyScalar(1 + thickness * pulseFactor * 1.2);
+
+                    // Faire varier l'opacité et l'intensité pour un effet éclatant
+                    if (child.material) {
+                        const baseOpacity = Math.min(1, intensity * 0.7);
+                        const pulseOpacity = Math.min(0.3, intensity * 0.3) * pulseRef.current.value;
+                        child.material.opacity = baseOpacity + pulseOpacity;
+
+                        const pulseColorIntensity = 2.0 + pulseRef.current.value * 1.5;
+                        child.material.color.set(color).multiplyScalar(pulseColorIntensity);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Erreur dans l'animation de l'effet de contour:", error);
         }
     });
 
-    // Ce composant ne rend rien directement, l'effet est ajouté à la scène
     return null;
-};
+});
 
 export default OutlineEffect;

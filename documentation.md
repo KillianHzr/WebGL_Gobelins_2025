@@ -64,8 +64,10 @@ technologies.
 │   │   ├── DebugInitializer.jsx # Initialisation du debug
 │   │   ├── defaultValues.js   # Valeurs par défaut
 │   │   ├── EventEmitter.jsx   # Gestion des événements
+│   │   ├── GlowEffectDebug.jsx  # Contrôles pour l'effet de glow
 │   │   ├── Loader.jsx         # Chargement des assets
 │   │   ├── Math.jsx           # Fonctions mathématiques
+│   │   ├── OutlineEffect.jsx  # Effet de contour lumineux
 │   │   ├── RayCaster.jsx      # Détection d'intersections
 │   │   └── Stats.jsx          # Statistiques de performance
 │   ├── World/        # Éléments du monde
@@ -149,6 +151,39 @@ technologies.
 - Contrôle du volume global via l'interface de debug
 - Isolation des sons (un son ponctuel peut jouer pendant que le son d'ambiance est actif)
 
+### 5. Effet de Contour Lumineux (Glow Effect)
+
+**Fichiers Clés :**
+- `src/Utils/OutlineEffect.jsx`: Composant principal pour l'effet de contour lumineux
+- `src/Utils/GlowEffectDebug.jsx`: Contrôles de débogage pour l'effet
+- `src/Config/guiConfig.js`: Configuration des paramètres de l'effet
+- `src/World/Cube.jsx`: Intégration de l'effet sur des objets 3D
+
+**Interconnexion :**
+- `OutlineEffect` crée un contour lumineux autour d'objets 3D ciblés
+- `GlowEffectDebug` fournit une interface dans le GUI pour ajuster tous les paramètres de l'effet
+- `guiConfig.js` contient les configurations par défaut et les plages de valeurs
+- `Cube.jsx` intègre l'effet pour indiquer les interactions disponibles
+
+**Fonctionnalités :**
+- Contour lumineux autour des objets 3D avec un effet de glow
+- Animation de pulsation pour attirer l'attention de l'utilisateur
+- Personnalisation complète de :
+  - Couleur du contour
+  - Épaisseur du contour
+  - Intensité lumineuse
+  - Vitesse de pulsation
+- Activation conditionnelle basée sur l'état d'interaction
+- Contrôle complet via l'interface de debug
+- Bouton de test intégré pour visualiser l'effet rapidement
+
+**Implémentation :**
+- Utilisation de la technique de "silhouette" avec des meshes dupliqués
+- Matériaux additifs pour un effet lumineux éclatant
+- Support des objets 3D complexes avec hiérarchie
+- Animation de pulsation pour une meilleure visualisation
+- Expose une API via forwardRef pour contrôle programmatique
+
 ## Flux de Données et Interactions
 
 1. L'utilisateur active le mode debug via le hash URL
@@ -158,6 +193,7 @@ technologies.
 5. Chaque composant peut modifier et persister ses propres configurations
 6. Les valeurs par défaut sont toujours disponibles via `defaultValues.js`
 7. Les interactions utilisateur déclenchent des événements audio via `AudioManager`
+8. Les objets interactifs signalent leur disponibilité via l'effet de glow
 
 ## Points Clés de Conception
 
@@ -166,6 +202,7 @@ technologies.
 - **Performance :** Rendu conditionnel des outils de debug
 - **Extensibilité :** Ajout facile de nouveaux contrôles et configurations
 - **Modularité :** Gestion audio centralisée via un système de singleton accessible partout
+- **Visibilité :** Retour visuel clair sur les objets interactifs grâce à l'effet de glow
 
 ## Fonctionnalités Implémentées
 
@@ -178,6 +215,7 @@ technologies.
 | Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 | Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
 | Système Audio                   | Gestion complète des sons ambiant et ponctuels, avec effets de fondu      | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`      |
+| Effet de Glow                   | Système de contour lumineux autour des objets interactifs                | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`      |
 
 ## Fonctionnement des features de documentation
 
@@ -265,3 +303,31 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
   * Slider pour ajuster le volume global
 * Capacité à jouer des sons ponctuels sans interrompre le son d'ambiance
 * Architecture extensible permettant d'ajouter facilement de nouveaux sons
+
+### 8. Système d'Effet de Contour Lumineux (Glow)
+
+* Implémenté dans `OutlineEffect.jsx` et `GlowEffectDebug.jsx`
+* Système visuel pour mettre en évidence les objets interactifs de l'expérience
+* Approche technique avancée :
+  * Crée des meshes de contour autour des objets ciblés
+  * Utilise des matériaux additifs pour un effet lumineux éclatant
+  * Gestion de la hiérarchie complète des objets avec enfants
+  * Animation de pulsation dynamique pour attirer l'attention
+* Paramètres entièrement personnalisables via l'interface de debug :
+  * **Activation** : activer/désactiver l'effet
+  * **Couleur** : personnalisation de la teinte du glow
+  * **Épaisseur** : ajustement de la taille du contour (0.01-0.1)
+  * **Intensité** : contrôle de la luminosité (1-10)
+  * **Vitesse de pulsation** : animation dynamique (0-5)
+* Fonctionnalités spéciales :
+  * Bouton de test pour visualiser l'effet pendant 2 secondes
+  * Activation conditionnelle basée sur l'état d'interaction
+  * Intégration complète avec le système d'interaction existant
+* API avancée via forwardRef pour contrôle programmatique :
+  * Accès au groupe de contour
+  * Méthodes pour modifier la visibilité et les propriétés à la volée
+  * Possibilité d'obtenir l'état actuel des paramètres
+* Optimisation des performances :
+  * Nettoyage des ressources lors du démontage
+  * Gestion correcte des ressources Three.js (geometries, materials)
+  * Animation conditionnelle uniquement lorsque l'effet est visible

@@ -8,6 +8,7 @@ import useObjectClick from '../Hooks/useObjectClick';
 import useDragGesture from '../Hooks/useDragGesture';
 import { audioManager } from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
+import GlowEffectDebug from '../Utils/GlowEffectDebug';
 
 export default function Cube() {
     const cubeRef = useRef()
@@ -19,6 +20,9 @@ export default function Cube() {
 
     // État indiquant si ce cube est l'objet qui nécessite actuellement une interaction
     const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false)
+
+    // Utiliser le nouveau composant de debug pour l'effet de glow
+    const { effectSettings, updateEffectRef } = GlowEffectDebug({ objectRef: cubeRef });
 
     // Surveiller l'état d'interaction pour activer l'effet de glow au bon moment
     useEffect(() => {
@@ -378,14 +382,15 @@ export default function Cube() {
                 />
             </mesh>
 
-            {/* Effet de glow qui s'active uniquement lorsqu'une interaction est disponible */}
+            {/* Effet de glow qui utilise maintenant les paramètres de debug */}
             <OutlineEffect
                 objectRef={cubeRef}
-                active={isWaitingForInteraction}
-                color="#ffffff"
-                thickness={0.05}
-                intensity={5}
-                pulseSpeed={1.5}
+                active={effectSettings.active || isWaitingForInteraction}
+                color={effectSettings.color}
+                thickness={effectSettings.thickness}
+                intensity={effectSettings.intensity}
+                pulseSpeed={effectSettings.pulseSpeed}
+                ref={updateEffectRef}
             />
         </>
     )
