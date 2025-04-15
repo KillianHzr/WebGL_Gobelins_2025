@@ -7,6 +7,7 @@ import { getDefaultValue } from "../Utils/defaultValues.js";
 import useObjectClick from '../Hooks/useObjectClick';
 import useDragGesture from '../Hooks/useDragGesture';
 import { audioManager } from '../Utils/AudioManager';
+import OutlineEffect from '../Utils/OutlineEffect';
 
 export default function Cube() {
     const cubeRef = useRef()
@@ -15,6 +16,24 @@ export default function Cube() {
     const [dragging, setDragging] = useState(false)
     const folderRef = useRef(null)
     const { debug, gui, updateDebugConfig, getDebugConfigValue, clickListener, interaction } = useStore()
+
+    // État indiquant si ce cube est l'objet qui nécessite actuellement une interaction
+    const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false)
+
+    // Surveiller l'état d'interaction pour activer l'effet de glow au bon moment
+    useEffect(() => {
+        // Vérifier si ce cube est l'objet qui nécessite une interaction
+        const isCurrentInteractionTarget =
+            interaction?.waitingForInteraction &&
+            (interaction.currentStep === 'firstStop' || interaction.currentStep === 'secondStop');
+
+        setIsWaitingForInteraction(isCurrentInteractionTarget);
+
+        // Afficher les informations de débogage
+        if (debug?.active && isCurrentInteractionTarget) {
+            console.log(`[Cube] Waiting for interaction: ${interaction.currentStep}`);
+        }
+    }, [interaction?.waitingForInteraction, interaction?.currentStep, debug?.active]);
 
     // Activer l'écoute des clics au montage
     useEffect(() => {
@@ -49,7 +68,7 @@ export default function Cube() {
     const { isDragging } = useDragGesture({
         objectRef: cubeRef,
         enabled: true,
-        minDistance: 100, // 50 pixels minimum de glissement
+        minDistance: 100, // 100 pixels minimum de glissement
         direction: 'horizontal', // Seulement les glissements horizontaux
         debug: debug?.active,
         onDragStart: (data) => {
@@ -340,20 +359,34 @@ export default function Cube() {
         }
     })
 
-    return (<mesh
-        ref={cubeRef}
-        position={[-2, 0, 0]}
-        scale={[1, 1, 1]}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        castShadow
-    >
-        <boxGeometry args={[1, 1, 1]}/>
-        <meshStandardMaterial
-            color={active ? '#ffffff' : (hovered ? '#ff9f6b' : '#ff5533')}
-            metalness={active ? 0.8 : (dragging ? 0.6 : 0.3)}
-            roughness={active ? 0.2 : (dragging ? 0.4 : 0.7)}
-            emissive={dragging ? new THREE.Color('#331100') : new THREE.Color('#000000')}
-        />
-    </mesh>)
+    return (
+        <>
+            <mesh
+                ref={cubeRef}
+                position={[-2, 0, 0]}
+                scale={[1, 1, 1]}
+                onPointerOver={() => setHovered(true)}
+                onPointerOut={() => setHovered(false)}
+                castShadow
+            >
+                <boxGeometry args={[1, 1, 1]}/>
+                <meshStandardMaterial
+                    color={active ? '#ffffff' : (hovered ? '#ff9f6b' : '#ff5533')}
+                    metalness={active ? 0.8 : (dragging ? 0.6 : 0.3)}
+                    roughness={active ? 0.2 : (dragging ? 0.4 : 0.7)}
+                    emissive={dragging ? new THREE.Color('#331100') : new THREE.Color('#000000')}
+                />
+            </mesh>
+
+            {/* Effet de glow qui s'active uniquement lorsqu'une interaction est disponible */}
+            <OutlineEffect
+                objectRef={cubeRef}
+                active={isWaitingForInteraction}
+                color="#ffffff"
+                thickness={0.05}
+                intensity={5}
+                pulseSpeed={1.5}
+            />
+        </>
+    )
 }
