@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createAudioSlice } from './AudioSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -196,7 +197,10 @@ const useStore = create((set, get) => ({
 
             return currentStep;
         }
-    }
+    },
+
+    // Intégration de la tranche audio
+    ...createAudioSlice(set, get)
 }));
 
 // Listen for hash changes to toggle debug mode

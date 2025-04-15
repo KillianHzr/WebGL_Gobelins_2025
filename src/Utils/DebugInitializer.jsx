@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
+import { audioManager } from './AudioManager';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -82,6 +83,47 @@ const DebugInitializer = () => {
 
             if (guiConfig.gui.closeFolders) {
                 theatreFolder.close();
+            }
+
+            // Ajouter un dossier pour l'audio
+            const audioFolder = gui.addFolder('Audio');
+
+            // Contrôles pour le son ambiant
+            const audioControls = {
+                playAmbient: () => {
+                    const store = useStore.getState();
+                    store.audio.playAmbient();
+                    audioManager.playAmbient();
+                },
+                pauseAmbient: () => {
+                    const store = useStore.getState();
+                    store.audio.pauseAmbient();
+                    audioManager.pauseAmbient();
+                },
+                resumeAmbient: () => {
+                    const store = useStore.getState();
+                    store.audio.resumeAmbient();
+                    audioManager.resumeAmbient();
+                },
+                volume: 1.0
+            };
+
+            // Ajouter les boutons
+            audioFolder.add(audioControls, 'playAmbient').name('Play Ambient');
+            audioFolder.add(audioControls, 'pauseAmbient').name('Pause Ambient');
+            audioFolder.add(audioControls, 'resumeAmbient').name('Resume Ambient');
+
+            // Contrôle du volume
+            const volumeControl = audioFolder.add(audioControls, 'volume', 0, 1, 0.01).name('Master Volume');
+            volumeControl.onChange(value => {
+                const store = useStore.getState();
+                store.audio.setVolume(value);
+                audioManager.setMasterVolume(value);
+            });
+
+            // Fermer le dossier audio si configuré
+            if (guiConfig.gui.closeFolders) {
+                audioFolder.close();
             }
 
             // Add export/import functionality
