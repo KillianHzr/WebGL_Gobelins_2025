@@ -111,12 +111,14 @@ technologies.
 ### 1. Système de Débogage Interactif
 
 **Fichiers Clés :**
+
 - `src/Utils/DebugInitializer.jsx`: Point d'entrée pour l'initialisation du mode debug
 - `src/Store/useStore.js`: Gestion centralisée de l'état de débogage
 - `src/Config/guiConfig.js`: Configuration des contrôles du GUI
 - Composants spécifiques de debug : `Camera.jsx`, `Lights.jsx`, `Cube.jsx`, `Debug.jsx`
 
 **Interconnexion :**
+
 - `useStore` gère l'état global du debug via un hook Zustand
 - `DebugInitializer` crée l'instance GUI basée sur l'état du debug
 - Les composants individuels (`Camera`, `Lights`, etc.) utilisent `useStore` pour accéder et mettre à jour les
@@ -126,11 +128,13 @@ technologies.
 ### 2. Configuration Dynamique et Persistance
 
 **Fichiers Clés :**
+
 - `src/Utils/defaultValues.js`: Utilitaires pour extraire et appliquer des valeurs par défaut
 - `src/Store/useStore.js`: Méthodes pour sauvegarder et charger des configurations
 - `src/Utils/DebugInitializer.jsx`: Fonctionnalités d'export/import de configuration
 
 **Interconnexion :**
+
 - `defaultValues.js` fournit des méthodes pour initialiser des objets avec des configurations par défaut
 - `useStore` permet de stocker et récupérer des configurations dynamiques
 - `DebugInitializer` offre des fonctions pour exporter et importer des configurations complètes
@@ -138,11 +142,13 @@ technologies.
 ### 3. Système de Statistiques et Métriques de Performance
 
 **Fichiers Clés :**
+
 - `src/Utils/Stats.jsx`: Composant de rendu des statistiques de performance
 - `src/Store/useStore.js`: Gestion de l'état d'affichage des stats
 - `experience.jsx`: Intégration conditionnelle des stats de debug
 
 **Interconnexion :**
+
 - `useStore` contrôle l'affichage des statistiques via le mode debug
 - `Stats.jsx` récupère les informations de rendu via `useThree()`
 - Le composant `Experience` rend conditionnellement les stats basé sur l'état de debug
@@ -169,23 +175,24 @@ technologies.
 
 ## Fonctionnalités Implémentées
 
-| Fonctionnalité                  | Description                                                               | Statut     | Emplacement                                                                                                          |
-|---------------------------------|---------------------------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------|
-| Setup Caméra                    | Configuration initiale de la caméra 3D                                    | Implémenté | `src/Core/Camera.jsx`                                                                                                |
-| Setup GUI de Debug              | Interface de débogage pour le développement                               | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                      |
-| Analyses de Métriques           | Système de suivi des performances et statistiques                         | Implémenté | `src/Utils/Stats.js`                                                                                                 |
-| Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
-| Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
-| Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
-| Système Audio                   | Gestion complète des sons ambiant et ponctuels, avec effets de fondu      | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`      |
-| Effet de Glow                   | Système de contour lumineux autour des objets interactifs                | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`      |
-| Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx` |
+| Fonctionnalité                           | Description                                                                            | Statut     | Emplacement                                                                                                                                         |
+|------------------------------------------|----------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Setup Caméra                             | Configuration initiale de la caméra 3D                                                 | Implémenté | `src/Core/Camera.jsx`                                                                                                                               |
+| Setup GUI de Debug                       | Interface de débogage pour le développement                                            | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                                                     |
+| Analyses de Métriques                    | Système de suivi des performances et statistiques                                      | Implémenté | `src/Utils/Stats.js`                                                                                                                                |
+| Mouvement de Caméra au Scroll            | Contrôle de la caméra via le défilement                                                | Implémenté | `src/Core/ScrollControls.jsx`                                                                                                                       |
+| Détection de Clic sur Objets 3D          | Système pour détecter les interactions de clic sur des objets spécifiques              | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx`                                |
+| Détection de Drag sur Objets 3D          | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D     | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
+| Système Audio                            | Gestion complète des sons ambiant et ponctuels, avec effets de fondu                   | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`                                     |
+| Effet de Glow                            | Système de contour lumineux autour des objets interactifs                              | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`                                     |
+| Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx`                                   |
 
 ## Fonctionnement des features de documentation
 
 La documentation (`documentation.md`) décrit quatre fonctionnalités principales:
 
 ### 1. Setup Caméra
+
 * Implémenté dans `Camera.jsx`
 * Utilise `useThree()` pour accéder à la caméra Three.js
 * Applique les valeurs par défaut de `guiConfig.js`
@@ -193,6 +200,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Les valeurs sont persistées dans le store et peuvent être restaurées
 
 ### 2. Setup GUI de Debug
+
 * Implémenté dans `DebugInitializer.jsx` avec `guiConfig.js`
 * L'interface est construite avec lil-gui
 * Activé par le hash URL `#debug`
@@ -200,6 +208,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Organise les contrôles par catégories (caméra, lumières, objets, etc.)
 
 ### 3. Analyses de Métriques
+
 * Implémenté dans `Stats.jsx`
 * Utilise `stats.js` pour afficher les FPS, temps de rendu, etc.
 * Ajoute des informations spécifiques à WebGL (triangles, appels de rendu, etc.)
@@ -207,6 +216,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Les métriques sont mises à jour à chaque frame
 
 ### 4. Mouvement de Caméra au Scroll
+
 * Implémenté dans `ScrollControls.jsx`
 * Utilise Theatre.js pour définir une séquence d'animation
 * Capture les événements de défilement et les normalise pour tous les périphériques
@@ -220,13 +230,13 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Le composant `RayCaster.jsx` agit comme provider central qui gère le lancement de rayons et la détection
   d'intersections
 * Deux hooks personnalisés sont disponibles pour l'implémentation :
-  * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
-  * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
+    * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
+    * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
 * L'état d'écoute est géré de façon centralisée via `clickListenerSlice` dans le store Zustand
 * Permet de facilement :
-  * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
-  * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
-  * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
+    * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
+    * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
+    * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
 
@@ -235,17 +245,17 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Implémenté dans `useDragGesture.js`
 * Hook personnalisé pour gérer les interactions de glissement (drag) sur des objets 3D
 * Fonctionnalités avancées de détection de gestes :
-  * Configuration flexible de la direction du drag (horizontal, vertical, directionnel)
-  * Détection précise basée sur la distance minimale et l'orientation
-  * Support des interactions sur écrans tactiles et souris
-  * Gestion complète du cycle de vie du drag :
-    * `onDragStart` : Déclenché au début du glissement
-    * `onDragEnd` : Appelé à la fin du mouvement, réussi ou annulé
-    * `onDragSuccess` : Spécifiquement pour les drags qui respectent les critères
+    * Configuration flexible de la direction du drag (horizontal, vertical, directionnel)
+    * Détection précise basée sur la distance minimale et l'orientation
+    * Support des interactions sur écrans tactiles et souris
+    * Gestion complète du cycle de vie du drag :
+        * `onDragStart` : Déclenché au début du glissement
+        * `onDragEnd` : Appelé à la fin du mouvement, réussi ou annulé
+        * `onDragSuccess` : Spécifiquement pour les drags qui respectent les critères
 * Paramètres configurables :
-  * `minDistance` : Distance minimale pour déclencher un drag
-  * `direction` : Restriction de l'orientation du glissement
-  * `debug` : Mode de débogage avec logs détaillés
+    * `minDistance` : Distance minimale pour déclencher un drag
+    * `direction` : Restriction de l'orientation du glissement
+    * `debug` : Mode de débogage avec logs détaillés
 * Intégration avec le système de raycasting pour s'assurer que le drag commence sur l'objet ciblé
 * Utilisé dans `Cube.jsx` pour créer des interactions interactives dans l'expérience
 * Permet de créer des interactions utilisateur complexes et personnalisées dans un environnement 3D
@@ -255,16 +265,16 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Implémenté dans `AudioManager.jsx` avec Howler.js
 * Architecture singleton pour une gestion audio centralisée
 * Fonctionnalités complètes :
-  * **Son d'ambiance** : lecture en boucle, pause, reprise
-  * **Effets de fondu** : transitions douces lors des pauses/reprises (fade in/out)
-  * **Sons ponctuels** : sons déclenchés par des interactions spécifiques
-  * **Contrôle du volume** : réglage global via l'interface de debug
+    * **Son d'ambiance** : lecture en boucle, pause, reprise
+    * **Effets de fondu** : transitions douces lors des pauses/reprises (fade in/out)
+    * **Sons ponctuels** : sons déclenchés par des interactions spécifiques
+    * **Contrôle du volume** : réglage global via l'interface de debug
 * Intégration avec le système d'interaction :
-  * Déclenchement de sons lors des clics sur le cube
-  * Déclenchement de sons lors des drags réussis
+    * Déclenchement de sons lors des clics sur le cube
+    * Déclenchement de sons lors des drags réussis
 * Interface de debug dédiée :
-  * Boutons pour jouer, mettre en pause et reprendre le son d'ambiance
-  * Slider pour ajuster le volume global
+    * Boutons pour jouer, mettre en pause et reprendre le son d'ambiance
+    * Slider pour ajuster le volume global
 * Capacité à jouer des sons ponctuels sans interrompre le son d'ambiance
 * Architecture extensible permettant d'ajouter facilement de nouveaux sons
 
