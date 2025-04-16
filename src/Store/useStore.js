@@ -199,6 +199,13 @@ const useStore = create((set, get) => ({
         }
     },
 
+    // Gestion des instances et des positions des arbres
+    instanceGroups: {},
+    setInstanceGroups: (groups) => set({ instanceGroups: groups }),
+
+    treePositions: null,
+    setTreePositions: (positions) => set({ treePositions: positions }),
+
     // Intégration de la tranche audio
     ...createAudioSlice(set, get)
 }));

@@ -76,7 +76,7 @@ export default function Experience() {
                     <ambientLight intensity={0.5}/>
                     <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                     <color attach="background" args={['#1e1e2f']}/>
-                    <fog attach="fog" color="#1e1e2f" near={1} far={15}/>
+                    {/*<fog attach="fog" color="#1e1e2f" near={1} far={15}/>*/}
 
                     {/* Objects */}
                     <Cube/>

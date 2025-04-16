@@ -19,6 +19,15 @@ const assets = [
         author: 'Author',
         url: ''
     },
+    // Map
+    {
+        name: 'MapScene',
+        type: 'gltf',
+        path: '/models/MapScene.glb', // Chemin absolu depuis le dossier "static"
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
     // Trees
     {
         name: 'Tree1',
@@ -29,9 +38,9 @@ const assets = [
         url: ''
     },
     {
-        name: 'Tree2',
+        name: 'TreeNaked',
         type: 'gltf',
-        path: '/models/forest/tree/Tree2.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/forest/tree/TreeNaked.glb', // Chemin absolu depuis le dossier "static"
         license: 'CC-BY',
         author: 'Author',
         url: ''

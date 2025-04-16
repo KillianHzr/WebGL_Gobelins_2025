@@ -90,7 +90,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 100
+                default: 25
             }
         }
     },
@@ -400,7 +400,7 @@ const guiConfig = {
         defaults: {
             Ambient: {
                 0: {
-                    intensity: 4.03,
+                    intensity: 6.0,
                     color: "#ffffff",
                     visible: true
                 }
