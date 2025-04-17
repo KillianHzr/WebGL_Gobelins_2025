@@ -3,11 +3,6 @@
  * Ce fichier contient toutes les configurations pour les contrôles du GUI
  */
 
-/**
- * Configuration centralisée pour l'interface GUI de debugging
- * Ce fichier contient toutes les configurations pour les contrôles du GUI
- */
-
 const guiConfig = {
     gui: {
         title: "Debug Controls",
@@ -404,6 +399,43 @@ const guiConfig = {
                     color: "#ffffff",
                     visible: true
                 }
+            }
+        }
+    },
+    // Nouvelle section pour les effets
+    effects: {
+        folder: "Effects",
+        glow: {
+            folder: "Glow Effect",
+            active: {
+                name: "Active",
+                default: false
+            },
+            color: {
+                color: "#ffffff",
+                name: "Color",
+                default: "#ffffff"
+            },
+            thickness: {
+                min: 0.01,
+                max: 0.1,
+                step: 0.01,
+                name: "Thickness",
+                default: 0.03
+            },
+            intensity: {
+                min: 1,
+                max: 10,
+                step: 0.1,
+                name: "Intensity",
+                default: 5
+            },
+            pulseSpeed: {
+                min: 0,
+                max: 5,
+                step: 0.1,
+                name: "Pulse Speed",
+                default: 1.2
             }
         }
     },

@@ -33,7 +33,7 @@ function CameraController({ children }) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
 
-    const { size, camera } = useThree();
+    const { size, camera, scene } = useThree(); // Import scene from useThree
     const { debug, updateDebugConfig, getDebugConfigValue, clickListener } = useStore();
 
     // Get interaction state from the store
@@ -44,6 +44,7 @@ function CameraController({ children }) {
     const setAllowScroll = useStore(state => state.interaction?.setAllowScroll);
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
+    const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
     // Définition des points d'interaction avec leurs types
     const interactions = [
@@ -52,14 +53,16 @@ function CameraController({ children }) {
             name: 'Premier arrêt',
             triggers: { x: 4.9 },
             isActive: true,
-            interactionType: 'click' // Requiert un clic
+            interactionType: 'click', // Requiert un clic
+            targetId: 'MainCube' // Nom du cube dans la scène
         },
         {
             id: 'secondStop',
             name: 'Second arrêt',
             triggers: { x: -6, y: 2.1 },
             isActive: true,
-            interactionType: 'drag' // Requiert un drag horizontal
+            interactionType: 'drag', // Requiert un drag horizontal
+            targetId: 'MainCube' // Nom du cube dans la scène
         }
     ];
 
@@ -356,6 +359,20 @@ function CameraController({ children }) {
         }
     }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener]);
 
+    // Fonction pour trouver un objet dans la scène par son nom
+    const findObjectByName = (name) => {
+        let targetObject = null;
+        if (name && scene) {
+            // Parcourir la scène pour trouver l'objet avec le nom correspondant
+            scene.traverse((object) => {
+                if (object.name === name) {
+                    targetObject = object;
+                }
+            });
+        }
+        return targetObject;
+    };
+
     const checkInteractionTriggers = (position) => {
         // Récupérer la liste des interactions complétées avec une valeur par défaut
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
@@ -379,6 +396,9 @@ function CameraController({ children }) {
             if (allTriggersMatched && allowScroll) {
                 console.log(`Point d'interaction atteint: ${interaction.id} - ${interaction.name} (type: ${interaction.interactionType})`);
 
+                // Trouver l'objet cible dans la scène
+                const targetObject = findObjectByName(interaction.targetId);
+
                 // Bloquer le défilement
                 setAllowScroll(false);
 
@@ -387,6 +407,9 @@ function CameraController({ children }) {
 
                 // Enregistrer l'étape actuelle
                 setCurrentStep(interaction.id);
+
+                // Stocker la référence à l'objet cible dans le store
+                setInteractionTarget(targetObject);
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
