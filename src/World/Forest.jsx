@@ -7,7 +7,8 @@ import {
     Vector3,
     Raycaster,
     Box3,
-    Sphere
+    Sphere,
+    TextureLoader
 } from 'three';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
@@ -22,6 +23,10 @@ export default function Forest() {
     const raycasterRef = useRef(new Raycaster());
     const tempBox = useRef(new Box3());
     const tempSphere = useRef(new Sphere());
+
+    // Texture loader for Tree3
+    const textureLoader = useRef(new TextureLoader());
+    const treeTexture = useRef(null);
 
     // Références pour les groupes d'arbres
     const tree1GroupRef = useRef(null);
@@ -54,6 +59,17 @@ export default function Forest() {
                 if (child.userData.importance === 'low') {
                     child.castShadow = false;
                     child.receiveShadow = false;
+                }
+
+                // Apply texture to Tree3 meshes
+                if (child.parent && child.parent.name && child.parent.name.includes('Tree3') && treeTexture.current) {
+                    // Create a new material with the texture if we don't already have one
+                    if (child.material && !child.material.map) {
+                        // Clone the material to avoid affecting other objects
+                        child.material = child.material.clone();
+                        child.material.map = treeTexture.current;
+                        child.material.needsUpdate = true;
+                    }
                 }
             }
         });
@@ -155,11 +171,49 @@ export default function Forest() {
         }
     });
 
+    // Load tree texture
+    const loadTreeTexture = () => {
+        try {
+            // Path to texture based on your file structure
+            const texturePath = '/textures/forest/tree/DefaultMaterial_Base_color.png';
+
+            treeTexture.current = textureLoader.current.load(
+                texturePath,
+                (texture) => {
+                    console.log('Tree3 texture loaded successfully');
+
+                    // Apply the texture to existing Tree3 instances
+                    if (tree3GroupRef.current) {
+                        tree3GroupRef.current.children.forEach(tree => {
+                            tree.traverse(child => {
+                                if (child.isMesh && child.material) {
+                                    // Clone the material to avoid affecting other objects
+                                    child.material = child.material.clone();
+                                    child.material.map = texture;
+                                    child.material.needsUpdate = true;
+                                }
+                            });
+                        });
+                    }
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading Tree3 texture:', error);
+                }
+            );
+        } catch (error) {
+            console.error('Error in loadTreeTexture:', error);
+        }
+    };
+
     useEffect(() => {
         // Créer le groupe principal de la forêt
         const forestGroup = forestRef.current;
         forestGroup.name = 'Forest';
         scene.add(forestGroup);
+
+        // Load tree texture
+        loadTreeTexture();
 
         // Fonction pour cloner et positionner des arbres - version robuste
         const createTreeClones = (treeName, groupRef, positions) => {
@@ -203,18 +257,26 @@ export default function Forest() {
                         treeInstance.traverse(child => {
                             // Optimiser les matériaux
                             if (child.isMesh && child.material) {
-                                // Utiliser la même instance de matériau pour tous les meshes similaires
-                                if (!window.sharedMaterials) {
-                                    window.sharedMaterials = {};
-                                }
-
-                                const matKey = child.material.type + '_' +
-                                    (child.material.color ? child.material.color.getHexString() : 'default');
-
-                                if (!window.sharedMaterials[matKey]) {
-                                    window.sharedMaterials[matKey] = child.material;
+                                // For Tree3, apply the texture if it's loaded
+                                if (treeName === 'Tree3' && treeTexture.current) {
+                                    // Clone the material to avoid affecting other objects
+                                    child.material = child.material.clone();
+                                    child.material.map = treeTexture.current;
+                                    child.material.needsUpdate = true;
                                 } else {
-                                    child.material = window.sharedMaterials[matKey];
+                                    // Use shared materials for other trees (optimization)
+                                    if (!window.sharedMaterials) {
+                                        window.sharedMaterials = {};
+                                    }
+
+                                    const matKey = child.material.type + '_' +
+                                        (child.material.color ? child.material.color.getHexString() : 'default');
+
+                                    if (!window.sharedMaterials[matKey]) {
+                                        window.sharedMaterials[matKey] = child.material;
+                                    } else {
+                                        child.material = window.sharedMaterials[matKey];
+                                    }
                                 }
 
                                 // Calculer la boundingSphere si elle n'existe pas
@@ -326,6 +388,11 @@ export default function Forest() {
                         }
                     });
                     window.sharedMaterials = null;
+                }
+
+                // Dispose texture
+                if (treeTexture.current) {
+                    treeTexture.current.dispose();
                 }
             }
         };
