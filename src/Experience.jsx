@@ -19,6 +19,7 @@ import AudioManagerComponent from './Utils/AudioManager';
 // Import des composants liés aux marqueurs interactifs
 import InteractiveMarkersProvider, { InteractiveMarker, MARKER_TYPES } from './Utils/MarkerSystem';
 import { MARKER_EVENTS } from './Utils/markerEvents';
+import EnhancedCube from "./World/EnhancedCube.jsx";
 
 // Configuration des marqueurs de démonstration
 const demoMarkerConfig = {
@@ -212,7 +213,7 @@ export default function Experience() {
                         {/* Objects */}
                         {loaded && (
                             <>
-                                <Cube/>
+                                <EnhancedCube/>
                             </>
                         )}
                     </ScrollControls>
