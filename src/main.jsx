@@ -21,17 +21,19 @@ const isDebugEnabled = () => {
 if (typeof window !== 'undefined') {
     // Étendre Theatre.js avec l'extension R3F
     studio.extend(extension);
+    window.__theatreStudio = studio;
 
     // Ne pas initialiser l'interface UI si #debug n'est pas présent
-    // if (isDebugEnabled()) {
-    //     // Initialiser normalement avec UI visible
-    //     studio.initialize();
-    //     console.log('Theatre.js initialized with UI visible');
-    // } else {
-    //     // Initialiser avec UI cachée
-    //     studio.initialize({ __experimental_hideUI: true });
-    //     console.log('Theatre.js initialized with UI hidden');
-    // }
+    if (isDebugEnabled()) {
+        // Initialiser normalement avec UI visible
+        studio.initialize();
+        console.log('Theatre.js initialized with UI visible');
+    } else {
+        // Initialiser avec UI cachée
+        studio.initialize({ __experimental_hideUI: true });
+        window.__theatreStudio.ui.hide();
+        console.log('Theatre.js initialized with UI hidden');
+    }
 
     // Exposer l'instance globalement pour un accès facile
     window.__theatreStudio = studio;

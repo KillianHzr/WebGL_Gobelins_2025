@@ -9,6 +9,12 @@
 // }
 
 // Définition des assets à charger
-const assets = [];
+const assets = [
+    {
+        name: 'map',
+        type: 'gltf',
+        path: '/models/MapScene.glb'
+    }
+];
 
 export default assets;

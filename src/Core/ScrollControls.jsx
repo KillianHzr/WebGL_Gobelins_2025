@@ -2,18 +2,18 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { getProject, val } from '@theatre/core';
 import { SheetProvider, useCurrentSheet } from '@theatre/r3f';
-import theatreState from '../../static/theatre/theatreState.json';
+import protoState from '../../static/theatre/protoState.json';
 import useStore from '../Store/useStore';
 
 // Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
-const DECELERATION = 0.95;
+const DECELERATION = 0.96;
 const MIN_VELOCITY = 0.0001;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 export default function ScrollControls({ children }) {
-    const project = getProject('WebGL_Gobelins', { state: theatreState });
+    const project = getProject('WebGL_Gobelins', { state: protoState });
     const sheet = project.sheet('Scene');
 
     return (
@@ -220,7 +220,7 @@ function CameraController({ children }) {
         // Ajouter un contrôle GUI pour la vitesse du défilement si le mode debug est actif
         if (debug?.active && gui) {
             // Récupérer la valeur sauvegardée ou utiliser la valeur par défaut
-            const savedScrollSpeed = getDebugConfigValue('scroll.speed.value', 0.5);
+            const savedScrollSpeed = getDebugConfigValue('scroll.speed.value', 3.0);
             scrollSpeedRef.current.value = savedScrollSpeed;
 
             // Ajouter le dossier pour le contrôle du défilement
