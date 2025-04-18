@@ -24,6 +24,7 @@ export default function Cube() {
     }, [clickListener]);
 
     // Utiliser le hook pour détecter les clics sur le cube
+    // Utiliser le hook pour détecter les clics sur le cube
     useObjectClick({
         objectRef: cubeRef,
         enabled: true,
@@ -38,17 +39,12 @@ export default function Cube() {
             });
 
             // Si nous sommes en attente d'une interaction pour le premier arrêt,
-            // afficher l'interface d'appareil photo au lieu de compléter l'interaction
+            // afficher l'interface d'appareil photo
             if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
                 if (interaction.setShowCaptureInterface) {
                     interaction.setShowCaptureInterface(true);
                     console.log('Affichage de l\'interface d\'appareil photo suite au clic (firstStop)');
                 }
-            }
-            // Pour les autres interactions comme secondStop, continuer à compléter normalement
-            else if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
-                interaction.completeInteraction();
-                console.log('Interaction complétée via clic sur le cube (secondStop)');
             }
         }
     });
@@ -81,10 +77,13 @@ export default function Cube() {
             // Changer l'apparence du cube lors d'un drag réussi
             setActive(prev => !prev);
 
-            // Si nous sommes en attente d'une interaction et que c'est le second arrêt, la compléter
+            // Si nous sommes en attente d'une interaction et que c'est le second arrêt,
+            // afficher l'interface de scanner
             if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
-                interaction.completeInteraction();
-                console.log('Interaction complétée via drag sur le cube (secondStop)');
+                if (interaction.setShowScannerInterface) {
+                    interaction.setShowScannerInterface(true);
+                    console.log('Affichage de l\'interface de scanner suite au drag (secondStop)');
+                }
             }
         }
     });

@@ -1,0 +1,197 @@
+@use '../variables' as v;
+@use 'sass:map';
+
+// Scanner interface
+.scanner {
+  &-interface {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: map.get(v.$z-index, interface);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 20px;
+    background-color: rgba(v.color(black), 0.7);
+  }
+
+  &-viewport {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 65%;
+    max-width: 80%;
+    aspect-ratio: 16/10;
+    box-shadow: 0 0 0 9999px v.color(camera-bg);
+    z-index: -1;
+    border: 1px solid white;
+    border-radius: 50px;
+    overflow: visible;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: 25%;
+      height: 25%;
+      border-top: 4px solid white;
+      border-left: 4px solid white;
+      border-top-left-radius: 50px;
+      z-index: 5;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 25%;
+      height: 25%;
+      border-top: 4px solid white;
+      border-right: 4px solid white;
+      border-top-right-radius: 50px;
+      z-index: 5;
+    }
+
+    &-corner-bl {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: -2px;
+      width: 25%;
+      height: 25%;
+      border-bottom: 4px solid white;
+      border-left: 4px solid white;
+      border-bottom-left-radius: 50px;
+      z-index: 5;
+    }
+
+    &-corner-br {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 25%;
+      height: 25%;
+      border-bottom: 4px solid white;
+      border-right: 4px solid white;
+      border-bottom-right-radius: 50px;
+      z-index: 5;
+    }
+
+    &-border {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      bottom: -5px;
+      left: -5px;
+      overflow: hidden;
+      border-radius: 50px;
+
+      img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        display: block;
+      }
+    }
+
+    // Square target instead of circle
+    &-target {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 15%;
+      aspect-ratio: 1/1;
+      border: 1px solid white;
+      border-radius: 0; // Make it square instead of circle
+      background-color: transparent;
+      pointer-events: none;
+    }
+  }
+
+  // Progress bar for scan time
+  &-progress {
+    &-container {
+      position: absolute;
+      bottom: 10%;
+      left: 10%;
+      right: 10%;
+      height: 6px;
+      background-color: rgba(v.color(text), 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    &-bar {
+      height: 100%;
+      width: 0;
+      background-color: v.color(primary);
+      border-radius: 3px;
+      transition: width 0.05s linear;
+    }
+  }
+
+  &-button {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 50%);
+    background-color: v.color(text);
+    color: v.color(black);
+    border: none;
+    border-radius: 50%;
+    width: map.get(map.get(v.$sizes, camera), size);
+    height: map.get(map.get(v.$sizes, camera), size);
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+    z-index: 1;
+
+    &:hover {
+      transform: translate(-50%, 50%) scale(1.1);
+    }
+
+    &:active {
+      transform: translate(-50%, 50%) scale(0.95);
+      background-color: v.color(primary);
+    }
+  }
+
+  &-objective {
+    background: v.color(text);
+    border: 2px solid v.color(black);
+    border-radius: 5px; // More square-ish for scanner
+    height: 40%;
+    width: 40%;
+  }
+
+  &-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: rgba(v.color(black), 0.7);
+    color: v.color(text);
+    border-radius: 5px;
+    z-index: map.get(v.$z-index, notification);
+    animation: fadeIn 0.3s ease-in;
+  }
+}

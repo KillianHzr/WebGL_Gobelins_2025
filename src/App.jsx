@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei'
 import Experience from './Experience'
 import useStore from './Store/useStore'
 import CaptureInterface from './Utils/CaptureInterface.jsx'
+import ScannerInterface from './Utils/ScannerInterface.jsx'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
@@ -21,8 +22,11 @@ export default function App() {
 
     return (
         <>
-            {/* Interface d'appareil photo - en dehors du Canvas */}
+            {/* Camera interface - outside Canvas */}
             <CaptureInterface />
+
+            {/* Scanner interface - outside Canvas */}
+            <ScannerInterface />
 
             <Canvas
                 gl={{ preserveDrawingBuffer: true }}

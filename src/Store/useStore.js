@@ -140,11 +140,19 @@ const useStore = create((set, get) => ({
         waitingForInteraction: false,
         completedInteractions: {},
         showCaptureInterface: false,
+        showScannerInterface: false,
 
         setShowCaptureInterface: (show) => set(state => ({
             interaction: {
                 ...state.interaction,
                 showCaptureInterface: show
+            }
+        })),
+
+        setShowScannerInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showScannerInterface: show
             }
         })),
 

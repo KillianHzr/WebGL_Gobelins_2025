@@ -1,0 +1,59 @@
+@use '../variables' as v;
+@use 'sass:map';
+
+// Interaction elements
+#interaction {
+  &-button {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: map.get(map.get(v.$sizes, button), padding);
+    background-color: v.color(primary);
+    color: v.color(text);
+    border: none;
+    border-radius: map.get(map.get(v.$sizes, button), radius);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    display: none;
+    z-index: map.get(v.$z-index, timeline);
+
+    &:hover {
+      background-color: v.color(primary-hover);
+    }
+  }
+}
+
+#countdown {
+  &-element {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: v.color(text);
+    text-shadow: 0 2px 4px rgba(v.color(black), 0.5);
+    display: none;
+    z-index: map.get(v.$z-index, timeline);
+  }
+}
+
+#scroll {
+  &-debug-indicator {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 12px;
+    background-color: rgba(v.color(black), 0.6);
+    color: v.color(success);
+    font-family: sans-serif;
+    font-size: 14px;
+    border-radius: 4px;
+    z-index: map.get(v.$z-index, timeline);
+    transition: color 0.3s ease;
+  }
+}

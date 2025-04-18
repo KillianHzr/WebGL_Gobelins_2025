@@ -51,12 +51,26 @@ export default function CaptureInterface() {
             {/* Interface de l'appareil photo */}
             {isVisible && (
                 <div className="camera-interface">
-                    <button
-                        onClick={handleCaptureClick}
-                        className="camera-button"
-                    >
-                        <span className="camera-objective"></span>
-                    </button>
+                    {/* Viewport avec l'image de border */}
+                    <div className="camera-viewport">
+                        {/* Ajout des éléments de coin inférieurs */}
+                        <div className="camera-viewport-corner-bl"></div>
+                        <div className="camera-viewport-corner-br"></div>
+
+                        {/* Ajout du cercle de visée au centre */}
+                        <div className="camera-viewport-target"></div>
+                        <div className="camera-viewport-zoom">
+                            <div className="camera-viewport-zoom-plus"></div>
+                            <div className="camera-viewport-zoom-minus"></div>
+                        </div>
+                        {/* Bouton de capture repositionné dans le viewport */}
+                        <button
+                            onClick={handleCaptureClick}
+                            className="camera-button"
+                        >
+                            <span className="camera-objective"></span>
+                        </button>
+                    </div>
                 </div>
             )}
 
