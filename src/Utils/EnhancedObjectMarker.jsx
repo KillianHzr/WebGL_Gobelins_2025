@@ -1,12 +1,13 @@
 // src/Utils/EnhancedObjectMarker.jsx
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import React, {useRef, useState, useEffect, useCallback} from 'react';
+import {useThree, useFrame} from '@react-three/fiber';
+import {Html} from '@react-three/drei';
 import * as THREE from 'three';
-import { EventBus } from './EventEmitter';
-import { MARKER_EVENTS } from './markerEvents';
-import { audioManager } from './AudioManager';
+import {EventBus} from './EventEmitter';
+import {MARKER_EVENTS} from './markerEvents';
+import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
+import {useRayCaster} from "./RayCaster.jsx";
 
 // Types d'interaction supportés
 export const INTERACTION_TYPES = {
@@ -20,8 +21,8 @@ export const INTERACTION_TYPES = {
 
 // Hook personnalisé pour calculer le point d'attachement optimal sur un objet
 export const useOptimalMarkerPosition = (objectRef, options = {}) => {
-    const { camera } = useThree();
-    const [markerPosition, setMarkerPosition] = useState({ x: 0, y: 0, z: 0 });
+    const {camera} = useThree();
+    const [markerPosition, setMarkerPosition] = useState({x: 0, y: 0, z: 0});
     const [closestPoint, setClosestPoint] = useState(null);
     const [normalVector, setNormalVector] = useState(null);
 
@@ -32,9 +33,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
 
     // Options par défaut
     const {
-        offset = 0.5,
-        preferredAxis = null,
-        forceRecalculate = false
+        offset = 0.5, preferredAxis = null, forceRecalculate = false
     } = options;
 
     // Fonction pour calculer une position stable pour le marqueur
@@ -44,9 +43,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
         // Si déjà calculé et pas de forçage de recalcul, retourner position mémorisée
         if (positionCalculated.current && initialPosition.current && !forceRecalculate) {
             return {
-                position: initialPosition.current,
-                point: closestPoint,
-                normal: normalVector
+                position: initialPosition.current, point: closestPoint, normal: normalVector
             };
         }
 
@@ -91,9 +88,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
 
         // Mémoriser cette position initiale
         const position = {
-            x: markerPos.x,
-            y: markerPos.y,
-            z: markerPos.z
+            x: markerPos.x, y: markerPos.y, z: markerPos.z
         };
 
         initialPosition.current = position;
@@ -105,9 +100,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
         positionCalculated.current = true;
 
         return {
-            position,
-            point: surfacePoint,
-            normal: surfaceToCamera
+            position, point: surfacePoint, normal: surfaceToCamera
         };
     }, [camera, objectRef, offset, forceRecalculate]);
 
@@ -123,10 +116,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
     }, [calculateStablePosition]);
 
     return {
-        position: markerPosition,
-        closestPoint,
-        normal: normalVector,
-        updatePosition: updateMarkerPosition
+        position: markerPosition, closestPoint, normal: normalVector, updatePosition: updateMarkerPosition
     };
 };
 
@@ -165,31 +155,52 @@ const EnhancedObjectMarker = ({
                                   showText = true,                // Afficher le texte
                                   pulseAnimation = true,          // Activer l'animation de pulsation
                                   custom = null,                  // Composant personnalisé à rendre
-                                  id = `marker-${Math.random().toString(36).substr(2, 9)}` // ID unique pour le marqueur
+                                  id = `marker-${Math.random().toString(36).substr(2, 9)}`, // ID unique pour le marqueur
+                                  keepVisible = false,            // Nouveau prop pour forcer la visibilité
+                                  onPointerEnter,                 // Fonction appelée quand le pointeur entre dans le marqueur
+                                  onPointerLeave                  // Fonction appelée quand le pointeur quitte le marqueur
                               }) => {
     const markerRef = useRef();
     const [fadeIn, setFadeIn] = useState(false);
-    const { camera } = useThree();
+    const [isHovering, setIsHovering] = useState(false);
+    const {camera} = useThree();
     const time = useRef(0);
 
     // Utilisation de la position optimale pour le marqueur
-    const { position: markerPosition, normal: normalVector, updatePosition } = useOptimalMarkerPosition(objectRef, {
-        offset: positionOptions.offsetDistance || 0.5,
-        preferredAxis: positionOptions.preferredAxis,
-        ...positionOptions
+    const {position: markerPosition, normal: normalVector, updatePosition} = useOptimalMarkerPosition(objectRef, {
+        offset: positionOptions.offsetDistance || 0.5, preferredAxis: positionOptions.preferredAxis, ...positionOptions
     });
+
+    // Gérer le survol du marqueur lui-même
+    const handleMarkerPointerEnter = (e) => {
+        console.log('[EnhancedObjectMarker] Pointer enter on marker', e);
+        e.stopPropagation();
+        setIsHovering(true);
+        console.log('is hovering:', isHovering);
+        if (onPointerEnter) onPointerEnter(e);
+    };
+
+    const handleMarkerPointerLeave = (e) => {
+        console.log('[EnhancedObjectMarker] Pointer leave on marker', e);
+        e.stopPropagation();
+        setIsHovering(false);
+        console.log('is hovering:', isHovering);
+        if (onPointerLeave) onPointerLeave(e);
+    };
 
     // Effet de transition pour l'apparition du marqueur
     useEffect(() => {
-        if (hovered) {
+        if (hovered || keepVisible || isHovering) {
             setFadeIn(true);
         } else {
             setFadeIn(false);
         }
-    }, [hovered]);
+    }, [hovered, keepVisible, isHovering]);
 
     // Gérer le clic sur le marqueur
-    const handleMarkerClick = () => {
+    const handleMarkerClick = (e) => {
+        e.stopPropagation();
+
         // Jouer un son de confirmation
         if (audioManager) {
             audioManager.playSound('click', {
@@ -199,13 +210,12 @@ const EnhancedObjectMarker = ({
 
         // Appeler la fonction onClick si elle est fournie
         if (onClick) {
-            onClick();
+            onClick(e);
         }
 
         // Émettre un événement pour informer le système de marqueurs
         EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
-            id,
-            type: markerType
+            id, type: markerType
         });
     };
 
@@ -264,193 +274,162 @@ const EnhancedObjectMarker = ({
                 break;
             case INTERACTION_TYPES.CLICK:
             default:
-                // Animation de pulsation pour le clic
-                if (pulseAnimation && markerRef.current.children[0]) {
-                    const pulse = Math.sin(time.current * 4) * 0.1 + 1;
-                    markerRef.current.children[0].scale.set(pulse, pulse, 1);
-                }
                 break;
         }
     });
 
-    // Ne rien rendre si l'objet n'est pas survolé
-    if (!hovered) return null;
+    // Ne rien rendre si l'objet n'est pas survolé et keepVisible est false
+    if (!hovered && !keepVisible && !isHovering) return null;
 
     // Si un composant personnalisé est fourni, l'utiliser
     if (custom) {
-        return (
-            <>
-                <group
-                    ref={markerRef}
-                    position={[markerPosition.x, markerPosition.y, markerPosition.z]}
-                    onClick={handleMarkerClick}
-                    scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
-                >
-                    {custom}
-
-                    {/* Texte en HTML pour toujours rester correctement orienté */}
-                    {showText && (
-                        <Html
-                            position={[0, 0.4, 0.05]} /* Position au-dessus avec léger décalage en Z */
-                            className="marker-text"
-                            style={{
-                                opacity: fadeIn ? 1 : 0,
-                                transition: 'opacity 0.3s',
-                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                                color: 'white',
-                                padding: '5px 10px',
-                                borderRadius: '4px',
-                                fontFamily: 'Arial, sans-serif',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                textAlign: 'center',
-                                whiteSpace: 'nowrap',
-                                pointerEvents: 'none',
-                                userSelect: 'none',
-                                width: 'auto',
-                                textShadow: '1px 1px 2px rgba(0,0,0,0.8)', /* Ombre pour lisibilité */
-                            }}
-                            center
-                            fullscreen={false}
-                            distanceFactor={10}
-                            zIndexRange={[100, 0]}
-                        >
-                            <div>{text}</div>
-                        </Html>
-                    )}
-                </group>
-            </>
-        );
-    }
-
-    // Contenu visuel spécifique par type d'interaction
-    return (
-        <>
-            {/* Groupe principal pour l'icône du marqueur */}
+        return (<>
             <group
                 ref={markerRef}
                 position={[markerPosition.x, markerPosition.y, markerPosition.z]}
                 onClick={handleMarkerClick}
+                onPointerOver={handleMarkerPointerEnter}
+                onPointerOut={handleMarkerPointerLeave}
                 scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
             >
-                {/* Anneau de base commun à tous les types */}
+                {custom}
+
+                {/* Texte en HTML pour toujours rester correctement orienté */}
+                {showText && (<Html
+                    position={[0, 0.4, 0.05]} /* Position au-dessus avec léger décalage en Z */
+                    className="marker-text"
+                    style={{
+                        opacity: fadeIn ? 1 : 0,
+                        transition: 'opacity 0.3s',
+                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        padding: '5px 10px',
+                        borderRadius: '4px',
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        width: 'auto',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)', /* Ombre pour lisibilité */
+                    }}
+                    center
+                    fullscreen={false}
+                    distanceFactor={10}
+                    zIndexRange={[100, 0]}
+                >
+                    <div>{text}</div>
+                </Html>)}
+            </group>
+        </>);
+    }
+
+    // Contenu visuel spécifique par type d'interaction
+    return (<>
+        {/* Groupe principal pour l'icône du marqueur */}
+        <group
+            ref={markerRef}
+            position={[markerPosition.x, markerPosition.y, markerPosition.z]}
+            onClick={handleMarkerClick}
+            onPointerOver={handleMarkerPointerEnter}
+            onPointerOut={handleMarkerPointerLeave}
+            scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
+        >
+
+
+            {markerType === INTERACTION_TYPES.CLICK && (<Html
+                position={[0, 0, 0.002]}
+                center
+                style={{
+                    width: '69px',
+                    height: '69px',
+                    display: 'flex',
+                    padding: '8px',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '5px',
+                    flexShrink: 0,
+                    borderRadius: '200px',
+                    border: '0.5px solid #F9FEFF',
+                    background: 'rgba(249, 254, 255, 0.50)',
+                    opacity: fadeIn ? 1 : 0,
+                    transition: 'all 0.3s ease',
+                    pointerEvents: 'auto',
+                    cursor: 'pointer',
+                    willChange: 'transform, box-shadow', ...(isHovering ? {
+                        background: 'rgba(249, 254, 255, 0.75)',
+                        border: '0.5px solid #FFFFFF',
+                        transform: 'scale(1.05)',
+                        boxShadow: '0 0 10px rgba(249, 254, 255, 0.3)'
+                    } : {})
+                }}
+            >
+                <div style={{
+                    color: '#F9FEFF',
+                    textAlign: 'center',
+                    fontFamily: 'Roboto',
+                    fontSize: '10px',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    lineHeight: 'normal',
+                    transition: 'all 0.3s ease', ...(isHovering ? {
+                        color: '#FFFFFF', transform: 'scale(1.05)'
+                    } : {})
+                }}>
+                    {text}
+                </div>
+            </Html>)}
+
+            {markerType === INTERACTION_TYPES.LONG_PRESS && (<group position={[0, 0, 0.01]}>
                 <mesh>
-                    <ringGeometry args={[0.3, 0.5, 32]} />
+                    <ringGeometry args={[0.08, 0.15, 32]}/>
                     <meshBasicMaterial
                         color={color}
                         transparent
-                        opacity={fadeIn ? 0.8 : 0}
+                        opacity={fadeIn ? 0.9 : 0}
                         side={THREE.DoubleSide}
                     />
                 </mesh>
-
-                {/* Cercle central */}
                 <mesh>
-                    <circleGeometry args={[0.25, 32]} />
+                    <circleGeometry args={[0.08, 32]}/>
                     <meshBasicMaterial
-                        color="#ffffff"
+                        color={color}
                         transparent
-                        opacity={fadeIn ? 0.9 : 0}
+                        opacity={fadeIn ? 0.5 : 0}
                     />
                 </mesh>
+            </group>)}
 
-                {/* Icônes spécifiques selon le type d'interaction */}
-                {markerType === INTERACTION_TYPES.CLICK && (
-                    <mesh position={[0, 0, 0.01]}>
-                        <circleGeometry args={[0.12, 32]} />
-                        <meshBasicMaterial
-                            color={color}
-                            transparent
-                            opacity={fadeIn ? 0.9 : 0}
-                        />
-                    </mesh>
-                )}
-
-                {markerType === INTERACTION_TYPES.LONG_PRESS && (
-                    <group position={[0, 0, 0.01]}>
-                        <mesh>
-                            <ringGeometry args={[0.08, 0.15, 32]} />
-                            <meshBasicMaterial
-                                color={color}
-                                transparent
-                                opacity={fadeIn ? 0.9 : 0}
-                                side={THREE.DoubleSide}
-                            />
-                        </mesh>
-                        <mesh>
-                            <circleGeometry args={[0.08, 32]} />
-                            <meshBasicMaterial
-                                color={color}
-                                transparent
-                                opacity={fadeIn ? 0.5 : 0}
-                            />
-                        </mesh>
-                    </group>
-                )}
-
-                {/* Flèches directionnelles pour les drags */}
-                {(markerType === INTERACTION_TYPES.DRAG_LEFT ||
-                    markerType === INTERACTION_TYPES.DRAG_RIGHT ||
-                    markerType === INTERACTION_TYPES.DRAG_UP ||
-                    markerType === INTERACTION_TYPES.DRAG_DOWN) && (
-                    <mesh position={[0, 0, 0]} rotation={[0, 0,
-                        markerType === INTERACTION_TYPES.DRAG_LEFT ? Math.PI :
-                            markerType === INTERACTION_TYPES.DRAG_RIGHT ? 0 :
-                                markerType === INTERACTION_TYPES.DRAG_UP ? Math.PI / 2 :
-                                    -Math.PI / 2]}>
-                        {/* Flèche triangulaire */}
-                        <shapeGeometry args={[(() => {
-                            const shape = new THREE.Shape();
-                            shape.moveTo(0, 0.1);
-                            shape.lineTo(-0.1, -0.05);
-                            shape.lineTo(0.1, -0.05);
-                            shape.lineTo(0, 0.1);
-                            return shape;
-                        })()]} />
-                        <meshBasicMaterial
-                            color={color}
-                            transparent
-                            opacity={fadeIn ? 0.9 : 0}
-                            side={THREE.DoubleSide}
-                        />
-                    </mesh>
-                )}
-
-                {/* Texte en HTML pour toujours rester correctement orienté */}
-                {showText && (
-                    <Html
-                        position={[0, 0, 0]} /* Position au-dessus du marqueur */
-                        center
-                        className="marker-text"
-                        style={{
-                            opacity: fadeIn ? 1 : 0,
-                            transition: 'opacity 0.3s',
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            color: 'white',
-                            padding: '5px 10px',
-                            borderRadius: '4px',
-                            fontFamily: 'Arial, sans-serif',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                            pointerEvents: 'none',
-                            userSelect: 'none',
-                            width: 'auto',
-                            textShadow: '1px 1px 2px rgba(0,0,0,0.8)', /* Ombre pour lisibilité */
-                        }}
-                        distanceFactor={10}
-                        zIndexRange={[100, 0]}
-                    >
-                        {text}
-                    </Html>
-                )}
-            </group>
-        </>
-    );
+            {/* Flèches directionnelles pour les drags */}
+            {(markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT || markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) && (
+                <mesh position={[0, 0, 0]}
+                      rotation={[0, 0, markerType === INTERACTION_TYPES.DRAG_LEFT ? Math.PI : markerType === INTERACTION_TYPES.DRAG_RIGHT ? 0 : markerType === INTERACTION_TYPES.DRAG_UP ? Math.PI / 2 : -Math.PI / 2]}>
+                    {/* Flèche triangulaire */}
+                    <shapeGeometry args={[(() => {
+                        const shape = new THREE.Shape();
+                        shape.moveTo(0, 0.1);
+                        shape.lineTo(-0.1, -0.05);
+                        shape.lineTo(0.1, -0.05);
+                        shape.lineTo(0, 0.1);
+                        return shape;
+                    })()]}/>
+                    <meshBasicMaterial
+                        color={color}
+                        transparent
+                        opacity={fadeIn ? 0.9 : 0}
+                        side={THREE.DoubleSide}
+                    />
+                </mesh>)}
+        </group>
+    </>);
 };
 
 // Fonction d'aide pour faciliter l'intégration avec un modèle 3D
+// Dans ModelMarker, modifiez la partie pertinente:
+
 export const ModelMarker = ({
                                 objectRef,         // Référence à l'objet, optionnelle si les enfants sont fournis
                                 children,          // Enfants à englober (typiquement un mesh)
@@ -472,55 +451,101 @@ export const ModelMarker = ({
 
     // État pour suivre si l'objet est survolé
     const [isHovered, setHovered] = useState(false);
+    const [isMarkerHovered, setMarkerHovered] = useState(false);
+
+    // État pour mémoriser si le marqueur doit rester visible
+    const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
 
     // Accès à l'état global d'interaction
     const interaction = useStore(state => state.interaction);
+
+    // Accès au RayCaster
+    const {addPointerEnterListener, addPointerLeaveListener} = useRayCaster();
 
     // Utiliser le type d'interaction passé par l'un ou l'autre paramètre
     const effectiveMarkerType = interactionType || markerType;
 
     // Vérifier si le marqueur doit être affiché basé sur l'état d'interaction
-    const shouldShowMarker =
-        isHovered && showMarkerOnHover && (
-            !requiredStep ||
-            (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)
-        );
+    const shouldShowMarker = (isHovered || isMarkerHovered || keepMarkerVisible) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep));
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
         if (onInteract) {
             onInteract();
         }
+        // Réinitialiser la visibilité après une interaction
+        setKeepMarkerVisible(false);
     };
 
-    return (
-        <group ref={groupRef} {...props}>
-            {/* Rendre les enfants avec les événements de survol */}
-            {React.Children.map(children, child =>
-                React.cloneElement(child, {
-                    onPointerOver: () => setHovered(true),
-                    onPointerOut: () => setHovered(false),
-                    ref: objectRef || child.ref
-                })
-            )}
+    // Gérer le survol du marqueur
+    const handleMarkerPointerEnter = () => {
+        setMarkerHovered(true);
+        setKeepMarkerVisible(true); // Garder le marqueur visible
+    };
 
-            {/* Ajouter le marqueur d'interaction seulement s'il doit être affiché */}
-            {shouldShowMarker && (
-                <EnhancedObjectMarker
-                    objectRef={objectRef || groupRef}
-                    markerType={effectiveMarkerType}
-                    hovered={true} // Forcé à true car shouldShowMarker est déjà vérifié
-                    color={markerColor}
-                    scale={markerScale}
-                    text={markerText}
-                    onClick={handleObjectInteraction}
-                    positionOptions={positionOptions}
-                    id={id}
-                    custom={customMarker}
-                />
-            )}
-        </group>
-    );
+    const handleMarkerPointerLeave = () => {
+        setMarkerHovered(false);
+        // Le marqueur reste visible grâce à keepMarkerVisible
+    };
+
+    // Écouter l'événement d'interaction complète pour réinitialiser l'état
+    useEffect(() => {
+        const handleInteractionComplete = (data) => {
+            if (data.id === id) {
+                setKeepMarkerVisible(false);
+            }
+        };
+
+        const cleanup = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
+        return cleanup;
+    }, [id]);
+
+    // S'abonner aux événements de pointeur via le système RayCaster amélioré
+    useEffect(() => {
+        // Utiliser la référence à l'objet ou au groupe
+        const targetRef = objectRef || groupRef;
+
+        if (targetRef.current) {
+            // Ajouter des écouteurs pour le survol
+            const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
+                console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
+                setHovered(true);
+            });
+
+            const removeLeaveListener = addPointerLeaveListener(targetRef.current.uuid, (event) => {
+                console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
+                setHovered(false);
+            });
+
+            return () => {
+                removeEnterListener();
+                removeLeaveListener();
+            };
+        }
+    }, [objectRef, addPointerEnterListener, addPointerLeaveListener]);
+
+    return (<group ref={groupRef} {...props}>
+        {React.Children.map(children, child => React.cloneElement(child, {
+            ref: objectRef || child.ref
+            // Ne plus utiliser onPointerEnter/Leave ici car nous utilisons maintenant le raycaster
+        }))}
+
+        {/* Ajouter le marqueur d'interaction seulement s'il doit être affiché */}
+        {shouldShowMarker && (<EnhancedObjectMarker
+            objectRef={objectRef || groupRef}
+            markerType={effectiveMarkerType}
+            color={markerColor}
+            scale={markerScale}
+            text={markerText}
+            onClick={handleObjectInteraction}
+            positionOptions={positionOptions}
+            id={id}
+            custom={customMarker}
+            keepVisible={true}
+            onPointerEnter={handleMarkerPointerEnter}
+            onPointerLeave={handleMarkerPointerLeave}
+        />)}
+    </group>);
 };
 
 export default EnhancedObjectMarker;

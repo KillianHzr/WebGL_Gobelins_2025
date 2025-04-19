@@ -6,13 +6,109 @@ import useStore from '../Store/useStore';
 const RayCasterContext = createContext(null);
 
 /**
- * Composant RayCaster qui gère la détection des clics dans la scène 3D
+ * Composant RayCaster qui gère la détection des clics et pointeurs dans la scène 3D
+ * avec capacité de traverser les éléments
  */
 const RayCaster = ({ children }) => {
     // Récupérer la scène en plus des autres éléments
     const { raycaster, camera, gl, scene } = useThree();
     const clickListenersRef = useRef(new Map());
+    const pointerEnterListenersRef = useRef(new Map());
+    const pointerLeaveListenersRef = useRef(new Map());
     const { clickListener } = useStore();
+
+    // Garder trace des objets actuellement survolés
+    const hoveredObjectsRef = useRef(new Set());
+
+    // Fonction pour récupérer tous les objets de la scène
+    const getAllSceneObjects = () => {
+        const allObjects = [];
+        scene.traverse((object) => {
+            if (object.isMesh) {
+                allObjects.push(object);
+            }
+        });
+        return allObjects;
+    };
+
+    // Fonction pour trouver un écouteur en remontant l'arbre des objets
+    const findListenerInAncestors = (object, listenersMap) => {
+        let currentObject = object;
+        while (currentObject) {
+            const uuid = currentObject.uuid;
+            if (listenersMap.has(uuid)) {
+                return {
+                    uuid,
+                    callback: listenersMap.get(uuid),
+                    object: currentObject
+                };
+            }
+            currentObject = currentObject.parent;
+        }
+        return null;
+    };
+
+    // Gérer les événements de mouvement de souris pour les survols
+    useEffect(() => {
+        const canvas = gl.domElement;
+
+        const handlePointerMove = (event) => {
+            if (pointerEnterListenersRef.current.size === 0 && pointerLeaveListenersRef.current.size === 0) {
+                return;
+            }
+
+            // Normalisation des coordonnées de la souris (-1 à 1)
+            const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Mise à jour du raycaster avec les coordonnées de la souris
+            raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+
+            // Obtenir tous les objets intersectés
+            const allObjects = getAllSceneObjects();
+            const intersects = raycaster.intersectObjects(allObjects, true);
+
+            // Ensemble pour suivre les objets actuellement intersectés
+            const currentlyIntersected = new Set();
+
+            // Parcourir toutes les intersections (traverser les objets)
+            for (const intersection of intersects) {
+                const listener = findListenerInAncestors(intersection.object, pointerEnterListenersRef.current);
+
+                if (listener) {
+                    const { uuid, callback, object } = listener;
+
+                    // Ajouter à l'ensemble des objets intersectés
+                    currentlyIntersected.add(uuid);
+
+                    // Si ce n'était pas déjà survolé, déclencher onPointerEnter
+                    if (!hoveredObjectsRef.current.has(uuid)) {
+                        hoveredObjectsRef.current.add(uuid);
+                        callback(intersection, event, object);
+                    }
+                }
+            }
+
+            // Vérifier les objets qui ne sont plus survolés
+            for (const uuid of hoveredObjectsRef.current) {
+                if (!currentlyIntersected.has(uuid) && pointerLeaveListenersRef.current.has(uuid)) {
+                    // Déclencher onPointerLeave
+                    const callback = pointerLeaveListenersRef.current.get(uuid);
+                    callback(event);
+                    hoveredObjectsRef.current.delete(uuid);
+                }
+            }
+        };
+
+        // S'abonner aux événements de mouvement de souris
+        if (canvas) {
+            canvas.addEventListener('pointermove', handlePointerMove);
+
+            return () => {
+                canvas.removeEventListener('pointermove', handlePointerMove);
+            };
+        }
+    }, [gl, raycaster, camera, scene]);
 
     // S'abonner aux événements de clic sur le canvas
     useEffect(() => {
@@ -21,7 +117,7 @@ const RayCaster = ({ children }) => {
         const handleClick = (event) => {
             console.log('[RayCaster] Click event captured');
 
-            if (!clickListener?.isListening || clickListenersRef.current.size === 0) {
+            if (!clickListener?.isListening && clickListenersRef.current.size === 0) {
                 console.log('[RayCaster] Not listening or no listeners registered');
                 return;
             }
@@ -33,40 +129,22 @@ const RayCaster = ({ children }) => {
             // Mise à jour du raycaster avec les coordonnées de la souris
             raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
 
-            // Récupérer tous les objets de la scène
-            const allObjects = [];
-            scene.traverse((object) => {
-                if (object.isMesh) {
-                    console.log('Found mesh:', object.name || object.uuid);
-                    allObjects.push(object);
-                }
-            });
-
             // Obtenir tous les objets intersectés en passant la liste complète
+            const allObjects = getAllSceneObjects();
             const intersects = raycaster.intersectObjects(allObjects, true);
 
             console.log('[RayCaster] Intersections found:', intersects.length);
 
-            if (intersects.length > 0) {
-                console.log('[RayCaster] First intersection:', intersects[0].object.name || intersects[0].object.uuid);
+            // Parcourir tous les objets intersectés (traverser les éléments)
+            for (const intersection of intersects) {
+                const listener = findListenerInAncestors(intersection.object, clickListenersRef.current);
 
-                // Parcourir les objets intersectés
-                for (const intersection of intersects) {
-                    // Remonter l'arbre des objets pour trouver celui avec un écouteur
-                    let currentObject = intersection.object;
-
-                    while (currentObject) {
-                        const uuid = currentObject.uuid;
-
-                        if (clickListenersRef.current.has(uuid)) {
-                            console.log('[RayCaster] Found listener for:', currentObject.name || uuid);
-                            const callback = clickListenersRef.current.get(uuid);
-                            callback(intersection, event);
-                            return; // Arrêter après avoir trouvé le premier objet avec un écouteur
-                        }
-
-                        currentObject = currentObject.parent;
-                    }
+                if (listener) {
+                    console.log('[RayCaster] Found listener for:', listener.object.name || listener.uuid);
+                    listener.callback(intersection, event);
+                    // Ne pas arrêter ici pour permettre à tous les écouteurs de réagir
+                    // Si vous voulez arrêter après le premier écouteur, décommentez:
+                    // break;
                 }
             }
         };
@@ -81,10 +159,22 @@ const RayCaster = ({ children }) => {
             };
         }
     }, [gl, raycaster, camera, scene, clickListener]);
+
     // Méthode pour ajouter un écouteur de clic à un objet spécifique
     const addClickListener = (uuid, callback) => {
         clickListenersRef.current.set(uuid, callback);
         return () => clickListenersRef.current.delete(uuid);
+    };
+
+    // Méthodes pour ajouter des écouteurs de pointeur
+    const addPointerEnterListener = (uuid, callback) => {
+        pointerEnterListenersRef.current.set(uuid, callback);
+        return () => pointerEnterListenersRef.current.delete(uuid);
+    };
+
+    const addPointerLeaveListener = (uuid, callback) => {
+        pointerLeaveListenersRef.current.set(uuid, callback);
+        return () => pointerLeaveListenersRef.current.delete(uuid);
     };
 
     // Méthode pour tester manuellement une intersection
@@ -93,12 +183,14 @@ const RayCaster = ({ children }) => {
         const normalizedY = -(y / window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera({ x: normalizedX, y: normalizedY }, camera);
-        return raycaster.intersectObjects([], true);
+        return raycaster.intersectObjects(getAllSceneObjects(), true);
     };
 
     // Contexte exposé
     const contextValue = {
         addClickListener,
+        addPointerEnterListener,
+        addPointerLeaveListener,
         testIntersection
     };
 
