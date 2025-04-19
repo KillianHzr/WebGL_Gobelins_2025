@@ -165,6 +165,7 @@ const EnhancedObjectMarker = ({
     const [isHovering, setIsHovering] = useState(false);
     const {camera} = useThree();
     const time = useRef(0);
+    const [buttonHovered, setButtonHovered] = useState(false); // État spécifique pour le survol du bouton HTML
 
     // Utilisation de la position optimale pour le marqueur
     const {position: markerPosition, normal: normalVector, updatePosition} = useOptimalMarkerPosition(objectRef, {
@@ -338,50 +339,68 @@ const EnhancedObjectMarker = ({
             scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
         >
 
-
-            {markerType === INTERACTION_TYPES.CLICK && (<Html
-                position={[0, 0, 0.002]}
-                center
-                style={{
-                    width: '69px',
-                    height: '69px',
-                    display: 'flex',
-                    padding: '8px',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '5px',
-                    flexShrink: 0,
-                    borderRadius: '200px',
-                    border: '0.5px solid #F9FEFF',
-                    background: 'rgba(249, 254, 255, 0.50)',
-                    opacity: fadeIn ? 1 : 0,
-                    transition: 'all 0.3s ease',
-                    pointerEvents: 'auto',
-                    cursor: 'pointer',
-                    willChange: 'transform, box-shadow', ...(isHovering ? {
-                        background: 'rgba(249, 254, 255, 0.75)',
-                        border: '0.5px solid #FFFFFF',
-                        transform: 'scale(1.05)',
-                        boxShadow: '0 0 10px rgba(249, 254, 255, 0.3)'
-                    } : {})
-                }}
-            >
-                <div style={{
-                    color: '#F9FEFF',
-                    textAlign: 'center',
-                    fontFamily: 'Roboto',
-                    fontSize: '10px',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
-                    lineHeight: 'normal',
-                    transition: 'all 0.3s ease', ...(isHovering ? {
-                        color: '#FFFFFF', transform: 'scale(1.05)'
-                    } : {})
-                }}>
-                    {text}
-                </div>
-            </Html>)}
+            {markerType === INTERACTION_TYPES.CLICK && (
+                <Html
+                    position={[0, 0, 0.002]}
+                    center
+                    style={{
+                        width: '69px',
+                        height: '69px',
+                        display: 'flex',
+                        padding: '8px',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '5px',
+                        flexShrink: 0,
+                        borderRadius: '200px',
+                        border: '0.5px solid #F9FEFF',
+                        background: 'rgba(249, 254, 255, 0.50)',
+                        opacity: fadeIn ? 1 : 0,
+                        transition: 'all 0.3s ease',
+                        pointerEvents: 'auto',
+                        cursor: 'pointer',
+                        willChange: 'transform, box-shadow',
+                        ...(buttonHovered ? {
+                            background: 'rgba(249, 254, 255, 0.85)',
+                            border: '1px solid #FFFFFF',
+                            boxShadow: '0 0 15px rgba(249, 254, 255, 0.6)'
+                        } : {})
+                    }}
+                >
+                    <div
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: buttonHovered ? '#FFFFFF' : '#F9FEFF',
+                            textAlign: 'center',
+                            fontFamily: 'Roboto',
+                            fontSize: '10px',
+                            fontStyle: 'normal',
+                            fontWeight: 600,
+                            lineHeight: 'normal',
+                            transition: 'all 0.3s ease',
+                            textShadow: buttonHovered ? '0 0 5px rgba(255, 255, 255, 0.7)' : 'none'
+                        }}
+                        onMouseEnter={() => {
+                            console.log('Button hover enter');
+                            setButtonHovered(true);
+                            // if (onPointerEnter) onPointerEnter();
+                        }}
+                        onMouseLeave={() => {
+                            console.log('Button hover leave');
+                            setButtonHovered(false);
+                            // if (onPointerLeave) onPointerLeave();
+                        }}
+                        onClick={handleMarkerClick}
+                    >
+                        {text}
+                    </div>
+                </Html>
+            )}
 
             {markerType === INTERACTION_TYPES.LONG_PRESS && (<group position={[0, 0, 0.01]}>
                 <mesh>
