@@ -171,7 +171,7 @@ const EnhancedObjectMarker = ({
 
     // Variables pour l'appui long
     const longPressTimeoutRef = useRef(null);
-    const longPressMinTime = 800; // Durée minimale pour considérer un appui comme "long" (en ms)
+    const longPressMinTime = 2000; // Durée minimale pour considérer un appui comme "long" (en ms)
     const [isLongPressing, setIsLongPressing] = useState(false);
     const [longPressFeedback, setLongPressFeedback] = useState(0); // Pour l'animation de progression
     const longPressStartTime = useRef(0);
@@ -696,7 +696,9 @@ const EnhancedObjectMarker = ({
                 center>
                 <div
                     onMouseDown={handleLongPressStart}
+                    onMouseUp={handleLongPressCancel}
                     onTouchStart={handleLongPressStart}
+                    onTouchEnd={handleLongPressCancel}
                     onMouseEnter={() => {
                         console.log('Button hover enter');
                         setButtonHovered(true);

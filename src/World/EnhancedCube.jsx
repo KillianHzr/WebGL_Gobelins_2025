@@ -62,9 +62,9 @@ export default function EnhancedCube() {
 
         // Définir le type d'interaction en fonction de l'étape
         if (isFirstStop) {
-            setCurrentInteractionType(INTERACTION_TYPES.CLICK);
+            setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         } else if (isSecondStop) {
-            setCurrentInteractionType(INTERACTION_TYPES.DRAG_RIGHT);
+            setCurrentInteractionType(INTERACTION_TYPES.CLICK);
         } else if (isThirdStop) {
             setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         }
