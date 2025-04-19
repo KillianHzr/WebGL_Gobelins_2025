@@ -1,4 +1,3 @@
-// src/Utils/EnhancedObjectMarker.jsx
 import React, {useRef, useState, useEffect, useCallback} from 'react';
 import {useThree, useFrame} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
@@ -170,6 +169,13 @@ const EnhancedObjectMarker = ({
     const startDragPos = useRef({x: 0, y: 0}); // Position de départ du drag
     const currentDragPos = useRef({x: 0, y: 0}); // Position actuelle du drag
 
+    // Variables pour l'appui long
+    const longPressTimeoutRef = useRef(null);
+    const longPressMinTime = 800; // Durée minimale pour considérer un appui comme "long" (en ms)
+    const [isLongPressing, setIsLongPressing] = useState(false);
+    const [longPressFeedback, setLongPressFeedback] = useState(0); // Pour l'animation de progression
+    const longPressStartTime = useRef(0);
+
     // Utilisation de la position optimale pour le marqueur
     const {position: markerPosition, normal: normalVector, updatePosition} = useOptimalMarkerPosition(objectRef, {
         offset: positionOptions.offsetDistance || 0.5, preferredAxis: positionOptions.preferredAxis, ...positionOptions
@@ -201,9 +207,110 @@ const EnhancedObjectMarker = ({
         }
     }, [hovered, keepVisible, isHovering]);
 
+    // Fonction pour démarrer le timer d'appui long
+    const handleLongPressStart = (e) => {
+        e.stopPropagation();
+
+        // Ignorer si ce n'est pas un marqueur de type appui long
+        if (markerType !== INTERACTION_TYPES.LONG_PRESS) return;
+
+        console.log('[EnhancedObjectMarker] Long press started');
+        longPressStartTime.current = Date.now();
+        setIsLongPressing(true);
+
+        // Démarrer le timer pour l'appui long
+        longPressTimeoutRef.current = setTimeout(() => {
+            // L'appui a duré assez longtemps
+            console.log('[EnhancedObjectMarker] Long press completed');
+
+            // Jouer un son de confirmation
+            if (audioManager) {
+                audioManager.playSound('click', {
+                    volume: 0.8, fade: true, fadeTime: 400
+                });
+            }
+
+            // Appeler le callback avec les infos du long press
+            if (onClick) {
+                onClick({
+                    type: 'longPress', duration: longPressMinTime
+                });
+            }
+
+            // Réinitialiser l'état
+            setIsLongPressing(false);
+            setLongPressFeedback(0);
+
+            // Émettre un événement pour informer le système de marqueurs
+            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                id, type: markerType
+            });
+        }, longPressMinTime);
+
+        // Ajouter les écouteurs pour l'annulation
+        window.addEventListener('mouseup', handleLongPressCancel);
+        window.addEventListener('touchend', handleLongPressCancel);
+        window.addEventListener('mousemove', handleLongPressMove);
+        window.addEventListener('touchmove', handleLongPressMove);
+    };
+
+    // Fonction pour annuler l'appui long si l'utilisateur bouge trop ou relâche
+    const handleLongPressCancel = () => {
+        if (!isLongPressing) return;
+
+        console.log('[EnhancedObjectMarker] Long press canceled');
+        clearTimeout(longPressTimeoutRef.current);
+        setIsLongPressing(false);
+        setLongPressFeedback(0);
+
+        // Supprimer les écouteurs
+        window.removeEventListener('mouseup', handleLongPressCancel);
+        window.removeEventListener('touchend', handleLongPressCancel);
+        window.removeEventListener('mousemove', handleLongPressMove);
+        window.removeEventListener('touchmove', handleLongPressMove);
+    };
+
+    // Fonction pour détecter si l'utilisateur bouge trop durant l'appui
+    const handleLongPressMove = (e) => {
+        if (!isLongPressing) return;
+
+        // Si pas d'événement ou pas de cible, annuler
+        if (!e || !e.target) {
+            handleLongPressCancel();
+            return;
+        }
+
+        try {
+            // Calculer le déplacement (avec gestion des erreurs)
+            const rect = e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : {
+                left: 0, top: 0, width: 0, height: 0
+            };
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+            const moveX = clientX - (rect.left + rect.width / 2);
+            const moveY = clientY - (rect.top + rect.height / 2);
+            const moveDistance = Math.sqrt(moveX * moveX + moveY * moveY);
+
+            // Si l'utilisateur bouge trop, annuler l'appui long
+            if (moveDistance > 20) { // Tolérance de 20 pixels
+                handleLongPressCancel();
+            }
+        } catch (error) {
+            console.error('[EnhancedObjectMarker] Error in handleLongPressMove:', error);
+            handleLongPressCancel();
+        }
+    };
+
     // Gérer le clic sur le marqueur
     const handleMarkerClick = (e) => {
         e.stopPropagation();
+
+        // Pour les appuis longs, on démarre le timer
+        if (markerType === INTERACTION_TYPES.LONG_PRESS) {
+            handleLongPressStart(e);
+            return;
+        }
 
         // Pour les interactions de type drag, ne pas compléter au clic
         if (markerType.includes('drag')) {
@@ -237,10 +344,15 @@ const EnhancedObjectMarker = ({
 
         console.log('[EnhancedObjectMarker] Drag started');
         isDraggingRef.current = true;
-        startDragPos.current = {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY};
-        currentDragPos.current = {...startDragPos.current};
 
-        // Ajouter les événements à la fenêtre pour suivre le mouvement
+        // Capturer les coordonnées initiales
+        const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+        startDragPos.current = { x: clientX, y: clientY };
+        currentDragPos.current = { ...startDragPos.current };
+
+        // Ajouter les écouteurs au niveau de la fenêtre
         window.addEventListener('mousemove', handleDragMove);
         window.addEventListener('touchmove', handleDragMove);
         window.addEventListener('mouseup', handleDragEnd);
@@ -251,15 +363,15 @@ const EnhancedObjectMarker = ({
         e.stopPropagation();
     };
 
-    // Fonction pour suivre le mouvement pendant un drag
+// 2. Modifier la fonction handleDragMove pour un meilleur suivi
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) return;
 
-        // Mettre à jour la position actuelle
-        currentDragPos.current = {
-            x: e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : currentDragPos.current.x),
-            y: e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : currentDragPos.current.y)
-        };
+        // Mise à jour de la position actuelle
+        const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : currentDragPos.current.x);
+        const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : currentDragPos.current.y);
+
+        currentDragPos.current = { x: clientX, y: clientY };
 
         // Calculer le déplacement
         const dx = currentDragPos.current.x - startDragPos.current.x;
@@ -296,28 +408,37 @@ const EnhancedObjectMarker = ({
             }
 
             if (success) {
-                console.log(`[EnhancedObjectMarker] Drag successful: ${direction}, distance: ${distance}`);
+                console.log(`[EnhancedObjectMarker] Drag successful: ${direction}, distance: ${distance}, type: ${markerType}`);
 
-                // Jouer un son de réussite
                 if (audioManager) {
                     audioManager.playSound('drag', {
-                        volume: 0.8, fade: true, fadeTime: 800
+                        volume: 0.8,
+                        fade: true,
+                        fadeTime: 800
                     });
                 }
 
-                // Appeler le callback
                 if (onClick) {
                     onClick({
-                        type: 'drag', direction: markerType, distance: distance
+                        type: markerType, // Utiliser directement markerType, pas 'drag' générique
+                        direction,
+                        distance
                     });
                 }
 
-                // Terminer le drag
+                EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                    id, type: markerType
+                })
                 handleDragEnd();
             }
         }
     };
-
+    const isDragEventType = (type) => {
+        return type === INTERACTION_TYPES.DRAG_LEFT ||
+            type === INTERACTION_TYPES.DRAG_RIGHT ||
+            type === INTERACTION_TYPES.DRAG_UP ||
+            type === INTERACTION_TYPES.DRAG_DOWN;
+    };
     // Fonction pour terminer un drag
     const handleDragEnd = () => {
         if (!isDraggingRef.current) return;
@@ -332,9 +453,16 @@ const EnhancedObjectMarker = ({
         window.removeEventListener('touchend', handleDragEnd);
     };
 
-    // Nettoyer les écouteurs d'événements au démontage
+    // Nettoyer les écouteurs d'événements et timeouts au démontage
     useEffect(() => {
         return () => {
+            if (longPressTimeoutRef.current) {
+                clearTimeout(longPressTimeoutRef.current);
+            }
+            window.removeEventListener('mouseup', handleLongPressCancel);
+            window.removeEventListener('touchend', handleLongPressCancel);
+            window.removeEventListener('mousemove', handleLongPressMove);
+            window.removeEventListener('touchmove', handleLongPressMove);
             window.removeEventListener('mousemove', handleDragMove);
             window.removeEventListener('touchmove', handleDragMove);
             window.removeEventListener('mouseup', handleDragEnd);
@@ -370,7 +498,15 @@ const EnhancedObjectMarker = ({
                     const pulse = Math.sin(time.current * 2) * 0.1 + 1;
                     markerRef.current.children[0].scale.set(pulse, pulse, 1);
                 }
+
+                // Mise à jour de la progression pour l'appui long
+                if (isLongPressing) {
+                    const elapsedTime = Date.now() - longPressStartTime.current;
+                    const progress = Math.min(elapsedTime / longPressMinTime, 1);
+                    setLongPressFeedback(progress);
+                }
                 break;
+
             case INTERACTION_TYPES.DRAG_LEFT:
             case INTERACTION_TYPES.DRAG_RIGHT:
             case INTERACTION_TYPES.DRAG_UP:
@@ -534,6 +670,7 @@ const EnhancedObjectMarker = ({
                             console.log('Button hover leave');
                             setButtonHovered(false);
                         }}
+                        onClick={handleMarkerClick}
                     >
                         {text}
                     </div>
@@ -558,6 +695,8 @@ const EnhancedObjectMarker = ({
                 position={[0, 0, 0.002]}
                 center>
                 <div
+                    onMouseDown={handleLongPressStart}
+                    onTouchStart={handleLongPressStart}
                     onMouseEnter={() => {
                         console.log('Button hover enter');
                         setButtonHovered(true);

@@ -55,7 +55,8 @@ export default function EnhancedCube() {
         // Vérifier si ce cube est l'objet qui nécessite une interaction
         const isFirstStop = interaction?.waitingForInteraction && interaction.currentStep === 'firstStop';
         const isSecondStop = interaction?.waitingForInteraction && interaction.currentStep === 'secondStop';
-        const isCurrentInteractionTarget = isFirstStop || isSecondStop;
+        const isThirdStop = interaction?.waitingForInteraction && interaction.currentStep === 'thirdStop';
+        const isCurrentInteractionTarget = isFirstStop || isSecondStop || isThirdStop;
 
         setIsWaitingForInteraction(isCurrentInteractionTarget);
 
@@ -63,12 +64,16 @@ export default function EnhancedCube() {
         if (isFirstStop) {
             setCurrentInteractionType(INTERACTION_TYPES.CLICK);
         } else if (isSecondStop) {
+            setCurrentInteractionType(INTERACTION_TYPES.DRAG_RIGHT);
+        } else if (isThirdStop) {
             setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         }
 
         // Afficher les informations de débogage
         if (debug?.active && isCurrentInteractionTarget) {
-            console.log(`[Cube] Waiting for interaction: ${interaction.currentStep} - Type: ${isFirstStop ? 'CLICK' : 'DRAG_RIGHT'}`);
+            console.log(`[Cube] Waiting for interaction: ${interaction.currentStep} - Type: ${
+                isFirstStop ? 'CLICK' : isSecondStop ? 'DRAG_RIGHT' : isThirdStop ? 'LONG_PRESS' : 'UNKNOWN'
+            }`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, debug?.active]);
 
@@ -108,8 +113,8 @@ export default function EnhancedCube() {
     const {isDragging} = useDragGesture({
         objectRef: cubeRef,
         enabled: true,
-        minDistance: 100,
-        direction: 'right', // Pour correspondre au DRAG_RIGHT
+        minDistance: 100, // 100 pixels minimum de glissement
+        direction: 'right', // Pour le DRAG_RIGHT
         debug: debug?.active,
         onDragStart: (data) => {
             console.log('Drag started on cube');
@@ -399,22 +404,44 @@ export default function EnhancedCube() {
     });
 
     // Gérer le clic sur le marqueur
-    const handleMarkerInteraction = () => {
-        // Jouer un son de confirmation
-        audioManager.playSound('click', {
-            volume: 0.8
+    const handleMarkerInteraction = (eventData = {}) => {
+        // Gérer le cas où eventData est undefined
+        console.log("Received interaction data:", eventData);
+
+        // Vérifier si c'est un événement de type conforme à ce qui est attendu
+        // Comparer directement le type d'événement avec le type attendu
+        const eventType = eventData.type || currentInteractionType || 'click';
+
+        // Déterminer le son à jouer
+        let soundType = 'click';
+        if (eventType.includes('drag')) {
+            soundType = 'drag';
+        } else if (eventType === 'longPress') {
+            soundType = 'click'; // Utiliser click pour longPress sauf si son spécifique disponible
+        }
+
+        // Jouer un son approprié
+        audioManager.playSound(soundType, {
+            volume: 0.8,
+            fade: eventType.includes('drag') || eventType === 'longPress',
+            fadeTime: eventType.includes('drag') ? 800 : (eventType === 'longPress' ? 400 : 0)
         });
 
-        // Compléter l'interaction et réactiver le défilement
-        if (interaction?.waitingForInteraction) {
-            interaction.completeInteraction();
-            console.log(`Interaction complétée via marqueur (type: ${currentInteractionType})`);
+        // Vérification simple : le type reçu est-il exactement celui attendu?
+        const isCorrectInteractionType = currentInteractionType === eventType;
 
-            // Émettre un événement pour informer le système de marqueurs
+        // Compléter l'interaction seulement si le type correspond exactement à ce qui est attendu
+        if (interaction?.waitingForInteraction && isCorrectInteractionType) {
+            interaction.completeInteraction();
+            console.log(`Interaction complétée via ${eventType} sur le marqueur`);
+
+            // Émettre un événement
             EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                 id: 'enhanced-cube-marker',
                 type: currentInteractionType
             });
+        } else if (interaction?.waitingForInteraction) {
+            console.log(`Type d'interaction incorrect: attendu ${currentInteractionType}, reçu ${eventType}`);
         }
     };
 
@@ -422,19 +449,19 @@ export default function EnhancedCube() {
     const getMarkerColor = () => {
         switch(currentInteractionType) {
             case INTERACTION_TYPES.CLICK:
-                return "#4488ff";
+                return "#4488ff";  // Bleu pour clic
             case INTERACTION_TYPES.LONG_PRESS:
-                return "#ff44aa";
+                return "#ff44aa";  // Rose pour appui long
             case INTERACTION_TYPES.DRAG_LEFT:
-                return "#44ffaa";
+                return "#44ffaa";  // Turquoise pour drag gauche
             case INTERACTION_TYPES.DRAG_RIGHT:
-                return "#ffaa44";
+                return "#ffaa44";  // Orange pour drag droite
             case INTERACTION_TYPES.DRAG_UP:
-                return "#33eeff";
+                return "#33eeff";  // Cyan pour drag haut
             case INTERACTION_TYPES.DRAG_DOWN:
-                return "#ff7744";
+                return "#ff7744";  // Corail pour drag bas
             default:
-                return "#44ff44";
+                return "#44ff44";  // Vert par défaut
         }
     };
 
@@ -449,7 +476,8 @@ export default function EnhancedCube() {
                 offset: 0.8,
                 preferredAxis: 'z'
             }}
-            alwaysVisible={isWaitingForInteraction} // Important - Forcer la visibilité du marqueur
+            // Forcer la visibilité du marqueur quand une interaction est attendue
+            alwaysVisible={isWaitingForInteraction}
         >
             <mesh
                 ref={cubeRef}
