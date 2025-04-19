@@ -7,11 +7,12 @@ export default function ScannerInterface() {
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
     const [showNotification, setShowNotification] = useState(false);
+    const scanLineRef = useRef(null);
     const interaction = useStore(state => state.interaction);
     const scanTimerRef = useRef(null);
     const scanStartTimeRef = useRef(null);
     const scanSoundIdRef = useRef(null); // Pour stocker l'ID du son de démarrage
-    const scanDuration = 7000; // 5 seconds scan time
+    const scanDuration = 7000; // 7 seconds scan time
 
     // Monitor state changes to determine when to display the interface
     useEffect(() => {
@@ -40,6 +41,21 @@ export default function ScannerInterface() {
             }
         };
     }, []);
+
+    // Manage scan line animation based on scanning state
+    useEffect(() => {
+        if (scanLineRef.current) {
+            if (isScanning) {
+                // Calculate number of iterations based on scan duration
+                // Each iteration is 2 seconds (1s up + 1s down)
+                const iterationCount = Math.ceil(scanDuration / 2000);
+                scanLineRef.current.style.animationIterationCount = iterationCount;
+                scanLineRef.current.style.animationPlayState = 'running';
+            } else {
+                scanLineRef.current.style.animationPlayState = 'paused';
+            }
+        }
+    }, [isScanning, scanDuration]);
 
     // Start the scanning process
     const startScanning = () => {
@@ -139,8 +155,20 @@ export default function ScannerInterface() {
                         <div className="scanner-viewport-corner-bl"></div>
                         <div className="scanner-viewport-corner-br"></div>
 
-                        {/* Square target in center instead of circle */}
-                        <div className="scanner-viewport-target"></div>
+                        {/* SVG target in center instead of square */}
+                        <div className="scanner-viewport-target">
+                            <svg viewBox="0 0 187 187" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" clipRule="evenodd" d="M130 1H137C164.062 1 186 22.938 186 50V58H187V50C187 22.3858 164.614 0 137 0H130V1ZM58 0H50C22.3858 0 0 22.3858 0 50V58H1V50C1 22.9381 22.938 1 50 1H58V0ZM1 130H0V137C0 164.614 22.3858 187 50 187H58V186H50C22.9381 186 1 164.062 1 137V130ZM137 187H130V186H137C164.062 186 186 164.062 186 137V130H187V137C187 164.614 164.614 187 137 187Z" fill="#F9FEFF"/>
+                            </svg>
+                        </div>
+
+                        {/* Scanning line - visible only when scanning */}
+                        {isScanning && (
+                            <div
+                                ref={scanLineRef}
+                                className="scanner-scan-line"
+                            ></div>
+                        )}
 
                         {/* Progress bar for scanning */}
                         {isScanning && (

@@ -28,6 +28,14 @@ const useStore = create((set, get) => ({
         debug: { ...state.debug, ...debugSettings }
     })),
 
+    // Camera state for zoom functionality
+    camera: null,
+    setCamera: (camera) => set({ camera }),
+    cameraInitialZoom: null,
+    setCameraInitialZoom: (zoom) => set({ cameraInitialZoom: zoom }),
+    currentZoomLevel: 0, // -3 to +3 range
+    setCurrentZoomLevel: (level) => set({ currentZoomLevel: level }),
+
     // Theatre.js Studio instance
     theatreStudio: null,
     setTheatreStudio: (studio) => set({ theatreStudio: studio }),

@@ -16,10 +16,17 @@ import { EventEmitterProvider } from './Utils/EventEmitter';
 import AudioManagerComponent from './Utils/AudioManager';
 
 export default function Experience() {
-    const {loaded, debug} = useStore()
-    const {scene} = useThree()
+    const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
+    const {scene, camera} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
+
+    useEffect(() => {
+        if (camera) {
+            setCamera(camera);
+            setCameraInitialZoom(camera.zoom);
+        }
+    }, [camera, setCamera, setCameraInitialZoom]);
 
     // Appliquer les valeurs par défaut aux lumières lors du montage
     useEffect(() => {

@@ -44,6 +44,7 @@
       border-left: 4px solid white;
       border-top-left-radius: 50px;
       z-index: 5;
+      pointer-events: none;
     }
 
     &::after {
@@ -57,6 +58,7 @@
       border-right: 4px solid white;
       border-top-right-radius: 50px;
       z-index: 5;
+      pointer-events: none;
     }
 
     &-corner-bl {
@@ -70,6 +72,7 @@
       border-left: 4px solid white;
       border-bottom-left-radius: 50px;
       z-index: 5;
+      pointer-events: none;
     }
 
     &-corner-br {
@@ -83,6 +86,7 @@
       border-right: 4px solid white;
       border-bottom-right-radius: 50px;
       z-index: 5;
+      pointer-events: none;
     }
 
     &-border {
@@ -122,58 +126,108 @@
       position: absolute;
       top: 50%;
       right: 5%;
-      width: 3px;
+      width: 30px; /* Augmenté pour avoir une zone cliquable plus large */
       height: 70%;
-      transform: translateY(-50%);
-      background: white;
-      border-radius: 100px;
+      transform: translateY(-50%) translateX(13px); /* Déplacé pour centrer la ligne */
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 3px;
+        height: 100%;
+        background: white;
+        border-radius: 100px;
+        transform: translateX(-50%);
+      }
+
+      // Nouvel indicateur de zoom
+      &-indicator {
+        position: absolute;
+        top: 50%; // Position initiale au centre
+        left: 50%;
+        width: 27px;
+        height: 2px;
+        background: white;
+        transform: translateX(-50%);
+        border-radius: 100px;
+        transition: top 0.2s ease;
+      }
 
       &-plus {
         position: absolute;
-        top: -8%;
+        top: -12%;
         left: 50%;
         transform: translateX(-50%);
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
 
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 50%;
+        &-icon {
+          position: relative;
           width: 27px;
-          height: 2px;
-          background: white;
-          transform: translateX(-50%);
-          border-radius: 100px;
-        }
-
-        &::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 0;
-          width: 2px;
           height: 27px;
-          background: white;
-          transform: translate(-50%, -50%);
-          border-radius: 100px;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 27px;
+            height: 2px;
+            background: white;
+            transform: translate(-50%, -50%);
+            border-radius: 100px;
+          }
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 27px;
+            background: white;
+            transform: translate(-50%, -50%);
+            border-radius: 100px;
+          }
         }
       }
 
       &-minus {
         position: absolute;
-        bottom: -8%;
+        bottom: -12%;
         left: 50%;
         transform: translateX(-50%);
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
 
-        &::before {
-          content: '';
-          position: absolute;
+        &-icon {
+          position: relative;
           width: 27px;
-          height: 2px;
-          background: white;
-          left: 50%;
-          transform: translateX(-50%);
-          border-radius: 100px;
+          height: 27px;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 27px;
+            height: 2px;
+            background: white;
+            transform: translate(-50%, -50%);
+            border-radius: 100px;
+          }
         }
       }
     }
