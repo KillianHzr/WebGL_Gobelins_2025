@@ -341,50 +341,26 @@ const EnhancedObjectMarker = ({
 
             {markerType === INTERACTION_TYPES.CLICK && (
                 <Html
-                    position={[0, 0, 0.002]}
-                    center
                     style={{
-                        width: '69px',
-                        height: '69px',
+                        position: 'absolute',
+                        width: '88px',
+                        height: '88px',
                         display: 'flex',
                         padding: '8px',
                         flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        gap: '5px',
+                        gap: '8px',
                         flexShrink: 0,
-                        borderRadius: '200px',
-                        border: '0.5px solid #F9FEFF',
-                        background: 'rgba(249, 254, 255, 0.50)',
-                        opacity: fadeIn ? 1 : 0,
-                        transition: 'all 0.3s ease',
+                        aspectRatio: 1,
+                        borderRadius: '999px',
+                        border: '1.5px solid #F9FEFF',
                         pointerEvents: 'auto',
-                        cursor: 'pointer',
-                        willChange: 'transform, box-shadow',
-                        ...(buttonHovered ? {
-                            background: 'rgba(249, 254, 255, 0.85)',
-                            border: '1px solid #FFFFFF',
-                            boxShadow: '0 0 15px rgba(249, 254, 255, 0.6)'
-                        } : {})
                     }}
-                >
+                    position={[0, 0, 0.002]}
+                    center>
                     <div
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: buttonHovered ? '#FFFFFF' : '#F9FEFF',
-                            textAlign: 'center',
-                            fontFamily: 'Roboto',
-                            fontSize: '10px',
-                            fontStyle: 'normal',
-                            fontWeight: 600,
-                            lineHeight: 'normal',
-                            transition: 'all 0.3s ease',
-                            textShadow: buttonHovered ? '0 0 5px rgba(255, 255, 255, 0.7)' : 'none'
-                        }}
+
                         onMouseEnter={() => {
                             console.log('Button hover enter');
                             setButtonHovered(true);
@@ -395,53 +371,272 @@ const EnhancedObjectMarker = ({
                             setButtonHovered(false);
                             // if (onPointerLeave) onPointerLeave();
                         }}
-                        onClick={handleMarkerClick}
-                    >
-                        {text}
-                    </div>
-                </Html>
-            )}
+                        style={{
+                            position: 'absolute',
+                            width: '88px',
+                            height: '88px',
+                            display: 'flex',
+                            padding: '8px',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexShrink: 0,
+                            aspectRatio: 1,
+                            borderRadius: '999px',
+                            border: '1.5px solid #F9FEFF',
+                            background: 'rgba(249, 254, 255, 0.50)',
+                            pointerEvents: 'auto',
+                            cursor: 'pointer', ...(buttonHovered ? {
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                            } : {})
+                        }}
 
-            {markerType === INTERACTION_TYPES.LONG_PRESS && (<group position={[0, 0, 0.01]}>
-                <mesh>
-                    <ringGeometry args={[0.08, 0.15, 32]}/>
-                    <meshBasicMaterial
-                        color={color}
-                        transparent
-                        opacity={fadeIn ? 0.9 : 0}
-                        side={THREE.DoubleSide}
-                    />
-                </mesh>
-                <mesh>
-                    <circleGeometry args={[0.08, 32]}/>
-                    <meshBasicMaterial
-                        color={color}
-                        transparent
-                        opacity={fadeIn ? 0.5 : 0}
-                    />
-                </mesh>
-            </group>)}
+                    >
+                        <div
+                            style={{
+                                width: '100%',
+                                maxWidth: '56px',
+                                height: '100%',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                color: '#F9FEFF',
+                                textAlign: 'center',
+                                fontFamily: 'Albert Sans',
+                                fontSize: '12px',
+                                fontStyle: 'normal',
+                                fontWeight: 600,
+                                lineHeight: 'normal',
+                            }}
+                            onMouseEnter={() => {
+                                console.log('Button hover enter');
+                                setButtonHovered(true);
+                                // if (onPointerEnter) onPointerEnter();
+                            }}
+                            onMouseLeave={() => {
+                                console.log('Button hover leave');
+                                setButtonHovered(false);
+                                // if (onPointerLeave) onPointerLeave();
+                            }}
+                            onClick={handleMarkerClick}
+                        >
+                            {text}
+                        </div>
+                    </div>
+                </Html>)}
+
+            {markerType === INTERACTION_TYPES.LONG_PRESS && (
+                <Html
+                    style={{
+                        position: 'absolute',
+                        width: '88px',
+                        height: '88px',
+                        display: 'flex',
+                        padding: '8px',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexShrink: 0,
+                        aspectRatio: 1,
+                        borderRadius: '999px',
+                        border: '1.5px solid #F9FEFF',
+                        pointerEvents: 'auto',
+                    }}
+                    position={[0, 0, 0.002]}
+                    center>
+                    <div
+
+                        onMouseEnter={() => {
+                            console.log('Button hover enter');
+                            setButtonHovered(true);
+                            // if (onPointerEnter) onPointerEnter();
+                        }}
+                        onMouseLeave={() => {
+                            console.log('Button hover leave');
+                            setButtonHovered(false);
+                            // if (onPointerLeave) onPointerLeave();
+                        }}
+                        style={{
+                            position: 'absolute',
+                            width: '88px',
+                            height: '88px',
+                            display: 'flex',
+                            padding: '8px',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexShrink: 0,
+                            aspectRatio: 1,
+                            borderRadius: '999px',
+                            border: '1.5px solid #F9FEFF',
+                            background: 'rgba(249, 254, 255, 0.50)',
+                            pointerEvents: 'auto',
+                            cursor: 'pointer', ...(buttonHovered ? {
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                            } : {})
+                        }}
+
+                    >
+
+
+                        <div
+                            style={{
+                                width: '100%',
+                                maxWidth: '56px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                color: '#F9FEFF',
+                                textAlign: 'center',
+                                fontFamily: 'Albert Sans',
+                                fontSize: '12px',
+                                fontStyle: 'normal',
+                                fontWeight: 600,
+                                lineHeight: 'normal',
+                            }}
+
+                            onClick={handleMarkerClick}
+                        >
+                            {text}
+                        </div>
+                        <div
+                            style={{
+                                position: 'absolute',
+                                width: '64px',
+                                height: '64px',
+                                display: 'flex',
+                                padding: '8px',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px',
+                                flexShrink: 0,
+                                aspectRatio: 1,
+                                borderRadius: '999px',
+                                border: '1px solid #F9FEFF',
+                                background: 'transparent',
+                                pointerEvents: 'none',
+                            }}
+                        >
+                        </div>
+
+                    </div>
+                </Html>)}
 
             {/* Flèches directionnelles pour les drags */}
             {(markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT || markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) && (
-                <mesh position={[0, 0, 0]}
-                      rotation={[0, 0, markerType === INTERACTION_TYPES.DRAG_LEFT ? Math.PI : markerType === INTERACTION_TYPES.DRAG_RIGHT ? 0 : markerType === INTERACTION_TYPES.DRAG_UP ? Math.PI / 2 : -Math.PI / 2]}>
-                    {/* Flèche triangulaire */}
-                    <shapeGeometry args={[(() => {
-                        const shape = new THREE.Shape();
-                        shape.moveTo(0, 0.1);
-                        shape.lineTo(-0.1, -0.05);
-                        shape.lineTo(0.1, -0.05);
-                        shape.lineTo(0, 0.1);
-                        return shape;
-                    })()]}/>
-                    <meshBasicMaterial
-                        color={color}
-                        transparent
-                        opacity={fadeIn ? 0.9 : 0}
-                        side={THREE.DoubleSide}
-                    />
-                </mesh>)}
+                <Html
+                    style={{
+                        position: 'absolute',
+                        width: '80px',
+                        height: '120px',
+                        display: 'flex',
+                        padding: '8px',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        flexShrink: 0,
+                        aspectRatio: 1,
+                        borderRadius: '999px',
+                        border: '1.5px solid #F9FEFF',
+                        pointerEvents: 'auto',
+                    }}
+                    position={[0, 0, 0.002]}
+                    center>
+                    <div
+
+                        onMouseEnter={() => {
+                            console.log('Button hover enter');
+                            setButtonHovered(true);
+                            // if (onPointerEnter) onPointerEnter();
+                        }}
+                        onMouseLeave={() => {
+                            console.log('Button hover leave');
+                            setButtonHovered(false);
+                            // if (onPointerLeave) onPointerLeave();
+                        }}
+                        style={{
+                            position: 'absolute',
+                            width: '80px',
+                            height: '120px',
+                            display: 'flex',
+                            padding: '8px',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexShrink: 0,
+                            aspectRatio: 1,
+                            borderRadius: '999px',
+                            border: '1.5px solid #F9FEFF',
+                            background: 'rgba(249, 254, 255, 0.50)',
+                            pointerEvents: 'auto',
+                            cursor: 'pointer', ...(buttonHovered ? {
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                            } : {})
+                        }}
+
+                    >
+                        <div
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}
+                            onMouseEnter={() => {
+                                console.log('Button hover enter');
+                                setButtonHovered(true);
+                            }}
+                            onMouseLeave={() => {
+                                console.log('Button hover leave');
+                                setButtonHovered(false);
+                            }}
+                            onClick={handleMarkerClick}
+                        >
+                            <div style={{
+                                width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'
+                            }}>
+                                <svg
+                                    style={{
+                                        transform: markerType === INTERACTION_TYPES.DRAG_LEFT ? 'rotate(-180deg)' : markerType === INTERACTION_TYPES.DRAG_RIGHT ? 'rotate(0deg)' : markerType === INTERACTION_TYPES.DRAG_UP ? 'rotate(-90deg)' : 'rotate(90deg)'
+                                    }}
+                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none">
+                                    <path d="M12 2L22 12L12 22" stroke="#F9FEFF" strokeWidth="2" strokeLinecap="round"
+                                          strokeLinejoin="round"/>
+                                    <path d="M2 12L22 12" stroke="#F9FEFF" strokeWidth="2" strokeLinecap="round"
+                                          strokeLinejoin="round"/>
+                                </svg>
+                            </div>
+                            <div
+                                style={{
+                                    width: '100%',
+                                    maxWidth: '56px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    color: '#F9FEFF',
+                                    textAlign: 'center',
+                                    fontFamily: 'Albert Sans',
+                                    fontSize: '12px',
+                                    fontStyle: 'normal',
+                                    fontWeight: 600,
+                                    lineHeight: 'normal',
+                                }}
+                            >
+                                {text}
+                            </div>
+                        </div>
+                    </div>
+                </Html>)}
         </group>
     </>);
 };

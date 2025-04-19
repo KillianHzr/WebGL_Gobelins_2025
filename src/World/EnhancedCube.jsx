@@ -25,7 +25,7 @@ export default function EnhancedCube() {
     const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
 
     // Type d'interaction actuellement demandé (pour changer l'apparence du marqueur)
-    const [currentInteractionType, setCurrentInteractionType] = useState(INTERACTION_TYPES.CLICK);
+    const [currentInteractionType, setCurrentInteractionType] = useState(null);
 
     // Utiliser le composant de debug pour l'effet de glow
     const {effectSettings, updateEffectRef} = GlowEffectDebug({objectRef: cubeRef});
