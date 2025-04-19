@@ -10,6 +10,8 @@ import {audioManager} from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import ModelMarker from "./ModelMarker.jsx";
+import { MARKER_EVENTS } from '../Utils/markerEvents';
+import { EventBus } from '../Utils/EventEmitter';
 
 export default function Cube() {
     const cubeRef = useRef();
@@ -56,10 +58,9 @@ export default function Cube() {
                 volume: 0.8
             });
 
-            // Si nous sommes en attente d'une interaction, la compléter
-            if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
-                interaction.completeInteraction();
-                console.log('Interaction complétée via clic sur le cube (firstStop)');
+            // Ne pas compléter l'interaction ici - nous voulons que l'interaction soit complétée via le marqueur
+            if (debug?.active && interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
+                console.log('Clic sur le cube détecté, mais l\'interaction doit être complétée via le marqueur');
             }
         }
     });
@@ -85,10 +86,9 @@ export default function Cube() {
             // Changer l'apparence du cube lors d'un drag réussi
             setActive(prev => !prev);
 
-            // Si nous sommes en attente d'une interaction et que c'est le second arrêt, la compléter
-            if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
-                interaction.completeInteraction();
-                console.log('Interaction complétée via drag sur le cube (secondStop)');
+            // Ne pas compléter l'interaction ici - nous voulons que l'interaction soit complétée via le marqueur
+            if (debug?.active && interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
+                console.log('Drag sur le cube détecté, mais l\'interaction doit être complétée via le marqueur');
             }
         }
     });
@@ -358,7 +358,8 @@ export default function Cube() {
         audioManager.playSound('click', {
             volume: 0.8
         });
-// Compléter l'interaction et réactiver le défilement
+
+        // Compléter l'interaction et réactiver le défilement
         if (interaction?.waitingForInteraction) {
             interaction.completeInteraction();
             console.log('Interaction complétée via clic sur le marqueur');
@@ -369,6 +370,7 @@ export default function Cube() {
             });
         }
     };
+
     return (<ModelMarker
         id="cube-marker"
         interactionType="click"
@@ -379,6 +381,8 @@ export default function Cube() {
         positionOptions={{
             offset: 0.8, preferredAxis: 'z'
         }}
+        // Forcer la visibilité du marqueur quand une interaction est attendue
+        alwaysVisible={isWaitingForInteraction}
     >
         <mesh
             ref={cubeRef}

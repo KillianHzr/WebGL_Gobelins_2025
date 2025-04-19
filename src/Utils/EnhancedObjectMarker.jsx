@@ -166,6 +166,9 @@ const EnhancedObjectMarker = ({
     const {camera} = useThree();
     const time = useRef(0);
     const [buttonHovered, setButtonHovered] = useState(false); // État spécifique pour le survol du bouton HTML
+    const isDraggingRef = useRef(false); // Référence pour suivre si on est en train de faire un drag
+    const startDragPos = useRef({x: 0, y: 0}); // Position de départ du drag
+    const currentDragPos = useRef({x: 0, y: 0}); // Position actuelle du drag
 
     // Utilisation de la position optimale pour le marqueur
     const {position: markerPosition, normal: normalVector, updatePosition} = useOptimalMarkerPosition(objectRef, {
@@ -202,6 +205,12 @@ const EnhancedObjectMarker = ({
     const handleMarkerClick = (e) => {
         e.stopPropagation();
 
+        // Pour les interactions de type drag, ne pas compléter au clic
+        if (markerType.includes('drag')) {
+            console.log(`[EnhancedObjectMarker] Cette interaction nécessite un glissement (${markerType}), pas un simple clic`);
+            return;
+        }
+
         // Jouer un son de confirmation
         if (audioManager) {
             audioManager.playSound('click', {
@@ -211,7 +220,9 @@ const EnhancedObjectMarker = ({
 
         // Appeler la fonction onClick si elle est fournie
         if (onClick) {
-            onClick(e);
+            onClick({
+                type: 'click'
+            });
         }
 
         // Émettre un événement pour informer le système de marqueurs
@@ -219,6 +230,117 @@ const EnhancedObjectMarker = ({
             id, type: markerType
         });
     };
+
+    // Fonction pour démarrer un drag
+    const handleDragStart = (e) => {
+        if (!markerType.includes('drag')) return;
+
+        console.log('[EnhancedObjectMarker] Drag started');
+        isDraggingRef.current = true;
+        startDragPos.current = {x: e.clientX || e.touches[0].clientX, y: e.clientY || e.touches[0].clientY};
+        currentDragPos.current = {...startDragPos.current};
+
+        // Ajouter les événements à la fenêtre pour suivre le mouvement
+        window.addEventListener('mousemove', handleDragMove);
+        window.addEventListener('touchmove', handleDragMove);
+        window.addEventListener('mouseup', handleDragEnd);
+        window.addEventListener('touchend', handleDragEnd);
+
+        // Empêcher le comportement par défaut
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    // Fonction pour suivre le mouvement pendant un drag
+    const handleDragMove = (e) => {
+        if (!isDraggingRef.current) return;
+
+        // Mettre à jour la position actuelle
+        currentDragPos.current = {
+            x: e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : currentDragPos.current.x),
+            y: e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : currentDragPos.current.y)
+        };
+
+        // Calculer le déplacement
+        const dx = currentDragPos.current.x - startDragPos.current.x;
+        const dy = currentDragPos.current.y - startDragPos.current.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Déterminer la direction principale
+        let direction = '';
+        const threshold = 50; // Seuil minimum de déplacement
+
+        if (distance > threshold) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                direction = dx > 0 ? 'right' : 'left';
+            } else {
+                direction = dy > 0 ? 'down' : 'up';
+            }
+
+            // Vérifier si la direction correspond au type de drag attendu
+            let success = false;
+
+            switch (markerType) {
+                case INTERACTION_TYPES.DRAG_LEFT:
+                    success = direction === 'left';
+                    break;
+                case INTERACTION_TYPES.DRAG_RIGHT:
+                    success = direction === 'right';
+                    break;
+                case INTERACTION_TYPES.DRAG_UP:
+                    success = direction === 'up';
+                    break;
+                case INTERACTION_TYPES.DRAG_DOWN:
+                    success = direction === 'down';
+                    break;
+            }
+
+            if (success) {
+                console.log(`[EnhancedObjectMarker] Drag successful: ${direction}, distance: ${distance}`);
+
+                // Jouer un son de réussite
+                if (audioManager) {
+                    audioManager.playSound('drag', {
+                        volume: 0.8, fade: true, fadeTime: 800
+                    });
+                }
+
+                // Appeler le callback
+                if (onClick) {
+                    onClick({
+                        type: 'drag', direction: markerType, distance: distance
+                    });
+                }
+
+                // Terminer le drag
+                handleDragEnd();
+            }
+        }
+    };
+
+    // Fonction pour terminer un drag
+    const handleDragEnd = () => {
+        if (!isDraggingRef.current) return;
+
+        console.log('[EnhancedObjectMarker] Drag ended');
+        isDraggingRef.current = false;
+
+        // Supprimer les écouteurs d'événements
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('touchmove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchend', handleDragEnd);
+    };
+
+    // Nettoyer les écouteurs d'événements au démontage
+    useEffect(() => {
+        return () => {
+            window.removeEventListener('mousemove', handleDragMove);
+            window.removeEventListener('touchmove', handleDragMove);
+            window.removeEventListener('mouseup', handleDragEnd);
+            window.removeEventListener('touchend', handleDragEnd);
+        };
+    }, []);
 
     // Animation continue pour les marqueurs
     useFrame(() => {
@@ -339,8 +461,34 @@ const EnhancedObjectMarker = ({
             scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
         >
 
-            {markerType === INTERACTION_TYPES.CLICK && (
-                <Html
+            {markerType === INTERACTION_TYPES.CLICK && (<Html
+                style={{
+                    position: 'absolute',
+                    width: '88px',
+                    height: '88px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    aspectRatio: 1,
+                    borderRadius: '999px',
+                    border: '1.5px solid #F9FEFF',
+                    pointerEvents: 'auto',
+                }}
+                position={[0, 0, 0.002]}
+                center>
+                <div
+                    onMouseEnter={() => {
+                        console.log('Button hover enter');
+                        setButtonHovered(true);
+                    }}
+                    onMouseLeave={() => {
+                        console.log('Button hover leave');
+                        setButtonHovered(false);
+                    }}
+                    onClick={handleMarkerClick}
+
                     style={{
                         position: 'absolute',
                         width: '88px',
@@ -355,79 +503,69 @@ const EnhancedObjectMarker = ({
                         aspectRatio: 1,
                         borderRadius: '999px',
                         border: '1.5px solid #F9FEFF',
+                        background: 'rgba(249, 254, 255, 0.50)',
                         pointerEvents: 'auto',
+                        cursor: 'pointer', ...(buttonHovered ? {
+                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                        } : {})
                     }}
-                    position={[0, 0, 0.002]}
-                    center>
+                >
                     <div
-
+                        style={{
+                            width: '100%',
+                            maxWidth: '56px',
+                            height: '100%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: '#F9FEFF',
+                            textAlign: 'center',
+                            fontFamily: 'Albert Sans',
+                            fontSize: '12px',
+                            fontStyle: 'normal',
+                            fontWeight: 600,
+                            lineHeight: 'normal',
+                        }}
                         onMouseEnter={() => {
                             console.log('Button hover enter');
                             setButtonHovered(true);
-                            // if (onPointerEnter) onPointerEnter();
                         }}
                         onMouseLeave={() => {
                             console.log('Button hover leave');
                             setButtonHovered(false);
-                            // if (onPointerLeave) onPointerLeave();
                         }}
-                        style={{
-                            position: 'absolute',
-                            width: '88px',
-                            height: '88px',
-                            display: 'flex',
-                            padding: '8px',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flexShrink: 0,
-                            aspectRatio: 1,
-                            borderRadius: '999px',
-                            border: '1.5px solid #F9FEFF',
-                            background: 'rgba(249, 254, 255, 0.50)',
-                            pointerEvents: 'auto',
-                            cursor: 'pointer', ...(buttonHovered ? {
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
-                            } : {})
-                        }}
-
                     >
-                        <div
-                            style={{
-                                width: '100%',
-                                maxWidth: '56px',
-                                height: '100%',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                color: '#F9FEFF',
-                                textAlign: 'center',
-                                fontFamily: 'Albert Sans',
-                                fontSize: '12px',
-                                fontStyle: 'normal',
-                                fontWeight: 600,
-                                lineHeight: 'normal',
-                            }}
-                            onMouseEnter={() => {
-                                console.log('Button hover enter');
-                                setButtonHovered(true);
-                                // if (onPointerEnter) onPointerEnter();
-                            }}
-                            onMouseLeave={() => {
-                                console.log('Button hover leave');
-                                setButtonHovered(false);
-                                // if (onPointerLeave) onPointerLeave();
-                            }}
-                            onClick={handleMarkerClick}
-                        >
-                            {text}
-                        </div>
+                        {text}
                     </div>
-                </Html>)}
+                </div>
+            </Html>)}
 
-            {markerType === INTERACTION_TYPES.LONG_PRESS && (
-                <Html
+            {markerType === INTERACTION_TYPES.LONG_PRESS && (<Html
+                style={{
+                    position: 'absolute',
+                    width: '88px',
+                    height: '88px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                    aspectRatio: 1,
+                    borderRadius: '999px',
+                    border: '1.5px solid #F9FEFF',
+                    pointerEvents: 'auto',
+                }}
+                position={[0, 0, 0.002]}
+                center>
+                <div
+                    onMouseEnter={() => {
+                        console.log('Button hover enter');
+                        setButtonHovered(true);
+                    }}
+                    onMouseLeave={() => {
+                        console.log('Button hover leave');
+                        setButtonHovered(false);
+                    }}
                     style={{
                         position: 'absolute',
                         width: '88px',
@@ -442,26 +580,37 @@ const EnhancedObjectMarker = ({
                         aspectRatio: 1,
                         borderRadius: '999px',
                         border: '1.5px solid #F9FEFF',
+                        background: 'rgba(249, 254, 255, 0.50)',
                         pointerEvents: 'auto',
+                        cursor: 'pointer', ...(buttonHovered ? {
+                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                        } : {})
                     }}
-                    position={[0, 0, 0.002]}
-                    center>
+                >
                     <div
-
-                        onMouseEnter={() => {
-                            console.log('Button hover enter');
-                            setButtonHovered(true);
-                            // if (onPointerEnter) onPointerEnter();
+                        style={{
+                            width: '100%',
+                            maxWidth: '56px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: '#F9FEFF',
+                            textAlign: 'center',
+                            fontFamily: 'Albert Sans',
+                            fontSize: '12px',
+                            fontStyle: 'normal',
+                            fontWeight: 600,
+                            lineHeight: 'normal',
                         }}
-                        onMouseLeave={() => {
-                            console.log('Button hover leave');
-                            setButtonHovered(false);
-                            // if (onPointerLeave) onPointerLeave();
-                        }}
+                        onClick={handleMarkerClick}
+                    >
+                        {text}
+                    </div>
+                    <div
                         style={{
                             position: 'absolute',
-                            width: '88px',
-                            height: '88px',
+                            width: '64px',
+                            height: '64px',
                             display: 'flex',
                             padding: '8px',
                             flexDirection: 'column',
@@ -471,60 +620,14 @@ const EnhancedObjectMarker = ({
                             flexShrink: 0,
                             aspectRatio: 1,
                             borderRadius: '999px',
-                            border: '1.5px solid #F9FEFF',
-                            background: 'rgba(249, 254, 255, 0.50)',
-                            pointerEvents: 'auto',
-                            cursor: 'pointer', ...(buttonHovered ? {
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
-                            } : {})
+                            border: '1px solid #F9FEFF',
+                            background: 'transparent',
+                            pointerEvents: 'none',
                         }}
-
                     >
-
-
-                        <div
-                            style={{
-                                width: '100%',
-                                maxWidth: '56px',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                color: '#F9FEFF',
-                                textAlign: 'center',
-                                fontFamily: 'Albert Sans',
-                                fontSize: '12px',
-                                fontStyle: 'normal',
-                                fontWeight: 600,
-                                lineHeight: 'normal',
-                            }}
-
-                            onClick={handleMarkerClick}
-                        >
-                            {text}
-                        </div>
-                        <div
-                            style={{
-                                position: 'absolute',
-                                width: '64px',
-                                height: '64px',
-                                display: 'flex',
-                                padding: '8px',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '8px',
-                                flexShrink: 0,
-                                aspectRatio: 1,
-                                borderRadius: '999px',
-                                border: '1px solid #F9FEFF',
-                                background: 'transparent',
-                                pointerEvents: 'none',
-                            }}
-                        >
-                        </div>
-
                     </div>
-                </Html>)}
+                </div>
+            </Html>)}
 
             {/* Flèches directionnelles pour les drags */}
             {(markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT || markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) && (
@@ -534,11 +637,9 @@ const EnhancedObjectMarker = ({
                         width: '80px',
                         height: '120px',
                         display: 'flex',
-                        padding: '8px',
                         flexDirection: 'column',
                         justifyContent: 'center',
                         alignItems: 'center',
-                        gap: '8px',
                         flexShrink: 0,
                         aspectRatio: 1,
                         borderRadius: '999px',
@@ -548,16 +649,15 @@ const EnhancedObjectMarker = ({
                     position={[0, 0, 0.002]}
                     center>
                     <div
-
+                        onMouseDown={handleDragStart}
+                        onTouchStart={handleDragStart}
                         onMouseEnter={() => {
                             console.log('Button hover enter');
                             setButtonHovered(true);
-                            // if (onPointerEnter) onPointerEnter();
                         }}
                         onMouseLeave={() => {
                             console.log('Button hover leave');
                             setButtonHovered(false);
-                            // if (onPointerLeave) onPointerLeave();
                         }}
                         style={{
                             position: 'absolute',
@@ -575,11 +675,10 @@ const EnhancedObjectMarker = ({
                             border: '1.5px solid #F9FEFF',
                             background: 'rgba(249, 254, 255, 0.50)',
                             pointerEvents: 'auto',
-                            cursor: 'pointer', ...(buttonHovered ? {
+                            cursor: isDraggingRef.current ? 'grabbing' : 'grab', ...(buttonHovered ? {
                                 boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
                             } : {})
                         }}
-
                     >
                         <div
                             style={{
@@ -599,7 +698,6 @@ const EnhancedObjectMarker = ({
                                 console.log('Button hover leave');
                                 setButtonHovered(false);
                             }}
-                            onClick={handleMarkerClick}
                         >
                             <div style={{
                                 width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'

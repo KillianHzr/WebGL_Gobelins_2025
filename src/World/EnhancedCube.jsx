@@ -63,7 +63,7 @@ export default function EnhancedCube() {
         if (isFirstStop) {
             setCurrentInteractionType(INTERACTION_TYPES.CLICK);
         } else if (isSecondStop) {
-            setCurrentInteractionType(INTERACTION_TYPES.DRAG_RIGHT);
+            setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         }
 
         // Afficher les informations de débogage
@@ -85,22 +85,22 @@ export default function EnhancedCube() {
         enabled: true,
         debug: debug?.active,
         onClick: (intersection, event) => {
-            // Inverser l'état du cube quand il est cliqué
-            setActive(prev => !prev);
-
-            // Jouer un son de clic avec effet de fondu
-            audioManager.playSound('click', {
-                volume: 0.8
-            });
-
-            // Si nous sommes en attente d'une interaction de type clic, la compléter
-            if (interaction?.waitingForInteraction &&
-                interaction.currentStep === 'firstStop' &&
-                currentInteractionType === INTERACTION_TYPES.CLICK) {
-
-                interaction.completeInteraction();
-                console.log('Interaction complétée via clic sur le cube (firstStop)');
-            }
+            // // Inverser l'état du cube quand il est cliqué
+            // setActive(prev => !prev);
+            //
+            // // Jouer un son de clic avec effet de fondu
+            // audioManager.playSound('click', {
+            //     volume: 0.8
+            // });
+            //
+            // // Si nous sommes en attente d'une interaction de type clic, la compléter
+            // if (interaction?.waitingForInteraction &&
+            //     interaction.currentStep === 'firstStop' &&
+            //     currentInteractionType === INTERACTION_TYPES.CLICK) {
+            //
+            //     interaction.completeInteraction();
+            //     console.log('Interaction complétée via clic sur le cube (firstStop)');
+            // }
         }
     });
 
@@ -108,8 +108,8 @@ export default function EnhancedCube() {
     const {isDragging} = useDragGesture({
         objectRef: cubeRef,
         enabled: true,
-        minDistance: 100, // 100 pixels minimum de glissement
-        direction: 'right', // Changer à 'right' pour correspondre au DRAG_RIGHT
+        minDistance: 100,
+        direction: 'right', // Pour correspondre au DRAG_RIGHT
         debug: debug?.active,
         onDragStart: (data) => {
             console.log('Drag started on cube');
@@ -120,26 +120,23 @@ export default function EnhancedCube() {
             setDragging(false);
         },
         onDragSuccess: (data) => {
-            console.log('Successful drag detected:', data);
-
-            // Jouer un son de réussite avec un fondu plus long
-            audioManager.playSound('drag', {
-                fade: true,
-                fadeTime: 800,
-                volume: 1.0
-            });
-
-            // Changer l'apparence du cube lors d'un drag réussi
-            setActive(prev => !prev);
-
-            // Si nous sommes en attente d'une interaction de type drag vers la droite, la compléter
-            if (interaction?.waitingForInteraction &&
-                interaction.currentStep === 'secondStop' &&
-                currentInteractionType === INTERACTION_TYPES.DRAG_RIGHT) {
-
-                interaction.completeInteraction();
-                console.log('Interaction complétée via drag sur le cube (secondStop)');
-            }
+            // console.log('Successful drag detected:', data);
+            //
+            // // Jouer un son de réussite avec un fondu plus long
+            // audioManager.playSound('drag', {
+            //     fade: true,
+            //     fadeTime: 800,
+            //     volume: 1.0
+            // });
+            //
+            // // Changer l'apparence du cube lors d'un drag réussi
+            // setActive(prev => !prev);
+            //
+            // // NE PAS compléter l'interaction ici - nous voulons que l'interaction
+            // // soit complétée uniquement via le marqueur CTA
+            // if (debug?.active && interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
+            //     console.log('Drag réussi sur le cube détecté, mais l\'interaction doit être complétée via le marqueur CTA');
+            // }
         }
     });
 
@@ -452,6 +449,7 @@ export default function EnhancedCube() {
                 offset: 0.8,
                 preferredAxis: 'z'
             }}
+            alwaysVisible={isWaitingForInteraction} // Important - Forcer la visibilité du marqueur
         >
             <mesh
                 ref={cubeRef}
