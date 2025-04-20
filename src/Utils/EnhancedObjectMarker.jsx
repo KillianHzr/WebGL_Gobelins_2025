@@ -349,8 +349,8 @@ const EnhancedObjectMarker = ({
         const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
         const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
 
-        startDragPos.current = { x: clientX, y: clientY };
-        currentDragPos.current = { ...startDragPos.current };
+        startDragPos.current = {x: clientX, y: clientY};
+        currentDragPos.current = {...startDragPos.current};
 
         // Ajouter les écouteurs au niveau de la fenêtre
         window.addEventListener('mousemove', handleDragMove);
@@ -371,7 +371,7 @@ const EnhancedObjectMarker = ({
         const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : currentDragPos.current.x);
         const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : currentDragPos.current.y);
 
-        currentDragPos.current = { x: clientX, y: clientY };
+        currentDragPos.current = {x: clientX, y: clientY};
 
         // Calculer le déplacement
         const dx = currentDragPos.current.x - startDragPos.current.x;
@@ -412,17 +412,14 @@ const EnhancedObjectMarker = ({
 
                 if (audioManager) {
                     audioManager.playSound('drag', {
-                        volume: 0.8,
-                        fade: true,
-                        fadeTime: 800
+                        volume: 0.8, fade: true, fadeTime: 800
                     });
                 }
 
                 if (onClick) {
                     onClick({
                         type: markerType, // Utiliser directement markerType, pas 'drag' générique
-                        direction,
-                        distance
+                        direction, distance
                     });
                 }
 
@@ -434,10 +431,7 @@ const EnhancedObjectMarker = ({
         }
     };
     const isDragEventType = (type) => {
-        return type === INTERACTION_TYPES.DRAG_LEFT ||
-            type === INTERACTION_TYPES.DRAG_RIGHT ||
-            type === INTERACTION_TYPES.DRAG_UP ||
-            type === INTERACTION_TYPES.DRAG_DOWN;
+        return type === INTERACTION_TYPES.DRAG_LEFT || type === INTERACTION_TYPES.DRAG_RIGHT || type === INTERACTION_TYPES.DRAG_UP || type === INTERACTION_TYPES.DRAG_DOWN;
     };
     // Fonction pour terminer un drag
     const handleDragEnd = () => {
@@ -829,7 +823,7 @@ const EnhancedObjectMarker = ({
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 gap: '8px'
-                            }}$
+                            }}
                         >
                             <div style={{
                                 width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'
@@ -874,6 +868,11 @@ const EnhancedObjectMarker = ({
 // Fonction d'aide pour faciliter l'intégration avec un modèle 3D
 // Dans ModelMarker, modifiez la partie pertinente:
 
+// Modification dans le composant ModelMarker - fonction à ajouter dans le fichier EnhancedObjectMarker.jsx
+
+// Correction pour le composant ModelMarker dans EnhancedObjectMarker.jsx
+// Mise à jour : réinitialisation de l'état pour les nouvelles interactions
+
 export const ModelMarker = ({
                                 objectRef,         // Référence à l'objet, optionnelle si les enfants sont fournis
                                 children,          // Enfants à englober (typiquement un mesh)
@@ -900,63 +899,120 @@ export const ModelMarker = ({
     // État pour mémoriser si le marqueur doit rester visible
     const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
 
+    // État pour suivre si l'interaction a été complétée
+    const [interactionCompleted, setInteractionCompleted] = useState(false);
+
+    // NOUVEAU: Garder une trace de l'étape d'interaction précédente
+    const [lastCompletedStep, setLastCompletedStep] = useState(null);
+
     // Accès à l'état global d'interaction
     const interaction = useStore(state => state.interaction);
 
     // Accès au RayCaster
-    const {addPointerEnterListener, addPointerLeaveListener} = useRayCaster();
+    const {addPointerEnterListener, addPointerLeaveListener, removePointerListeners} = useRayCaster();
 
     // Utiliser le type d'interaction passé par l'un ou l'autre paramètre
     const effectiveMarkerType = interactionType || markerType;
 
-    // Vérifier si le marqueur doit être affiché basé sur l'état d'interaction
-    const shouldShowMarker = (isHovered || isMarkerHovered || keepMarkerVisible) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep));
+    // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
+    const shouldShowMarker = (
+        // Ne pas montrer si l'étape actuelle a déjà été complétée
+        (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
+
+        // Conditions standards d'affichage
+        (isHovered || isMarkerHovered || keepMarkerVisible) &&
+        showMarkerOnHover &&
+        (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))
+    );
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
+        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+
         if (onInteract) {
             onInteract();
         }
-        // Réinitialiser la visibilité après une interaction
+
+        // Marquer l'interaction comme complétée
+        setInteractionCompleted(true);
+        setLastCompletedStep(interaction?.currentStep);
         setKeepMarkerVisible(false);
     };
 
     // Gérer le survol du marqueur
-    const handleMarkerPointerEnter = () => {
+    const handleMarkerPointerEnter = (e) => {
+        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+
         setMarkerHovered(true);
-        setKeepMarkerVisible(true); // Garder le marqueur visible
+        setKeepMarkerVisible(true);
+        if (onPointerEnter) onPointerEnter(e);
     };
 
-    const handleMarkerPointerLeave = () => {
+    const handleMarkerPointerLeave = (e) => {
+        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+
         setMarkerHovered(false);
-        // Le marqueur reste visible grâce à keepMarkerVisible
+        if (onPointerLeave) onPointerLeave(e);
     };
 
-    // Écouter l'événement d'interaction complète pour réinitialiser l'état
+    // Écouter l'événement d'interaction complète
     useEffect(() => {
         const handleInteractionComplete = (data) => {
             if (data.id === id) {
+                console.log(`[ModelMarker] Interaction ${id} marquée comme complétée pour l'étape ${interaction?.currentStep}`);
+
+                // Stocker l'étape qui vient d'être complétée
+                setInteractionCompleted(true);
+                setLastCompletedStep(interaction?.currentStep);
                 setKeepMarkerVisible(false);
+
+                // Supprimer les écouteurs d'événements pour l'étape actuelle
+                if (objectRef && objectRef.current) {
+                    removePointerListeners(objectRef.current.uuid);
+                }
+                if (groupRef && groupRef.current) {
+                    removePointerListeners(groupRef.current.uuid);
+                }
             }
         };
 
         const cleanup = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
         return cleanup;
-    }, [id]);
+    }, [id, removePointerListeners, interaction?.currentStep]);
 
-    // S'abonner aux événements de pointeur via le système RayCaster amélioré
+    // IMPORTANT: Réinitialiser l'état lorsque l'étape d'interaction change
     useEffect(() => {
+        // Si l'étape d'interaction a changé et est différente de la dernière étape complétée,
+        // réinitialiser l'état pour permettre une nouvelle interaction
+        if (interaction &&
+            interaction.currentStep !== lastCompletedStep &&
+            interaction.waitingForInteraction) {
+
+            console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
+            setInteractionCompleted(false);
+        }
+    }, [interaction?.currentStep, interaction?.waitingForInteraction, lastCompletedStep]);
+
+    // S'abonner aux événements de pointeur via le système RayCaster
+    useEffect(() => {
+        // Ne pas ajouter d'écouteurs si l'interaction est déjà complétée pour l'étape actuelle
+        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+
         // Utiliser la référence à l'objet ou au groupe
         const targetRef = objectRef || groupRef;
 
         if (targetRef.current) {
+            console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
+
             // Ajouter des écouteurs pour le survol
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
                 console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
                 setHovered(true);
             });
 
             const removeLeaveListener = addPointerLeaveListener(targetRef.current.uuid, (event) => {
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
                 console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
                 setHovered(false);
             });
@@ -966,15 +1022,20 @@ export const ModelMarker = ({
                 removeLeaveListener();
             };
         }
-    }, [objectRef, addPointerEnterListener, addPointerLeaveListener]);
+    }, [
+        objectRef,
+        addPointerEnterListener,
+        addPointerLeaveListener,
+        interactionCompleted,
+        interaction?.currentStep,
+        lastCompletedStep
+    ]);
 
     return (<group ref={groupRef} {...props}>
         {React.Children.map(children, child => React.cloneElement(child, {
             ref: objectRef || child.ref
-            // Ne plus utiliser onPointerEnter/Leave ici car nous utilisons maintenant le raycaster
         }))}
 
-        {/* Ajouter le marqueur d'interaction seulement s'il doit être affiché */}
         {shouldShowMarker && (<EnhancedObjectMarker
             objectRef={objectRef || groupRef}
             markerType={effectiveMarkerType}

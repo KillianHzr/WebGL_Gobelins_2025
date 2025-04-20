@@ -65,7 +65,7 @@ export default function EnhancedCube() {
         if (isFirstStop) {
             setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         } else if (isSecondStop) {
-            setCurrentInteractionType(INTERACTION_TYPES.CLICK);
+            setCurrentInteractionType(INTERACTION_TYPES.DRAG_RIGHT);
         } else if (isThirdStop) {
             setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
         }

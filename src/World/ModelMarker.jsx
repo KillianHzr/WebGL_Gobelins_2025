@@ -39,6 +39,8 @@ const ModelMarker = ({
 
     // État pour mémoriser si le marqueur doit rester visible
     const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
+    // État pour savoir si l'interaction a été complétée
+    const [interactionCompleted, setInteractionCompleted] = useState(false);
 
     // Déterminer le vrai type d'interaction (compatible avec INTERACTION_TYPES)
     const resolveInteractionType = () => {
@@ -86,14 +88,21 @@ const ModelMarker = ({
 
     // Forcer l'affichage du marqueur si alwaysVisible est true
     useEffect(() => {
-        if (alwaysVisible) {
+        if (alwaysVisible && !interactionCompleted) {
             setKeepMarkerVisible(true);
             setMarkerVisible(true);
         }
-    }, [alwaysVisible, setMarkerVisible]);
+    }, [alwaysVisible, setMarkerVisible, interactionCompleted]);
 
     // Vérifier si le marqueur doit être affiché basé sur l'état d'interaction
     useEffect(() => {
+        // Si l'interaction a été complétée, on ne montre plus le marqueur
+        if (interactionCompleted) {
+            setKeepMarkerVisible(false);
+            setMarkerVisible(false);
+            return;
+        }
+
         const isRequiredForInteraction = interaction?.waitingForInteraction &&
             (!requiredStep || interaction.currentStep === requiredStep);
 
@@ -103,25 +112,63 @@ const ModelMarker = ({
         } else if (!alwaysVisible && !isHovered && !isMarkerHovered) {
             setKeepMarkerVisible(false);
         }
-    }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, alwaysVisible, isHovered, isMarkerHovered]);
+    }, [
+        interaction?.waitingForInteraction,
+        interaction?.currentStep,
+        requiredStep,
+        alwaysVisible,
+        isHovered,
+        isMarkerHovered,
+        interactionCompleted
+    ]);
+
+    // Écouter les événements d'interaction complétée
+    useEffect(() => {
+        const handleInteractionComplete = (data) => {
+            if (data.id === id) {
+                setInteractionCompleted(true);
+                setKeepMarkerVisible(false);
+                setMarkerVisible(false);
+
+                // Log pour le débogage
+                if (debug) {
+                    console.log(`[ModelMarker] Interaction ${id} marquée comme complétée, marqueur masqué`);
+                }
+            }
+        };
+
+        // S'abonner à l'événement
+        const unsubscribe = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
+
+        // Nettoyage à la destruction du composant
+        return () => {
+            unsubscribe();
+        };
+    }, [id, debug]);
 
     // Le marqueur devrait être visible si:
-    // 1. Il est explicitement défini comme toujours visible
-    // 2. Il est actuellement survolé
-    // 3. Il est nécessaire pour une interaction
-    // 4. keekMarkerVisible a été défini à true
+    // 1. L'interaction n'a pas encore été complétée ET
+    // 2. Une des conditions suivantes est vraie:
+    //    a. Il est explicitement défini comme toujours visible
+    //    b. Il est actuellement survolé
+    //    c. Il est nécessaire pour une interaction
+    //    d. keepMarkerVisible a été défini à true
     const shouldShowMarker =
-        alwaysVisible ||
-        markerVisible ||
-        isHovered ||
-        isMarkerHovered ||
-        keepMarkerVisible ||
-        (interaction?.waitingForInteraction && (!requiredStep || interaction.currentStep === requiredStep));
+        !interactionCompleted && (
+            alwaysVisible ||
+            markerVisible ||
+            isHovered ||
+            isMarkerHovered ||
+            keepMarkerVisible ||
+            (interaction?.waitingForInteraction && (!requiredStep || interaction.currentStep === requiredStep))
+        );
 
     // Gérer le survol du marqueur
     const handleMarkerPointerEnter = () => {
-        setIsMarkerHovered(true);
-        setKeepMarkerVisible(true); // Garder le marqueur visible
+        if (!interactionCompleted) {
+            setIsMarkerHovered(true);
+            setKeepMarkerVisible(true); // Garder le marqueur visible
+        }
     };
 
     const handleMarkerPointerLeave = () => {
@@ -129,7 +176,6 @@ const ModelMarker = ({
         // Le marqueur reste visible grâce à keepMarkerVisible
     };
 
-    // Gérer l'interaction avec le marqueur (clic, drag, long press)
     // Gérer l'interaction avec le marqueur (clic, drag, long press)
     const handleInteraction = (eventData = {}) => {
         if (debug) {
@@ -171,6 +217,11 @@ const ModelMarker = ({
 
             interaction.completeInteraction();
 
+            // Marquer l'interaction comme complétée et cacher le marqueur
+            setInteractionCompleted(true);
+            setKeepMarkerVisible(false);
+            setMarkerVisible(false);
+
             if (debug) {
                 console.log(`[ModelMarker] Interaction complétée: ${requiredStep || 'aucune étape spécifiée'} (type: ${eventType})`);
             }
@@ -180,20 +231,30 @@ const ModelMarker = ({
                 id,
                 type: actualInteractionType
             });
-
-            // Réinitialiser l'état du marqueur
-            setKeepMarkerVisible(false);
         } else if (interaction?.waitingForInteraction && !isCorrectInteractionType) {
             console.log(`[ModelMarker] Type d'interaction incorrect: attendu ${actualInteractionType}, reçu ${eventType}`);
         }
     };
+
+    // Réinitialiser l'état d'interaction complétée si l'étape d'interaction change
+    useEffect(() => {
+        // Si l'étape d'interaction change ou n'est plus requise, on réinitialise
+        if (interaction && requiredStep && interaction.currentStep !== requiredStep) {
+            setInteractionCompleted(false);
+        }
+    }, [interaction?.currentStep, requiredStep]);
 
     return (
         <group ref={modelRef} {...props}>
             {/* Le modèle / mesh à envelopper */}
             {React.Children.map(children, child =>
                 React.cloneElement(child, {
-                    onPointerOver: () => setHovered(true),
+                    onPointerOver: () => {
+                        // Ne modifie l'état de survol que si l'interaction n'est pas complétée
+                        if (!interactionCompleted) {
+                            setHovered(true);
+                        }
+                    },
                     onPointerOut: () => setHovered(false)
                 })
             )}

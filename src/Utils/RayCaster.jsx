@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import useStore from '../Store/useStore';
 
@@ -177,6 +177,29 @@ const RayCaster = ({ children }) => {
         return () => pointerLeaveListenersRef.current.delete(uuid);
     };
 
+    // NOUVEAU: Fonction pour supprimer tous les écouteurs pour un objet
+    const removePointerListeners = useCallback((uuid) => {
+        if (pointerEnterListenersRef.current.has(uuid)) {
+            pointerEnterListenersRef.current.delete(uuid);
+            console.log(`[RayCaster] Removed pointer enter listener for ${uuid}`);
+        }
+
+        if (pointerLeaveListenersRef.current.has(uuid)) {
+            pointerLeaveListenersRef.current.delete(uuid);
+            console.log(`[RayCaster] Removed pointer leave listener for ${uuid}`);
+        }
+
+        if (clickListenersRef.current.has(uuid)) {
+            clickListenersRef.current.delete(uuid);
+            console.log(`[RayCaster] Removed click listener for ${uuid}`);
+        }
+
+        if (hoveredObjectsRef.current.has(uuid)) {
+            hoveredObjectsRef.current.delete(uuid);
+            console.log(`[RayCaster] Removed ${uuid} from hovered objects`);
+        }
+    }, []);
+
     // Méthode pour tester manuellement une intersection
     const testIntersection = (x, y) => {
         const normalizedX = (x / window.innerWidth) * 2 - 1;
@@ -191,6 +214,7 @@ const RayCaster = ({ children }) => {
         addClickListener,
         addPointerEnterListener,
         addPointerLeaveListener,
+        removePointerListeners,
         testIntersection
     };
 
