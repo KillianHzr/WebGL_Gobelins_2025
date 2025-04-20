@@ -138,6 +138,29 @@ function createTextCanvas(text, fontSize = 32, fontWeight = 'bold', fontFamily =
     return canvas;
 }
 
+// Assurez-vous que cette fonction stoppe complètement la propagation
+const stopAllPropagation = (e) => {
+    if (!e) return;
+
+    // Arrêter la propagation React
+    e.stopPropagation();
+
+    // Arrêter la propagation immédiate (plus agressive)
+    if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+    }
+
+    // Arrêter aussi les événements natifs
+    if (e.nativeEvent) {
+        e.nativeEvent.stopPropagation();
+        if (typeof e.nativeEvent.stopImmediatePropagation === 'function') {
+            e.nativeEvent.stopImmediatePropagation();
+        }
+    }
+
+    // Empêcher toute autre action par défaut
+    e.preventDefault();
+};
 /**
  * Composant marqueur d'interaction amélioré qui s'adapte à différents types d'interactions
  */
@@ -181,21 +204,34 @@ const EnhancedObjectMarker = ({
         offset: positionOptions.offsetDistance || 0.5, preferredAxis: positionOptions.preferredAxis, ...positionOptions
     });
 
-    // Gérer le survol du marqueur lui-même
+    // Gérer le survol du marqueur lui-même avec arrêt complet de la propagation
+    // Gérer le survol du marqueur lui-même avec arrêt complet de la propagation
     const handleMarkerPointerEnter = (e) => {
-        console.log('[EnhancedObjectMarker] Pointer enter on marker', e);
-        e.stopPropagation();
+        console.log('[EnhancedObjectMarker] Pointer enter on marker');
+        // Arrêter complètement la propagation
+        stopAllPropagation(e);
+
+        // Mettre à jour son propre état de survol
         setIsHovering(true);
-        console.log('is hovering:', isHovering);
-        if (onPointerEnter) onPointerEnter(e);
+
+        // Appeler le callback externe
+        if (typeof onPointerEnter === 'function') {
+            onPointerEnter(e); // Ce callback vient de ModelMarker et modifiera son état setIsMarkerHovered
+        }
     };
 
     const handleMarkerPointerLeave = (e) => {
-        console.log('[EnhancedObjectMarker] Pointer leave on marker', e);
-        e.stopPropagation();
+        console.log('[EnhancedObjectMarker] Pointer leave on marker');
+        // Arrêter complètement la propagation
+        stopAllPropagation(e);
+
+        // Mettre à jour son propre état de survol
         setIsHovering(false);
-        console.log('is hovering:', isHovering);
-        if (onPointerLeave) onPointerLeave(e);
+
+        // Appeler le callback externe
+        if (typeof onPointerLeave === 'function') {
+            onPointerLeave(e); // Ce callback vient de ModelMarker et modifiera son état setIsMarkerHovered
+        }
     };
 
     // Effet de transition pour l'apparition du marqueur
@@ -209,7 +245,7 @@ const EnhancedObjectMarker = ({
 
     // Fonction pour démarrer le timer d'appui long
     const handleLongPressStart = (e) => {
-        e.stopPropagation();
+        stopAllPropagation(e);
 
         // Ignorer si ce n'est pas un marqueur de type appui long
         if (markerType !== INTERACTION_TYPES.LONG_PRESS) return;
@@ -304,7 +340,7 @@ const EnhancedObjectMarker = ({
 
     // Gérer le clic sur le marqueur
     const handleMarkerClick = (e) => {
-        e.stopPropagation();
+        stopAllPropagation(e);
 
         // Pour les appuis longs, on démarre le timer
         if (markerType === INTERACTION_TYPES.LONG_PRESS) {
@@ -343,6 +379,8 @@ const EnhancedObjectMarker = ({
         if (!markerType.includes('drag')) return;
 
         console.log('[EnhancedObjectMarker] Drag started');
+        stopAllPropagation(e);
+
         isDraggingRef.current = true;
 
         // Capturer les coordonnées initiales
@@ -357,13 +395,9 @@ const EnhancedObjectMarker = ({
         window.addEventListener('touchmove', handleDragMove);
         window.addEventListener('mouseup', handleDragEnd);
         window.addEventListener('touchend', handleDragEnd);
-
-        // Empêcher le comportement par défaut
-        e.preventDefault();
-        e.stopPropagation();
     };
 
-// 2. Modifier la fonction handleDragMove pour un meilleur suivi
+    // Modifier la fonction handleDragMove pour un meilleur suivi
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) return;
 
@@ -425,14 +459,16 @@ const EnhancedObjectMarker = ({
 
                 EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                     id, type: markerType
-                })
+                });
                 handleDragEnd();
             }
         }
     };
+
     const isDragEventType = (type) => {
         return type === INTERACTION_TYPES.DRAG_LEFT || type === INTERACTION_TYPES.DRAG_RIGHT || type === INTERACTION_TYPES.DRAG_UP || type === INTERACTION_TYPES.DRAG_DOWN;
     };
+
     // Fonction pour terminer un drag
     const handleDragEnd = () => {
         if (!isDraggingRef.current) return;
@@ -609,16 +645,26 @@ const EnhancedObjectMarker = ({
                 position={[0, 0, 0.002]}
                 center>
                 <div
-                    onMouseEnter={() => {
+                    onMouseEnter={(e) => {
                         console.log('Button hover enter');
+                        stopAllPropagation(e);
                         setButtonHovered(true);
+                        if (typeof onPointerEnter === 'function') {
+                            onPointerEnter(e);
+                        }
                     }}
-                    onMouseLeave={() => {
+                    onMouseLeave={(e) => {
                         console.log('Button hover leave');
+                        stopAllPropagation(e);
                         setButtonHovered(false);
+                        if (typeof onPointerLeave === 'function') {
+                            onPointerLeave(e);
+                        }
                     }}
-                    onClick={handleMarkerClick}
-
+                    onClick={(e) => {
+                        stopAllPropagation(e);
+                        handleMarkerClick(e);
+                    }}
                     style={{
                         position: 'absolute',
                         width: '88px',
@@ -656,15 +702,29 @@ const EnhancedObjectMarker = ({
                             fontWeight: 600,
                             lineHeight: 'normal',
                         }}
-                        onMouseEnter={() => {
+
+                        onMouseEnter={(e) => {
                             console.log('Button hover enter');
+                            stopAllPropagation(e);
                             setButtonHovered(true);
+                            // Ne pas appeler directement onPointerEnter, utiliser un appel sécurisé
+                            if (typeof onPointerEnter === 'function') {
+                                onPointerEnter(e);
+                            }
                         }}
-                        onMouseLeave={() => {
+                        onMouseLeave={(e) => {
                             console.log('Button hover leave');
+                            stopAllPropagation(e);
                             setButtonHovered(false);
+                            // Ne pas appeler directement onPointerLeave, utiliser un appel sécurisé
+                            if (typeof onPointerLeave === 'function') {
+                                onPointerLeave(e);
+                            }
                         }}
-                        onClick={handleMarkerClick}
+                        onClick={(e) => {
+                            stopAllPropagation(e);
+                            handleMarkerClick(e);
+                        }}
                     >
                         {text}
                     </div>
@@ -693,13 +753,17 @@ const EnhancedObjectMarker = ({
                     onMouseUp={handleLongPressCancel}
                     onTouchStart={handleLongPressStart}
                     onTouchEnd={handleLongPressCancel}
-                    onMouseEnter={() => {
+                    onMouseEnter={(e) => {
                         console.log('Button hover enter');
+                        stopAllPropagation(e);
                         setButtonHovered(true);
+                        if (onPointerEnter) onPointerEnter(e);
                     }}
-                    onMouseLeave={() => {
+                    onMouseLeave={(e) => {
                         console.log('Button hover leave');
+                        stopAllPropagation(e);
                         setButtonHovered(false);
+                        if (onPointerLeave) onPointerLeave(e);
                     }}
                     style={{
                         position: 'absolute',
@@ -785,13 +849,23 @@ const EnhancedObjectMarker = ({
                     <div
                         onMouseDown={handleDragStart}
                         onTouchStart={handleDragStart}
-                        onMouseEnter={() => {
+                        onMouseEnter={(e) => {
                             console.log('Button hover enter');
+                            stopAllPropagation(e);
                             setButtonHovered(true);
+                            // Ne pas appeler directement onPointerEnter, utiliser un appel sécurisé
+                            if (typeof onPointerEnter === 'function') {
+                                onPointerEnter(e);
+                            }
                         }}
-                        onMouseLeave={() => {
+                        onMouseLeave={(e) => {
                             console.log('Button hover leave');
+                            stopAllPropagation(e);
                             setButtonHovered(false);
+                            // Ne pas appeler directement onPointerLeave, utiliser un appel sécurisé
+                            if (typeof onPointerLeave === 'function') {
+                                onPointerLeave(e);
+                            }
                         }}
                         style={{
                             position: 'absolute',
@@ -873,6 +947,8 @@ const EnhancedObjectMarker = ({
 // Correction pour le composant ModelMarker dans EnhancedObjectMarker.jsx
 // Mise à jour : réinitialisation de l'état pour les nouvelles interactions
 
+// Replace the ModelMarker component in EnhancedObjectMarker.jsx with this fixed version
+
 export const ModelMarker = ({
                                 objectRef,         // Référence à l'objet, optionnelle si les enfants sont fournis
                                 children,          // Enfants à englober (typiquement un mesh)
@@ -887,14 +963,16 @@ export const ModelMarker = ({
                                 positionOptions = {}, // Options de positionnement
                                 showMarkerOnHover = true, // Montrer le marqueur au survol (si interaction requise)
                                 customMarker = null, // Marqueur personnalisé
-                                ...props            // Autres propriétés à transmettre
+                                onPointerEnter,     // Fonction pour gérer les événements de survol
+                                onPointerLeave,     // Fonctions pour gérer les événements de survol
+                                ...props
                             }) => {
     // Référence pour l'objet englobant
     const groupRef = useRef();
 
     // État pour suivre si l'objet est survolé
     const [isHovered, setHovered] = useState(false);
-    const [isMarkerHovered, setMarkerHovered] = useState(false);
+    const [isMarkerHovered, setIsMarkerHovered] = useState(false);
 
     // État pour mémoriser si le marqueur doit rester visible
     const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
@@ -915,15 +993,11 @@ export const ModelMarker = ({
     const effectiveMarkerType = interactionType || markerType;
 
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
-    const shouldShowMarker = (
-        // Ne pas montrer si l'étape actuelle a déjà été complétée
+    const shouldShowMarker = (// Ne pas montrer si l'étape actuelle a déjà été complétée
         (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
 
         // Conditions standards d'affichage
-        (isHovered || isMarkerHovered || keepMarkerVisible) &&
-        showMarkerOnHover &&
-        (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))
-    );
+        (isHovered || isMarkerHovered || keepMarkerVisible) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)));
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
@@ -940,19 +1014,34 @@ export const ModelMarker = ({
     };
 
     // Gérer le survol du marqueur
+    // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant
     const handleMarkerPointerEnter = (e) => {
-        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+        console.log('[ModelMarker] Marker pointer enter', id);
+        // Arrêter complètement la propagation
+        stopAllPropagation(e);
 
-        setMarkerHovered(true);
+        // Mettre à jour l'état interne du ModelMarker
+        setIsMarkerHovered(true);
         setKeepMarkerVisible(true);
-        if (onPointerEnter) onPointerEnter(e);
+
+        // Propager l'événement au callback externe si fourni
+        if (typeof onPointerEnter === 'function') {
+            onPointerEnter(e);
+        }
     };
 
     const handleMarkerPointerLeave = (e) => {
-        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+        console.log('[ModelMarker] Marker pointer leave', id);
+        // Arrêter complètement la propagation
+        stopAllPropagation(e);
 
-        setMarkerHovered(false);
-        if (onPointerLeave) onPointerLeave(e);
+        // Mettre à jour l'état interne du ModelMarker
+        setIsMarkerHovered(false);
+
+        // Propager l'événement au callback externe si fourni
+        if (typeof onPointerLeave === 'function') {
+            onPointerLeave(e);
+        }
     };
 
     // Écouter l'événement d'interaction complète
@@ -984,9 +1073,7 @@ export const ModelMarker = ({
     useEffect(() => {
         // Si l'étape d'interaction a changé et est différente de la dernière étape complétée,
         // réinitialiser l'état pour permettre une nouvelle interaction
-        if (interaction &&
-            interaction.currentStep !== lastCompletedStep &&
-            interaction.waitingForInteraction) {
+        if (interaction && interaction.currentStep !== lastCompletedStep && interaction.waitingForInteraction) {
 
             console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
             setInteractionCompleted(false);
@@ -1022,35 +1109,32 @@ export const ModelMarker = ({
                 removeLeaveListener();
             };
         }
-    }, [
-        objectRef,
-        addPointerEnterListener,
-        addPointerLeaveListener,
-        interactionCompleted,
-        interaction?.currentStep,
-        lastCompletedStep
-    ]);
+    }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep]);
 
-    return (<group ref={groupRef} {...props}>
-        {React.Children.map(children, child => React.cloneElement(child, {
-            ref: objectRef || child.ref
-        }))}
+    return (
+        <group ref={groupRef} {...props}>
+            {React.Children.map(children, child => React.cloneElement(child, {
+                ref: objectRef || child.ref
+            }))}
 
-        {shouldShowMarker && (<EnhancedObjectMarker
-            objectRef={objectRef || groupRef}
-            markerType={effectiveMarkerType}
-            color={markerColor}
-            scale={markerScale}
-            text={markerText}
-            onClick={handleObjectInteraction}
-            positionOptions={positionOptions}
-            id={id}
-            custom={customMarker}
-            keepVisible={true}
-            onPointerEnter={handleMarkerPointerEnter}
-            onPointerLeave={handleMarkerPointerLeave}
-        />)}
-    </group>);
+            {shouldShowMarker && (
+                <EnhancedObjectMarker
+                    objectRef={objectRef || groupRef}
+                    markerType={effectiveMarkerType}
+                    color={markerColor}
+                    scale={markerScale}
+                    text={markerText}
+                    onClick={handleObjectInteraction}
+                    positionOptions={positionOptions}
+                    id={id}
+                    custom={customMarker}
+                    keepVisible={true}
+                    onPointerEnter={handleMarkerPointerEnter}
+                    onPointerLeave={handleMarkerPointerLeave}
+                />
+            )}
+        </group>
+    );
 };
 
 export default EnhancedObjectMarker;

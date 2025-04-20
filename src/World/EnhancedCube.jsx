@@ -21,9 +21,12 @@ export default function EnhancedCube() {
     const [dragging, setDragging] = useState(false);
     const folderRef = useRef(null);
     const {debug, gui, updateDebugConfig, getDebugConfigValue, clickListener, interaction} = useStore();
-
+    const [isInteractionCompleted, setIsInteractionCompleted] = useState(false);
     // État indiquant si ce cube est l'objet qui nécessite actuellement une interaction
     const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
+
+    // État pour suivre si le marqueur est survolé
+    const [isMarkerHovered, setIsMarkerHovered] = useState(false);
 
     // Type d'interaction actuellement demandé (pour changer l'apparence du marqueur)
     const [currentInteractionType, setCurrentInteractionType] = useState(null);
@@ -63,7 +66,7 @@ export default function EnhancedCube() {
 
         // Définir le type d'interaction en fonction de l'étape
         if (isFirstStop) {
-            setCurrentInteractionType(INTERACTION_TYPES.LONG_PRESS);
+            setCurrentInteractionType(INTERACTION_TYPES.CLICK);
         } else if (isSecondStop) {
             setCurrentInteractionType(INTERACTION_TYPES.DRAG_RIGHT);
         } else if (isThirdStop) {
@@ -91,22 +94,7 @@ export default function EnhancedCube() {
         enabled: true,
         debug: debug?.active,
         onClick: (intersection, event) => {
-            // // Inverser l'état du cube quand il est cliqué
-            // setActive(prev => !prev);
-            //
-            // // Jouer un son de clic avec effet de fondu
-            // audioManager.playSound('click', {
-            //     volume: 0.8
-            // });
-            //
-            // // Si nous sommes en attente d'une interaction de type clic, la compléter
-            // if (interaction?.waitingForInteraction &&
-            //     interaction.currentStep === 'firstStop' &&
-            //     currentInteractionType === INTERACTION_TYPES.CLICK) {
-            //
-            //     interaction.completeInteraction();
-            //     console.log('Interaction complétée via clic sur le cube (firstStop)');
-            // }
+            // Logique de clic
         }
     });
 
@@ -126,23 +114,7 @@ export default function EnhancedCube() {
             setDragging(false);
         },
         onDragSuccess: (data) => {
-            // console.log('Successful drag detected:', data);
-            //
-            // // Jouer un son de réussite avec un fondu plus long
-            // audioManager.playSound('drag', {
-            //     fade: true,
-            //     fadeTime: 800,
-            //     volume: 1.0
-            // });
-            //
-            // // Changer l'apparence du cube lors d'un drag réussi
-            // setActive(prev => !prev);
-            //
-            // // NE PAS compléter l'interaction ici - nous voulons que l'interaction
-            // // soit complétée uniquement via le marqueur CTA
-            // if (debug?.active && interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
-            //     console.log('Drag réussi sur le cube détecté, mais l\'interaction doit être complétée via le marqueur CTA');
-            // }
+            // Logique de drag réussi
         }
     });
 
@@ -395,6 +367,20 @@ export default function EnhancedCube() {
         }
     }, [debug, gui, updateDebugConfig, getDebugConfigValue])
 
+    const shouldShowOutline = () => {
+        // L'outline est affiché dans tous les cas SAUF si on survole le marqueur
+        // Peu importe si on survole le cube
+        if (isMarkerHovered) {
+            return false;
+        }
+        return isWaitingForInteraction;
+    };
+
+    useEffect(() => {
+        // Ajouté pour observer les changements d'état qui pourraient affecter l'outline
+        console.log(`Outline condition: shouldShow=${shouldShowOutline()}, hovered=${hovered}, isMarkerHovered=${isMarkerHovered}`);
+    }, [hovered, isMarkerHovered, isWaitingForInteraction]);
+
     // Animation
     useFrame((state, delta) => {
         // Animation code if needed
@@ -436,6 +422,9 @@ export default function EnhancedCube() {
             interaction.completeInteraction();
             console.log(`Interaction complétée via ${eventType} sur le marqueur`);
 
+            // Mettre à jour l'état
+            setIsInteractionCompleted(true);
+
             // Émettre un événement
             EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                 id: 'enhanced-cube-marker',
@@ -444,6 +433,46 @@ export default function EnhancedCube() {
         } else if (interaction?.waitingForInteraction) {
             console.log(`Type d'interaction incorrect: attendu ${currentInteractionType}, reçu ${eventType}`);
         }
+    };
+    useEffect(() => {
+        if (interaction && interaction.currentStep) {
+            setIsInteractionCompleted(false);
+        }
+    }, [interaction?.currentStep]);
+    // Handlers pour le survol du marqueur avec arrêt complet de la propagation
+    const handleMarkerPointerEnter = (e) => {
+        console.log("[EnhancedCube] Marker hover enter - setting isMarkerHovered to true");
+        // Arrêter la propagation de tous les types d'événements
+        if (e) {
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+            if (e.nativeEvent) {
+                e.nativeEvent.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation?.();
+            }
+        }
+        // Mettre à jour UNIQUEMENT l'état du marqueur
+        setIsMarkerHovered(true);
+
+        // NE PAS modifier l'état du cube ici
+        // Enlever toute modification de l'état "hovered"
+    };
+
+    const handleMarkerPointerLeave = (e) => {
+        console.log("[EnhancedCube] Marker hover leave - setting isMarkerHovered to false");
+        // Arrêter la propagation de tous les types d'événements
+        if (e) {
+            e.stopPropagation();
+            e.stopImmediatePropagation?.();
+            if (e.nativeEvent) {
+                e.nativeEvent.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation?.();
+            }
+        }
+        // Mettre à jour UNIQUEMENT l'état du marqueur
+        setIsMarkerHovered(false);
+
+        // NE PAS modifier l'état du cube ici
     };
 
     // Déterminer la couleur du marqueur en fonction du type d'interaction
@@ -477,14 +506,28 @@ export default function EnhancedCube() {
                 offset: 0.8,
                 preferredAxis: 'z'
             }}
-            alwaysVisible={isWaitingForInteraction}
+            alwaysVisible={isWaitingForInteraction && !isInteractionCompleted}
+            onPointerEnter={handleMarkerPointerEnter}
+            onPointerLeave={handleMarkerPointerLeave}
         >
             <mesh
                 ref={cubeRef}
                 position={[-2, 0, 0]}
                 scale={[1, 1, 1]}
-                onPointerOver={() => setHovered(true)}
-                onPointerOut={() => setHovered(false)}
+                onPointerOver={(e) => {
+                    // Ne mettre à jour QUE l'état du cube
+                    if (e && e.object && e.object === cubeRef.current) {
+                        console.log("[EnhancedCube] Cube hover enter - setting hovered to true");
+                        setHovered(true);
+                    }
+                }}
+                onPointerOut={(e) => {
+                    // Ne mettre à jour QUE l'état du cube
+                    if (e && e.object && e.object === cubeRef.current) {
+                        console.log("[EnhancedCube] Cube hover leave - setting hovered to false");
+                        setHovered(false);
+                    }
+                }}
                 castShadow
             >
                 <boxGeometry args={[1, 1, 1]}/>
@@ -496,18 +539,16 @@ export default function EnhancedCube() {
                 />
             </mesh>
 
-            {/* Effet de glow qui utilise les paramètres de debug */}
-            {active ? {} : <OutlineEffect
+            {/* Effet de contour - utiliser notre nouvelle fonction shouldShowOutline */}
+            {active ? null : <OutlineEffect
                 objectRef={cubeRef}
-                active={effectSettings.active || isWaitingForInteraction && !hovered}
+                active={shouldShowOutline()}
                 color={effectSettings.color}
                 thickness={effectSettings.thickness}
                 intensity={effectSettings.intensity}
                 pulseSpeed={effectSettings.pulseSpeed}
                 ref={updateEffectRef}
-            />
-            }
+            />}
         </ModelMarker>
-    )
-        ;
+    );
 }

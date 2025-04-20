@@ -9,9 +9,9 @@ import useDragGesture from '../Hooks/useDragGesture';
 import {audioManager} from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
-import ModelMarker from "./ModelMarker.jsx";
 import { MARKER_EVENTS } from '../Utils/markerEvents';
 import { EventBus } from '../Utils/EventEmitter';
+import {ModelMarker} from "../Utils/EnhancedObjectMarker.jsx";
 
 export default function Cube() {
     const cubeRef = useRef();
