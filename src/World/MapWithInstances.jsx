@@ -72,16 +72,16 @@ export default function MapWithInstances() {
             // Mapping direct template -> type d'arbre
             const templateToTreeMap = {
                 'Retopo_TRONC001': 'TreeNaked',
-                'Retopo_GROS_TRONC001': 'Tree3',
-                'Retopo_TRONC_FIN': 'Tree1',
+                'Retopo_GROS_TRONC001': 'TrunkLarge',
+                'Retopo_TRONC_FIN': 'ThinTrunk',
                 'Trunk': 'TreeStump'  // Mapping pour Trunk -> TreeStump
             };
 
             // Créer directement le tableau de positions par type d'arbre
             const treePositions = {
                 TreeNaked: [],
-                Tree3: [],
-                Tree1: [],
+                TrunkLarge: [],
+                ThinTrunk: [],
                 TreeStump: []  // Ajout de TreeStump à la structure
             };
 
@@ -135,9 +135,9 @@ export default function MapWithInstances() {
             }
 
             console.log("Tree positions count:", {
-                Tree1: treePositions.Tree1.length,
+                ThinTrunk: treePositions.ThinTrunk.length,
                 TreeNaked: treePositions.TreeNaked.length,
-                Tree3: treePositions.Tree3.length,
+                TrunkLarge: treePositions.TrunkLarge.length,
                 TreeStump: treePositions.TreeStump.length
             });
 
@@ -210,8 +210,8 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     // Mapping entre noms de templates et noms de modèles
     const templateToTreeMap = {
         'Retopo_TRONC001': 'TreeNaked',
-        'Retopo_GROS_TRONC001': 'Tree3',
-        'Retopo_TRONC_FIN': 'Tree1',
+        'Retopo_GROS_TRONC001': 'TrunkLarge',
+        'Retopo_TRONC_FIN': 'ThinTrunk',
         'Trunk': 'TreeStump'
     };
 
@@ -397,9 +397,9 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
     // Structures pour stocker les résultats - ajout de la catégorie Undefined
     const modelPositions = {
-        Tree1: [],
+        ThinTrunk: [],
         TreeNaked: [],
-        Tree3: [],
+        TrunkLarge: [],
         TreeStump: [],
         Undefined: []  // Nouvelle catégorie "corbeille"
     };
@@ -491,9 +491,9 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     // Structure simplifiée pour le format treePositions incluant toutes les rotations
     // Ajout de la catégorie Undefined
     const treePositions = {
-        Tree1: [],
+        ThinTrunk: [],
         TreeNaked: [],
-        Tree3: [],
+        TrunkLarge: [],
         TreeStump: [],
         Undefined: []  // Nouvelle catégorie "corbeille"
     };
@@ -534,9 +534,9 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
     console.log("GeoNodes positions extracted and saved!");
     console.log("Model counts:", {
-        Tree1: modelPositions.Tree1.length,
+        ThinTrunk: modelPositions.ThinTrunk.length,
         TreeNaked: modelPositions.TreeNaked.length,
-        Tree3: modelPositions.Tree3.length,
+        TrunkLarge: modelPositions.TrunkLarge.length,
         TreeStump: modelPositions.TreeStump.length,
         Undefined: modelPositions.Undefined.length
     });

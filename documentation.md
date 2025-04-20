@@ -35,9 +35,9 @@ technologies.
 │   ├── models/       # Modèles 3D
 │   │   ├── forest/   # Modèles de forêt
 │   │   │   └── tree/ # Modèles d'arbres
-│   │   │       ├── Tree1.glb
+│   │   │       ├── ThinTrunk.glb
 │   │   │       ├── Tree2.glb
-│   │   │       └── Tree3.glb
+│   │   │       └── TrunkLarge.glb
 │   │   ├── Map.glb     # Modèle du renard
 │   │   └── textures/ # Textures
 │   ├── sounds/       # Fichiers audio

@@ -92,16 +92,16 @@ export default function Forest() {
             const waitForAssets = () => {
                 return new Promise((resolve) => {
                     const checkAssets = () => {
-                        const tree1 = assetManager.getItem('Tree1');
+                        const ThinTrunk = assetManager.getItem('ThinTrunk');
                         const TreeNaked = assetManager.getItem('TreeNaked');
-                        const tree3 = assetManager.getItem('Tree3');
+                        const TrunkLarge = assetManager.getItem('TrunkLarge');
                         const treeStump = assetManager.getItem('TreeStump'); // Ajout du nouveau modèle
 
-                        if (tree1 && TreeNaked && tree3 && treeStump) {
+                        if (ThinTrunk && TreeNaked && TrunkLarge && treeStump) {
                             resolve({
-                                Tree1: tree1,
+                                ThinTrunk: ThinTrunk,
                                 TreeNaked: TreeNaked,
-                                Tree3: tree3,
+                                TrunkLarge: TrunkLarge,
                                 TreeStump: treeStump  // Ajout à l'objet retourné
                             });
                         } else {
@@ -203,10 +203,10 @@ export default function Forest() {
             // Créer les instances pour chaque type d'arbre
             const instances = [];
 
-            // Créer des instances pour Tree1
-            if (treePositions.Tree1 && treePositions.Tree1.length > 0) {
-                const tree1 = createInstancedMesh('Tree1', treeModels.Tree1, treePositions.Tree1);
-                if (tree1) instances.push(tree1);
+            // Créer des instances pour ThinTrunk
+            if (treePositions.ThinTrunk && treePositions.ThinTrunk.length > 0) {
+                const ThinTrunk = createInstancedMesh('ThinTrunk', treeModels.ThinTrunk, treePositions.ThinTrunk);
+                if (ThinTrunk) instances.push(ThinTrunk);
             }
 
             // Créer des instances pour TreeNaked
@@ -215,10 +215,10 @@ export default function Forest() {
                 if (TreeNaked) instances.push(TreeNaked);
             }
 
-            // Créer des instances pour Tree3
-            if (treePositions.Tree3 && treePositions.Tree3.length > 0) {
-                const tree3 = createInstancedMesh('Tree3', treeModels.Tree3, treePositions.Tree3);
-                if (tree3) instances.push(tree3);
+            // Créer des instances pour TrunkLarge
+            if (treePositions.TrunkLarge && treePositions.TrunkLarge.length > 0) {
+                const TrunkLarge = createInstancedMesh('TrunkLarge', treeModels.TrunkLarge, treePositions.TrunkLarge);
+                if (TrunkLarge) instances.push(TrunkLarge);
             }
 
             if (treePositions.TreeStump && treePositions.TreeStump.length > 0) {
@@ -259,9 +259,9 @@ export default function Forest() {
         const createInstancedMeshesFromPositions = (positions) => {
             const instances = [];
 
-            if (positions.Tree1 && positions.Tree1.length > 0) {
-                const tree1 = createInstancedMesh('Tree1', treeModelsRef.current.Tree1, positions.Tree1);
-                if (tree1) instances.push(tree1);
+            if (positions.ThinTrunk && positions.ThinTrunk.length > 0) {
+                const ThinTrunk = createInstancedMesh('ThinTrunk', treeModelsRef.current.ThinTrunk, positions.ThinTrunk);
+                if (ThinTrunk) instances.push(ThinTrunk);
             }
 
             if (positions.TreeNaked && positions.TreeNaked.length > 0) {
@@ -269,9 +269,9 @@ export default function Forest() {
                 if (TreeNaked) instances.push(TreeNaked);
             }
 
-            if (positions.Tree3 && positions.Tree3.length > 0) {
-                const tree3 = createInstancedMesh('Tree3', treeModelsRef.current.Tree3, positions.Tree3);
-                if (tree3) instances.push(tree3);
+            if (positions.TrunkLarge && positions.TrunkLarge.length > 0) {
+                const TrunkLarge = createInstancedMesh('TrunkLarge', treeModelsRef.current.TrunkLarge, positions.TrunkLarge);
+                if (TrunkLarge) instances.push(TrunkLarge);
             }
 
             if (instances.length > 0) {

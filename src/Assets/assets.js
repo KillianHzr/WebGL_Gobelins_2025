@@ -30,9 +30,9 @@ const assets = [
     },
     // Trees
     {
-        name: 'Tree1',
+        name: 'ThinTrunk',
         type: 'gltf',
-        path: '/models/forest/tree/Tree1.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/forest/tree/ThinTrunk.glb', // Chemin absolu depuis le dossier "static"
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -46,9 +46,9 @@ const assets = [
         url: ''
     },
     {
-        name: 'Tree3',
+        name: 'TrunkLarge',
         type: 'gltf',
-        path: '/models/forest/tree/Tree3.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/forest/tree/TrunkLarge.glb', // Chemin absolu depuis le dossier "static"
         license: 'CC-BY',
         author: 'Author',
         url: ''
