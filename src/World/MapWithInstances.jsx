@@ -76,7 +76,6 @@ export default function MapWithInstances() {
                 'Retopo_TRONC001': 'TreeNaked',
                 'Retopo_GROS_TRONC001': 'Tree3',
                 'Retopo_TRONC_FIN': 'Tree1'
-                // Trunk est ignoré
             };
 
             // Créer directement le tableau de positions par type d'arbre
@@ -208,9 +207,9 @@ export default function MapWithInstances() {
 function extractAndSaveGeoNodesPositions(mapModel) {
     // Mapping entre noms de templates et noms de modèles
     const templateToTreeMap = {
-        'Retopo_TRONC001': 'Tree1',
+        'Retopo_TRONC001': 'TreeNaked',
         'Retopo_GROS_TRONC001': 'Tree3',
-        'Retopo_TRONC_FIN': 'TreeNaked'
+        'Retopo_TRONC_FIN': 'Tree1'
     };
 
     // Structure pour stocker les modèles de référence
