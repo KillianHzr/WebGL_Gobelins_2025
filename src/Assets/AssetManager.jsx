@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { EventBus } from "../Utils/EventEmitter.jsx";
-import assets from "./assets";
+import baseAssets from "./assets";
+import templateManager from '../Config/TemplateManager';
 import gsap from 'gsap';
 import {EXRLoader} from "three/examples/jsm/loaders/EXRLoader.js";
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
@@ -23,6 +24,10 @@ const AssetManager = React.forwardRef((props, ref) => {
 
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadedCount, setLoadedCount] = useState(0);
+
+    // Fusionner les assets de base avec les assets du TemplateManager
+    const templateAssets = templateManager.generateAssetList();
+    const assets = [...baseAssets, ...templateAssets];
     const loadingCount = assets.length;
 
     // Méthodes d'utilitaire - exposées via la référence React
@@ -104,7 +109,44 @@ const AssetManager = React.forwardRef((props, ref) => {
         getItem,
         getItemNamesOfType,
         items: itemsRef.current,
-        sharedMaterials: sharedMaterialsRef.current
+        sharedMaterials: sharedMaterialsRef.current,
+        // Ajout de méthodes spécifiques au TemplateManager
+        templateManager,
+        addTemplate: (templateName, objectId, assetPath, priority = 999) => {
+            // Ajouter le template
+            templateManager.addTemplate(templateName, objectId, assetPath, priority);
+
+            // Créer un nouvel asset
+            const newAsset = {
+                name: objectId,
+                type: 'gltf',
+                path: assetPath,
+                license: 'CC-BY',
+                author: 'Author',
+                url: ''
+            };
+
+            // Charger dynamiquement l'asset si l'AssetManager est déjà initialisé
+            if (loadingComplete && loadersRef.current.gltf) {
+                loadersRef.current.gltf.load(
+                    assetPath,
+                    (model) => {
+                        const optimizedModel = optimizeGltfModel(model);
+                        itemsRef.current[objectId] = optimizedModel;
+                        console.log(`Dynamically loaded asset: ${objectId}`);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`Error loading dynamic asset ${objectId}:`, error);
+                    }
+                );
+            }
+
+            return newAsset;
+        },
+        addIdMapping: (id, templateName) => {
+            return templateManager.addIdMapping(id, templateName);
+        }
     }));
 
     // Initialiser tout
@@ -118,6 +160,14 @@ const AssetManager = React.forwardRef((props, ref) => {
         sharedMaterialsRef.current = {};
         // Rendre le cache de matériaux accessible globalement
         window.sharedMaterials = sharedMaterialsRef.current;
+
+        // Définir l'AssetManager dans l'objet global window pour y accéder depuis d'autres composants
+        window.assetManager = {
+            getItem,
+            getItemNamesOfType,
+            items: itemsRef.current,
+            templateManager
+        };
 
         // Initialiser l'interface utilisateur de chargement
         initProgressBar();
@@ -135,8 +185,9 @@ const AssetManager = React.forwardRef((props, ref) => {
         dracoLoader.setDecoderPath('./draco/');
         loadersRef.current.gltf.setDRACOLoader(dracoLoader);
 
-        // Imprimer les assets pour le débogage
-        console.log('Assets to load:', assets);
+        console.log('Total assets to load:', assets.length);
+        console.log('Base assets:', baseAssets.length);
+        console.log('Template assets:', templateAssets.length);
 
         // Commencer le chargement s'il y a des assets
         if (assets.length > 0) {
@@ -163,6 +214,9 @@ const AssetManager = React.forwardRef((props, ref) => {
             });
             sharedMaterialsRef.current = {};
             window.sharedMaterials = null;
+
+            // Supprimer la référence globale
+            window.assetManager = null;
 
             // Nettoyer les références
             loadersRef.current = null;
@@ -281,8 +335,17 @@ const AssetManager = React.forwardRef((props, ref) => {
 
         // Pour éviter les doublons, garder une trace des URL déjà chargées
         const loadedUrls = new Set();
+        // Pour éviter les doublons de noms, garder une trace des noms déjà traités
+        const processedNames = new Set();
 
         for (const asset of assets) {
+            // Éviter les doublons de noms
+            if (processedNames.has(asset.name)) {
+                console.log(`AssetManager: Skipping duplicate asset name: ${asset.name}`);
+                continue;
+            }
+            processedNames.add(asset.name);
+
             console.log(`AssetManager: Loading asset ${asset.name} (${asset.type}) from ${asset.path}`);
 
             // Vérifier si l'URL a déjà été chargée

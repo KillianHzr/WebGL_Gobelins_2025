@@ -12,7 +12,7 @@ import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
-import { EventEmitterProvider } from './Utils/EventEmitter';
+import {EventEmitterProvider} from './Utils/EventEmitter';
 import ForestSceneWrapper from './World/ForestSceneWrapper'; // Utilisation du wrapper
 import AudioManagerComponent from './Utils/AudioManager';
 
@@ -53,40 +53,36 @@ export default function Experience() {
         }
     }, [scene, debug]);
 
-    return (
-        <EventEmitterProvider>
-            {/* Initialize debug mode based on URL hash */}
-            <DebugInitializer/>
+    return (<EventEmitterProvider>
+        {/* Initialize debug mode based on URL hash */}
+        <DebugInitializer/>
 
-            {/* Initialize audio system */}
-            <AudioManagerComponent />
+        {/* Initialize audio system */}
+        <AudioManagerComponent/>
 
-            {/* Debug Tools - only render if debug mode is active */}
-            {debug?.active && debug?.showStats && <Stats/>}
-            {debug?.active && debug?.showStats && <Controls/>}
-            {debug?.active && debug?.showGui && <Debug/>}
-            {debug?.active && debug?.showGui && <Camera/>}
-            {debug?.active && debug?.showGui && <Controls/>}
-            {debug?.active && debug?.showGui && <Lights/>}
+        {/* Debug Tools - only render if debug mode is active */}
+        {debug?.active && debug?.showStats && <Stats/>}
+        {debug?.active && debug?.showStats && <Controls/>}
+        {debug?.active && debug?.showGui && <Debug/>}
+        {debug?.active && debug?.showGui && <Camera/>}
+        {debug?.active && debug?.showGui && <Controls/>}
+        {debug?.active && debug?.showGui && <Lights/>}
 
-            {/* Ajout du système de raycasting */}
-            <RayCaster>
-                <ScrollControls>
-                    {/* Lights */}
-                    <ambientLight intensity={0.5}/>
-                    <directionalLight position={[1, 2, 3]} intensity={1.5}/>
-                    <color attach="background" args={['#1e1e2f']}/>
-                    {/*<fog attach="fog" color="#1e1e2f" near={1} far={15}/>*/}
+        {/* Ajout du système de raycasting */}
+        <RayCaster>
+            <ScrollControls>
+                {/* Lights */}
+                <ambientLight intensity={0.5}/>
+                <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+                <color attach="background" args={['#1e1e2f']}/>
+                {/*<fog attach="fog" color="#1e1e2f" near={1} far={15}/>*/}
 
-                    {/* Objects */}
-                    <Cube/>
+                {/* Objects */}
+                <Cube/>
 
-                    {/* Utiliser le wrapper qui gère le chargement des assets */}
-                    {useMemo(() => (
-                        <ForestSceneWrapper />
-                    ), [])}
-                </ScrollControls>
-            </RayCaster>
-        </EventEmitterProvider>
-    )
+                {/* Utiliser le wrapper qui gère le chargement des assets */}
+                {useMemo(() => (<ForestSceneWrapper/>), [])}
+            </ScrollControls>
+        </RayCaster>
+    </EventEmitterProvider>)
 }

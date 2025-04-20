@@ -3,6 +3,7 @@ import {useThree} from '@react-three/fiber';
 import {Group, Vector3, Quaternion, Matrix4, Box3, Euler, Object3D} from 'three';
 import useStore from '../Store/useStore';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
+import templateManager from '../Config/TemplateManager';
 
 export default function MapWithInstances() {
     const {scene} = useThree();
@@ -47,43 +48,8 @@ export default function MapWithInstances() {
 
         // Fonction optimisée pour analyser les instances et les templates
         const analyzeInstancesAndTemplates = (mapModel) => {
-            // Liste des modèles templates à rechercher
-            const templateNames = ['Retopo_TRONC001', 'Retopo_GROS_TRONC001', 'Retopo_TRONC_FIN', 'Trunk'];
-
-            const idToTemplateMap = {
-                // 1009: 'Retopo_TRONC001',
-                // 1011: 'Retopo_TRONC001',
-                // 1013: 'Retopo_TRONC001',
-                // 1019: 'Retopo_TRONC001',
-                753: 'Retopo_TRONC001',
-                // 1017: 'Retopo_TRONC_FIN',
-                // 1015: 'Retopo_TRONC_FIN',
-                1021: 'Retopo_TRONC_FIN',
-                // 1010: 'Retopo_GROS_TRONC001',
-                // 1012: 'Retopo_GROS_TRONC001',
-                // 1014: 'Retopo_GROS_TRONC001',
-                // 1016: 'Retopo_GROS_TRONC001',
-                // 1018: 'Retopo_GROS_TRONC001',
-                // 1020: 'Retopo_GROS_TRONC001',
-                1015: 'Retopo_GROS_TRONC001',
-                925: 'Trunk',
-            };
-
-            // Mapping direct template -> type d'arbre
-            const templateToTreeMap = {
-                'Retopo_TRONC001': 'TreeNaked',
-                'Retopo_GROS_TRONC001': 'TrunkLarge',
-                'Retopo_TRONC_FIN': 'ThinTrunk',
-                'Trunk': 'TreeStump'  // Mapping pour Trunk -> TreeStump
-            };
-
-            // Créer directement le tableau de positions par type d'arbre
-            const treePositions = {
-                TreeNaked: [],
-                TrunkLarge: [],
-                ThinTrunk: [],
-                TreeStump: []  // Ajout de TreeStump à la structure
-            };
+            // Créer la structure vide de positions d'objets
+            const objectPositions = templateManager.createEmptyPositionsStructure();
 
             // Parcourir le modèle une seule fois - approche optimisée
             const processQueue = [mapModel];
@@ -98,10 +64,10 @@ export default function MapWithInstances() {
                     const match = node.name.match(/GN_Instance_(\d+)/);
                     if (match) {
                         const id = parseInt(match[1]);
-                        const templateName = idToTemplateMap[id] || 'Trunk';
-                        const treeType = templateToTreeMap[templateName];
+                        const templateName = templateManager.getTemplateFromId(id) || 'Trunk'; // Fallback à Trunk
+                        const objectId = templateManager.getObjectTypeFromTemplate(templateName);
 
-                        if (treeType && treePositions[treeType]) {
+                        if (objectId && objectPositions[objectId]) {
                             // Obtenir la transformation mondiale sans décomposition excessive
                             node.updateWorldMatrix(true, false);
 
@@ -112,12 +78,14 @@ export default function MapWithInstances() {
                             // Extraire les valeurs directement
                             const rotation = new Euler().setFromQuaternion(dummy.quaternion);
 
-                            // Ajouter la position à l'arbre approprié
-                            treePositions[treeType].push({
+                            // Ajouter la position à l'objet approprié
+                            objectPositions[objectId].push({
                                 x: dummy.position.x,
                                 y: dummy.position.y,
                                 z: dummy.position.z,
-                                rotation: rotation.y,
+                                rotationX: rotation.x,
+                                rotationY: rotation.y,
+                                rotationZ: rotation.z,
                                 scaleX: dummy.scale.x,
                                 scaleY: dummy.scale.y,
                                 scaleZ: dummy.scale.z
@@ -134,18 +102,18 @@ export default function MapWithInstances() {
                 }
             }
 
-            console.log("Tree positions count:", {
-                ThinTrunk: treePositions.ThinTrunk.length,
-                TreeNaked: treePositions.TreeNaked.length,
-                TrunkLarge: treePositions.TrunkLarge.length,
-                TreeStump: treePositions.TreeStump.length
-            });
+            // Afficher les statistiques des positions trouvées
+            const stats = {};
+            for (const [objectId, positions] of Object.entries(objectPositions)) {
+                stats[objectId] = positions.length;
+            }
+            console.log("Object positions count:", stats);
 
             // Stocker dans le store
-            useStore.getState().setTreePositions(treePositions);
+            useStore.getState().setTreePositions(objectPositions);
 
             // Émettre l'événement avec les positions
-            EventBus.trigger('tree-positions-ready', treePositions);
+            EventBus.trigger('tree-positions-ready', objectPositions);
 
             // Préparer la gestion de l'événement forest-ready
             const forestReadyListener = () => {
@@ -207,14 +175,6 @@ export default function MapWithInstances() {
 }
 
 function extractAndSaveGeoNodesPositions(mapModel) {
-    // Mapping entre noms de templates et noms de modèles
-    const templateToTreeMap = {
-        'Retopo_TRONC001': 'TreeNaked',
-        'Retopo_GROS_TRONC001': 'TrunkLarge',
-        'Retopo_TRONC_FIN': 'ThinTrunk',
-        'Trunk': 'TreeStump'
-    };
-
     // Structure pour stocker les modèles de référence
     const templateModels = {};
 
@@ -348,13 +308,12 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         });
 
         // Ajustement du seuil - utiliser un seuil RELATIF plutôt que absolu
-        // Un score de 0.3 (30% de différence pondérée) pourrait être un bon point de départ
         const MATCH_THRESHOLD = 0.3;
 
         if (bestScore > MATCH_THRESHOLD) {
             console.log(`No good match found. Best match was ${bestMatch} with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);
             console.log('Scores:', scores);
-            return 'Undefined'; // Nouvelle catégorie par défaut au lieu de 'Trunk'
+            return templateManager.undefinedCategory;
         }
 
         console.log(`Found match: ${bestMatch} with score ${bestScore.toFixed(3)}`);
@@ -364,8 +323,11 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     // Première passe : identifier les modèles de templates dans la scène
     console.log("Première passe: Identification des templates...");
     mapModel.traverse((node) => {
+        // Récupérer tous les templates disponibles
+        const knownTemplates = Object.keys(templateManager.templates);
+
         // Vérifier si le nœud correspond à un modèle de template connu
-        if (node.name && Object.keys(templateToTreeMap).includes(node.name)) {
+        if (node.name && knownTemplates.includes(node.name)) {
             console.log(`Template trouvé: ${node.name}`);
 
             // Enregistrer ce modèle comme référence et son empreinte détaillée
@@ -395,20 +357,8 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         console.warn("ATTENTION: Aucun template n'a été trouvé dans le modèle. Vérifiez les noms des modèles.");
     }
 
-    // Structures pour stocker les résultats - ajout de la catégorie Undefined
-    const modelPositions = {
-        ThinTrunk: [],
-        TreeNaked: [],
-        TrunkLarge: [],
-        TreeStump: [],
-        Undefined: []  // Nouvelle catégorie "corbeille"
-    };
-
-    // Extension du mapping pour inclure notre nouvelle catégorie
-    const extendedTreeMap = {
-        ...templateToTreeMap,
-        'Undefined': 'Undefined'  // Mapping direct pour les éléments non reconnus
-    };
+    // Créer la structure de positions
+    const modelPositions = templateManager.createEmptyPositionsStructure();
 
     // Deuxième passe : analyser chaque instance et déterminer son template
     console.log("Deuxième passe: Analyse des instances...");
@@ -437,11 +387,19 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
                 // Si l'ID est dans la map d'ID vers template, utiliser cette correspondance directe
                 // sinon utiliser l'analyse géométrique
-                const templateName = findMatchingTemplate(node);
-                const treeName = extendedTreeMap[templateName] || 'Undefined';
+                let objectId;
+                const templateName = templateManager.getTemplateFromId(id);
+
+                if (templateName) {
+                    objectId = templateManager.getObjectTypeFromTemplate(templateName);
+                } else {
+                    // Utiliser l'analyse géométrique comme fallback
+                    const detectedTemplate = findMatchingTemplate(node);
+                    objectId = templateManager.getObjectTypeFromTemplate(detectedTemplate);
+                }
 
                 // Statistiques
-                stats.matches[treeName] = (stats.matches[treeName] || 0) + 1;
+                stats.matches[objectId] = (stats.matches[objectId] || 0) + 1;
 
                 // Obtenir la transformation mondiale
                 node.updateWorldMatrix(true, false);
@@ -457,7 +415,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
                 const instanceInfo = {
                     id: id,
                     name: node.name,
-                    template: treeName,
+                    template: objectId,
                     position: {
                         x: dummy.position.x,
                         y: dummy.position.y,
@@ -476,7 +434,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
                 };
 
                 // Ajouter aux données par modèle
-                modelPositions[treeName].push(instanceInfo);
+                modelPositions[objectId].push(instanceInfo);
             }
         }
 
@@ -489,19 +447,12 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     }
 
     // Structure simplifiée pour le format treePositions incluant toutes les rotations
-    // Ajout de la catégorie Undefined
-    const treePositions = {
-        ThinTrunk: [],
-        TreeNaked: [],
-        TrunkLarge: [],
-        TreeStump: [],
-        Undefined: []  // Nouvelle catégorie "corbeille"
-    };
+    const treePositions = templateManager.createEmptyPositionsStructure();
 
     // Remplir la structure simplifiée avec les rotations complètes
-    Object.keys(treePositions).forEach(treeName => {
-        if (modelPositions[treeName]) {
-            treePositions[treeName] = modelPositions[treeName].map(instance => ({
+    Object.keys(treePositions).forEach(treeType => {
+        if (modelPositions[treeType]) {
+            treePositions[treeType] = modelPositions[treeType].map(instance => ({
                 x: instance.position.x,
                 y: instance.position.y,
                 z: instance.position.z,
@@ -518,7 +469,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     // Rapport final
     console.log("===== Rapport d'analyse des instances =====");
     console.log(`Total des instances analysées: ${stats.totalInstances}`);
-    console.log("Distribution par type d'arbre:");
+    console.log("Distribution par type d'objet:");
     Object.entries(stats.matches).forEach(([type, count]) => {
         const percentage = ((count / stats.totalInstances) * 100).toFixed(1);
         console.log(`- ${type}: ${count} (${percentage}%)`);
@@ -533,16 +484,17 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     saveJSON(treeJSON, 'treePositions.json');
 
     console.log("GeoNodes positions extracted and saved!");
-    console.log("Model counts:", {
-        ThinTrunk: modelPositions.ThinTrunk.length,
-        TreeNaked: modelPositions.TreeNaked.length,
-        TrunkLarge: modelPositions.TrunkLarge.length,
-        TreeStump: modelPositions.TreeStump.length,
-        Undefined: modelPositions.Undefined.length
+    console.log("Object counts:", {
+        ...Object.entries(treePositions).reduce((acc, [key, val]) => {
+            acc[key] = val.length;
+            return acc;
+        }, {})
     });
 
     return { modelPositions, treePositions };
-}// Fonction pour sauvegarder un fichier JSON
+}
+
+// Fonction pour sauvegarder un fichier JSON
 function saveJSON(jsonContent, fileName) {
     // Créer un blob avec le contenu JSON
     const blob = new Blob([jsonContent], {type: 'application/json'});

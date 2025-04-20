@@ -1,21 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import ForestScene from './ForestScene';
-import { EventBus } from '../Utils/EventEmitter';
+import {EventBus} from '../Utils/EventEmitter';
+import templateManager from '../Config/TemplateManager';
 
 export default function ForestSceneWrapper() {
     const [assetsReady, setAssetsReady] = useState(false);
     const [isRetrying, setIsRetrying] = useState(false);
     const assetCheckAttemptsRef = useRef(0);
     const alreadyCheckedRef = useRef(false);
-    const maxRetryAttempts = 15; // Augmenté le nombre de tentatives
+    const maxRetryAttempts = 15;
     const stabilityDelay = 1000; // Délai de stabilité en ms
-
-    // Liste des modèles requis pour la scène forestière
-    const requiredModels = ['Map', 'ThinTrunk', 'TreeNaked', 'TrunkLarge', 'TreeStump'];
 
     useEffect(() => {
         // Réinitialiser le compteur de tentatives à chaque montage du composant
         assetCheckAttemptsRef.current = 0;
+
+        // Liste des modèles requis pour la scène forestière - récupérée du gestionnaire de templates
+        const requiredAssetsInfo = templateManager.getRequiredAssets();
+        const requiredModels = requiredAssetsInfo.map(asset => asset.name);
+        console.log("Modèles requis pour la forêt:", requiredModels);
 
         // S'abonner à l'événement 'ready' de l'AssetManager
         const handleAssetsReady = () => {
@@ -195,13 +198,13 @@ export default function ForestSceneWrapper() {
             <group>
                 {/* Placeholder pendant le chargement */}
                 <mesh position={[0, 0, 0]}>
-                    <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color={isRetrying ? "#ff5500" : "#00ff00"} />
+                    <boxGeometry args={[1, 1, 1]}/>
+                    <meshStandardMaterial color={isRetrying ? "#ff5500" : "#00ff00"}/>
                 </mesh>
                 {isRetrying && (
                     <mesh position={[0, 2, 0]}>
-                        <sphereGeometry args={[0.5, 16, 16]} />
-                        <meshStandardMaterial color={"#ffbb00"} />
+                        <sphereGeometry args={[0.5, 16, 16]}/>
+                        <meshStandardMaterial color={"#ffbb00"}/>
                     </mesh>
                 )}
             </group>
@@ -209,5 +212,5 @@ export default function ForestSceneWrapper() {
     }
 
     // Assets prêts, afficher la scène forestière
-    return <ForestScene />;
+    return <ForestScene/>;
 }

@@ -90,7 +90,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 10
+                default: 100
             }
         }
     },

@@ -3,6 +3,7 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EventBus, useEventEmitter } from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
+import templateManager from '../Config/TemplateManager';
 
 export default function Forest() {
     const { scene } = useThree();
@@ -11,9 +12,9 @@ export default function Forest() {
     const eventEmitter = useEventEmitter();
 
     // Utiliser des refs pour éviter les problèmes de re-rendu
-    const treePositionsRef = useRef(null);
-    const treeModelsRef = useRef(null);
-    const treesLoadedRef = useRef(false);
+    const objectPositionsRef = useRef(null);
+    const objectModelsRef = useRef(null);
+    const objectsLoadedRef = useRef(false);
 
     useEffect(() => {
         console.log('Forest: Component mounted');
@@ -25,9 +26,9 @@ export default function Forest() {
         forestRef.current = forestGroup;
 
         // Charger les données de position depuis le fichier JSON
-        const loadTreePositions = async () => {
+        const loadObjectPositions = async () => {
             try {
-                console.log('Loading tree positions from JSON...');
+                console.log('Loading object positions from JSON...');
 
                 // Essayer plusieurs chemins possibles
                 const paths = [
@@ -37,7 +38,7 @@ export default function Forest() {
                     'treePositions.json'
                 ];
 
-                let treePositions = null;
+                let objectPositions = null;
 
                 // Essayer tous les chemins jusqu'à trouver le bon
                 for (const path of paths) {
@@ -45,7 +46,7 @@ export default function Forest() {
                         console.log(`Trying path: ${path}`);
                         const response = await fetch(path);
                         if (response.ok) {
-                            treePositions = await response.json();
+                            objectPositions = await response.json();
                             console.log(`Successfully loaded from ${path}`);
                             break;
                         }
@@ -55,21 +56,20 @@ export default function Forest() {
                 }
 
                 // Si aucun chemin n'a fonctionné, vérifier si les positions sont déjà dans le store
-                if (!treePositions) {
+                if (!objectPositions) {
                     console.log('All paths failed, checking store for positions');
-                    treePositions = useStore.getState().treePositions;
+                    objectPositions = useStore.getState().treePositions;
                 }
 
-                if (treePositions) {
-                    console.log('Tree positions loaded:', treePositions);
-                    return treePositions;
+                if (objectPositions) {
+                    console.log('Object positions loaded:', objectPositions);
+                    return objectPositions;
                 } else {
-                    console.error('Could not load tree positions from any source');
+                    console.error('Could not load object positions from any source');
                     return null;
                 }
-
             } catch (error) {
-                console.error('Error loading tree positions:', error);
+                console.error('Error loading object positions:', error);
 
                 // Essayer de récupérer les positions depuis le store comme fallback
                 const storePositions = useStore.getState().treePositions;
@@ -81,29 +81,37 @@ export default function Forest() {
             }
         };
 
-        // Charger les modèles d'arbres réels depuis l'assetManager
-        const loadTreeModels = async () => {
+        // Charger les modèles d'objets depuis l'assetManager
+        const loadObjectModels = async () => {
             if (!assetManager) {
                 console.warn('AssetManager not available');
                 return null;
             }
 
+            // Obtenir la liste des assets requis
+            const requiredAssetsInfo = templateManager.getRequiredAssets();
+            const requiredAssetNames = requiredAssetsInfo.map(asset => asset.name);
+
             // Attendre que tous les modèles soient chargés
             const waitForAssets = () => {
                 return new Promise((resolve) => {
                     const checkAssets = () => {
-                        const ThinTrunk = assetManager.getItem('ThinTrunk');
-                        const TreeNaked = assetManager.getItem('TreeNaked');
-                        const TrunkLarge = assetManager.getItem('TrunkLarge');
-                        const treeStump = assetManager.getItem('TreeStump'); // Ajout du nouveau modèle
+                        const loadedModels = {};
+                        let allLoaded = true;
 
-                        if (ThinTrunk && TreeNaked && TrunkLarge && treeStump) {
-                            resolve({
-                                ThinTrunk: ThinTrunk,
-                                TreeNaked: TreeNaked,
-                                TrunkLarge: TrunkLarge,
-                                TreeStump: treeStump  // Ajout à l'objet retourné
-                            });
+                        // Vérifier si tous les assets requis sont chargés
+                        for (const assetName of requiredAssetNames) {
+                            const model = assetManager.getItem(assetName);
+                            if (model) {
+                                loadedModels[assetName] = model;
+                            } else {
+                                allLoaded = false;
+                                break;
+                            }
+                        }
+
+                        if (allLoaded) {
+                            resolve(loadedModels);
                         } else {
                             setTimeout(checkAssets, 100);
                         }
@@ -113,23 +121,23 @@ export default function Forest() {
             };
 
             try {
-                const treeModels = await waitForAssets();
-                console.log('Tree models loaded:', treeModels);
-                return treeModels;
+                const objectModels = await waitForAssets();
+                console.log('Object models loaded:', Object.keys(objectModels));
+                return objectModels;
             } catch (error) {
-                console.error('Error loading tree models:', error);
+                console.error('Error loading object models:', error);
                 return null;
             }
         };
 
-        // Créer un InstancedMesh pour un type d'arbre
-        const createInstancedMesh = (treeName, model, positions) => {
+        // Créer un InstancedMesh pour un type d'objet
+        const createInstancedMesh = (objectId, model, positions) => {
             if (!positions || positions.length === 0) {
-                console.log(`No positions for ${treeName}`);
+                console.log(`No positions for ${objectId}`);
                 return null;
             }
 
-            console.log(`Creating ${positions.length} instances of ${treeName}`);
+            console.log(`Creating ${positions.length} instances of ${objectId}`);
 
             // Trouver la géométrie et les matériaux dans le modèle
             const geometries = [];
@@ -143,7 +151,7 @@ export default function Forest() {
             });
 
             if (geometries.length === 0) {
-                console.warn(`No geometries found in ${treeName} model`);
+                console.warn(`No geometries found in ${objectId} model`);
                 return null;
             }
 
@@ -157,7 +165,7 @@ export default function Forest() {
                 material.clone(),
                 positions.length
             );
-            instancedMesh.name = `${treeName}_instances`;
+            instancedMesh.name = `${objectId}_instances`;
             instancedMesh.castShadow = true;
             instancedMesh.receiveShadow = true;
 
@@ -179,56 +187,52 @@ export default function Forest() {
             return instancedMesh;
         };
 
-        // Fonction principale pour placer les arbres
+        // Fonction principale pour placer les objets
         const createForest = async () => {
             // Charger les positions
-            const treePositions = await loadTreePositions();
-            if (!treePositions) {
-                console.error('No tree positions available');
+            const objectPositions = await loadObjectPositions();
+            if (!objectPositions) {
+                console.error('No object positions available');
                 return false;
             }
 
             // Enregistrer les positions dans le store et la ref
-            useStore.getState().setTreePositions(treePositions);
-            treePositionsRef.current = treePositions;
+            useStore.getState().setTreePositions(objectPositions);
+            objectPositionsRef.current = objectPositions;
 
             // Charger les modèles
-            const treeModels = await loadTreeModels();
-            if (!treeModels) {
-                console.error('Failed to load tree models');
+            const objectModels = await loadObjectModels();
+            if (!objectModels) {
+                console.error('Failed to load object models');
                 return false;
             }
-            treeModelsRef.current = treeModels;
+            objectModelsRef.current = objectModels;
 
-            // Créer les instances pour chaque type d'arbre
+            // Créer les instances pour chaque type d'objet
             const instances = [];
+            const objectTypes = templateManager.getAllObjectTypes();
 
-            // Créer des instances pour ThinTrunk
-            if (treePositions.ThinTrunk && treePositions.ThinTrunk.length > 0) {
-                const ThinTrunk = createInstancedMesh('ThinTrunk', treeModels.ThinTrunk, treePositions.ThinTrunk);
-                if (ThinTrunk) instances.push(ThinTrunk);
+            // Parcourir tous les types d'objets définis dans le gestionnaire de templates
+            for (const objectId of objectTypes) {
+                // Ignorer la catégorie "Undefined"
+                if (objectId === templateManager.undefinedCategory) continue;
+
+                // Vérifier si nous avons des positions pour ce type d'objet
+                if (objectPositions[objectId] && objectPositions[objectId].length > 0) {
+                    const model = objectModels[objectId];
+                    if (model) {
+                        const instancedMesh = createInstancedMesh(objectId, model, objectPositions[objectId]);
+                        if (instancedMesh) instances.push(instancedMesh);
+                    } else {
+                        console.warn(`Model not found for object ID: ${objectId}`);
+                    }
+                }
             }
 
-            // Créer des instances pour TreeNaked
-            if (treePositions.TreeNaked && treePositions.TreeNaked.length > 0) {
-                const TreeNaked = createInstancedMesh('TreeNaked', treeModels.TreeNaked, treePositions.TreeNaked);
-                if (TreeNaked) instances.push(TreeNaked);
-            }
-
-            // Créer des instances pour TrunkLarge
-            if (treePositions.TrunkLarge && treePositions.TrunkLarge.length > 0) {
-                const TrunkLarge = createInstancedMesh('TrunkLarge', treeModels.TrunkLarge, treePositions.TrunkLarge);
-                if (TrunkLarge) instances.push(TrunkLarge);
-            }
-
-            if (treePositions.TreeStump && treePositions.TreeStump.length > 0) {
-                const treeStump = createInstancedMesh('TreeStump', treeModels.TreeStump, treePositions.TreeStump);
-                if (treeStump) instances.push(treeStump);
-            }
             console.log(`Created ${instances.length} instanced meshes`);
 
             // Marquer comme chargé
-            treesLoadedRef.current = true;
+            objectsLoadedRef.current = true;
 
             // Émettre l'événement forest-ready
             if (instances.length > 0) {
@@ -242,14 +246,14 @@ export default function Forest() {
         };
 
         // Écouter l'événement tree-positions-ready (fallback si le chargement JSON échoue)
-        const handleTreePositions = (positions) => {
-            // Utiliser seulement si les arbres n'ont pas déjà été chargés
-            if (!treesLoadedRef.current) {
-                console.log('Received tree positions from event:', positions);
-                treePositionsRef.current = positions;
+        const handleObjectPositions = (positions) => {
+            // Utiliser seulement si les objets n'ont pas déjà été chargés
+            if (!objectsLoadedRef.current) {
+                console.log('Received object positions from event:', positions);
+                objectPositionsRef.current = positions;
 
                 // Créer la forêt si les modèles sont déjà chargés
-                if (treeModelsRef.current) {
+                if (objectModelsRef.current) {
                     createInstancedMeshesFromPositions(positions);
                 }
             }
@@ -258,24 +262,23 @@ export default function Forest() {
         // Fonction auxiliaire pour créer des meshes à partir de positions reçues par événement
         const createInstancedMeshesFromPositions = (positions) => {
             const instances = [];
+            const objectTypes = templateManager.getAllObjectTypes();
 
-            if (positions.ThinTrunk && positions.ThinTrunk.length > 0) {
-                const ThinTrunk = createInstancedMesh('ThinTrunk', treeModelsRef.current.ThinTrunk, positions.ThinTrunk);
-                if (ThinTrunk) instances.push(ThinTrunk);
-            }
+            for (const objectId of objectTypes) {
+                // Ignorer la catégorie "Undefined"
+                if (objectId === templateManager.undefinedCategory) continue;
 
-            if (positions.TreeNaked && positions.TreeNaked.length > 0) {
-                const TreeNaked = createInstancedMesh('TreeNaked', treeModelsRef.current.TreeNaked, positions.TreeNaked);
-                if (TreeNaked) instances.push(TreeNaked);
-            }
-
-            if (positions.TrunkLarge && positions.TrunkLarge.length > 0) {
-                const TrunkLarge = createInstancedMesh('TrunkLarge', treeModelsRef.current.TrunkLarge, positions.TrunkLarge);
-                if (TrunkLarge) instances.push(TrunkLarge);
+                if (positions[objectId] && positions[objectId].length > 0) {
+                    const model = objectModelsRef.current[objectId];
+                    if (model) {
+                        const instancedMesh = createInstancedMesh(objectId, model, positions[objectId]);
+                        if (instancedMesh) instances.push(instancedMesh);
+                    }
+                }
             }
 
             if (instances.length > 0) {
-                treesLoadedRef.current = true;
+                objectsLoadedRef.current = true;
                 setTimeout(() => {
                     EventBus.trigger('forest-ready');
                 }, 100);
@@ -283,14 +286,14 @@ export default function Forest() {
         };
 
         // S'abonner à l'événement (comme fallback)
-        EventBus.on('tree-positions-ready', handleTreePositions);
+        EventBus.on('tree-positions-ready', handleObjectPositions);
 
         // Lancer la création de la forêt
         createForest();
 
         // Fonction de nettoyage
         return () => {
-            EventBus.off('tree-positions-ready', handleTreePositions);
+            EventBus.off('tree-positions-ready', handleObjectPositions);
 
             if (forestRef.current) {
                 scene.remove(forestRef.current);
