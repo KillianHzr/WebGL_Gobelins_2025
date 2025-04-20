@@ -11,7 +11,7 @@ export default function ForestSceneWrapper() {
     const stabilityDelay = 1000; // Délai de stabilité en ms
 
     // Liste des modèles requis pour la scène forestière
-    const requiredModels = ['Map', 'Tree1', 'TreeNaked', 'Tree3'];
+    const requiredModels = ['Map', 'Tree1', 'TreeNaked', 'Tree3', 'TreeStump'];
 
     useEffect(() => {
         // Réinitialiser le compteur de tentatives à chaque montage du composant

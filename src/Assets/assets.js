@@ -21,9 +21,9 @@ const assets = [
     },
     // Map
     {
-        name: 'MapScene',
+        name: 'MapInstance',
         type: 'gltf',
-        path: '/models/MapScene.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/MapInstance.glb', // Chemin absolu depuis le dossier "static"
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -52,7 +52,15 @@ const assets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
-    }
+    },
+    {
+        name: 'TreeStump',
+        type: 'gltf',
+        path: '/models/forest/tree/TreeStump.glb', // Ajustez le chemin selon votre structure
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
 ];
 
 export default assets;

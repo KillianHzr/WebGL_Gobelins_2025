@@ -95,12 +95,14 @@ export default function Forest() {
                         const tree1 = assetManager.getItem('Tree1');
                         const TreeNaked = assetManager.getItem('TreeNaked');
                         const tree3 = assetManager.getItem('Tree3');
+                        const treeStump = assetManager.getItem('TreeStump'); // Ajout du nouveau modèle
 
-                        if (tree1 && TreeNaked && tree3) {
+                        if (tree1 && TreeNaked && tree3 && treeStump) {
                             resolve({
                                 Tree1: tree1,
                                 TreeNaked: TreeNaked,
-                                Tree3: tree3
+                                Tree3: tree3,
+                                TreeStump: treeStump  // Ajout à l'objet retourné
                             });
                         } else {
                             setTimeout(checkAssets, 100);
@@ -219,6 +221,10 @@ export default function Forest() {
                 if (tree3) instances.push(tree3);
             }
 
+            if (treePositions.TreeStump && treePositions.TreeStump.length > 0) {
+                const treeStump = createInstancedMesh('TreeStump', treeModels.TreeStump, treePositions.TreeStump);
+                if (treeStump) instances.push(treeStump);
+            }
             console.log(`Created ${instances.length} instanced meshes`);
 
             // Marquer comme chargé
