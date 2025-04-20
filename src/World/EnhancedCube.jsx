@@ -9,9 +9,10 @@ import useDragGesture from '../Hooks/useDragGesture';
 import {audioManager} from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
-import { EventBus } from '../Utils/EventEmitter';
-import { MARKER_EVENTS } from '../Utils/markerEvents';
-import EnhancedObjectMarker, { ModelMarker, INTERACTION_TYPES } from '../Utils/EnhancedObjectMarker';
+import {EventBus} from '../Utils/EventEmitter';
+import {MARKER_EVENTS} from '../Utils/markerEvents';
+import EnhancedObjectMarker, {ModelMarker, INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
+import {Color} from "three";
 
 export default function EnhancedCube() {
     const cubeRef = useRef();
@@ -32,7 +33,7 @@ export default function EnhancedCube() {
 
     // Texte du marqueur selon le type d'interaction
     const getMarkerText = () => {
-        switch(currentInteractionType) {
+        switch (currentInteractionType) {
             case INTERACTION_TYPES.CLICK:
                 return "Cliquez ici";
             case INTERACTION_TYPES.LONG_PRESS:
@@ -447,7 +448,7 @@ export default function EnhancedCube() {
 
     // Déterminer la couleur du marqueur en fonction du type d'interaction
     const getMarkerColor = () => {
-        switch(currentInteractionType) {
+        switch (currentInteractionType) {
             case INTERACTION_TYPES.CLICK:
                 return "#4488ff";  // Bleu pour clic
             case INTERACTION_TYPES.LONG_PRESS:
@@ -476,7 +477,6 @@ export default function EnhancedCube() {
                 offset: 0.8,
                 preferredAxis: 'z'
             }}
-            // Forcer la visibilité du marqueur quand une interaction est attendue
             alwaysVisible={isWaitingForInteraction}
         >
             <mesh
@@ -489,23 +489,25 @@ export default function EnhancedCube() {
             >
                 <boxGeometry args={[1, 1, 1]}/>
                 <meshStandardMaterial
-                    color={active ? '#ffffff' : (hovered ? '#ff9f6b' : '#ff5533')}
-                    metalness={active ? 0.8 : (dragging ? 0.6 : 0.3)}
-                    roughness={active ? 0.2 : (dragging ? 0.4 : 0.7)}
-                    emissive={dragging ? new THREE.Color('#331100') : new THREE.Color('#000000')}
+                    color={'#ff5533'}
+                    metalness={0.2}
+                    roughness={0.7}
+                    emissive={new Color('#000000')}
                 />
             </mesh>
 
             {/* Effet de glow qui utilise les paramètres de debug */}
-            <OutlineEffect
+            {active ? {} : <OutlineEffect
                 objectRef={cubeRef}
-                active={effectSettings.active || isWaitingForInteraction}
+                active={effectSettings.active || isWaitingForInteraction && !hovered}
                 color={effectSettings.color}
                 thickness={effectSettings.thickness}
                 intensity={effectSettings.intensity}
                 pulseSpeed={effectSettings.pulseSpeed}
                 ref={updateEffectRef}
             />
+            }
         </ModelMarker>
-    );
+    )
+        ;
 }

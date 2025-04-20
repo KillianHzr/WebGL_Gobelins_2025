@@ -743,7 +743,6 @@ const EnhancedObjectMarker = ({
                             fontWeight: 600,
                             lineHeight: 'normal',
                         }}
-                        onClick={handleMarkerClick}
                     >
                         {text}
                     </div>
@@ -830,15 +829,7 @@ const EnhancedObjectMarker = ({
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 gap: '8px'
-                            }}
-                            onMouseEnter={() => {
-                                console.log('Button hover enter');
-                                setButtonHovered(true);
-                            }}
-                            onMouseLeave={() => {
-                                console.log('Button hover leave');
-                                setButtonHovered(false);
-                            }}
+                            }}$
                         >
                             <div style={{
                                 width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'
