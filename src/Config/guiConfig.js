@@ -267,7 +267,7 @@ const guiConfig = {
                 max: 10,
                 step: 0.01,
                 name: "Intensity",
-                default: 5.0
+                default: 2.0
             },
             color: {
                 name: "Color",
@@ -395,7 +395,7 @@ const guiConfig = {
         defaults: {
             Ambient: {
                 0: {
-                    intensity: 10.0,
+                    intensity: 1.0,
                     color: "#ffffff",
                     visible: true
                 }

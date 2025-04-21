@@ -152,10 +152,9 @@ class SceneObjectManager {
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
-                useTextures: true,
+                useTextures: false,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    {position: [0, 0, 0], rotation: [0, 0, 0]},
                     {position: [0, 0, 0], rotation: [0, 0, 0]},
                 ]
             },

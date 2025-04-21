@@ -1,12 +1,13 @@
-import React, { useRef, useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
+import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
-import { EventBus, useEventEmitter } from '../Utils/EventEmitter';
+import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
+import {textureManager} from '../Config/TextureManager';
 
 export default function Forest() {
-    const { scene } = useThree();
+    const {scene} = useThree();
     const forestRef = useRef(new THREE.Group());
     const assetManager = window.assetManager;
     const eventEmitter = useEventEmitter();
@@ -130,8 +131,34 @@ export default function Forest() {
             }
         };
 
-        // Créer un InstancedMesh pour un type d'objet
-        const createInstancedMesh = (objectId, model, positions) => {
+        // Précharger toutes les textures pour les modèles avant de créer les instances
+        const preloadTexturesForModels = async (modelIds) => {
+            if (!textureManager) return {};
+
+            console.log('Préchargement des textures pour tous les modèles...');
+            const loadedTextures = {};
+
+            // Charger les textures pour chaque modèle en parallèle
+            const texturePromises = modelIds.map(async (modelId) => {
+                if (textureManager.hasTextures(modelId)) {
+                    try {
+                        const textures = await textureManager.preloadTexturesForModel(modelId);
+                        if (textures) {
+                            loadedTextures[modelId] = textures;
+                            console.log(`Textures préchargées pour ${modelId}`);
+                        }
+                    } catch (error) {
+                        console.warn(`Erreur lors du préchargement des textures pour ${modelId}:`, error);
+                    }
+                }
+            });
+
+            await Promise.all(texturePromises);
+            return loadedTextures;
+        };
+
+        // Créer un InstancedMesh pour un type d'objet avec textures
+        const createInstancedMesh = async (objectId, model, positions, preloadedTextures) => {
             if (!positions || positions.length === 0) {
                 console.log(`No positions for ${objectId}`);
                 return null;
@@ -139,30 +166,132 @@ export default function Forest() {
 
             console.log(`Creating ${positions.length} instances of ${objectId}`);
 
-            // Trouver la géométrie et les matériaux dans le modèle
-            const geometries = [];
-            const materials = [];
+            // Trouver la géométrie dans le modèle
+            let geometry = null;
+            let material = null;
 
+            // Parcourir le modèle à la recherche de la première géométrie/matériau
             model.scene.traverse((child) => {
-                if (child.isMesh) {
-                    geometries.push(child.geometry);
-                    materials.push(child.material);
+                if (child.isMesh && child.geometry && !geometry) {
+                    geometry = child.geometry.clone();
+
+                    // Cloner le matériau pour pouvoir le modifier
+                    if (Array.isArray(child.material)) {
+                        material = child.material[0].clone();
+                    } else {
+                        material = child.material.clone();
+                    }
                 }
             });
 
-            if (geometries.length === 0) {
-                console.warn(`No geometries found in ${objectId} model`);
+            if (!geometry) {
+                console.warn(`No geometry found in ${objectId} model`);
                 return null;
             }
 
-            // Utiliser la première géométrie et le premier matériau trouvés
-            const geometry = geometries[0];
-            const material = materials[0];
+            // Appliquer les textures au matériau si elles sont préchargées
+            const textures = preloadedTextures[objectId];
+            if (textures && material) {
+                console.log(`Applying preloaded textures to ${objectId}`);
+                material = new THREE.MeshStandardMaterial({
+                    name: `${objectId}_material`,
+                    side: THREE.DoubleSide,
+                    transparent: objectId === 'Bush' || objectId === 'BranchEucalyptus',
+                    alphaTest: objectId === 'Bush' || objectId === 'BranchEucalyptus' ? 0.5 : 0
+                });
+                // Configurer le matériau et appliquer les textures
+                const options = {
+                    aoIntensity: 0.7,
+                    invertAlpha: true  // Pour assurer que le noir soit opaque pour les feuilles
+                };
 
-            // Créer un InstancedMesh
+                // Configuration pour le bush: besoin d'alpha inversé
+                if (objectId === 'Bush' && textures.alpha) {
+                    material.transparent = true;
+                    material.alphaTest = 0.5;
+
+                    // Si l'alpha est préchargé, l'utiliser
+                    if (textures.alpha) {
+                        // Inverser l'alpha si nécessaire
+                        if (options.invertAlpha) {
+                            // Créer un canvas pour inverser l'alpha
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            const image = textures.alpha.image;
+
+                            // Définir les dimensions du canvas
+                            canvas.width = image.width;
+                            canvas.height = image.height;
+
+                            // Dessiner l'image originale
+                            ctx.drawImage(image, 0, 0);
+
+                            // Récupérer les données de l'image
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const data = imageData.data;
+
+                            // Inverser les valeurs d'alpha
+                            for (let i = 3; i < data.length; i += 4) {
+                                data[i] = 255 - data[i];
+                            }
+
+                            // Remettre les données modifiées dans le canvas
+                            ctx.putImageData(imageData, 0, 0);
+
+                            // Créer une nouvelle texture à partir du canvas
+                            const invertedAlphaTexture = new THREE.CanvasTexture(canvas);
+
+                            // Appliquer les propriétés importantes
+                            invertedAlphaTexture.wrapS = textures.alpha.wrapS;
+                            invertedAlphaTexture.wrapT = textures.alpha.wrapT;
+                            invertedAlphaTexture.encoding = textures.alpha.encoding;
+
+                            // Utiliser la texture inversée
+                            material.alphaMap = invertedAlphaTexture;
+                        } else {
+                            material.alphaMap = textures.alpha;
+                        }
+                    }
+                }
+
+                // Appliquer les autres textures au matériau
+                if (textures.baseColor) {
+                    material.map = textures.baseColor;
+                    material.map.encoding = THREE.sRGBEncoding;
+                }
+
+                if (textures.normal) {
+                    material.normalMap = textures.normal;
+                }
+
+                if (textures.roughness) {
+                    material.roughnessMap = textures.roughness;
+                    material.roughness = 0.5;
+                }
+
+                if (textures.metalness) {
+                    material.metalnessMap = textures.metalness;
+                    material.metalness = 0.0;
+                }
+
+                if (textures.ao) {
+                    material.aoMap = textures.ao;
+                    material.aoMapIntensity = options.aoIntensity;
+
+                    // Activer les UV2 pour l'aoMap si nécessaire
+                    if (geometry && !geometry.attributes.uv2 && geometry.attributes.uv) {
+                        geometry.setAttribute('uv2', geometry.attributes.uv);
+                    }
+                }
+
+                // Mise à jour du matériau après modification
+                material.needsUpdate = true;
+            }
+
+            // Créer un InstancedMesh avec la géométrie et le matériau (avec textures)
             const instancedMesh = new THREE.InstancedMesh(
-                geometry.clone(),
-                material.clone(),
+                geometry,
+                material,
                 positions.length
             );
             instancedMesh.name = `${objectId}_instances`;
@@ -208,28 +337,36 @@ export default function Forest() {
             }
             objectModelsRef.current = objectModels;
 
+            // Récupérer les IDs des modèles qui ont des positions
+            const objectTypes = Object.keys(objectPositions).filter(type =>
+                type !== templateManager.undefinedCategory &&
+                objectPositions[type] &&
+                objectPositions[type].length > 0
+            );
+
+            // Précharger toutes les textures pour tous les modèles
+            const preloadedTextures = await preloadTexturesForModels(objectTypes);
+
             // Créer les instances pour chaque type d'objet
             const instances = [];
-            const objectTypes = templateManager.getAllObjectTypes();
 
-            // Parcourir tous les types d'objets définis dans le gestionnaire de templates
+            // Parcourir tous les types d'objets qui ont des positions
             for (const objectId of objectTypes) {
-                // Ignorer la catégorie "Undefined"
-                if (objectId === templateManager.undefinedCategory) continue;
-
-                // Vérifier si nous avons des positions pour ce type d'objet
-                if (objectPositions[objectId] && objectPositions[objectId].length > 0) {
-                    const model = objectModels[objectId];
-                    if (model) {
-                        const instancedMesh = createInstancedMesh(objectId, model, objectPositions[objectId]);
-                        if (instancedMesh) instances.push(instancedMesh);
-                    } else {
-                        console.warn(`Model not found for object ID: ${objectId}`);
-                    }
+                // Vérifier si nous avons le modèle pour ce type d'objet
+                if (objectModels[objectId]) {
+                    const instancedMesh = await createInstancedMesh(
+                        objectId,
+                        objectModels[objectId],
+                        objectPositions[objectId],
+                        preloadedTextures
+                    );
+                    if (instancedMesh) instances.push(instancedMesh);
+                } else {
+                    console.warn(`Model not found for object ID: ${objectId}`);
                 }
             }
 
-            console.log(`Created ${instances.length} instanced meshes`);
+            console.log(`Created ${instances.length} instanced meshes with textures`);
 
             // Marquer comme chargé
             objectsLoadedRef.current = true;
@@ -254,26 +391,39 @@ export default function Forest() {
 
                 // Créer la forêt si les modèles sont déjà chargés
                 if (objectModelsRef.current) {
-                    createInstancedMeshesFromPositions(positions);
+                    // Précharger les textures et créer les instances
+                    const objectTypes = Object.keys(positions).filter(type =>
+                        type !== templateManager.undefinedCategory &&
+                        positions[type] &&
+                        positions[type].length > 0
+                    );
+
+                    preloadTexturesForModels(objectTypes).then(preloadedTextures => {
+                        createInstancedMeshesFromPositions(positions, preloadedTextures);
+                    });
                 }
             }
         };
 
         // Fonction auxiliaire pour créer des meshes à partir de positions reçues par événement
-        const createInstancedMeshesFromPositions = (positions) => {
+        const createInstancedMeshesFromPositions = async (positions, preloadedTextures) => {
             const instances = [];
-            const objectTypes = templateManager.getAllObjectTypes();
+            const objectTypes = Object.keys(positions).filter(type =>
+                type !== templateManager.undefinedCategory &&
+                positions[type] &&
+                positions[type].length > 0
+            );
 
             for (const objectId of objectTypes) {
-                // Ignorer la catégorie "Undefined"
-                if (objectId === templateManager.undefinedCategory) continue;
-
-                if (positions[objectId] && positions[objectId].length > 0) {
-                    const model = objectModelsRef.current[objectId];
-                    if (model) {
-                        const instancedMesh = createInstancedMesh(objectId, model, positions[objectId]);
-                        if (instancedMesh) instances.push(instancedMesh);
-                    }
+                const model = objectModelsRef.current[objectId];
+                if (model) {
+                    const instancedMesh = await createInstancedMesh(
+                        objectId,
+                        model,
+                        positions[objectId],
+                        preloadedTextures
+                    );
+                    if (instancedMesh) instances.push(instancedMesh);
                 }
             }
 

@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import {useThree} from '@react-three/fiber';
 import {Group, Vector3, Quaternion, Matrix4, Box3, Euler, Object3D} from 'three';
 import useStore from '../Store/useStore';
@@ -11,6 +11,7 @@ export default function MapWithInstances() {
     const mapRef = useRef(new Group());
     const assetManager = window.assetManager;
     const eventEmitter = useEventEmitter();
+    const [isForestReady, setIsForestReady] = useState(false);
 
     useEffect(() => {
         // Create main map group
@@ -24,6 +25,7 @@ export default function MapWithInstances() {
         const loadMap = () => {
             // Load and add map
             if (assetManager?.getItem && assetManager.getItem('MapInstance')) {
+                console.log('Loading MapInstance model...');
                 mapModel = assetManager.getItem('MapInstance').scene.clone();
                 mapModel.name = 'MapInstanceModel';
                 mapGroup.add(mapModel);
@@ -32,15 +34,22 @@ export default function MapWithInstances() {
                 mapModel.position.set(0, 0, 0);
                 mapModel.scale.set(1, 1, 1);
 
-                // Analyser les instances et les templates
+                // Analyser les instances et les templates avant de rendre la map visible
+                console.log('Analysing instances and templates...');
                 analyzeInstancesAndTemplates(mapModel);
-                extractAndSaveGeoNodesPositions(mapModel);
+                setTimeout(() => {
+                    extractAndSaveGeoNodesPositions(mapModel);
+                }, 100);
 
-                // Émettre l'événement map-ready
-                EventBus.trigger('map-ready');
-                EventBus.trigger('MapInstance-ready');
+                // Émettre l'événement map-ready avec un délai pour s'assurer que les données sont prêtes
+                setTimeout(() => {
+                    console.log('Map is ready, emitting event...');
+                    EventBus.trigger('map-ready');
+                    EventBus.trigger('MapInstance-ready');
+                }, 300);
             } else {
                 // Si assetManager n'est pas encore prêt, réessayer après un délai
+                console.log('AssetManager not ready yet, retrying...');
                 if (!assetManager?.getItem) {
                     setTimeout(loadMap, 500);
                 }
@@ -55,12 +64,14 @@ export default function MapWithInstances() {
             // Parcourir le modèle une seule fois - approche optimisée
             const processQueue = [mapModel];
             const dummy = new Object3D(); // Objet temporaire réutilisable
+            let instancesFound = 0;
 
             while (processQueue.length > 0) {
                 const node = processQueue.pop();
 
                 // Si c'est une instance de GN_Instance
-                if (node.name.startsWith('GN_Instance')) {
+                if (node.name && node.name.startsWith('GN_Instance')) {
+                    instancesFound++;
                     // Extraire l'ID directement
                     const match = node.name.match(/GN_Instance_(\d+)/);
                     if (match) {
@@ -92,9 +103,11 @@ export default function MapWithInstances() {
                                 scaleZ: dummy.scale.z
                             });
 
-                            // Appliquer des textures si nécessaire - pour les modèles présents dans la scène
+                            // Appliquer des textures si nécessaire tout en conservant la visibilité
                             if (templateManager.doesModelUseTextures(templateName)) {
-                                applyTexturesToInstance(node, objectId);
+                                applyTexturesToInstance(node, objectId).catch(err =>
+                                    console.warn(`Error applying textures to ${node.name}:`, err)
+                                );
                             }
                         }
                     }
@@ -109,6 +122,7 @@ export default function MapWithInstances() {
             }
 
             // Afficher les statistiques des positions trouvées
+            console.log(`Found ${instancesFound} instances in the map`);
             const stats = {};
             for (const [objectId, positions] of Object.entries(objectPositions)) {
                 stats[objectId] = positions.length;
@@ -121,20 +135,7 @@ export default function MapWithInstances() {
             // Émettre l'événement avec les positions
             EventBus.trigger('tree-positions-ready', objectPositions);
 
-            // Préparer la gestion de l'événement forest-ready
-            const forestReadyListener = () => {
-                if (mapModel) {
-                    mapModel.visible = false;
-                }
-            };
-
-            // S'abonner à l'événement forest-ready
-            EventBus.on('forest-ready', forestReadyListener);
-
-            // Retourner la fonction de nettoyage
-            return () => {
-                EventBus.off('forest-ready', forestReadyListener);
-            };
+            return objectPositions;
         };
 
         // Fonction pour appliquer des textures à une instance
@@ -142,19 +143,57 @@ export default function MapWithInstances() {
             if (!textureManager || !textureManager.hasTextures(objectId)) return;
 
             try {
-                console.log(`Chargement des textures pour l'instance ${node.name} (${objectId})...`);
-                await textureManager.applyTexturesToModel(objectId, node);
-                console.log(`Textures appliquées avec succès à l'instance ${node.name} (${objectId})`);
+                // Garder une référence à l'état de visibilité d'origine
+                const wasVisible = node.visible;
+
+                // Appliquer les textures sans changer la visibilité
+                await textureManager.applyTexturesToModel(objectId, node, {
+                    invertAlpha: objectId === 'Bush' // Appliquer l'inversion d'alpha seulement pour les buissons
+                });
+
+                // Restaurer l'état de visibilité
+                node.visible = wasVisible;
+
+                console.log(`Textures applied to instance ${node.name} (${objectId})`);
             } catch (error) {
-                console.warn(`Erreur lors de l'application des textures à l'instance ${node.name}:`, error);
+                console.warn(`Error applying textures to instance ${node.name}:`, error);
             }
         };
+
+        // Écouteur d'événement pour masquer le modèle lorsque la forêt est prête
+        const forestReadyListener = () => {
+            console.log('Forest is ready, handling map visibility...');
+            setIsForestReady(true);
+
+            // Au lieu de cacher complètement le modèle, réduire l'opacité ou cacher seulement certains éléments
+            // Cela dépend de votre stratégie exacte pour éviter que les objets ne disparaissent
+            if (mapModel) {
+                // Option 1: Cacher uniquement certains objets qui seront remplacés par la forêt
+                mapModel.traverse((child) => {
+                    if (child.name && child.name.startsWith('GN_Instance')) {
+                        // Rendre les instances invisibles car elles seront remplacées par la forêt
+                        child.visible = false;
+                    }
+                    // Garder les autres objets visibles (terrain, structures, etc.)
+                });
+
+                // Option 2: Si vous préférez cacher tout le modèle comme avant, décommentez la ligne suivante
+                // mapModel.visible = false;
+
+                console.log('Map visibility updated after forest is ready');
+            }
+        };
+
+        // S'abonner à l'événement forest-ready
+        const forestReadyUnsubscribe = EventBus.on('forest-ready', forestReadyListener);
 
         // Charger la carte
         loadMap();
 
         // Fonction de nettoyage
         return () => {
+            forestReadyUnsubscribe();
+
             if (mapGroup) {
                 scene.remove(mapGroup);
 
@@ -189,6 +228,14 @@ export default function MapWithInstances() {
             }
         };
     }, [scene, assetManager]);
+
+    // Observer l'état de isForestReady pour éviter des problèmes de synchronisation
+    useEffect(() => {
+        if (isForestReady && mapRef.current) {
+            console.log('Updating map visibility state based on forest ready state');
+            // Vous pouvez ajouter ici des ajustements supplémentaires si nécessaire
+        }
+    }, [isForestReady]);
 
     return null;
 }
@@ -393,7 +440,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
     // Parcourir le modèle pour trouver les instances
     const processQueue = [mapModel];
-    const dummy = new Object3D(); // Objet temporaire réutilisable
+    const dummy = new THREE.Object3D(); // Objet temporaire réutilisable
 
     // Statistiques pour le rapport final
     const stats = {
@@ -405,7 +452,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         const node = processQueue.pop();
 
         // Si c'est une instance GeoNode
-        if (node.name.startsWith('GN_Instance')) {
+        if (node.name && node.name.startsWith('GN_Instance')) {
             stats.totalInstances++;
 
             // Extraire l'ID
@@ -464,13 +511,8 @@ function extractAndSaveGeoNodesPositions(mapModel) {
                 };
 
                 // Ajouter aux données par modèle
-                modelPositions[objectId].push(instanceInfo);
-
-                // Appliquer les textures si le modèle utilise des textures
-                if (templateManager.doesModelUseTextures(templateName) && textureManager) {
-                    // On applique les textures de manière asynchrone, mais on ne bloque pas le processus
-                    textureManager.applyTexturesToModel(objectId, node)
-                        .catch(err => console.warn(`Erreur lors de l'application des textures à ${node.name}:`, err));
+                if (objectId && modelPositions[objectId]) {
+                    modelPositions[objectId].push(instanceInfo);
                 }
             }
         }

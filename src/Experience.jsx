@@ -118,18 +118,18 @@ export default function Experience() {
                     <SceneObjects />
 
                     {/* Exemple d'ajout d'un objet interactif spécial que nous voulons différencier des placements par défaut */}
-                    <SingleInteractiveObject
-                        objectKey="BushInteractive"
-                        position={[3, 0, -3]}
-                        options={{
-                            markerId: "special-bush",
-                            markerText: "Buisson spécial",
-                            requiredStep: "specialStop"
-                        }}
-                    />
+                    {/*<SingleInteractiveObject*/}
+                    {/*    objectKey="BushInteractive"*/}
+                    {/*    position={[3, 0, -3]}*/}
+                    {/*    options={{*/}
+                    {/*        markerId: "special-bush",*/}
+                    {/*        markerText: "Buisson spécial",*/}
+                    {/*        requiredStep: "specialStop"*/}
+                    {/*    }}*/}
+                    {/*/>*/}
 
                     {/* La forêt avec ses instances nombreuses (instanced meshes) */}
-                    {/*{useMemo(() => (<ForestSceneWrapper/>), [])}*/}
+                    {useMemo(() => (<ForestSceneWrapper/>), [])}
                 </ScrollControls>
             </InteractiveMarkersProvider>
         </RayCaster>

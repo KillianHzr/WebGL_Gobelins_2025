@@ -38,6 +38,12 @@ class TemplateManager {
                 priority: 5,
                 useTextures: true
             },
+            'Plane_7': {
+                id: 'BranchEucalyptus',
+                path: '/models/forest/plant/BranchEucalyptus.glb',
+                priority: 6,
+                useTextures: true
+            },
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {
             //     id: 'NouvelArbre',
@@ -53,6 +59,8 @@ class TemplateManager {
             1021: 'Retopo_TRONC_FIN',
             1015: 'Retopo_GROS_TRONC001',
             925: 'Trunk',
+            46: 'Plane003',
+            8414: 'Plane_7',
             // Ajoutez de nouveaux mappings ID ici
         };
 
