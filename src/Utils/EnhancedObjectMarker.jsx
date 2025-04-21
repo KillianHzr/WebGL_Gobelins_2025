@@ -949,6 +949,7 @@ const EnhancedObjectMarker = ({
 
 // Replace the ModelMarker component in EnhancedObjectMarker.jsx with this fixed version
 
+// Fonction à remplacer dans EnhancedObjectMarker.jsx
 export const ModelMarker = ({
                                 objectRef,         // Référence à l'objet, optionnelle si les enfants sont fournis
                                 children,          // Enfants à englober (typiquement un mesh)
@@ -993,11 +994,15 @@ export const ModelMarker = ({
     const effectiveMarkerType = interactionType || markerType;
 
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
-    const shouldShowMarker = (// Ne pas montrer si l'étape actuelle a déjà été complétée
+    const shouldShowMarker = (
+        // Ne pas montrer si l'étape actuelle a déjà été complétée
         (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
 
         // Conditions standards d'affichage
-        (isHovered || isMarkerHovered || keepMarkerVisible) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)));
+        (isHovered || isMarkerHovered) &&
+        showMarkerOnHover &&
+        (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))
+    );
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
@@ -1013,16 +1018,19 @@ export const ModelMarker = ({
         setKeepMarkerVisible(false);
     };
 
-    // Gérer le survol du marqueur
     // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant
     const handleMarkerPointerEnter = (e) => {
         console.log('[ModelMarker] Marker pointer enter', id);
         // Arrêter complètement la propagation
-        stopAllPropagation(e);
+        if (e) {
+            e.stopPropagation();
+            if (e.nativeEvent) {
+                e.nativeEvent.stopPropagation();
+            }
+        }
 
         // Mettre à jour l'état interne du ModelMarker
         setIsMarkerHovered(true);
-        setKeepMarkerVisible(true);
 
         // Propager l'événement au callback externe si fourni
         if (typeof onPointerEnter === 'function') {
@@ -1033,7 +1041,12 @@ export const ModelMarker = ({
     const handleMarkerPointerLeave = (e) => {
         console.log('[ModelMarker] Marker pointer leave', id);
         // Arrêter complètement la propagation
-        stopAllPropagation(e);
+        if (e) {
+            e.stopPropagation();
+            if (e.nativeEvent) {
+                e.nativeEvent.stopPropagation();
+            }
+        }
 
         // Mettre à jour l'état interne du ModelMarker
         setIsMarkerHovered(false);
@@ -1074,7 +1087,6 @@ export const ModelMarker = ({
         // Si l'étape d'interaction a changé et est différente de la dernière étape complétée,
         // réinitialiser l'état pour permettre une nouvelle interaction
         if (interaction && interaction.currentStep !== lastCompletedStep && interaction.waitingForInteraction) {
-
             console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
             setInteractionCompleted(false);
         }
@@ -1102,6 +1114,11 @@ export const ModelMarker = ({
                 if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
                 console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
                 setHovered(false);
+
+                // IMPORTANT: Si ni le modèle ni le marqueur ne sont survolés, nous devons nous assurer que le marqueur est caché
+                if (!isMarkerHovered) {
+                    setKeepMarkerVisible(false);
+                }
             });
 
             return () => {
@@ -1109,7 +1126,7 @@ export const ModelMarker = ({
                 removeLeaveListener();
             };
         }
-    }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep]);
+    }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep, isMarkerHovered]);
 
     return (
         <group ref={groupRef} {...props}>

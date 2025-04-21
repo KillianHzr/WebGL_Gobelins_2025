@@ -16,6 +16,8 @@ import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import EnhancedCube from "./World/EnhancedCube.jsx";
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
+import EasyModelMarker from "./World/EasyModelMarker.jsx";
+import {INTERACTION_TYPES} from "./Utils/EnhancedObjectMarker.jsx";
 
 export default function Experience() {
     const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
@@ -113,8 +115,27 @@ export default function Experience() {
                     <ambientLight intensity={0.5}/>
                     <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                     <color attach="background" args={['#1e1e2f']}/>
-                    {/* Objects */}
-                    <EnhancedCube/>
+
+                    {/* Arbre avec marqueur - première interaction */}
+                    <EasyModelMarker
+                        modelPath="/models/forest/tree/TreeNaked.glb"
+                        position={[2, 0, -5]}
+                        scale={[0.1, 0.1, 0.1]}
+                        markerId="tree-marker"
+                        markerType={INTERACTION_TYPES.CLICK}
+                        markerText="Cliquez ici"
+                        markerColor="#44ff44"
+                        markerOffset={1.5}
+                        markerAxis="y"
+                        outlineColor="#44ff44"
+                        requiredStep="firstStop"
+                        onInteract={(event) => {
+                            console.log("Interaction avec l'arbre:", event);
+                        }}
+                    />
+
+                    {/* Cube avec marqueur - deuxième interaction */}
+                    {/*<EnhancedCube />*/}
 
                     {useMemo(() => (<ForestSceneWrapper/>), [])}
                 </ScrollControls>
