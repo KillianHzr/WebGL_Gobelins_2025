@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
 import * as THREE from 'three';
-import { useThree, useFrame } from '@react-three/fiber';
+import {useFrame, useThree} from '@react-three/fiber';
 
 /**
  * Composant qui crée un effet de contour (outline) pour n'importe quel modèle 3D
@@ -23,8 +23,8 @@ const OutlineEffect = forwardRef(({
                                       pulseSpeed = 1.2
                                   }, ref) => {
     const outlineRef = useRef();
-    const pulseRef = useRef({ value: 0, direction: 1 });
-    const { scene } = useThree();
+    const pulseRef = useRef({value: 0, direction: 1});
+    const {scene} = useThree();
 
     // Exposer des méthodes et propriétés via la référence
     useImperativeHandle(ref, () => ({
@@ -59,7 +59,7 @@ const OutlineEffect = forwardRef(({
             }
         },
 
-        getState: () => ({ active, color, thickness, intensity, pulseSpeed })
+        getState: () => ({active, color, thickness, intensity, pulseSpeed})
     }));
 
     useEffect(() => {
@@ -170,7 +170,32 @@ const OutlineEffect = forwardRef(({
 
     // Animation de pulsation
     useFrame((state, delta) => {
-        if (!outlineRef.current || !active || pulseSpeed <= 0) return;
+        // Si l'effet n'est pas actif ou si la vitesse de pulsation est désactivée, ne rien faire
+        if (!outlineRef.current || !active || pulseSpeed <= 0) {
+            // Si l'effet est actif mais la pulsation est désactivée, assurons-nous que l'outline est stable
+            if (outlineRef.current && active && pulseSpeed <= 0) {
+                outlineRef.current.traverse(child => {
+                    if (child.isMesh && child.userData.original) {
+                        const original = child.userData.original;
+
+                        // Mettre à jour la position et la rotation pour suivre l'objet original
+                        child.position.copy(original.position);
+                        child.rotation.copy(original.rotation);
+
+                        // Définir une échelle fixe sans pulsation
+                        child.scale.copy(original.scale).multiplyScalar(1 + thickness);
+
+                        // Définir une opacité et une couleur fixe
+                        if (child.material) {
+                            const baseOpacity = Math.min(1, intensity * 0.7);
+                            child.material.opacity = baseOpacity;
+                            child.material.color.set(color).multiplyScalar(2.0);
+                        }
+                    }
+                });
+            }
+            return;
+        }
 
         try {
             // Mettre à jour la valeur de pulsation

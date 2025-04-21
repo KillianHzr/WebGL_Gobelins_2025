@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import {useEffect, useRef, useState} from 'react';
 import useStore from '../Store/useStore';
-import * as THREE from 'three';
-import { useThree } from '@react-three/fiber';
 import guiConfig from '../Config/guiConfig';
 
 /**
  * Composant pour ajouter les contrôles de debug de l'effet de glow (OutlineEffect)
  * au GUI de debugging
  */
-const GlowEffectDebug = ({ objectRef }) => {
-    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
+const GlowEffectDebug = ({objectRef}) => {
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
 
     // État local pour suivre les paramètres d'effet
@@ -70,7 +68,7 @@ const GlowEffectDebug = ({ objectRef }) => {
             .name('Active')
             .onChange(value => {
                 updateDebugConfig('effects.glow.active.value', value);
-                setEffectSettings(prev => ({ ...prev, active: value }));
+                setEffectSettings(prev => ({...prev, active: value}));
             });
 
         // Contrôle de couleur
@@ -78,7 +76,7 @@ const GlowEffectDebug = ({ objectRef }) => {
             .name('Color')
             .onChange(value => {
                 updateDebugConfig('effects.glow.color.value', value);
-                setEffectSettings(prev => ({ ...prev, color: value }));
+                setEffectSettings(prev => ({...prev, color: value}));
             });
 
         // Contrôle d'épaisseur
@@ -86,7 +84,7 @@ const GlowEffectDebug = ({ objectRef }) => {
             .name('Thickness')
             .onChange(value => {
                 updateDebugConfig('effects.glow.thickness.value', value);
-                setEffectSettings(prev => ({ ...prev, thickness: value }));
+                setEffectSettings(prev => ({...prev, thickness: value}));
             });
 
         // Contrôle d'intensité
@@ -94,7 +92,7 @@ const GlowEffectDebug = ({ objectRef }) => {
             .name('Intensity')
             .onChange(value => {
                 updateDebugConfig('effects.glow.intensity.value', value);
-                setEffectSettings(prev => ({ ...prev, intensity: value }));
+                setEffectSettings(prev => ({...prev, intensity: value}));
             });
 
         // Contrôle de vitesse de pulsation
@@ -102,14 +100,14 @@ const GlowEffectDebug = ({ objectRef }) => {
             .name('Pulse Speed')
             .onChange(value => {
                 updateDebugConfig('effects.glow.pulseSpeed.value', value);
-                setEffectSettings(prev => ({ ...prev, pulseSpeed: value }));
+                setEffectSettings(prev => ({...prev, pulseSpeed: value}));
             });
 
         // Ajouter un bouton pour tester l'effet rapidement
         const testActions = {
             testEffect: () => {
                 // Activer l'effet pendant 2 secondes
-                setEffectSettings(prev => ({ ...prev, active: true }));
+                setEffectSettings(prev => ({...prev, active: true}));
                 updateDebugConfig('effects.glow.active.value', true);
 
                 // Mettre à jour le contrôle dans le GUI
@@ -121,7 +119,7 @@ const GlowEffectDebug = ({ objectRef }) => {
 
                 // Désactiver après 2 secondes
                 setTimeout(() => {
-                    setEffectSettings(prev => ({ ...prev, active: false }));
+                    setEffectSettings(prev => ({...prev, active: false}));
                     updateDebugConfig('effects.glow.active.value', false);
 
                     // Mettre à jour le contrôle dans le GUI

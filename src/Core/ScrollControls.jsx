@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { getProject, val } from '@theatre/core';
-import { SheetProvider, useCurrentSheet } from '@theatre/r3f';
+import React, {useEffect, useRef, useState} from 'react';
+import {useFrame, useThree} from '@react-three/fiber';
+import {getProject, val} from '@theatre/core';
+import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 
@@ -11,8 +11,8 @@ const MIN_VELOCITY = 0.0001;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
-export default function ScrollControls({ children }) {
-    const project = getProject('WebGL_Gobelins', { state: theatreState });
+export default function ScrollControls({children}) {
+    const project = getProject('WebGL_Gobelins', {state: theatreState});
     const sheet = project.sheet('Scene');
 
     return (
@@ -22,7 +22,7 @@ export default function ScrollControls({ children }) {
     );
 }
 
-function CameraController({ children }) {
+function CameraController({children}) {
     const sheet = useCurrentSheet();
     const sequenceLengthRef = useRef(0);
     const timelinePositionRef = useRef(0);
@@ -33,8 +33,8 @@ function CameraController({ children }) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
 
-    const { size, camera, scene } = useThree(); // Import scene from useThree
-    const { debug, updateDebugConfig, getDebugConfigValue, clickListener } = useStore();
+    const {size, camera, scene} = useThree(); // Import scene from useThree
+    const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
 
     // Get interaction state from the store
     const isWaitingForInteraction = useStore(state => state.interaction?.waitingForInteraction);
@@ -51,7 +51,7 @@ function CameraController({ children }) {
         {
             id: 'firstStop',
             name: 'Premier arrêt',
-            triggers: { x: 4.9 },
+            triggers: {x: 4.9},
             isActive: true,
             interactionType: 'click', // Requiert un clic
             targetId: 'MainCube' // Nom du cube dans la scène
@@ -59,7 +59,7 @@ function CameraController({ children }) {
         {
             id: 'secondStop',
             name: 'Second arrêt',
-            triggers: { x: -6, y: 2.1 },
+            triggers: {x: -6, y: 2.1},
             isActive: true,
             interactionType: 'drag', // Requiert un drag horizontal
             targetId: 'MainCube' // Nom du cube dans la scène
@@ -190,9 +190,9 @@ function CameraController({ children }) {
 
         const canvasElement = document.querySelector('canvas');
         if (canvasElement) {
-            canvasElement.addEventListener('wheel', handleWheel, { passive: false });
-            canvasElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-            canvasElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvasElement.addEventListener('wheel', handleWheel, {passive: false});
+            canvasElement.addEventListener('touchstart', handleTouchStart, {passive: false});
+            canvasElement.addEventListener('touchmove', handleTouchMove, {passive: false});
         }
 
         const createUI = () => {
@@ -289,26 +289,26 @@ function CameraController({ children }) {
             }
 
             // Instruction pour cube interaction
-            if (!document.getElementById('interaction-instruction')) {
-                const instruction = document.createElement('div');
-                instruction.id = 'interaction-instruction';
-                instruction.style.position = 'fixed';
-                instruction.style.top = '25%';
-                instruction.style.left = '50%';
-                instruction.style.transform = 'translate(-50%, -50%)';
-                instruction.style.fontSize = '24px';
-                instruction.style.fontWeight = 'bold';
-                instruction.style.color = 'white';
-                instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-                instruction.style.padding = '15px 25px';
-                instruction.style.borderRadius = '8px';
-                instruction.style.textAlign = 'center';
-                instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-                instruction.style.zIndex = '100';
-                instruction.style.display = 'none';
-                instruction.textContent = 'Cliquez sur le cube pour continuer';
-                document.body.appendChild(instruction);
-            }
+            // if (!document.getElementById('interaction-instruction')) {
+            //     const instruction = document.createElement('div');
+            //     instruction.id = 'interaction-instruction';
+            //     instruction.style.position = 'fixed';
+            //     instruction.style.top = '25%';
+            //     instruction.style.left = '50%';
+            //     instruction.style.transform = 'translate(-50%, -50%)';
+            //     instruction.style.fontSize = '24px';
+            //     instruction.style.fontWeight = 'bold';
+            //     instruction.style.color = 'white';
+            //     instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            //     instruction.style.padding = '15px 25px';
+            //     instruction.style.borderRadius = '8px';
+            //     instruction.style.textAlign = 'center';
+            //     instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            //     instruction.style.zIndex = '100';
+            //     instruction.style.display = 'none';
+            //     instruction.textContent = 'Cliquez sur le cube pour continuer';
+            //     document.body.appendChild(instruction);
+            // }
         };
 
         createUI();
@@ -412,7 +412,7 @@ function CameraController({ children }) {
                 setInteractionTarget(targetObject);
 
                 // Mettre à jour l'état local
-                setInteractionStatus(prev => ({ ...prev, [interaction.id]: 'waiting' }));
+                setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
             }
         });
     };

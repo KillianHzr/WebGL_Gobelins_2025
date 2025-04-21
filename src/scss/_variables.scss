@@ -1,0 +1,50 @@
+// Importation des modules Sass
+@use "sass:map";
+@forward "sass:map";
+
+// Variables
+$colors: (
+        background: #1e1e2f,
+        text: #ffffff,
+        primary: #4383f5,
+        primary-hover: #306ad6,
+        camera-bg: rgba(0, 0, 0, 0.6),
+        success: #00ff00,
+        black: #000000
+);
+
+$sizes: (
+        button: (
+                padding: 15px 30px,
+                radius: 8px
+        ),
+        camera: (
+                size: 80px,
+                margin: 40px
+        )
+);
+
+$z-index: (
+        base: 10,
+        timeline: 100,
+        interface: 1000,
+        flash: 1001,
+        notification: 1002
+);
+
+// Function to access colors
+@function color($key) {
+  @return map.get($colors, $key);
+}
+
+// Animations
+@keyframes flash {
+  0% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}

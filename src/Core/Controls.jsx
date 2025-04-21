@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
+import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 
 export default function Controls() {
-    const { gl } = useThree();
-    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
+    const {gl} = useThree();
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
 
     useEffect(() => {

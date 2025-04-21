@@ -1,7 +1,7 @@
-import { create } from 'zustand'
-import { createAudioSlice } from './AudioSlice'
-import { createInteractionSlice } from './interactionSlice'
-import { createClickListenerSlice } from './clickListenerSlice'
+import {create} from 'zustand'
+import {createAudioSlice} from './AudioSlice'
+import {createInteractionSlice} from './interactionSlice'
+import {createClickListenerSlice} from './clickListenerSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -17,7 +17,7 @@ const isDebugEnabled = () => {
 const useStore = create((set, get) => ({
     // Asset loading state
     loaded: false,
-    setLoaded: (loaded) => set({ loaded }),
+    setLoaded: (loaded) => set({loaded}),
 
     // Debug state - initially set based on URL hash
     debug: {
@@ -27,24 +27,32 @@ const useStore = create((set, get) => ({
         showTheatre: isDebugEnabled() // Show Theatre.js Studio interface
     },
     setDebug: (debugSettings) => set(state => ({
-        debug: { ...state.debug, ...debugSettings }
+        debug: {...state.debug, ...debugSettings}
     })),
+
+    // Camera state for zoom functionality
+    camera: null,
+    setCamera: (camera) => set({ camera }),
+    cameraInitialZoom: null,
+    setCameraInitialZoom: (zoom) => set({ cameraInitialZoom: zoom }),
+    currentZoomLevel: 0, // -3 to +3 range
+    setCurrentZoomLevel: (level) => set({ currentZoomLevel: level }),
 
     // Theatre.js Studio instance
     theatreStudio: null,
-    setTheatreStudio: (studio) => set({ theatreStudio: studio }),
+    setTheatreStudio: (studio) => set({theatreStudio: studio}),
 
     // GUI instance (shared among all components)
     gui: null,
-    setGui: (gui) => set({ gui }),
+    setGui: (gui) => set({gui}),
 
     // Debug configuration (for export/import)
     debugConfig: null,
-    setDebugConfig: (config) => set({ debugConfig: config }),
+    setDebugConfig: (config) => set({debugConfig: config}),
 
     // Update specific part of debug config
     updateDebugConfig: (path, value) => {
-        const config = { ...get().debugConfig };
+        const config = {...get().debugConfig};
         let current = config;
         const parts = path.split('.');
 
@@ -58,7 +66,7 @@ const useStore = create((set, get) => ({
 
         // Set the value at the final path
         current[parts[parts.length - 1]] = value;
-        set({ debugConfig: config });
+        set({debugConfig: config});
     },
 
     // Get value from debug config
@@ -81,7 +89,7 @@ const useStore = create((set, get) => ({
     },
 
     updateDebugConfigWithoutRender: (path, value) => {
-        const config = { ...get().debugConfig };
+        const config = {...get().debugConfig};
         let current = config;
         const parts = path.split('.');
 
@@ -100,7 +108,131 @@ const useStore = create((set, get) => ({
         get().setDebugConfig(config);
     },
 
-    // Intégration des tranches
+    // Système de détection des clics
+    clickListener: {
+        // État indiquant si l'écoute des clics est active
+        isListening: false,
+
+        // Méthode pour démarrer l'écoute des clics
+        startListening: () => set(state => ({
+            clickListener: {
+                ...state.clickListener,
+                isListening: true
+            }
+        })),
+
+        // Méthode pour arrêter l'écoute des clics
+        stopListening: () => set(state => ({
+            clickListener: {
+                ...state.clickListener,
+                isListening: false
+            }
+        })),
+
+        // Méthode pour basculer l'état d'écoute
+        toggleListening: () => set(state => ({
+            clickListener: {
+                ...state.clickListener,
+                isListening: !state.clickListener.isListening
+            }
+        })),
+
+        // Configuration de débogage
+        debug: {
+            enabled: false
+        }
+    },
+
+    // État des interactions
+    interaction: {
+        currentStep: null,
+        allowScroll: true,
+        waitingForInteraction: false,
+        completedInteractions: {},
+        showCaptureInterface: false,
+        showScannerInterface: false,
+
+        setShowCaptureInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showCaptureInterface: show
+            }
+        })),
+
+        setShowScannerInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showScannerInterface: show
+            }
+        })),
+
+        // Méthodes existantes
+        setCurrentStep: (step) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                currentStep: step
+            }
+        })),
+
+        // Définir si le défilement est autorisé
+        setAllowScroll: (allow) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                allowScroll: allow
+            }
+        })),
+
+        // Définir si on attend une interaction
+        setWaitingForInteraction: (waiting) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                waitingForInteraction: waiting
+            }
+        })),
+
+        // Compléter une interaction (utilisé lorsqu'on détecte un clic sur un objet)
+        completeInteraction: () => {
+            const state = get();
+            if (!state.interaction.waitingForInteraction) return;
+
+            // Récupérer l'étape actuelle
+            const currentStep = state.interaction.currentStep;
+
+            // Désactiver immédiatement l'attente d'interaction
+            set(state => ({
+                interaction: {
+                    ...state.interaction,
+                    waitingForInteraction: false,
+                    // S'assurer que completedInteractions existe
+                    completedInteractions: {
+                        ...(state.interaction.completedInteractions || {}),
+                        [currentStep]: true
+                    }
+                }
+            }));
+
+            // Réactiver le défilement avec un léger délai
+            setTimeout(() => {
+                set(state => ({
+                    interaction: {
+                        ...state.interaction,
+                        allowScroll: true
+                    }
+                }));
+            }, 500);
+
+            return currentStep;
+        }
+    },
+
+    // Gestion des instances et des positions des arbres
+    instanceGroups: {},
+    setInstanceGroups: (groups) => set({ instanceGroups: groups }),
+
+    treePositions: null,
+    setTreePositions: (positions) => set({ treePositions: positions }),
+
+    // Intégration de la tranche audio
     ...createClickListenerSlice(set, get),
     ...createInteractionSlice(set, get),
     ...createAudioSlice(set, get)

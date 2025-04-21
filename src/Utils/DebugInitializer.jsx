@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import {useEffect, useRef} from 'react';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
-import { audioManager } from './AudioManager';
+import {audioManager} from './AudioManager';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -10,7 +10,7 @@ import { audioManager } from './AudioManager';
  * related to debug mode initialization
  */
 const DebugInitializer = () => {
-    const { debug, setDebug, setGui, setDebugConfig } = useStore();
+    const {debug, setDebug, setGui, setDebugConfig} = useStore();
     const initializedRef = useRef(false);
 
     // Fonction utilitaire pour manipuler l'interface Theatre.js
@@ -28,7 +28,7 @@ const DebugInitializer = () => {
 
                 // Mettre à jour la configuration sans modifier l'état React
                 if (useStore.getState().debugConfig) {
-                    const updatedConfig = { ...useStore.getState().debugConfig };
+                    const updatedConfig = {...useStore.getState().debugConfig};
                     if (!updatedConfig.theatre) updatedConfig.theatre = {};
                     if (!updatedConfig.theatre.showUI) updatedConfig.theatre.showUI = {};
                     updatedConfig.theatre.showUI.value = show;
@@ -136,7 +136,7 @@ const DebugInitializer = () => {
             const exportConfig = {
                 export: () => {
                     // Get current config and scene state
-                    const { debugConfig } = useStore.getState();
+                    const {debugConfig} = useStore.getState();
 
                     // Create a deep copy of guiConfig to modify
                     const outputConfig = JSON.parse(JSON.stringify(guiConfig));
@@ -148,7 +148,7 @@ const DebugInitializer = () => {
                     const jsContent = generateConfigJS(outputConfig);
 
                     // Create a download link
-                    const blob = new Blob([jsContent], { type: 'application/javascript' });
+                    const blob = new Blob([jsContent], {type: 'application/javascript'});
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -222,7 +222,7 @@ export default guiConfig;`;
                     // Fix quotes for all normal property names
                     .replace(/"([a-zA-Z0-9_]+)":/g, '$1:')
                     // Keep quotes for property names with special characters
-                    .replace(/"([^"]+)":/g, function(match, p1) {
+                    .replace(/"([^"]+)":/g, function (match, p1) {
                         // If the property name contains spaces, keep it quoted
                         if (/[^a-zA-Z0-9_]/.test(p1)) {
                             return match;
@@ -339,7 +339,7 @@ export default guiConfig;`;
 
         // Cleanup function - destroy GUI on unmount
         return () => {
-            const { gui } = useStore.getState();
+            const {gui} = useStore.getState();
             if (gui) {
                 gui.destroy();
                 setGui(null);

@@ -1,8 +1,6 @@
-import React, {useEffect, useMemo, useRef} from 'react'
-import {useFrame, useThree} from '@react-three/fiber'
-import {OrbitControls} from '@react-three/drei'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
+import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
-import Cube from './World/Cube'
 import ScrollControls from './Core/ScrollControls'
 import {initializeLight} from "./Utils/defaultValues.js";
 import DebugInitializer from "./Utils/DebugInitializer.jsx";
@@ -12,15 +10,59 @@ import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
-import { EventEmitterProvider } from './Utils/EventEmitter';
-import ForestSceneWrapper from './World/ForestSceneWrapper'; // Utilisation du wrapper
+import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
+import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
+import InteractiveMarkersProvider from './Utils/MarkerSystem';
+import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
+import SceneObjects, {SingleInteractiveObject} from './World/SceneObjects';
 
 export default function Experience() {
-    const {loaded, debug} = useStore()
-    const {scene} = useThree()
+    const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
+    const {scene, camera} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
+
+    // Gestion des événements des marqueurs
+    useEffect(() => {
+        // Écouter les événements de marqueurs
+        const markerClickHandler = (data) => {
+            console.log('Marqueur cliqué:', data);
+        };
+
+        const interactionRequiredHandler = (data) => {
+            console.log('Interaction requise:', data);
+            // Déclencher l'interaction dans le store si nécessaire
+            const {setWaitingForInteraction, setCurrentStep} = useStore.getState().interaction;
+            if (setWaitingForInteraction && setCurrentStep) {
+                setWaitingForInteraction(true);
+                setCurrentStep(data.id);
+            }
+        };
+
+        const markerHoverHandler = (data) => {
+            console.log('Marqueur survolé:', data);
+        };
+
+        // S'abonner aux événements
+        const cleanupClickEvent = EventBus.on(MARKER_EVENTS.MARKER_CLICK, markerClickHandler);
+        const cleanupHoverEvent = EventBus.on(MARKER_EVENTS.MARKER_HOVER, markerHoverHandler);
+        const cleanupInteractionEvent = EventBus.on(MARKER_EVENTS.INTERACTION_REQUIRED, interactionRequiredHandler);
+
+        return () => {
+            // Nettoyage
+            cleanupClickEvent();
+            cleanupHoverEvent();
+            cleanupInteractionEvent();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (camera) {
+            setCamera(camera);
+            setCameraInitialZoom(camera.zoom);
+        }
+    }, [camera, setCamera, setCameraInitialZoom]);
 
     // Appliquer les valeurs par défaut aux lumières lors du montage
     useEffect(() => {
@@ -53,40 +95,43 @@ export default function Experience() {
         }
     }, [scene, debug]);
 
-    return (
-        <EventEmitterProvider>
-            {/* Initialize debug mode based on URL hash */}
-            <DebugInitializer/>
+    return (<EventEmitterProvider>
+        <DebugInitializer/>
+        <AudioManagerComponent/>
 
-            {/* Initialize audio system */}
-            <AudioManagerComponent />
+        {debug?.active && debug?.showStats && <Stats/>}
+        {debug?.active && debug?.showGui && <Debug/>}
+        {debug?.active && debug?.showGui && <Camera/>}
+        {debug?.active && debug?.showGui && <Controls/>}
+        {debug?.active && debug?.showGui && <Lights/>}
 
-            {/* Debug Tools - only render if debug mode is active */}
-            {debug?.active && debug?.showStats && <Stats/>}
-            {debug?.active && debug?.showStats && <Controls/>}
-            {debug?.active && debug?.showGui && <Debug/>}
-            {debug?.active && debug?.showGui && <Camera/>}
-            {debug?.active && debug?.showGui && <Controls/>}
-            {debug?.active && debug?.showGui && <Lights/>}
-
-            {/* Ajout du système de raycasting */}
-            <RayCaster>
+        <RayCaster>
+            <InteractiveMarkersProvider>
                 <ScrollControls>
                     {/* Lights */}
-                    <ambientLight intensity={2.5}/>
+                    <ambientLight intensity={0.5}/>
                     <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                     <color attach="background" args={['#1e1e2f']}/>
-                    {/*<fog attach="fog" color="#1e1e2f" near={1} far={15}/>*/}
 
-                    {/* Objects */}
-                    <Cube/>
+                    {/* Utiliser le composant principal qui affiche tous les objets de scène
+                        avec les placements par défaut du SceneObjectManager */}
+                    <SceneObjects />
 
-                    {/* Utiliser le wrapper qui gère le chargement des assets */}
-                    {useMemo(() => (
-                        <ForestSceneWrapper />
-                    ), [])}
+                    {/* Exemple d'ajout d'un objet interactif spécial que nous voulons différencier des placements par défaut */}
+                    <SingleInteractiveObject
+                        objectKey="BushInteractive"
+                        position={[3, 0, -3]}
+                        options={{
+                            markerId: "special-bush",
+                            markerText: "Buisson spécial",
+                            requiredStep: "specialStop"
+                        }}
+                    />
+
+                    {/* La forêt avec ses instances nombreuses (instanced meshes) */}
+                    {/*{useMemo(() => (<ForestSceneWrapper/>), [])}*/}
                 </ScrollControls>
-            </RayCaster>
-        </EventEmitterProvider>
-    )
+            </InteractiveMarkersProvider>
+        </RayCaster>
+    </EventEmitterProvider>)
 }

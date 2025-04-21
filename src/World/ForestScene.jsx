@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import Map from './Map';
+import React, { useEffect, useState, useMemo } from 'react';
 import Forest from './Forest';
 import { EventBus, useEventEmitter } from '../Utils/EventEmitter';
+import MapWithInstances from "./MapWithInstances.jsx";
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
@@ -9,7 +9,7 @@ export default function ForestScene() {
     const eventEmitter = useEventEmitter();
 
     useEffect(() => {
-        // S'abonner aux événements de chargement
+        // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {
             console.log('Map est prête');
             setMapReady(true);
@@ -40,11 +40,14 @@ export default function ForestScene() {
         }
     }, [mapReady, forestReady]);
 
+    // Utiliser useMemo pour éviter les re-rendus inutiles
+    const mapComponent = useMemo(() => <MapWithInstances />, []);
+    const forestComponent = useMemo(() => <Forest />, []);
+
     return (
         <>
-            {/* Chargement de la map et des arbres comme composants séparés */}
-            {/*<Map />*/}
-            <Forest />
+            {/*{mapComponent}*/}
+            {forestComponent}
         </>
     );
 }

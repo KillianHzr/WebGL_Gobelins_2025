@@ -25,33 +25,39 @@ technologies.
 ├── static/           # Ressources statiques
 │   ├── draco/        # Compression Draco pour les modèles 3D
 │   │   ├── envmap/   # Maps d'environnement pour Draco
-│   │   │   └── DayEnvironmentHDRI048_2K-HDR.exr  # Map d'environnement HDR
-│   │   └── gltf/     # Support GLTF pour Draco
-│   │       ├── draco_decoder.js
-│   │       ├── draco_decoder.wasm
-│   │       ├── draco_encoder.js
-│   │       ├── draco_wasm_wrapper.js
-│   │       └── README.md
+│   │   ├── gltf/     # Support GLTF pour Draco
+│   │   │   ├── draco_decoder.js
+│   │   │   ├── draco_decoder.wasm
+│   │   │   ├── draco_encoder.js
+│   │   │   ├── draco_wasm_wrapper.js
+│   │   │   └── README.md
+│   ├── data/         # Données pour les positions des objets
+│   │   ├── templatePositions.json
+│   │   └── treePositions.json
 │   ├── models/       # Modèles 3D
 │   │   ├── forest/   # Modèles de forêt
+│   │   │   ├── bush/ # Modèles de buissons
+│   │   │   │   └── Bush.glb
 │   │   │   └── tree/ # Modèles d'arbres
-│   │   │       ├── Tree1.glb
-│   │   │       ├── Tree2.glb
-│   │   │       └── Tree3.glb
-│   │   ├── Map.glb     # Modèle du renard
-│   │   └── textures/ # Textures
-│   ├── sounds/       # Fichiers audio
-│   │   ├── ambient.mp3  # Son d'ambiance
-│   │   └── click.mp3    # Son de clic
+│   │   │       ├── ThinTrunk.glb
+│   │   │       ├── TreeNaked.glb
+│   │   │       ├── TreeStump.glb
+│   │   │       └── TrunkLarge.glb
+│   │   ├── Map.glb
+│   │   ├── MapInstance.glb
+│   │   └── MapScene.glb
+│   ├── audios/       # Fichiers audio
+│   │   ├── ambient.wav
+│   │   ├── click.wav
+│   │   └── drag.wav
 │   └── textures/     # Textures
-│       ├── dirt/     # Textures de sol
-│       └── environmentMap/ # Maps d'environnement
 ├── src/              # Code source
 │   ├── Assets/       # Gestion des assets
 │   │   ├── AssetManager.jsx  # Gestionnaire d'assets
 │   │   └── assets.js         # Liste des assets à charger
 │   ├── Config/       # Configuration
-│   │   └── guiConfig.js      # Configuration de l'interface de debug
+│   │   ├── TemplateManager.js  # Gestionnaire de templates pour la forêt
+│   │   └── guiConfig.js        # Configuration de l'interface de debug
 │   ├── Core/         # Composants principaux
 │   │   ├── Camera.jsx        # Gestion de la caméra
 │   │   ├── Clock.jsx         # Gestion du temps
@@ -60,15 +66,15 @@ technologies.
 │   │   ├── PostProcessing.jsx # Effets post-processing
 │   │   ├── Renderer.jsx      # Rendu Three.js
 │   │   ├── Scene.jsx         # Scène principale
-│   │   └── ScrollControls.jsx # Contrôle du défilement et interactions
+│   │   ├── ScrollControls.jsx # Contrôle du défilement et interactions
 │   ├── Hooks/        # Hooks React personnalisés
 │   │   ├── useAnimationLoop.js  # Animation loop
 │   │   ├── useCanvasSize.js     # Gestion taille du canvas
-│   │   ├── useDragGesture.js     # Détection de drag sur objets
+│   │   ├── useDragGesture.js    # Détection de drag sur objets
 │   │   ├── useObjectClick.js    # Détection de clic sur objets
 │   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
-│   │   ├── audioSlice.js      # Tranche pour la gestion du son
+│   │   ├── AudioSlice.js      # Tranche pour la gestion du son
 │   │   ├── clickListenerSlice.js # Tranche pour la gestion des clics
 │   │   └── useStore.js          # Store Zustand central
 │   ├── Utils/        # Utilitaires
@@ -90,6 +96,7 @@ technologies.
 │   │   ├── ForestScene.jsx    # Scène de forêt
 │   │   ├── ForestSceneWrapper.jsx # Wrapper pour la scène de forêt
 │   │   ├── Map.jsx            # Carte du monde
+│   │   ├── MapWithInstances.jsx # Carte avec instances pour la forêt
 │   │   ├── Particles.jsx      # Système de particules
 │   │   ├── Physics.jsx        # Système physique
 │   │   ├── Sky.jsx            # Ciel
@@ -99,11 +106,11 @@ technologies.
 │   ├── index.html    # Fichier HTML principal
 │   ├── main.jsx      # Point d'entrée
 │   └── style.css     # Styles CSS globaux
-├── .gitignore        # Configuration Git
 ├── documentation.md  # Documentation technique
 ├── package.json      # Dépendances et scripts
 ├── package-lock.json # Versions verrouillées des dépendances
-└── README.md         # Documentation d'introduction
+├── README.md         # Documentation d'introduction
+└── vite.config.js    # Configuration de Vite
 ```
 
 ## Principales Features de Développement
@@ -173,10 +180,11 @@ technologies.
 - **Modularité :** Gestion audio centralisée via un système de singleton accessible partout
 - **Visibilité :** Retour visuel clair sur les objets interactifs grâce à l'effet de glow
 
-## Fonctionnalités Implémentées
+| Fonctionnalités Implémentées
 
 | Fonctionnalité                           | Description                                                                            | Statut     | Emplacement                                                                                                                                         |
 |------------------------------------------|----------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Système de Marker Interactif             | Gestion dynamique et automatisée des objets interactifs et de leurs interactions       | Implémenté | `src/World/SceneObjectManager.js`, `src/World/EasyModelMarker.jsx`                                                                                  |
 | Setup Caméra                             | Configuration initiale de la caméra 3D                                                 | Implémenté | `src/Core/Camera.jsx`                                                                                                                               |
 | Setup GUI de Debug                       | Interface de débogage pour le développement                                            | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                                                     |
 | Analyses de Métriques                    | Système de suivi des performances et statistiques                                      | Implémenté | `src/Utils/Stats.js`                                                                                                                                |
@@ -186,6 +194,7 @@ technologies.
 | Système Audio                            | Gestion complète des sons ambiant et ponctuels, avec effets de fondu                   | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`                                     |
 | Effet de Glow                            | Système de contour lumineux autour des objets interactifs                              | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`                                     |
 | Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx`                                   |
+| Système d'Instanciation de Forêt         | Architecture modulaire pour le rendu efficient des éléments forestiers                 | Implémenté | `src/Assets/AssetManager.jsx`, `src/Config/TemplateManager.js`, `src/World/Forest.jsx`                                                              |
 
 ## Fonctionnement des features de documentation
 
@@ -333,3 +342,67 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
     * Optimisation du nombre de triangles rendus
     * Amélioration des performances globales, particulièrement sur les appareils mobiles
     * Interface utilisateur fluide même avec des scènes complexes
+
+### 10. Système d'Instanciation de Forêt
+
+* Architecture modulaire pour le chargement efficace et le rendu performant d'éléments forestiers :
+    * `src/Assets/AssetManager.jsx` : Gestionnaire central de chargement avec optimisation de matériaux et DRACO
+    * `src/Config/TemplateManager.js` : Registre des templates avec mapping ID-modèle (ex: 753 → 'Retopo_TRONC001')
+    * `src/World/MapWithInstances.jsx` : Analyse les nœuds GN_Instance_X pour extraire positions et transformations
+    * `src/World/Forest.jsx` : Génère les InstancedMesh pour un rendu efficient des arbres et buissons
+    * `src/World/ForestSceneWrapper.jsx` : Vérifie la disponibilité des assets avec mécanisme de repli
+
+* Optimisations techniques implémentées :
+    * **Partage intelligent de matériaux** : Cache basé sur type et couleur pour réduire les draw calls
+    * **Analyse géométrique** : Système d'empreinte détaillant vertices, faces et ratios pour identifier les templates
+    * **Chargement multi-source** : Tente multiples chemins pour les positions JSON avec fallback vers store
+    * **Nettoyage méthodique** : Dispose correcte des géométries et matériaux pour éviter fuites mémoire
+
+* Communication par événements :
+    * 'map-ready' → 'tree-positions-ready' → 'forest-ready' → 'forest-scene-ready'
+    * Utilisation de l'EventBus pour découpler les composants et synchroniser le chargement
+
+* Configuration des templates existants :
+    * TreeNaked, TrunkLarge, ThinTrunk, TreeStump et Bush actuellement supportés
+    * Extension facile via le système de templates avec définition de priorité de chargement
+
+### 11. Système de Marker Interactif Avancé
+
+Le système de Marker est une couche d'abstraction sophistiquée qui gère les interactions et la visibilité des objets
+dans la scène 3D. Il offre une approche modulaire et hautement configurable pour la gestion des objets interactifs.
+
+#### Caractéristiques Principales
+
+* **Attribution Automatique des Étapes**
+    - Génération dynamique des étapes d'interaction basée sur l'ordre des objets dans le catalogue
+    - Système flexible permettant de définir des séquences d'interaction prédéfinies
+    - Capacité à gérer des objets interactifs et statiques dans un même flux
+
+* **Génération Intelligente des Identifiants**
+    - Création automatique de `markerId` basée sur l'étape d'interaction
+    - Génération de textes descriptifs associés aux markers
+    - Dictionnaire centralisé de textes pour chaque étape (`stepTexts`)
+
+* **Gestion Dynamique des Interactions**
+    - Support pour les objets avec interaction obligatoire et optionnelle
+    - Contrôle fin de la visibilité des contours (outlines) basé sur l'étape courante
+    - Possibilité de définir des callbacks personnalisés pour chaque interaction
+
+* **Configuration Centralisée**
+    - Tous les placements d'objets (interactifs et statiques) gérés depuis un point unique
+    - Mécanisme de réinitialisation aux valeurs par défaut
+    - Support pour les modifications dynamiques des placements
+
+#### Mécanisme de Fonctionnement
+
+```javascript
+// Exemple de configuration automatique
+sceneObjectManager.addPlacement('TreeInteractive', [2, 0, -5], {
+    // Le requiredStep sera automatiquement assigné
+    markerId: "firstStop-marker",  // Généré automatiquement
+    markerText: "Premier point d'intérêt",  // Généré depuis stepTexts
+    onInteract: (event) => {
+        // Logique d'interaction personnalisée
+    }
+});
+```

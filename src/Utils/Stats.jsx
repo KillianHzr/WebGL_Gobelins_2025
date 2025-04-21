@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import {useEffect} from 'react';
 import Stats from 'stats.js';
-import { useThree } from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 
 const StatsComponent = () => {
-    const { gl } = useThree();
-    const { debug } = useStore();
+    const {gl} = useThree();
+    const {debug} = useStore();
 
     useEffect(() => {
         // Only initialize if debug is active and showStats is true

@@ -1,13 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
+import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import { getDefaultValue, initializeLight } from '../Utils/defaultValues';
+import {getDefaultValue, initializeLight} from '../Utils/defaultValues';
 
 export default function Lights() {
-    const { scene } = useThree();
-    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
+    const {scene} = useThree();
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
 
     // Initialiser les lumières avec les valeurs par défaut du config au montage
