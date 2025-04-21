@@ -118,12 +118,14 @@ technologies.
 ### 1. Système de Débogage Interactif
 
 **Fichiers Clés :**
+
 - `src/Utils/DebugInitializer.jsx`: Point d'entrée pour l'initialisation du mode debug
 - `src/Store/useStore.js`: Gestion centralisée de l'état de débogage
 - `src/Config/guiConfig.js`: Configuration des contrôles du GUI
 - Composants spécifiques de debug : `Camera.jsx`, `Lights.jsx`, `Cube.jsx`, `Debug.jsx`
 
 **Interconnexion :**
+
 - `useStore` gère l'état global du debug via un hook Zustand
 - `DebugInitializer` crée l'instance GUI basée sur l'état du debug
 - Les composants individuels (`Camera`, `Lights`, etc.) utilisent `useStore` pour accéder et mettre à jour les
@@ -133,11 +135,13 @@ technologies.
 ### 2. Configuration Dynamique et Persistance
 
 **Fichiers Clés :**
+
 - `src/Utils/defaultValues.js`: Utilitaires pour extraire et appliquer des valeurs par défaut
 - `src/Store/useStore.js`: Méthodes pour sauvegarder et charger des configurations
 - `src/Utils/DebugInitializer.jsx`: Fonctionnalités d'export/import de configuration
 
 **Interconnexion :**
+
 - `defaultValues.js` fournit des méthodes pour initialiser des objets avec des configurations par défaut
 - `useStore` permet de stocker et récupérer des configurations dynamiques
 - `DebugInitializer` offre des fonctions pour exporter et importer des configurations complètes
@@ -145,11 +149,13 @@ technologies.
 ### 3. Système de Statistiques et Métriques de Performance
 
 **Fichiers Clés :**
+
 - `src/Utils/Stats.jsx`: Composant de rendu des statistiques de performance
 - `src/Store/useStore.js`: Gestion de l'état d'affichage des stats
 - `experience.jsx`: Intégration conditionnelle des stats de debug
 
 **Interconnexion :**
+
 - `useStore` contrôle l'affichage des statistiques via le mode debug
 - `Stats.jsx` récupère les informations de rendu via `useThree()`
 - Le composant `Experience` rend conditionnellement les stats basé sur l'état de debug
@@ -174,10 +180,11 @@ technologies.
 - **Modularité :** Gestion audio centralisée via un système de singleton accessible partout
 - **Visibilité :** Retour visuel clair sur les objets interactifs grâce à l'effet de glow
 
-## Fonctionnalités Implémentées
+| Fonctionnalités Implémentées
 
 | Fonctionnalité                           | Description                                                                            | Statut     | Emplacement                                                                                                                                         |
 |------------------------------------------|----------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Système de Marker Interactif             | Gestion dynamique et automatisée des objets interactifs et de leurs interactions       | Implémenté | `src/World/SceneObjectManager.js`, `src/World/EasyModelMarker.jsx`                                                                                  |
 | Setup Caméra                             | Configuration initiale de la caméra 3D                                                 | Implémenté | `src/Core/Camera.jsx`                                                                                                                               |
 | Setup GUI de Debug                       | Interface de débogage pour le développement                                            | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                                                     |
 | Analyses de Métriques                    | Système de suivi des performances et statistiques                                      | Implémenté | `src/Utils/Stats.js`                                                                                                                                |
@@ -187,12 +194,14 @@ technologies.
 | Système Audio                            | Gestion complète des sons ambiant et ponctuels, avec effets de fondu                   | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`                                     |
 | Effet de Glow                            | Système de contour lumineux autour des objets interactifs                              | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`                                     |
 | Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx`                                   |
+| Système d'Instanciation de Forêt         | Architecture modulaire pour le rendu efficient des éléments forestiers                 | Implémenté | `src/Assets/AssetManager.jsx`, `src/Config/TemplateManager.js`, `src/World/Forest.jsx`                                                              |
 
 ## Fonctionnement des features de documentation
 
 La documentation (`documentation.md`) décrit quatre fonctionnalités principales:
 
 ### 1. Setup Caméra
+
 * Implémenté dans `Camera.jsx`
 * Utilise `useThree()` pour accéder à la caméra Three.js
 * Applique les valeurs par défaut de `guiConfig.js`
@@ -200,6 +209,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Les valeurs sont persistées dans le store et peuvent être restaurées
 
 ### 2. Setup GUI de Debug
+
 * Implémenté dans `DebugInitializer.jsx` avec `guiConfig.js`
 * L'interface est construite avec lil-gui
 * Activé par le hash URL `#debug`
@@ -207,6 +217,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Organise les contrôles par catégories (caméra, lumières, objets, etc.)
 
 ### 3. Analyses de Métriques
+
 * Implémenté dans `Stats.jsx`
 * Utilise `stats.js` pour afficher les FPS, temps de rendu, etc.
 * Ajoute des informations spécifiques à WebGL (triangles, appels de rendu, etc.)
@@ -214,6 +225,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Les métriques sont mises à jour à chaque frame
 
 ### 4. Mouvement de Caméra au Scroll
+
 * Implémenté dans `ScrollControls.jsx`
 * Utilise Theatre.js pour définir une séquence d'animation
 * Capture les événements de défilement et les normalise pour tous les périphériques
@@ -236,6 +248,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
     * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
+
 ### 6. Système de Drag Gestures Personnalisés
 
 * Implémenté dans `useDragGesture.js`
@@ -352,3 +365,44 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Configuration des templates existants :
     * TreeNaked, TrunkLarge, ThinTrunk, TreeStump et Bush actuellement supportés
     * Extension facile via le système de templates avec définition de priorité de chargement
+
+### 11. Système de Marker Interactif Avancé
+
+Le système de Marker est une couche d'abstraction sophistiquée qui gère les interactions et la visibilité des objets
+dans la scène 3D. Il offre une approche modulaire et hautement configurable pour la gestion des objets interactifs.
+
+#### Caractéristiques Principales
+
+* **Attribution Automatique des Étapes**
+    - Génération dynamique des étapes d'interaction basée sur l'ordre des objets dans le catalogue
+    - Système flexible permettant de définir des séquences d'interaction prédéfinies
+    - Capacité à gérer des objets interactifs et statiques dans un même flux
+
+* **Génération Intelligente des Identifiants**
+    - Création automatique de `markerId` basée sur l'étape d'interaction
+    - Génération de textes descriptifs associés aux markers
+    - Dictionnaire centralisé de textes pour chaque étape (`stepTexts`)
+
+* **Gestion Dynamique des Interactions**
+    - Support pour les objets avec interaction obligatoire et optionnelle
+    - Contrôle fin de la visibilité des contours (outlines) basé sur l'étape courante
+    - Possibilité de définir des callbacks personnalisés pour chaque interaction
+
+* **Configuration Centralisée**
+    - Tous les placements d'objets (interactifs et statiques) gérés depuis un point unique
+    - Mécanisme de réinitialisation aux valeurs par défaut
+    - Support pour les modifications dynamiques des placements
+
+#### Mécanisme de Fonctionnement
+
+```javascript
+// Exemple de configuration automatique
+sceneObjectManager.addPlacement('TreeInteractive', [2, 0, -5], {
+    // Le requiredStep sera automatiquement assigné
+    markerId: "firstStop-marker",  // Généré automatiquement
+    markerText: "Premier point d'intérêt",  // Généré depuis stepTexts
+    onInteract: (event) => {
+        // Logique d'interaction personnalisée
+    }
+});
+```
