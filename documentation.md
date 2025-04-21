@@ -25,33 +25,39 @@ technologies.
 ├── static/           # Ressources statiques
 │   ├── draco/        # Compression Draco pour les modèles 3D
 │   │   ├── envmap/   # Maps d'environnement pour Draco
-│   │   │   └── DayEnvironmentHDRI048_2K-HDR.exr  # Map d'environnement HDR
-│   │   └── gltf/     # Support GLTF pour Draco
-│   │       ├── draco_decoder.js
-│   │       ├── draco_decoder.wasm
-│   │       ├── draco_encoder.js
-│   │       ├── draco_wasm_wrapper.js
-│   │       └── README.md
+│   │   ├── gltf/     # Support GLTF pour Draco
+│   │   │   ├── draco_decoder.js
+│   │   │   ├── draco_decoder.wasm
+│   │   │   ├── draco_encoder.js
+│   │   │   ├── draco_wasm_wrapper.js
+│   │   │   └── README.md
+│   ├── data/         # Données pour les positions des objets
+│   │   ├── templatePositions.json
+│   │   └── treePositions.json
 │   ├── models/       # Modèles 3D
 │   │   ├── forest/   # Modèles de forêt
+│   │   │   ├── bush/ # Modèles de buissons
+│   │   │   │   └── Bush.glb
 │   │   │   └── tree/ # Modèles d'arbres
 │   │   │       ├── ThinTrunk.glb
-│   │   │       ├── Tree2.glb
+│   │   │       ├── TreeNaked.glb
+│   │   │       ├── TreeStump.glb
 │   │   │       └── TrunkLarge.glb
-│   │   ├── Map.glb     # Modèle du renard
-│   │   └── textures/ # Textures
-│   ├── sounds/       # Fichiers audio
-│   │   ├── ambient.mp3  # Son d'ambiance
-│   │   └── click.mp3    # Son de clic
+│   │   ├── Map.glb
+│   │   ├── MapInstance.glb
+│   │   └── MapScene.glb
+│   ├── audios/       # Fichiers audio
+│   │   ├── ambient.wav
+│   │   ├── click.wav
+│   │   └── drag.wav
 │   └── textures/     # Textures
-│       ├── dirt/     # Textures de sol
-│       └── environmentMap/ # Maps d'environnement
 ├── src/              # Code source
 │   ├── Assets/       # Gestion des assets
 │   │   ├── AssetManager.jsx  # Gestionnaire d'assets
 │   │   └── assets.js         # Liste des assets à charger
 │   ├── Config/       # Configuration
-│   │   └── guiConfig.js      # Configuration de l'interface de debug
+│   │   ├── TemplateManager.js  # Gestionnaire de templates pour la forêt
+│   │   └── guiConfig.js        # Configuration de l'interface de debug
 │   ├── Core/         # Composants principaux
 │   │   ├── Camera.jsx        # Gestion de la caméra
 │   │   ├── Clock.jsx         # Gestion du temps
@@ -60,15 +66,15 @@ technologies.
 │   │   ├── PostProcessing.jsx # Effets post-processing
 │   │   ├── Renderer.jsx      # Rendu Three.js
 │   │   ├── Scene.jsx         # Scène principale
-│   │   └── ScrollControls.jsx # Contrôle du défilement et interactions
+│   │   ├── ScrollControls.jsx # Contrôle du défilement et interactions
 │   ├── Hooks/        # Hooks React personnalisés
 │   │   ├── useAnimationLoop.js  # Animation loop
 │   │   ├── useCanvasSize.js     # Gestion taille du canvas
-│   │   ├── useDragGesture.js     # Détection de drag sur objets
+│   │   ├── useDragGesture.js    # Détection de drag sur objets
 │   │   ├── useObjectClick.js    # Détection de clic sur objets
 │   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
-│   │   ├── audioSlice.js      # Tranche pour la gestion du son
+│   │   ├── AudioSlice.js      # Tranche pour la gestion du son
 │   │   ├── clickListenerSlice.js # Tranche pour la gestion des clics
 │   │   └── useStore.js          # Store Zustand central
 │   ├── Utils/        # Utilitaires
@@ -88,6 +94,7 @@ technologies.
 │   │   ├── ForestScene.jsx    # Scène de forêt
 │   │   ├── ForestSceneWrapper.jsx # Wrapper pour la scène de forêt
 │   │   ├── Map.jsx            # Carte du monde
+│   │   ├── MapWithInstances.jsx # Carte avec instances pour la forêt
 │   │   ├── Particles.jsx      # Système de particules
 │   │   ├── Physics.jsx        # Système physique
 │   │   ├── Sky.jsx            # Ciel
@@ -97,11 +104,11 @@ technologies.
 │   ├── index.html    # Fichier HTML principal
 │   ├── main.jsx      # Point d'entrée
 │   └── style.css     # Styles CSS globaux
-├── .gitignore        # Configuration Git
 ├── documentation.md  # Documentation technique
 ├── package.json      # Dépendances et scripts
 ├── package-lock.json # Versions verrouillées des dépendances
-└── README.md         # Documentation d'introduction
+├── README.md         # Documentation d'introduction
+└── vite.config.js    # Configuration de Vite
 ```
 
 ## Principales Features de Développement
@@ -262,31 +269,25 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Capacité à jouer des sons ponctuels sans interrompre le son d'ambiance
 * Architecture extensible permettant d'ajouter facilement de nouveaux sons
 
+### 8. Système d'Instanciation de Forêt
 
-### 8. Chargement et Optimisation de Modèles 3D
+* Architecture modulaire pour le chargement efficace et le rendu performant d'éléments forestiers :
+  * `src/Assets/AssetManager.jsx` : Gestionnaire central de chargement avec optimisation de matériaux et DRACO
+  * `src/Config/TemplateManager.js` : Registre des templates avec mapping ID-modèle (ex: 753 → 'Retopo_TRONC001')
+  * `src/World/MapWithInstances.jsx` : Analyse les nœuds GN_Instance_X pour extraire positions et transformations
+  * `src/World/Forest.jsx` : Génère les InstancedMesh pour un rendu efficient des arbres et buissons
+  * `src/World/ForestSceneWrapper.jsx` : Vérifie la disponibilité des assets avec mécanisme de repli
 
-* Implémenté via une architecture en couches avec plusieurs composants spécialisés :
-    * `AssetManager.jsx` : Gestionnaire central responsable du chargement et de l'optimisation des modèles
-    * `assets.js` : Définition déclarative des assets à charger avec leurs métadonnées
-    * `ForestSceneWrapper.jsx` : Composant enveloppant qui gère la transition entre le chargement et l'affichage
-    * `Forest.jsx` : Composant d'affichage optimisé qui implémente les techniques de rendu efficaces
-* Fonctionnalités d'optimisation avancées :
-    * **Partage de matériaux** : Système de cache qui permet la réutilisation de matériaux similaires
-    * **Occlusion Culling** : Technique qui évite de rendre les objets non visibles par la caméra
-    * **Frustum Culling** : Ne traite que les objets dans le champ de vision de la caméra
-    * **Level of Detail (LOD)** : Ajuste la complexité des modèles en fonction de leur distance
-    * **Material Batching** : Regroupe les objets avec des matériaux similaires pour réduire les drawcalls
-* Stratégies d'optimisation des performances :
-    * Calcul et mise en cache des boundingSpheres pour accélérer le culling
-    * Suppression d'attributs non essentiels pour les objets éloignés
-    * Application automatique de niveaux de détails basée sur la distance à la caméra
-    * Système de vérification robuste pour garantir le chargement complet des modèles
-* Mesures de sécurité :
-    * Traitement des erreurs lors du chargement et de l'optimisation
-    * Fallbacks pour les assets manquants ou corrompus
-    * Nettoyage méthodique des ressources WebGL lors du démontage des composants
-* Résultats mesurables :
-    * Réduction significative du nombre de drawcalls (de plusieurs dizaines à moins de 10)
-    * Optimisation du nombre de triangles rendus
-    * Amélioration des performances globales, particulièrement sur les appareils mobiles
-    * Interface utilisateur fluide même avec des scènes complexes
+* Optimisations techniques implémentées :
+  * **Partage intelligent de matériaux** : Cache basé sur type et couleur pour réduire les draw calls
+  * **Analyse géométrique** : Système d'empreinte détaillant vertices, faces et ratios pour identifier les templates
+  * **Chargement multi-source** : Tente multiples chemins pour les positions JSON avec fallback vers store
+  * **Nettoyage méthodique** : Dispose correcte des géométries et matériaux pour éviter fuites mémoire
+
+* Communication par événements :
+  * 'map-ready' → 'tree-positions-ready' → 'forest-ready' → 'forest-scene-ready'
+  * Utilisation de l'EventBus pour découpler les composants et synchroniser le chargement
+
+* Configuration des templates existants :
+  * TreeNaked, TrunkLarge, ThinTrunk, TreeStump et Bush actuellement supportés
+  * Extension facile via le système de templates avec définition de priorité de chargement
