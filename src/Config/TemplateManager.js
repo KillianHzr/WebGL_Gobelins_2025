@@ -8,22 +8,22 @@ class TemplateManager {
             'Retopo_TRONC001': {
                 // Utilisation du même identifiant pour le type et l'asset
                 id: 'TreeNaked',
-                path: '/models/forest/tree/TreeNaked.glb',
+                path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1
             },
             'Retopo_GROS_TRONC001': {
                 id: 'TrunkLarge',
-                path: '/models/forest/tree/TrunkLarge.glb',
+                path: '/models/forest/tree/TrunkLarge.gltf',
                 priority: 2
             },
             'Retopo_TRONC_FIN': {
                 id: 'ThinTrunk',
-                path: '/models/forest/tree/ThinTrunk.glb',
+                path: '/models/forest/tree/ThinTrunk.gltf',
                 priority: 3
             },
             'Trunk': {
                 id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.glb',
+                path: '/models/forest/tree/TreeStump.gltf',
                 priority: 4
             },
             'Plane003': {
@@ -34,7 +34,7 @@ class TemplateManager {
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {
             //     id: 'NouvelArbre',
-            //     path: '/models/forest/tree/NouvelArbre.glb',
+            //     path: '/models/forest/tree/NouvelArbre.gltf',
             //     priority: 5
             // },
         };
