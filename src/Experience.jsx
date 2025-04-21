@@ -137,7 +137,7 @@ export default function Experience() {
                         modelPath="/models/forest/tree/TreeStump.glb"
                         position={[-3, 0, -2]}
                         scale={[0.25, 0.25, 0.25]}
-                        markerId="tree-marker"
+                        markerId="Stump-marker"
                         markerType={INTERACTION_TYPES.LONG_PRESS}
                         markerText="Cliquez ici"
                         markerColor="#44ff44"
@@ -145,7 +145,7 @@ export default function Experience() {
                         markerAxis="y"
                         outlineColor="#44ff44"
                         outlinePulse={false}  // Désactive la pulsation de l'outline
-                        requiredStep="SecondStop"
+                        requiredStep="secondStop"
                         onInteract={(event) => {
                             console.log("Interaction avec la souche:", event);
                         }}
