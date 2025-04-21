@@ -10,8 +10,8 @@ import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
-import {EventEmitterProvider} from './Utils/EventEmitter';
-import ForestSceneWrapper from './World/ForestSceneWrapper'; // Utilisation du wrapper
+import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
+import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import EnhancedCube from "./World/EnhancedCube.jsx";
@@ -114,9 +114,8 @@ export default function Experience() {
                     <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                     <color attach="background" args={['#1e1e2f']}/>
                     {/* Objects */}
-                    {loaded && (<>
-                        <EnhancedCube/>
-                    </>)}
+                    <EnhancedCube/>
+
                     {useMemo(() => (<ForestSceneWrapper/>), [])}
                 </ScrollControls>
             </InteractiveMarkersProvider>

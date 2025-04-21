@@ -87,69 +87,6 @@ export default function EnhancedCube() {
         }
     }, [clickListener]);
 
-    // Utiliser le hook pour détecter les clics sur le cube
-    useObjectClick({
-        objectRef: cubeRef,
-        enabled: true,
-        debug: debug?.active,
-        onClick: (intersection, event) => {
-            // Inverser l'état du cube quand il est cliqué
-            setActive(prev => !prev);
-
-            // Jouer un son de clic avec effet de fondu
-            audioManager.playSound('click', {
-                volume: 0.8
-            });
-
-            // Si nous sommes en attente d'une interaction pour le premier arrêt,
-            // afficher l'interface d'appareil photo
-            if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
-                if (interaction.setShowCaptureInterface) {
-                    interaction.setShowCaptureInterface(true);
-                    console.log('Affichage de l\'interface d\'appareil photo suite au clic (firstStop)');
-                }
-            }
-        }
-    });
-
-    // Utiliser le hook pour détecter les drags sur le cube
-    const {isDragging} = useDragGesture({
-        objectRef: cubeRef,
-        enabled: true,
-        minDistance: 100, // 100 pixels minimum de glissement
-        direction: 'right', // Pour le DRAG_RIGHT
-        debug: debug?.active,
-        onDragStart: (data) => {
-            console.log('Drag started on cube');
-            setDragging(true);
-        },
-        onDragEnd: (data) => {
-            console.log('Drag ended on cube', data);
-            setDragging(false);
-        },
-        onDragSuccess: (data) => {
-            console.log('Successful drag detected:', data);
-
-            // Jouer un son de réussite avec un fondu plus long
-            audioManager.playSound('drag', {
-                fade: true,
-                fadeTime: 800,
-                volume: 1.0
-            });
-
-            // Changer l'apparence du cube lors d'un drag réussi
-            setActive(prev => !prev);
-
-            // Si nous sommes en attente d'une interaction et que c'est le second arrêt,
-            // afficher l'interface de scanner
-            if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
-                if (interaction.setShowScannerInterface) {
-                    interaction.setShowScannerInterface(true);
-                    console.log('Affichage de l\'interface de scanner suite au drag (secondStop)');
-                }
-            }
-        }
-    });
 
     // Animation state avec valeurs par défaut du config
     const animationRef = useRef({

@@ -13,8 +13,7 @@ import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
 // Composant AssetManager
 const AssetManager = React.forwardRef((props, ref) => {
     const { onReady } = props;
-    const appRef = useRef(null);
-    const emitterRef = useRef(new EventEmitter());
+
     const itemsRef = useRef({});
     const loadersRef = useRef({});
     const loadingManagerRef = useRef(null);
