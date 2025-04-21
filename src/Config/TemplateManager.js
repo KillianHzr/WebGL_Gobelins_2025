@@ -31,6 +31,12 @@ class TemplateManager {
                 path: '/models/forest/bush/Bush.glb',
                 priority: 5
             },
+            'Plane_7': {
+                id: 'BranchEucalyptus',
+                path: '/models/forest/plant/BranchEucalyptus.glb',
+                priority: 6,
+                useTextures: true
+            },
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {
             //     id: 'NouvelArbre',
