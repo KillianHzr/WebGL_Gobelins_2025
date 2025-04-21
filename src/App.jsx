@@ -1,7 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
 import Experience from './Experience'
 import useStore from './Store/useStore'
+import CaptureInterface from './Utils/CaptureInterface.jsx'
+import ScannerInterface from './Utils/ScannerInterface.jsx'
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 
@@ -11,7 +14,7 @@ export default function App() {
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
 
-    // Handle asset loading - Using a stable dependency array
+    // Handle asset loading
     useEffect(() => {
         // Créer une référence globale à l'AssetManager
         if (assetManagerRef.current && !isAssetManagerInitialized) {
@@ -49,7 +52,10 @@ export default function App() {
                 onReady={onAssetsReady}
                 key="assetManager" // Clé stable pour éviter les remontages
             />
+            <CaptureInterface />
 
+            {/* Scanner interface - outside Canvas */}
+            <ScannerInterface />
             {/* Canvas for 3D content */}
             <Canvas
                 gl={{ preserveDrawingBuffer: true }}

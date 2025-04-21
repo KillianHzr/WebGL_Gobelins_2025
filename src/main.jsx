@@ -2,7 +2,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
-import './style.css'
+import './scss/style.scss'
 
 import studio from '@theatre/studio'
 import extension from '@theatre/r3f/dist/extension'
