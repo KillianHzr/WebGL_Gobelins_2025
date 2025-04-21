@@ -33,6 +33,16 @@ class TextureManager {
             //     metalness: '/textures/forest/tree/TreeStump_Metallic.png',
             //     ao: '/textures/forest/tree/TreeStump_Height.png', // Utiliser height comme AO
             // },
+
+            'BranchEucalyptus': {
+                baseColor: '/textures/forest/plant/BranchEucalyptus_BaseColor.png',
+                // normal: '/textures/forest/plant/Bush_Normal.png',
+                // roughness: '/textures/forest/plant/BranchEucalyptus_Roughness.png',
+                // metalness: '/textures/forest/plant/BranchEucalyptus_Metallic.png',
+                // ao: '/textures/forest/plant/BranchEucalyptus_Height.png', // Utiliser height comme AO
+                alpha: '/textures/forest/plant/BranchEucalyptus_Alpha.png', // Conservation de l'alpha pour le Bush
+
+            },
             'Bush': {
                 baseColor: '/textures/forest/bush/Bush_BaseColor.png',
                 // normal: '/textures/forest/bush/Bush_Normal.png',
@@ -40,14 +50,6 @@ class TextureManager {
                 // metalness: '/textures/forest/bush/Bush_Metallic.png',
                 // ao: '/textures/forest/bush/Bush_Height.png', // Utiliser height comme AO
                 alpha: '/textures/forest/bush/Bush_Alpha.png', // Conservation de l'alpha pour le Bush
-            },
-            'BranchEucalyptus': {
-                baseColor: '/textures/forest/plant/BranchEucalyptus_BaseColor.png',
-                // normal: '/textures/forest/bush/Bush_Normal.png',
-                // roughness: '/textures/forest/bush/Bush_Roughness.png',
-                // metalness: '/textures/forest/bush/Bush_Metallic.png',
-                // ao: '/textures/forest/bush/Bush_Height.png', // Utiliser height comme AO
-                // alpha: '/textures/forest/bush/Bush_Alpha.png', // Conservation de l'alpha pour le Bush
             },
             // Ajoutez d'autres textures au besoin
         };

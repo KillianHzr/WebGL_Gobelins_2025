@@ -5,6 +5,7 @@ import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
 import {textureManager} from '../Config/TextureManager';
+import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
 
 export default function Forest() {
     const {scene} = useThree();
@@ -189,99 +190,64 @@ export default function Forest() {
                 return null;
             }
 
+            // Créer un nouveau matériau
+            material = new THREE.MeshStandardMaterial({
+                name: `${objectId}_material`,
+                side: THREE.DoubleSide,
+                transparent: true,
+                alphaTest: 0.5
+            });
+
             // Appliquer les textures au matériau si elles sont préchargées
             const textures = preloadedTextures[objectId];
-            if (textures && material) {
+            if (textures) {
                 console.log(`Applying preloaded textures to ${objectId}`);
-                material = new THREE.MeshStandardMaterial({
-                    name: `${objectId}_material`,
-                    side: THREE.DoubleSide,
-                    transparent: objectId === 'Bush' || objectId === 'BranchEucalyptus',
-                    alphaTest: objectId === 'Bush' || objectId === 'BranchEucalyptus' ? 0.5 : 0
-                });
-                // Configurer le matériau et appliquer les textures
-                const options = {
-                    aoIntensity: 0.7,
-                    invertAlpha: true  // Pour assurer que le noir soit opaque pour les feuilles
-                };
 
-                // Configuration pour le bush: besoin d'alpha inversé
-                if (objectId === 'Bush' && textures.alpha) {
-                    material.transparent = true;
-                    material.alphaTest = 0.5;
-
-                    // Si l'alpha est préchargé, l'utiliser
-                    if (textures.alpha) {
-                        // Inverser l'alpha si nécessaire
-                        if (options.invertAlpha) {
-                            // Créer un canvas pour inverser l'alpha
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            const image = textures.alpha.image;
-
-                            // Définir les dimensions du canvas
-                            canvas.width = image.width;
-                            canvas.height = image.height;
-
-                            // Dessiner l'image originale
-                            ctx.drawImage(image, 0, 0);
-
-                            // Récupérer les données de l'image
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const data = imageData.data;
-
-                            // Inverser les valeurs d'alpha
-                            for (let i = 3; i < data.length; i += 4) {
-                                data[i] = 255 - data[i];
-                            }
-
-                            // Remettre les données modifiées dans le canvas
-                            ctx.putImageData(imageData, 0, 0);
-
-                            // Créer une nouvelle texture à partir du canvas
-                            const invertedAlphaTexture = new THREE.CanvasTexture(canvas);
-
-                            // Appliquer les propriétés importantes
-                            invertedAlphaTexture.wrapS = textures.alpha.wrapS;
-                            invertedAlphaTexture.wrapT = textures.alpha.wrapT;
-                            invertedAlphaTexture.encoding = textures.alpha.encoding;
-
-                            // Utiliser la texture inversée
-                            material.alphaMap = invertedAlphaTexture;
-                        } else {
-                            material.alphaMap = textures.alpha;
-                        }
-                    }
-                }
-
-                // Appliquer les autres textures au matériau
+                // Texture de couleur de base
                 if (textures.baseColor) {
                     material.map = textures.baseColor;
-                    material.map.encoding = THREE.sRGBEncoding;
+                    material.map.encoding = sRGBEncoding;
+                    material.map.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
                 }
 
+                // Texture normale
                 if (textures.normal) {
                     material.normalMap = textures.normal;
+                    material.normalMap.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
                 }
 
+                // Texture de rugosité
                 if (textures.roughness) {
                     material.roughnessMap = textures.roughness;
-                    material.roughness = 0.5;
+                    material.roughness = 0.9;
+                    material.roughnessMap.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
                 }
 
+                // Texture de métallicité
                 if (textures.metalness) {
                     material.metalnessMap = textures.metalness;
-                    material.metalness = 0.0;
+                    material.metalness = 0.2;
+                    material.metalnessMap.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
                 }
 
+                // Texture d'occlusion ambiante
                 if (textures.ao) {
                     material.aoMap = textures.ao;
-                    material.aoMapIntensity = options.aoIntensity;
+                    material.aoMapIntensity = 0.7;
+                    material.aoMap.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
 
                     // Activer les UV2 pour l'aoMap si nécessaire
-                    if (geometry && !geometry.attributes.uv2 && geometry.attributes.uv) {
+                    if (!geometry.attributes.uv2 && geometry.attributes.uv) {
                         geometry.setAttribute('uv2', geometry.attributes.uv);
                     }
+                }
+
+                // Texture alpha
+                if (textures.alpha) {
+                    material.alphaMap = textures.alpha;
+                    material.transparent = true;
+                    material.opacity = 1.0;
+                    material.alphaMap.flipY = false; // CORRECTION: Ne pas inverser Y pour les textures
                 }
 
                 // Mise à jour du matériau après modification

@@ -147,6 +147,17 @@ class SceneObjectManager {
                     {position: [3, 0, -7], rotation: [0, Math.PI / 4, 0]}
                 ]
             },
+            'BranchEucalyptusStatic': {
+                id: 'BranchEucalyptus',
+                path: '/models/forest/plant/BranchEucalyptus.glb',
+                scale: [0.12, 0.12, 0.12],
+                interactive: false,
+                useTextures: true,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [0, 2, -0.25], rotation: [0, 0, 0]},
+                ]
+            },
             'Ground': {
                 id: 'Bush',
                 path: '/models/Ground.glb',

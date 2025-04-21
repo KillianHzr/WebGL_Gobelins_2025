@@ -32,15 +32,16 @@ class TemplateManager {
                 priority: 4,
                 useTextures: true
             },
-            'Plane003': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                priority: 5,
-                useTextures: true
-            },
+
             'Plane_7': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/plant/BranchEucalyptus.glb',
+                priority: 5,
+                useTextures: true
+            },
+            'Plane003': {
+                id: 'Bush',
+                path: '/models/forest/bush/Bush.glb',
                 priority: 6,
                 useTextures: true
             },
