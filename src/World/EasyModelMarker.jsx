@@ -147,8 +147,22 @@ export default function EasyModelMarker({
         if (isMarkerHovered || !showOutline) {
             return false;
         }
-        // Afficher le contour si en attente d'interaction, alwaysVisible est true, ou si l'objet est survolé
-        return isWaitingForInteraction || alwaysVisible || hovered;
+
+        // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
+        // avant de montrer l'outline au survol
+        if (requiredStep) {
+            const isCorrectStep = interaction?.currentStep === requiredStep &&
+                interaction?.waitingForInteraction;
+
+            // Afficher le contour seulement si:
+            // - L'objet est en attente d'interaction (isWaitingForInteraction)
+            // - OU si alwaysVisible est true
+            // - OU si l'objet est survolé ET que nous sommes à la bonne étape d'interaction
+            return isWaitingForInteraction || alwaysVisible || (hovered && isCorrectStep);
+        } else {
+            // Comportement par défaut pour les objets sans requiredStep
+            return isWaitingForInteraction || alwaysVisible || hovered;
+        }
     };
 
     // Handlers pour le survol du marqueur

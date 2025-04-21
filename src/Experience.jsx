@@ -15,15 +15,13 @@ import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
-import EasyModelMarker from "./World/EasyModelMarker.jsx";
-import {INTERACTION_TYPES} from "./Utils/EnhancedObjectMarker.jsx";
+import SceneObjects, {SingleInteractiveObject} from './World/SceneObjects';
 
 export default function Experience() {
     const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
     const {scene, camera} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
-    const [markersVisible, setMarkersVisible] = useState(true);
 
     // Gestion des événements des marqueurs
     useEffect(() => {
@@ -115,46 +113,23 @@ export default function Experience() {
                     <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                     <color attach="background" args={['#1e1e2f']}/>
 
-                    {/* Arbre avec marqueur - première interaction */}
-                    <EasyModelMarker
-                        modelPath="/models/forest/tree/TreeNaked.glb"
-                        position={[2, 0, -5]}
-                        scale={[0.1, 0.1, 0.1]}
-                        markerId="tree-marker"
-                        markerType={INTERACTION_TYPES.CLICK}
-                        markerText="Cliquez ici"
-                        markerColor="#44ff44"
-                        markerOffset={1.5}
-                        markerAxis="y"
-                        outlineColor="#44ff44"
-                        outlinePulse={false}  // Désactive la pulsation de l'outline
-                        requiredStep="firstStop"
-                        onInteract={(event) => {
-                            console.log("Interaction avec l'arbre:", event);
-                        }}
-                    />
-                    <EasyModelMarker
-                        modelPath="/models/forest/tree/TreeStump.glb"
-                        position={[-3, 0, -2]}
-                        scale={[0.25, 0.25, 0.25]}
-                        markerId="Stump-marker"
-                        markerType={INTERACTION_TYPES.LONG_PRESS}
-                        markerText="Cliquez ici"
-                        markerColor="#44ff44"
-                        markerOffset={1.5}
-                        markerAxis="y"
-                        outlineColor="#44ff44"
-                        outlinePulse={false}  // Désactive la pulsation de l'outline
-                        requiredStep="secondStop"
-                        onInteract={(event) => {
-                            console.log("Interaction avec la souche:", event);
+                    {/* Utiliser le composant principal qui affiche tous les objets de scène
+                        avec les placements par défaut du SceneObjectManager */}
+                    <SceneObjects />
+
+                    {/* Exemple d'ajout d'un objet interactif spécial que nous voulons différencier des placements par défaut */}
+                    <SingleInteractiveObject
+                        objectKey="BushInteractive"
+                        position={[3, 0, -3]}
+                        options={{
+                            markerId: "special-bush",
+                            markerText: "Buisson spécial",
+                            requiredStep: "specialStop"
                         }}
                     />
 
-                    {/* Cube avec marqueur - deuxième interaction */}
-                    {/*<EnhancedCube />*/}
-
-                    {useMemo(() => (<ForestSceneWrapper/>), [])}
+                    {/* La forêt avec ses instances nombreuses (instanced meshes) */}
+                    {/*{useMemo(() => (<ForestSceneWrapper/>), [])}*/}
                 </ScrollControls>
             </InteractiveMarkersProvider>
         </RayCaster>
