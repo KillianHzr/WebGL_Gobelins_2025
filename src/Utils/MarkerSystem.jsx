@@ -3,7 +3,7 @@ import {useThree} from '@react-three/fiber';
 import {Quaternion, Vector3} from 'three';
 import {EventBus, useEventEmitter} from './EventEmitter';
 import useStore from '../Store/useStore';
-import {MARKER_EVENTS} from './markerEvents';
+import {MARKER_EVENTS} from './EventEmitter';
 
 // // Context pour les marqueurs interactifs
 const InteractiveMarkersContext = createContext(null);

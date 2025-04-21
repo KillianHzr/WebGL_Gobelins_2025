@@ -14,7 +14,7 @@ import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import EnhancedCube from "./World/EnhancedCube.jsx";
-import MARKER_EVENTS from "./Utils/markerEvents.js";
+import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 
 export default function Experience() {
     const {loaded, debug} = useStore()

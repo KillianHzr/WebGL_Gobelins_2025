@@ -11,7 +11,7 @@ import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import {EventBus} from '../Utils/EventEmitter';
 import {INTERACTION_TYPES, ModelMarker} from '../Utils/EnhancedObjectMarker';
-import MARKER_EVENTS from "../Utils/markerEvents.js";
+import MARKER_EVENTS from "../Utils/EventEmitter.jsx";
 
 export default function EnhancedCube() {
     const cubeRef = useRef();

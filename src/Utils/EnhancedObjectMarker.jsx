@@ -6,7 +6,7 @@ import {EventBus} from './EventEmitter';
 import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
 import {useRayCaster} from "./RayCaster.jsx";
-import MARKER_EVENTS from "./markerEvents.js";
+import MARKER_EVENTS from "./EventEmitter.jsx";
 
 // Types d'interaction supportés
 export const INTERACTION_TYPES = {
