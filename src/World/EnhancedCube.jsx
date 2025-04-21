@@ -93,7 +93,22 @@ export default function EnhancedCube() {
         enabled: true,
         debug: debug?.active,
         onClick: (intersection, event) => {
-            // Logique de clic
+            // Inverser l'état du cube quand il est cliqué
+            setActive(prev => !prev);
+
+            // Jouer un son de clic avec effet de fondu
+            audioManager.playSound('click', {
+                volume: 0.8
+            });
+
+            // Si nous sommes en attente d'une interaction pour le premier arrêt,
+            // afficher l'interface d'appareil photo
+            if (interaction?.waitingForInteraction && interaction.currentStep === 'firstStop') {
+                if (interaction.setShowCaptureInterface) {
+                    interaction.setShowCaptureInterface(true);
+                    console.log('Affichage de l\'interface d\'appareil photo suite au clic (firstStop)');
+                }
+            }
         }
     });
 
@@ -113,7 +128,26 @@ export default function EnhancedCube() {
             setDragging(false);
         },
         onDragSuccess: (data) => {
-            // Logique de drag réussi
+            console.log('Successful drag detected:', data);
+
+            // Jouer un son de réussite avec un fondu plus long
+            audioManager.playSound('drag', {
+                fade: true,
+                fadeTime: 800,
+                volume: 1.0
+            });
+
+            // Changer l'apparence du cube lors d'un drag réussi
+            setActive(prev => !prev);
+
+            // Si nous sommes en attente d'une interaction et que c'est le second arrêt,
+            // afficher l'interface de scanner
+            if (interaction?.waitingForInteraction && interaction.currentStep === 'secondStop') {
+                if (interaction.setShowScannerInterface) {
+                    interaction.setShowScannerInterface(true);
+                    console.log('Affichage de l\'interface de scanner suite au drag (secondStop)');
+                }
+            }
         }
     });
 
@@ -131,6 +165,7 @@ export default function EnhancedCube() {
             // Donner un nom explicite au cube pour faciliter le débogage
             mesh.name = 'MainCube';
             console.log('[Cube] Initialized with name:', mesh.name, 'and UUID:', mesh.uuid);
+
 
             // Appliquer les positions par défaut
             const posX = getDefaultValue('objects.cube.position.x', 0);

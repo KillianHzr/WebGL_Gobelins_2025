@@ -1,12 +1,12 @@
 import React, {useEffect, useRef} from 'react';
 import {WebGLRenderer} from "three";
 import App from "../App";
-import EventEmitter from "../Utils/EventEmitter.jsx";
+import { EventBus, useEventEmitter } from "../Utils/EventEmitter.jsx";
 
 export default function Renderer() {
     const appRef = useRef(null);
     const rendererRef = useRef(null);
-    const emitterRef = useRef(new EventEmitter());
+    const eventEmitter = useEventEmitter(); // Utiliser le hook au lieu de créer une instance
 
     useEffect(() => {
         // Initialize

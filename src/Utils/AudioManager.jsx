@@ -53,6 +53,39 @@ class AudioManager {
             onload: () => console.log('Drag sound loaded'),
             onloaderror: (id, error) => console.error('Error loading drag sound:', error)
         });
+
+        this.addSound('capture', {
+            src: ['/audios/camera_shutter.wav'],
+            volume: 0.8,
+            preload: true,
+            onload: () => console.log('Camera sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading camera sound:', error)
+        });
+
+        // Sons pour le scanner
+        this.addSound('scan-start', {
+            src: ['/audios/scan_start.wav'],
+            volume: 0.4,
+            preload: true,
+            onload: () => console.log('Scan start sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading scan start sound:', error)
+        });
+
+        this.addSound('scan-cancel', {
+            src: ['/audios/scan_cancel.wav'],
+            volume: 0.5,
+            preload: true,
+            onload: () => console.log('Scan cancel sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading scan cancel sound:', error)
+        });
+
+        this.addSound('scan-complete', {
+            src: ['/audios/scan_complete.wav'],
+            volume: 0.5,
+            preload: true,
+            onload: () => console.log('Scan complete sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading scan complete sound:', error)
+        });
     }
 
     // Ajouter un son à la collection

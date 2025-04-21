@@ -1,14 +1,30 @@
-// Structure d'un asset:
-// {
-//     name: '',    // Identifiant unique
-//     type: '',    // Type d'asset: texture, exr, hdr, fbx, gltf, material
-//     path: '',    // Chemin vers le fichier
-//     license: '', // Information sur la licence
-//     author: '',  // Auteur de l'asset
-//     url: ''      // URL source
-// }
+// assets.js
+// Fichier de configuration des assets de base à charger dans l'AssetManager
+// Les assets des templates seront ajoutés directement par AssetManager
 
-// Définition des assets à charger
-const assets = [];
+// Définition des assets de base à charger
+const baseAssets = [
+    // Map
+    {
+        name: 'Map',
+        type: 'gltf',
+        path: '/models/Map.glb', // Chemin absolu depuis le dossier "static"
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    // Map
+    {
+        name: 'MapInstance',
+        type: 'gltf',
+        path: '/models/MapInstance.glb', // Chemin absolu depuis le dossier "static"
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    }
+    // Les assets des templates (arbres, rochers, etc.) sont ajoutés automatiquement
+    // par l'AssetManager en utilisant templateManager.generateAssetList()
+];
 
-export default assets;
+// Export de la liste d'assets de base
+export default baseAssets;

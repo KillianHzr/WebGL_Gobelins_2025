@@ -24,21 +24,40 @@ technologies.
 ├── node_modules/     # Dépendances installées
 ├── static/           # Ressources statiques
 │   ├── draco/        # Compression Draco pour les modèles 3D
-│   │   └── gltf/     # Support GLTF pour Draco
+│   │   ├── envmap/   # Maps d'environnement pour Draco
+│   │   ├── gltf/     # Support GLTF pour Draco
+│   │   │   ├── draco_decoder.js
+│   │   │   ├── draco_decoder.wasm
+│   │   │   ├── draco_encoder.js
+│   │   │   ├── draco_wasm_wrapper.js
+│   │   │   └── README.md
+│   ├── data/         # Données pour les positions des objets
+│   │   ├── templatePositions.json
+│   │   └── treePositions.json
 │   ├── models/       # Modèles 3D
-│   │   └── Fox/      # Modèle du renard
-│   ├── sounds/       # Fichiers audio
-│   │   ├── ambient.mp3  # Son d'ambiance
-│   │   └── click.mp3    # Son de clic
+│   │   ├── forest/   # Modèles de forêt
+│   │   │   ├── bush/ # Modèles de buissons
+│   │   │   │   └── Bush.glb
+│   │   │   └── tree/ # Modèles d'arbres
+│   │   │       ├── ThinTrunk.glb
+│   │   │       ├── TreeNaked.glb
+│   │   │       ├── TreeStump.glb
+│   │   │       └── TrunkLarge.glb
+│   │   ├── Map.glb
+│   │   ├── MapInstance.glb
+│   │   └── MapScene.glb
+│   ├── audios/       # Fichiers audio
+│   │   ├── ambient.wav
+│   │   ├── click.wav
+│   │   └── drag.wav
 │   └── textures/     # Textures
-│       ├── dirt/     # Textures de sol
-│       └── environmentMap/ # Maps d'environnement
 ├── src/              # Code source
 │   ├── Assets/       # Gestion des assets
 │   │   ├── AssetManager.jsx  # Gestionnaire d'assets
 │   │   └── assets.js         # Liste des assets à charger
 │   ├── Config/       # Configuration
-│   │   └── guiConfig.js      # Configuration de l'interface de debug
+│   │   ├── TemplateManager.js  # Gestionnaire de templates pour la forêt
+│   │   └── guiConfig.js        # Configuration de l'interface de debug
 │   ├── Core/         # Composants principaux
 │   │   ├── Camera.jsx        # Gestion de la caméra
 │   │   ├── Clock.jsx         # Gestion du temps
@@ -47,15 +66,15 @@ technologies.
 │   │   ├── PostProcessing.jsx # Effets post-processing
 │   │   ├── Renderer.jsx      # Rendu Three.js
 │   │   ├── Scene.jsx         # Scène principale
-│   │   └── ScrollControls.jsx # Contrôle du défilement et interactions
+│   │   ├── ScrollControls.jsx # Contrôle du défilement et interactions
 │   ├── Hooks/        # Hooks React personnalisés
 │   │   ├── useAnimationLoop.js  # Animation loop
 │   │   ├── useCanvasSize.js     # Gestion taille du canvas
-│   │   ├── useDragGesture.js     # Détection de drag sur objets
+│   │   ├── useDragGesture.js    # Détection de drag sur objets
 │   │   ├── useObjectClick.js    # Détection de clic sur objets
 │   │   └── useSceneClick.js     # Détection avancée de clic avec événements
 │   ├── Store/        # Gestion d'état
-│   │   ├── audioSlice.js      # Tranche pour la gestion du son
+│   │   ├── AudioSlice.js      # Tranche pour la gestion du son
 │   │   ├── clickListenerSlice.js # Tranche pour la gestion des clics
 │   │   └── useStore.js          # Store Zustand central
 │   ├── Utils/        # Utilitaires
@@ -71,22 +90,27 @@ technologies.
 │   │   ├── RayCaster.jsx      # Détection d'intersections
 │   │   └── Stats.jsx          # Statistiques de performance
 │   ├── World/        # Éléments du monde
-│   │   ├── Character.jsx     # Personnage
-│   │   ├── Cube.jsx          # Objet cube
-│   │   ├── Particles.jsx     # Système de particules
-│   │   ├── Physics.jsx       # Système physique
-│   │   ├── Sky.jsx           # Ciel
-│   │   └── Terrain.jsx       # Terrain
+│   │   ├── Character.jsx      # Personnage
+│   │   ├── Cube.jsx           # Objet cube
+│   │   ├── Forest.jsx         # Forêt
+│   │   ├── ForestScene.jsx    # Scène de forêt
+│   │   ├── ForestSceneWrapper.jsx # Wrapper pour la scène de forêt
+│   │   ├── Map.jsx            # Carte du monde
+│   │   ├── MapWithInstances.jsx # Carte avec instances pour la forêt
+│   │   ├── Particles.jsx      # Système de particules
+│   │   ├── Physics.jsx        # Système physique
+│   │   ├── Sky.jsx            # Ciel
+│   │   └── Terrain.jsx        # Terrain
 │   ├── App.jsx       # Composant racine
 │   ├── Experience.jsx # Composant principal de l'expérience
 │   ├── index.html    # Fichier HTML principal
 │   ├── main.jsx      # Point d'entrée
 │   └── style.css     # Styles CSS globaux
-├── .gitignore        # Configuration Git
 ├── documentation.md  # Documentation technique
 ├── package.json      # Dépendances et scripts
 ├── package-lock.json # Versions verrouillées des dépendances
-└── README.md         # Documentation d'introduction
+├── README.md         # Documentation d'introduction
+└── vite.config.js    # Configuration de Vite
 ```
 
 ## Principales Features de Développement
@@ -130,60 +154,6 @@ technologies.
 - `Stats.jsx` récupère les informations de rendu via `useThree()`
 - Le composant `Experience` rend conditionnellement les stats basé sur l'état de debug
 
-### 4. Système Audio Intégré
-
-**Fichiers Clés :**
-- `src/Utils/AudioManager.jsx`: Gestionnaire audio central utilisant Howler.js
-- `src/Store/audioSlice.js`: Tranche Zustand pour l'état audio
-- `src/Utils/DebugInitializer.jsx`: Contrôles audio dans l'interface de debug
-- `src/World/Cube.jsx`: Intégration du son dans les interactions
-
-**Interconnexion :**
-- `AudioManager` expose une instance unique (singleton) pour la gestion des sons
-- `audioSlice` gère l'état audio dans le store global
-- `DebugInitializer` fournit des contrôles pour le son d'ambiance et le volume
-- Les composants interactifs (`Cube`) déclenchent des sons lors des interactions
-
-**Fonctionnalités :**
-- Lecture, pause et reprise du son d'ambiance
-- Effets de fondu (fade) lors des transitions pause/reprise
-- Déclenchement de sons ponctuels lors des interactions
-- Contrôle du volume global via l'interface de debug
-- Isolation des sons (un son ponctuel peut jouer pendant que le son d'ambiance est actif)
-
-### 5. Effet de Contour Lumineux (Glow Effect)
-
-**Fichiers Clés :**
-- `src/Utils/OutlineEffect.jsx`: Composant principal pour l'effet de contour lumineux
-- `src/Utils/GlowEffectDebug.jsx`: Contrôles de débogage pour l'effet
-- `src/Config/guiConfig.js`: Configuration des paramètres de l'effet
-- `src/World/Cube.jsx`: Intégration de l'effet sur des objets 3D
-
-**Interconnexion :**
-- `OutlineEffect` crée un contour lumineux autour d'objets 3D ciblés
-- `GlowEffectDebug` fournit une interface dans le GUI pour ajuster tous les paramètres de l'effet
-- `guiConfig.js` contient les configurations par défaut et les plages de valeurs
-- `Cube.jsx` intègre l'effet pour indiquer les interactions disponibles
-
-**Fonctionnalités :**
-- Contour lumineux autour des objets 3D avec un effet de glow
-- Animation de pulsation pour attirer l'attention de l'utilisateur
-- Personnalisation complète de :
-  - Couleur du contour
-  - Épaisseur du contour
-  - Intensité lumineuse
-  - Vitesse de pulsation
-- Activation conditionnelle basée sur l'état d'interaction
-- Contrôle complet via l'interface de debug
-- Bouton de test intégré pour visualiser l'effet rapidement
-
-**Implémentation :**
-- Utilisation de la technique de "silhouette" avec des meshes dupliqués
-- Matériaux additifs pour un effet lumineux éclatant
-- Support des objets 3D complexes avec hiérarchie
-- Animation de pulsation pour une meilleure visualisation
-- Expose une API via forwardRef pour contrôle programmatique
-
 ## Flux de Données et Interactions
 
 1. L'utilisateur active le mode debug via le hash URL
@@ -206,16 +176,17 @@ technologies.
 
 ## Fonctionnalités Implémentées
 
-| Fonctionnalité                  | Description                                                               | Statut     | Emplacement                                                                                                          |
-|---------------------------------|---------------------------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------|
-| Setup Caméra                    | Configuration initiale de la caméra 3D                                    | Implémenté | `src/Core/Camera.jsx`                                                                                                |
-| Setup GUI de Debug              | Interface de débogage pour le développement                               | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                      |
-| Analyses de Métriques           | Système de suivi des performances et statistiques                         | Implémenté | `src/Utils/Stats.js`                                                                                                 |
-| Mouvement de Caméra au Scroll   | Contrôle de la caméra via le défilement                                   | Implémenté | `src/Core/ScrollControls.jsx`                                                                                        |
-| Détection de Clic sur Objets 3D | Système pour détecter les interactions de clic sur des objets spécifiques | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
-| Détection de Drag sur Objets 3D | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
-| Système Audio                   | Gestion complète des sons ambiant et ponctuels, avec effets de fondu      | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`      |
-| Effet de Glow                   | Système de contour lumineux autour des objets interactifs                | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`      |
+| Fonctionnalité                           | Description                                                                            | Statut     | Emplacement                                                                                                                                         |
+|------------------------------------------|----------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Setup Caméra                             | Configuration initiale de la caméra 3D                                                 | Implémenté | `src/Core/Camera.jsx`                                                                                                                               |
+| Setup GUI de Debug                       | Interface de débogage pour le développement                                            | Implémenté | `src/Config/guiConfig.js`, `src/Utils/Debug.js`,`src/Utils/DebugInitializer.js`                                                                     |
+| Analyses de Métriques                    | Système de suivi des performances et statistiques                                      | Implémenté | `src/Utils/Stats.js`                                                                                                                                |
+| Mouvement de Caméra au Scroll            | Contrôle de la caméra via le défilement                                                | Implémenté | `src/Core/ScrollControls.jsx`                                                                                                                       |
+| Détection de Clic sur Objets 3D          | Système pour détecter les interactions de clic sur des objets spécifiques              | Implémenté | `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx`                                |
+| Détection de Drag sur Objets 3D          | Système avancé pour détecter et gérer les interactions de glissement sur objets 3D     | Implémenté | `src/Hooks/useDragGesture.js`, `src/Utils/RayCaster.jsx`, `src/Hooks/useObjectClick.js`, `src/Hooks/useSceneClick.js`, `src/Utils/EventEmitter.jsx` |
+| Système Audio                            | Gestion complète des sons ambiant et ponctuels, avec effets de fondu                   | Implémenté | `src/Utils/AudioManager.jsx`, `src/Store/audioSlice.js`, `src/Utils/DebugInitializer.jsx`, `src/World/Cube.jsx`                                     |
+| Effet de Glow                            | Système de contour lumineux autour des objets interactifs                              | Implémenté | `src/Utils/OutlineEffect.jsx`, `src/Utils/GlowEffectDebug.jsx`, `src/Config/guiConfig.js`, `src/World/Cube.jsx`                                     |
+| Chargement et Optimisation de Modèles 3D | Système de chargement et d'optimisation des modèles 3D pour maximiser les performances | Implémenté | `src/Assets/AssetManager.jsx`, `src/World/Forest.jsx`, `src/Assets/assets.js`, `src/World/ForestSceneWrapper.jsx`                                   |
 
 ## Fonctionnement des features de documentation
 
@@ -256,32 +227,31 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Le composant `RayCaster.jsx` agit comme provider central qui gère le lancement de rayons et la détection
   d'intersections
 * Deux hooks personnalisés sont disponibles pour l'implémentation :
-  * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
-  * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
+    * `useObjectClick` - Hook simple pour détecter les clics sur un objet spécifique
+    * `useSceneClick` - Hook plus avancé avec capacité d'émettre des événements
 * L'état d'écoute est géré de façon centralisée via `clickListenerSlice` dans le store Zustand
 * Permet de facilement :
-  * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
-  * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
-  * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
+    * Activer/désactiver l'écoute globalement via `clickListener.startListening()` et `clickListener.stopListening()`
+    * Associer des callbacks à des objets spécifiques via `useObjectClick({ objectRef, onClick })`
+    * Récupérer des informations précises sur l'intersection (point d'impact, distance, coordonnées UV)
 * S'intègre avec le système de points d'arrêt interactifs dans `ScrollControls.jsx` pour permettre des interactions
   utilisateur aux moments clés de l'expérience
-
 ### 6. Système de Drag Gestures Personnalisés
 
 * Implémenté dans `useDragGesture.js`
 * Hook personnalisé pour gérer les interactions de glissement (drag) sur des objets 3D
 * Fonctionnalités avancées de détection de gestes :
-  * Configuration flexible de la direction du drag (horizontal, vertical, directionnel)
-  * Détection précise basée sur la distance minimale et l'orientation
-  * Support des interactions sur écrans tactiles et souris
-  * Gestion complète du cycle de vie du drag :
-    * `onDragStart` : Déclenché au début du glissement
-    * `onDragEnd` : Appelé à la fin du mouvement, réussi ou annulé
-    * `onDragSuccess` : Spécifiquement pour les drags qui respectent les critères
+    * Configuration flexible de la direction du drag (horizontal, vertical, directionnel)
+    * Détection précise basée sur la distance minimale et l'orientation
+    * Support des interactions sur écrans tactiles et souris
+    * Gestion complète du cycle de vie du drag :
+        * `onDragStart` : Déclenché au début du glissement
+        * `onDragEnd` : Appelé à la fin du mouvement, réussi ou annulé
+        * `onDragSuccess` : Spécifiquement pour les drags qui respectent les critères
 * Paramètres configurables :
-  * `minDistance` : Distance minimale pour déclencher un drag
-  * `direction` : Restriction de l'orientation du glissement
-  * `debug` : Mode de débogage avec logs détaillés
+    * `minDistance` : Distance minimale pour déclencher un drag
+    * `direction` : Restriction de l'orientation du glissement
+    * `debug` : Mode de débogage avec logs détaillés
 * Intégration avec le système de raycasting pour s'assurer que le drag commence sur l'objet ciblé
 * Utilisé dans `Cube.jsx` pour créer des interactions interactives dans l'expérience
 * Permet de créer des interactions utilisateur complexes et personnalisées dans un environnement 3D
@@ -291,16 +261,16 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Implémenté dans `AudioManager.jsx` avec Howler.js
 * Architecture singleton pour une gestion audio centralisée
 * Fonctionnalités complètes :
-  * **Son d'ambiance** : lecture en boucle, pause, reprise
-  * **Effets de fondu** : transitions douces lors des pauses/reprises (fade in/out)
-  * **Sons ponctuels** : sons déclenchés par des interactions spécifiques
-  * **Contrôle du volume** : réglage global via l'interface de debug
+    * **Son d'ambiance** : lecture en boucle, pause, reprise
+    * **Effets de fondu** : transitions douces lors des pauses/reprises (fade in/out)
+    * **Sons ponctuels** : sons déclenchés par des interactions spécifiques
+    * **Contrôle du volume** : réglage global via l'interface de debug
 * Intégration avec le système d'interaction :
-  * Déclenchement de sons lors des clics sur le cube
-  * Déclenchement de sons lors des drags réussis
+    * Déclenchement de sons lors des clics sur le cube
+    * Déclenchement de sons lors des drags réussis
 * Interface de debug dédiée :
-  * Boutons pour jouer, mettre en pause et reprendre le son d'ambiance
-  * Slider pour ajuster le volume global
+    * Boutons pour jouer, mettre en pause et reprendre le son d'ambiance
+    * Slider pour ajuster le volume global
 * Capacité à jouer des sons ponctuels sans interrompre le son d'ambiance
 * Architecture extensible permettant d'ajouter facilement de nouveaux sons
 
@@ -309,25 +279,76 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
 * Implémenté dans `OutlineEffect.jsx` et `GlowEffectDebug.jsx`
 * Système visuel pour mettre en évidence les objets interactifs de l'expérience
 * Approche technique avancée :
-  * Crée des meshes de contour autour des objets ciblés
-  * Utilise des matériaux additifs pour un effet lumineux éclatant
-  * Gestion de la hiérarchie complète des objets avec enfants
-  * Animation de pulsation dynamique pour attirer l'attention
+    * Crée des meshes de contour autour des objets ciblés
+    * Utilise des matériaux additifs pour un effet lumineux éclatant
+    * Gestion de la hiérarchie complète des objets avec enfants
+    * Animation de pulsation dynamique pour attirer l'attention
 * Paramètres entièrement personnalisables via l'interface de debug :
-  * **Activation** : activer/désactiver l'effet
-  * **Couleur** : personnalisation de la teinte du glow
-  * **Épaisseur** : ajustement de la taille du contour (0.01-0.1)
-  * **Intensité** : contrôle de la luminosité (1-10)
-  * **Vitesse de pulsation** : animation dynamique (0-5)
+    * **Activation** : activer/désactiver l'effet
+    * **Couleur** : personnalisation de la teinte du glow
+    * **Épaisseur** : ajustement de la taille du contour (0.01-0.1)
+    * **Intensité** : contrôle de la luminosité (1-10)
+    * **Vitesse de pulsation** : animation dynamique (0-5)
 * Fonctionnalités spéciales :
-  * Bouton de test pour visualiser l'effet pendant 2 secondes
-  * Activation conditionnelle basée sur l'état d'interaction
-  * Intégration complète avec le système d'interaction existant
+    * Bouton de test pour visualiser l'effet pendant 2 secondes
+    * Activation conditionnelle basée sur l'état d'interaction
+    * Intégration complète avec le système d'interaction existant
 * API avancée via forwardRef pour contrôle programmatique :
-  * Accès au groupe de contour
-  * Méthodes pour modifier la visibilité et les propriétés à la volée
-  * Possibilité d'obtenir l'état actuel des paramètres
+    * Accès au groupe de contour
+    * Méthodes pour modifier la visibilité et les propriétés à la volée
+    * Possibilité d'obtenir l'état actuel des paramètres
 * Optimisation des performances :
-  * Nettoyage des ressources lors du démontage
-  * Gestion correcte des ressources Three.js (geometries, materials)
-  * Animation conditionnelle uniquement lorsque l'effet est visible
+    * Nettoyage des ressources lors du démontage
+    * Gestion correcte des ressources Three.js (geometries, materials)
+    * Animation conditionnelle uniquement lorsque l'effet est visible
+
+### 9. Chargement et Optimisation de Modèles 3D
+
+* Implémenté via une architecture en couches avec plusieurs composants spécialisés :
+    * `AssetManager.jsx` : Gestionnaire central responsable du chargement et de l'optimisation des modèles
+    * `assets.js` : Définition déclarative des assets à charger avec leurs métadonnées
+    * `ForestSceneWrapper.jsx` : Composant enveloppant qui gère la transition entre le chargement et l'affichage
+    * `Forest.jsx` : Composant d'affichage optimisé qui implémente les techniques de rendu efficaces
+* Fonctionnalités d'optimisation avancées :
+    * **Partage de matériaux** : Système de cache qui permet la réutilisation de matériaux similaires
+    * **Occlusion Culling** : Technique qui évite de rendre les objets non visibles par la caméra
+    * **Frustum Culling** : Ne traite que les objets dans le champ de vision de la caméra
+    * **Level of Detail (LOD)** : Ajuste la complexité des modèles en fonction de leur distance
+    * **Material Batching** : Regroupe les objets avec des matériaux similaires pour réduire les drawcalls
+* Stratégies d'optimisation des performances :
+    * Calcul et mise en cache des boundingSpheres pour accélérer le culling
+    * Suppression d'attributs non essentiels pour les objets éloignés
+    * Application automatique de niveaux de détails basée sur la distance à la caméra
+    * Système de vérification robuste pour garantir le chargement complet des modèles
+* Mesures de sécurité :
+    * Traitement des erreurs lors du chargement et de l'optimisation
+    * Fallbacks pour les assets manquants ou corrompus
+    * Nettoyage méthodique des ressources WebGL lors du démontage des composants
+* Résultats mesurables :
+    * Réduction significative du nombre de drawcalls (de plusieurs dizaines à moins de 10)
+    * Optimisation du nombre de triangles rendus
+    * Amélioration des performances globales, particulièrement sur les appareils mobiles
+    * Interface utilisateur fluide même avec des scènes complexes
+
+### 10. Système d'Instanciation de Forêt
+
+* Architecture modulaire pour le chargement efficace et le rendu performant d'éléments forestiers :
+    * `src/Assets/AssetManager.jsx` : Gestionnaire central de chargement avec optimisation de matériaux et DRACO
+    * `src/Config/TemplateManager.js` : Registre des templates avec mapping ID-modèle (ex: 753 → 'Retopo_TRONC001')
+    * `src/World/MapWithInstances.jsx` : Analyse les nœuds GN_Instance_X pour extraire positions et transformations
+    * `src/World/Forest.jsx` : Génère les InstancedMesh pour un rendu efficient des arbres et buissons
+    * `src/World/ForestSceneWrapper.jsx` : Vérifie la disponibilité des assets avec mécanisme de repli
+
+* Optimisations techniques implémentées :
+    * **Partage intelligent de matériaux** : Cache basé sur type et couleur pour réduire les draw calls
+    * **Analyse géométrique** : Système d'empreinte détaillant vertices, faces et ratios pour identifier les templates
+    * **Chargement multi-source** : Tente multiples chemins pour les positions JSON avec fallback vers store
+    * **Nettoyage méthodique** : Dispose correcte des géométries et matériaux pour éviter fuites mémoire
+
+* Communication par événements :
+    * 'map-ready' → 'tree-positions-ready' → 'forest-ready' → 'forest-scene-ready'
+    * Utilisation de l'EventBus pour découpler les composants et synchroniser le chargement
+
+* Configuration des templates existants :
+    * TreeNaked, TrunkLarge, ThinTrunk, TreeStump et Bush actuellement supportés
+    * Extension facile via le système de templates avec définition de priorité de chargement

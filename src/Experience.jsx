@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
 import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
@@ -10,15 +10,16 @@ import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
-import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
+import {EventEmitterProvider} from './Utils/EventEmitter';
+import ForestSceneWrapper from './World/ForestSceneWrapper'; // Utilisation du wrapper
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import EnhancedCube from "./World/EnhancedCube.jsx";
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 
 export default function Experience() {
-    const {loaded, debug} = useStore()
-    const {scene} = useThree()
+    const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
+    const {scene, camera} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
     const [markersVisible, setMarkersVisible] = useState(true);
@@ -56,6 +57,13 @@ export default function Experience() {
             cleanupInteractionEvent();
         };
     }, []);
+
+    useEffect(() => {
+        if (camera) {
+            setCamera(camera);
+            setCameraInitialZoom(camera.zoom);
+        }
+    }, [camera, setCamera, setCameraInitialZoom]);
 
     // Appliquer les valeurs par défaut aux lumières lors du montage
     useEffect(() => {
@@ -109,6 +117,7 @@ export default function Experience() {
                     {loaded && (<>
                         <EnhancedCube/>
                     </>)}
+                    {useMemo(() => (<ForestSceneWrapper/>), [])}
                 </ScrollControls>
             </InteractiveMarkersProvider>
         </RayCaster>

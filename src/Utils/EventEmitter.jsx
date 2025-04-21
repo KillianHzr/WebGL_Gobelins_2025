@@ -1,7 +1,25 @@
 import React, {createContext, forwardRef, useContext, useImperativeHandle, useState} from 'react';
 
 // Singleton pour stocker l'instance de l'EventEmitter
-let emitterInstance = null;
+// Initialisé immédiatement avec des méthodes de base pour éviter les "not initialized yet"
+let emitterInstance = {
+    on: (eventName, callback) => {
+        console.warn('EventEmitter on() called before initialization, will be queued');
+        queuedEvents.push({ type: 'on', eventName, callback });
+        return () => {};
+    },
+    off: (eventName) => {
+        console.warn('EventEmitter off() called before initialization, will be queued');
+        queuedEvents.push({ type: 'off', eventName });
+    },
+    trigger: (eventName, data) => {
+        console.warn('EventEmitter trigger() called before initialization, will be queued');
+        queuedEvents.push({ type: 'trigger', eventName, data });
+    }
+};
+
+// File d'attente pour les événements appelés avant l'initialisation
+const queuedEvents = [];
 
 // Contexte React pour accéder à l'EventEmitter
 const EventEmitterContext = createContext(null);
