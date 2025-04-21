@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
-import { useThree } from '@react-three/fiber';
+import React, {createContext, useCallback, useContext, useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 
 // Contexte pour le RayCaster
@@ -9,13 +9,13 @@ const RayCasterContext = createContext(null);
  * Composant RayCaster qui gère la détection des clics et pointeurs dans la scène 3D
  * avec capacité de traverser les éléments
  */
-const RayCaster = ({ children }) => {
+const RayCaster = ({children}) => {
     // Récupérer la scène en plus des autres éléments
-    const { raycaster, camera, gl, scene } = useThree();
+    const {raycaster, camera, gl, scene} = useThree();
     const clickListenersRef = useRef(new Map());
     const pointerEnterListenersRef = useRef(new Map());
     const pointerLeaveListenersRef = useRef(new Map());
-    const { clickListener } = useStore();
+    const {clickListener} = useStore();
 
     // Garder trace des objets actuellement survolés
     const hoveredObjectsRef = useRef(new Set());
@@ -62,7 +62,7 @@ const RayCaster = ({ children }) => {
             const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
 
             // Mise à jour du raycaster avec les coordonnées de la souris
-            raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+            raycaster.setFromCamera({x: mouseX, y: mouseY}, camera);
 
             // Obtenir tous les objets intersectés
             const allObjects = getAllSceneObjects();
@@ -76,7 +76,7 @@ const RayCaster = ({ children }) => {
                 const listener = findListenerInAncestors(intersection.object, pointerEnterListenersRef.current);
 
                 if (listener) {
-                    const { uuid, callback, object } = listener;
+                    const {uuid, callback, object} = listener;
 
                     // Ajouter à l'ensemble des objets intersectés
                     currentlyIntersected.add(uuid);
@@ -127,7 +127,7 @@ const RayCaster = ({ children }) => {
             const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
 
             // Mise à jour du raycaster avec les coordonnées de la souris
-            raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+            raycaster.setFromCamera({x: mouseX, y: mouseY}, camera);
 
             // Obtenir tous les objets intersectés en passant la liste complète
             const allObjects = getAllSceneObjects();
@@ -205,7 +205,7 @@ const RayCaster = ({ children }) => {
         const normalizedX = (x / window.innerWidth) * 2 - 1;
         const normalizedY = -(y / window.innerHeight) * 2 + 1;
 
-        raycaster.setFromCamera({ x: normalizedX, y: normalizedY }, camera);
+        raycaster.setFromCamera({x: normalizedX, y: normalizedY}, camera);
         return raycaster.intersectObjects(getAllSceneObjects(), true);
     };
 

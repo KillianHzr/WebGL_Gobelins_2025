@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import {useEffect, useRef} from 'react'
 
 // Custom hook to handle animation loops outside of the R3F ecosystem if needed
 export default function useAnimationLoop(callback) {

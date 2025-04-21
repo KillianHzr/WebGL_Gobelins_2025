@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { RGBELoader } from 'three/examples/jsm/Addons.js';
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
+import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader.js';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader.js';
+import {RGBELoader} from 'three/examples/jsm/Addons.js';
+import {EXRLoader} from 'three/examples/jsm/loaders/EXRLoader.js';
 import EventEmitter from "../Utils/EventEmitter.jsx";
 import assets from "./assets";
 import App from '../App';
 import gsap from 'gsap';
 
-export default function AssetManager({ onReady }) {
+export default function AssetManager({onReady}) {
     const appRef = useRef(null);
     const emitterRef = useRef(new EventEmitter());
     const itemsRef = useRef({});
@@ -183,30 +183,25 @@ export default function AssetManager({ onReady }) {
                     }
                     loadComplete(asset, texture);
                 });
-            }
-            else if (asset.type.toLowerCase() === "exr") {
+            } else if (asset.type.toLowerCase() === "exr") {
                 loadersRef.current.exr.load(asset.path, (texture) => {
                     texture.mapping = THREE.EquirectangularReflectionMapping;
                     loadComplete(asset, texture);
                 });
-            }
-            else if (asset.type.toLowerCase() === "hdr") {
+            } else if (asset.type.toLowerCase() === "hdr") {
                 loadersRef.current.hdr.load(asset.path, (texture) => {
                     texture.mapping = THREE.EquirectangularReflectionMapping;
                     loadComplete(asset, texture);
                 });
-            }
-            else if (asset.type.toLowerCase() === "fbx") {
+            } else if (asset.type.toLowerCase() === "fbx") {
                 loadersRef.current.fbx.load(asset.path, (model) => {
                     loadComplete(asset, model);
                 });
-            }
-            else if (asset.type.toLowerCase() === "gltf") {
+            } else if (asset.type.toLowerCase() === "gltf") {
                 loadersRef.current.gltf.load(asset.path, (model) => {
                     loadComplete(asset, model);
                 });
-            }
-            else if (asset.type.toLowerCase() === "material") {
+            } else if (asset.type.toLowerCase() === "material") {
                 const textures = Object.entries(asset.textures);
                 const material = Object.assign(asset.textures);
 
@@ -231,8 +226,7 @@ export default function AssetManager({ onReady }) {
                                 }
                             });
                         }
-                    }
-                    else {
+                    } else {
                         const url = path + texObject[1];
                         loadersRef.current.texture.load(url, (texture) => {
                             texture.flipY = false;

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { WebGLRenderer } from "three";
+import React, {useEffect, useRef} from 'react';
+import {WebGLRenderer} from "three";
 import App from "../App";
 import EventEmitter from "../Utils/EventEmitter.jsx";
 
@@ -27,7 +27,7 @@ export default function Renderer() {
 
         // Handle resize
         const resizeHandler = (data) => {
-            const { width, height } = data;
+            const {width, height} = data;
             renderer.setSize(width, height);
         };
 
@@ -44,7 +44,7 @@ export default function Renderer() {
     }, []);
 
     return (
-        <div style={{ display: 'none' }}>
+        <div style={{display: 'none'}}>
             {/* Renderer doesn't render any visible React elements */}
         </div>
     );

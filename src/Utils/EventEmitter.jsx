@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, createContext, useContext } from 'react';
+import React, {createContext, forwardRef, useContext, useImperativeHandle, useState} from 'react';
 
 // Singleton pour stocker l'instance de l'EventEmitter
 let emitterInstance = null;
@@ -8,7 +8,7 @@ const EventEmitterContext = createContext(null);
 
 // EventEmitter composant
 const EventEmitter = forwardRef((props, ref) => {
-    const [callbacks, setCallbacks] = useState({ base: {} });
+    const [callbacks, setCallbacks] = useState({base: {}});
 
     const resolveNames = (_names) => {
         let names = _names;
@@ -51,7 +51,7 @@ const EventEmitter = forwardRef((props, ref) => {
         const names = resolveNames(_names);
 
         // Create a new callbacks object to avoid direct state mutation
-        const newCallbacks = { ...callbacks };
+        const newCallbacks = {...callbacks};
 
         // Each name
         names.forEach((_name) => {
@@ -87,7 +87,7 @@ const EventEmitter = forwardRef((props, ref) => {
         const names = resolveNames(_names);
 
         // Create a new callbacks object to avoid direct state mutation
-        const newCallbacks = { ...callbacks };
+        const newCallbacks = {...callbacks};
 
         // Each name
         names.forEach((_name) => {
@@ -216,7 +216,7 @@ const EventEmitter = forwardRef((props, ref) => {
 /**
  * Fournisseur du contexte pour l'émetteur d'événements
  */
-export const EventEmitterProvider = ({ children }) => {
+export const EventEmitterProvider = ({children}) => {
     const emitterRef = React.useRef(null);
 
     // Mémoiser les méthodes d'événements
@@ -228,7 +228,7 @@ export const EventEmitterProvider = ({ children }) => {
 
     return (
         <EventEmitterContext.Provider value={emitterMethods}>
-            <EventEmitter ref={emitterRef} />
+            <EventEmitter ref={emitterRef}/>
             {children}
         </EventEmitterContext.Provider>
     );
@@ -271,7 +271,8 @@ export const EventBus = {
             return () => emitterInstance.off(eventName);
         } else {
             console.warn('EventEmitter not initialized yet');
-            return () => {};
+            return () => {
+            };
         }
     },
 

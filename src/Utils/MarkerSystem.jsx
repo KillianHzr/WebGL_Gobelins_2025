@@ -1,32 +1,14 @@
-// src/Utils/InteractiveMarkers/MarkerSystem.jsx
-import React, { useRef, useEffect, useState, createContext, useContext } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
-import { Sprite, SpriteMaterial, TextureLoader, Vector3, Quaternion, MathUtils } from 'three';
-import { Html } from '@react-three/drei';
-import { useRayCaster } from './RayCaster';
-import { useEventEmitter, EventBus } from './EventEmitter';
+import React, {createContext, useEffect, useRef, useState} from 'react';
+import {useThree} from '@react-three/fiber';
+import {Quaternion, Vector3} from 'three';
+import {EventBus, useEventEmitter} from './EventEmitter';
 import useStore from '../Store/useStore';
-import { CTAFactory } from './CTAFactory';
-import { MARKER_EVENTS } from './markerEvents';
+import {MARKER_EVENTS} from './markerEvents';
 
-// Context pour les marqueurs interactifs
+// // Context pour les marqueurs interactifs
 const InteractiveMarkersContext = createContext(null);
-
-// Types de marqueurs disponibles
-export const MARKER_TYPES = {
-    INFO: 'info',
-    WARNING: 'warning',
-    HOTSPOT: 'hotspot',
-    INTERACTION: 'interaction',
-    NAVIGATION: 'navigation',
-    CUSTOM: 'custom'
-};
-
-/**
- * Provider principal pour le système de marqueurs interactifs
- */
-export const InteractiveMarkersProvider = ({ children, config }) => {
-    const { scene, camera } = useThree();
+export const InteractiveMarkersProvider = ({children, config}) => {
+    const {scene, camera} = useThree();
     const markersRef = useRef(new Map());
     const markerGroupsRef = useRef(new Map());
     const [activeMarker, setActiveMarker] = useState(null);
@@ -34,7 +16,7 @@ export const InteractiveMarkersProvider = ({ children, config }) => {
     const eventEmitter = useEventEmitter();
     const [isAnimating, setIsAnimating] = useState(false);
     const animationRef = useRef(null);
-    const { clickListener } = useStore();
+    const {clickListener} = useStore();
 
     // Charger la configuration des marqueurs
     useEffect(() => {
@@ -113,13 +95,13 @@ export const InteractiveMarkersProvider = ({ children, config }) => {
 
         if (cta) {
             // Ajouter à la scène
-            scene.add(cta.object);
+            // scene.add(cta.object);
 
             return {
                 id: config.id,
-                object: cta.object,
+                // object: cta.object,
                 config: config,
-                cta: cta
+                // cta: cta
             };
         }
 
@@ -189,7 +171,7 @@ export const InteractiveMarkersProvider = ({ children, config }) => {
         const endTime = startTime + duration * 1000;
 
         // Désactiver le défilement pendant l'animation
-        const { setAllowScroll } = useStore.getState().interaction;
+        const {setAllowScroll} = useStore.getState().interaction;
         if (setAllowScroll) {
             setAllowScroll(false);
         }
@@ -347,100 +329,4 @@ export const InteractiveMarkersProvider = ({ children, config }) => {
         </InteractiveMarkersContext.Provider>
     );
 };
-
-/**
- * Hook pour utiliser les marqueurs interactifs
- */
-export const useInteractiveMarkers = () => {
-    const context = useContext(InteractiveMarkersContext);
-
-    if (!context) {
-        throw new Error('useInteractiveMarkers must be used within an InteractiveMarkersProvider');
-    }
-
-    return context;
-};
-
-/**
- * Composant Marqueur Interactif pour trois.js
- */
-export const InteractiveMarker = ({ markerId, showTooltip = true }) => {
-    const markerContext = useInteractiveMarkers();
-    const marker = markerContext.getMarker(markerId);
-    const [isHovered, setIsHovered] = useState(false);
-    const objRef = useRef();
-    const { raycaster, camera } = useThree();
-
-    // Utiliser le raycaster pour les interactions
-    const { addClickListener } = useRayCaster();
-
-    useEffect(() => {
-        if (!objRef.current || !marker) return;
-
-        // Gérer le clic sur le marqueur
-        const cleanup = addClickListener(objRef.current.uuid, () => {
-            markerContext.handleMarkerClick(markerId);
-        });
-
-        return cleanup;
-    }, [markerId, marker, addClickListener, markerContext]);
-
-    // Gérer le survol et la sortie de survol
-    useFrame(() => {
-        if (!objRef.current || !marker) return;
-
-        // Vérifier si le marqueur est sous la souris
-        const intersects = raycaster.intersectObject(objRef.current);
-        const hovered = intersects.length > 0;
-
-        if (hovered && !isHovered) {
-            setIsHovered(true);
-            markerContext.handleMarkerHover(markerId);
-        } else if (!hovered && isHovered) {
-            setIsHovered(false);
-            markerContext.handleMarkerHoverEnd(markerId);
-        }
-
-        // Optionnel: faire face à la caméra (billboard)
-        if (marker.config.billboard !== false) {
-            objRef.current.lookAt(camera.position);
-        }
-    });
-
-    if (!marker) return null;
-
-    return (
-        <group
-            ref={objRef}
-            position={[
-                marker.config.position.x,
-                marker.config.position.y,
-                marker.config.position.z
-            ]}
-        >
-            {marker.cta.renderThreeComponent()}
-
-            {showTooltip && isHovered && (
-                <Html
-                    position={[0, 0.5, 0]}
-                    style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        color: 'white',
-                        padding: '8px 12px',
-                        borderRadius: '4px',
-                        width: 'auto',
-                        whiteSpace: 'nowrap',
-                        fontSize: '14px',
-                        pointerEvents: 'none',
-                        transform: 'translate(-50%, -100%)',
-                        marginBottom: '10px'
-                    }}
-                >
-                    <div>{marker.config.title}</div>
-                </Html>
-            )}
-        </group>
-    );
-};
-
 export default InteractiveMarkersProvider;

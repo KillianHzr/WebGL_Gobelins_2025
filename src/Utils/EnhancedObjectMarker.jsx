@@ -1,12 +1,12 @@
-import React, {useRef, useState, useEffect, useCallback} from 'react';
-import {useThree, useFrame} from '@react-three/fiber';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {useFrame, useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import * as THREE from 'three';
 import {EventBus} from './EventEmitter';
-import {MARKER_EVENTS} from './markerEvents';
 import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
 import {useRayCaster} from "./RayCaster.jsx";
+import MARKER_EVENTS from "./markerEvents.js";
 
 // Types d'interaction supportés
 export const INTERACTION_TYPES = {

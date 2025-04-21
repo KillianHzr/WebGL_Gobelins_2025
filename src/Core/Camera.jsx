@@ -1,13 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
+import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import { getDefaultValue } from '../Utils/defaultValues';
+import {getDefaultValue} from '../Utils/defaultValues';
 
 export default function Camera() {
-    const { camera, gl } = useThree();
+    const {camera, gl} = useThree();
     const folderRef = useRef(null);
-    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
+    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
 
     useEffect(() => {
         // Add debug controls if debug mode is active and GUI exists

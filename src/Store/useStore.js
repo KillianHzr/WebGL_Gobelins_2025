@@ -1,7 +1,7 @@
-import { create } from 'zustand'
-import { createAudioSlice } from './AudioSlice'
-import { createInteractionSlice } from './interactionSlice'
-import { createClickListenerSlice } from './clickListenerSlice'
+import {create} from 'zustand'
+import {createAudioSlice} from './AudioSlice'
+import {createInteractionSlice} from './interactionSlice'
+import {createClickListenerSlice} from './clickListenerSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -17,7 +17,7 @@ const isDebugEnabled = () => {
 const useStore = create((set, get) => ({
     // Asset loading state
     loaded: false,
-    setLoaded: (loaded) => set({ loaded }),
+    setLoaded: (loaded) => set({loaded}),
 
     // Debug state - initially set based on URL hash
     debug: {
@@ -27,24 +27,24 @@ const useStore = create((set, get) => ({
         showTheatre: isDebugEnabled() // Show Theatre.js Studio interface
     },
     setDebug: (debugSettings) => set(state => ({
-        debug: { ...state.debug, ...debugSettings }
+        debug: {...state.debug, ...debugSettings}
     })),
 
     // Theatre.js Studio instance
     theatreStudio: null,
-    setTheatreStudio: (studio) => set({ theatreStudio: studio }),
+    setTheatreStudio: (studio) => set({theatreStudio: studio}),
 
     // GUI instance (shared among all components)
     gui: null,
-    setGui: (gui) => set({ gui }),
+    setGui: (gui) => set({gui}),
 
     // Debug configuration (for export/import)
     debugConfig: null,
-    setDebugConfig: (config) => set({ debugConfig: config }),
+    setDebugConfig: (config) => set({debugConfig: config}),
 
     // Update specific part of debug config
     updateDebugConfig: (path, value) => {
-        const config = { ...get().debugConfig };
+        const config = {...get().debugConfig};
         let current = config;
         const parts = path.split('.');
 
@@ -58,7 +58,7 @@ const useStore = create((set, get) => ({
 
         // Set the value at the final path
         current[parts[parts.length - 1]] = value;
-        set({ debugConfig: config });
+        set({debugConfig: config});
     },
 
     // Get value from debug config
@@ -81,7 +81,7 @@ const useStore = create((set, get) => ({
     },
 
     updateDebugConfigWithoutRender: (path, value) => {
-        const config = { ...get().debugConfig };
+        const config = {...get().debugConfig};
         let current = config;
         const parts = path.split('.');
 

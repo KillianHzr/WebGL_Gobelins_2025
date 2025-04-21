@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Howl, Howler } from 'howler';
+import {useEffect} from 'react';
+import {Howl, Howler} from 'howler';
 import useStore from '../Store/useStore';
 
 // Classe centrale pour gérer l'audio de l'application
@@ -219,7 +219,7 @@ export const audioManager = new AudioManager();
 
 // Composant React pour intégrer l'AudioManager dans le cycle de vie React
 export default function AudioManagerComponent() {
-    const { audio } = useStore();
+    const {audio} = useStore();
 
     useEffect(() => {
         // Initialisation

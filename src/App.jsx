@@ -1,11 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import React, {useEffect} from 'react'
+import {Canvas} from '@react-three/fiber'
 import Experience from './Experience'
 import useStore from './Store/useStore'
 
 export default function App() {
-    const { loaded, setLoaded } = useStore()
+    const {loaded, setLoaded} = useStore()
 
     // Handle asset loading
     useEffect(() => {
@@ -20,10 +19,10 @@ export default function App() {
 
     return (
         <Canvas
-            gl={{ preserveDrawingBuffer: true }}
+            gl={{preserveDrawingBuffer: true}}
             shadows
         >
-            <Experience />
+            <Experience/>
         </Canvas>
     )
 }

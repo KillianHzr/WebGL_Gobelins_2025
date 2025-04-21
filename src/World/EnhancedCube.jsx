@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react'
 import {useFrame} from '@react-three/fiber'
-import * as THREE from 'three'
+import {Color} from 'three'
 import useStore from '../Store/useStore'
 import guiConfig from '../Config/guiConfig'
 import {getDefaultValue} from "../Utils/defaultValues.js";
@@ -10,9 +10,8 @@ import {audioManager} from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import {EventBus} from '../Utils/EventEmitter';
-import {MARKER_EVENTS} from '../Utils/markerEvents';
-import EnhancedObjectMarker, {ModelMarker, INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
-import {Color} from "three";
+import {INTERACTION_TYPES, ModelMarker} from '../Utils/EnhancedObjectMarker';
+import MARKER_EVENTS from "../Utils/markerEvents.js";
 
 export default function EnhancedCube() {
     const cubeRef = useRef();

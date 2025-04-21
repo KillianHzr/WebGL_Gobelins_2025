@@ -29,7 +29,7 @@ if (typeof window !== 'undefined') {
         console.log('Theatre.js initialized with UI visible');
     } else {
         // Initialiser avec UI cachée
-        studio.initialize({ __experimental_hideUI: true });
+        studio.initialize({__experimental_hideUI: true});
         console.log('Theatre.js initialized with UI hidden');
     }
 
@@ -78,11 +78,11 @@ if (typeof window !== 'undefined') {
         if (!e.target.closest('.theatre-studio-root')) {
             e.preventDefault();
         }
-    }, { passive: false });
+    }, {passive: false});
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-        <App />
+        <App/>
     </React.StrictMode>
 );

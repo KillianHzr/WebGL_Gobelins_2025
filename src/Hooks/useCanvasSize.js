@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import {useEffect, useState} from 'react'
 
 // Custom hook to handle canvas sizing
 export default function useCanvasSize() {

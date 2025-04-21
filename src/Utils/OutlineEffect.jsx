@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
 import * as THREE from 'three';
-import { useThree, useFrame } from '@react-three/fiber';
+import {useFrame, useThree} from '@react-three/fiber';
 
 /**
  * Composant qui crée un effet de contour (outline) pour n'importe quel modèle 3D
@@ -23,8 +23,8 @@ const OutlineEffect = forwardRef(({
                                       pulseSpeed = 1.2
                                   }, ref) => {
     const outlineRef = useRef();
-    const pulseRef = useRef({ value: 0, direction: 1 });
-    const { scene } = useThree();
+    const pulseRef = useRef({value: 0, direction: 1});
+    const {scene} = useThree();
 
     // Exposer des méthodes et propriétés via la référence
     useImperativeHandle(ref, () => ({
@@ -59,7 +59,7 @@ const OutlineEffect = forwardRef(({
             }
         },
 
-        getState: () => ({ active, color, thickness, intensity, pulseSpeed })
+        getState: () => ({active, color, thickness, intensity, pulseSpeed})
     }));
 
     useEffect(() => {
