@@ -1,6 +1,8 @@
 // TemplateManager.js
 // Système centralisé pour la gestion des templates et des instances
 
+import { textureManager } from './TextureManager';
+
 class TemplateManager {
     constructor() {
         // Templates disponibles avec leurs informations
@@ -9,33 +11,39 @@ class TemplateManager {
                 // Utilisation du même identifiant pour le type et l'asset
                 id: 'TreeNaked',
                 path: '/models/forest/tree/TreeNaked.gltf',
-                priority: 1
+                priority: 1,
+                useTextures: true  // Indique si ce modèle doit utiliser des textures
             },
             'Retopo_GROS_TRONC001': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/TrunkLarge.gltf',
-                priority: 2
+                priority: 2,
+                useTextures: true
             },
             'Retopo_TRONC_FIN': {
                 id: 'ThinTrunk',
                 path: '/models/forest/tree/ThinTrunk.gltf',
-                priority: 3
+                priority: 3,
+                useTextures: true
             },
             'Trunk': {
                 id: 'TreeStump',
                 path: '/models/forest/tree/TreeStump.gltf',
-                priority: 4
+                priority: 4,
+                useTextures: true
             },
             'Plane003': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
-                priority: 5
+                priority: 5,
+                useTextures: true
             },
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {
             //     id: 'NouvelArbre',
             //     path: '/models/forest/tree/NouvelArbre.gltf',
-            //     priority: 5
+            //     priority: 5,
+            //     useTextures: true
             // },
         };
 
@@ -77,12 +85,23 @@ class TemplateManager {
         return this.idToTemplateMap[id] || null;
     }
 
+    // Vérifier si un modèle utilise des textures
+    doesModelUseTextures(templateName) {
+        return this.templates[templateName]?.useTextures === true;
+    }
+
+    // Obtenir l'ID de modèle pour appliquer les textures
+    getTextureModelId(templateName) {
+        return this.templates[templateName]?.id || null;
+    }
+
     // Ajouter un nouveau template
-    addTemplate(templateName, objectId, assetPath, priority = 999) {
+    addTemplate(templateName, objectId, assetPath, priority = 999, useTextures = true) {
         this.templates[templateName] = {
             id: objectId,
             path: assetPath,
-            priority
+            priority,
+            useTextures
         };
         return this;
     }
@@ -111,7 +130,8 @@ class TemplateManager {
 
     // Générer la liste des assets au format attendu par l'AssetManager
     generateAssetList() {
-        return Object.values(this.templates).map(template => ({
+        // Commencer par les modèles 3D
+        const assetList = Object.values(this.templates).map(template => ({
             name: template.id,
             type: 'gltf',
             path: template.path,
@@ -119,6 +139,24 @@ class TemplateManager {
             author: 'Author',
             url: ''
         }));
+
+        // Ajouter les textures requises si TextureManager est disponible
+        if (textureManager) {
+            const textureAssets = textureManager.generateTextureAssetList();
+            assetList.push(...textureAssets);
+        }
+
+        return assetList;
+    }
+
+    // Appliquer les textures à un modèle spécifique
+    async applyTexturesToModelIfNeeded(templateName, modelObject) {
+        if (!modelObject || !this.doesModelUseTextures(templateName)) return;
+
+        const modelId = this.getTextureModelId(templateName);
+        if (modelId && textureManager) {
+            await textureManager.applyTexturesToModel(modelId, modelObject);
+        }
     }
 }
 

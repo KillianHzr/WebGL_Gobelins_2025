@@ -7,6 +7,7 @@ import { audioManager } from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import useStore from '../Store/useStore';
+import { textureManager } from '../Config/TextureManager';
 
 /**
  * Composant simple pour ajouter un marqueur à n'importe quel modèle 3D
@@ -48,6 +49,10 @@ export default function EasyModelMarker({
                                             // Props d'interaction spécifiques
                                             requiredStep = null,
 
+                                            // Props pour les textures
+                                            textureModelId = null,
+                                            useTextures = true,
+
                                             // Props pour enfants personnalisés
                                             children,
                                         }) {
@@ -66,6 +71,24 @@ export default function EasyModelMarker({
 
     // Utiliser le composant de debug pour l'effet de glow
     const { effectSettings, updateEffectRef } = GlowEffectDebug({ objectRef: modelRef });
+
+    // Gestion des textures
+    useEffect(() => {
+        // Vérifier si l'objet a un modèle 3D et si nous devons appliquer des textures
+        if (modelRef.current && gltf && useTextures && textureModelId) {
+            // Appliquer les textures au modèle
+            const applyTextures = async () => {
+                try {
+                    await textureManager.applyTexturesToModel(textureModelId, modelRef.current);
+                    console.log(`[EasyModelMarker] Textures appliquées à ${markerId} (${textureModelId})`);
+                } catch (error) {
+                    console.error(`[EasyModelMarker] Erreur lors de l'application des textures:`, error);
+                }
+            };
+
+            applyTextures();
+        }
+    }, [gltf, modelRef.current, useTextures, textureModelId, markerId]);
 
     // Personnaliser les paramètres d'effet
     useEffect(() => {

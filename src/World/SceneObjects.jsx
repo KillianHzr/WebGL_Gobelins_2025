@@ -3,9 +3,57 @@ import { useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import EasyModelMarker from './EasyModelMarker';
 import sceneObjectManager from '../Config/SceneObjectManager';
+import { textureManager } from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import { EventBus } from '../Utils/EventEmitter';
 import MARKER_EVENTS from "../Utils/EventEmitter";
+
+/**
+ * Composant pour afficher un objet statique individuel avec textures
+ */
+function StaticObject({
+                          path,
+                          position,
+                          rotation,
+                          scale,
+                          castShadow = true,
+                          receiveShadow = true,
+                          visible = true,
+                          textureModelId = null,
+                          useTextures = true
+                      }) {
+    const { scene: model } = useGLTF(path);
+    const objectRef = React.useRef();
+
+    // Appliquer les textures au modèle après le montage
+    useEffect(() => {
+        if (objectRef.current && useTextures && textureModelId && textureManager) {
+            const applyTextures = async () => {
+                try {
+                    await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
+                    console.log(`[StaticObject] Textures appliquées à ${textureModelId}`);
+                } catch (error) {
+                    console.error(`[StaticObject] Erreur lors de l'application des textures:`, error);
+                }
+            };
+
+            applyTextures();
+        }
+    }, [objectRef.current, textureModelId, useTextures]);
+
+    return (
+        <primitive
+            ref={objectRef}
+            object={model.clone()}
+            position={position}
+            rotation={rotation}
+            scale={scale}
+            castShadow={castShadow}
+            receiveShadow={receiveShadow}
+            visible={visible}
+        />
+    );
+}
 
 /**
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
@@ -36,6 +84,11 @@ export function StaticObjects({ filter = {} }) {
                 const objectConfig = sceneObjectManager.getObjectFromCatalog(placement.objectKey);
                 if (!objectConfig) return null;
 
+                // Obtenir les informations sur les textures
+                const textureModelId = sceneObjectManager.getTextureModelId(placement.objectKey);
+                const useTextures = placement.useTextures !== undefined ?
+                    placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
+
                 return (
                     <StaticObject
                         key={`static-${index}`}
@@ -46,29 +99,12 @@ export function StaticObjects({ filter = {} }) {
                         castShadow={placement.castShadow}
                         receiveShadow={placement.receiveShadow}
                         visible={placement.visible}
+                        textureModelId={textureModelId}
+                        useTextures={useTextures}
                     />
                 );
             })}
         </group>
-    );
-}
-
-/**
- * Composant pour afficher un objet statique individuel
- */
-function StaticObject({ path, position, rotation, scale, castShadow = true, receiveShadow = true, visible = true }) {
-    const { scene: model } = useGLTF(path);
-
-    return (
-        <primitive
-            object={model.clone()}
-            position={position}
-            rotation={rotation}
-            scale={scale}
-            castShadow={castShadow}
-            receiveShadow={receiveShadow}
-            visible={visible}
-        />
     );
 }
 
@@ -120,6 +156,11 @@ export function InteractiveObjects({ filter = {} }) {
                 const objectConfig = sceneObjectManager.getObjectFromCatalog(placement.objectKey);
                 if (!objectConfig) return null;
 
+                // Obtenir les informations sur les textures
+                const textureModelId = sceneObjectManager.getTextureModelId(placement.objectKey);
+                const useTextures = placement.useTextures !== undefined ?
+                    placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
+
                 return (
                     <EasyModelMarker
                         key={placement.markerId}
@@ -136,6 +177,8 @@ export function InteractiveObjects({ filter = {} }) {
                         outlineColor={placement.outlineColor}
                         outlinePulse={placement.outlinePulse}
                         requiredStep={placement.requiredStep}
+                        textureModelId={textureModelId}
+                        useTextures={useTextures}
                         onInteract={(event) => {
                             console.log(`Interaction avec ${placement.markerId}:`, event);
                             if (placement.onInteract) {
@@ -161,6 +204,9 @@ export function SingleInteractiveObject({ objectKey, position, options = {} }) {
     }
 
     const markerId = options.markerId || `${objectKey}-single`;
+    const textureModelId = sceneObjectManager.getTextureModelId(objectKey);
+    const useTextures = options.useTextures !== undefined ?
+        options.useTextures : sceneObjectManager.doesObjectUseTextures(objectKey);
 
     return (
         <EasyModelMarker
@@ -177,6 +223,8 @@ export function SingleInteractiveObject({ objectKey, position, options = {} }) {
             outlineColor={options.outlineColor || objectConfig.interaction.color}
             outlinePulse={options.outlinePulse !== undefined ? options.outlinePulse : true}
             requiredStep={options.requiredStep || null}
+            textureModelId={textureModelId}
+            useTextures={useTextures}
             onInteract={(event) => {
                 console.log(`Interaction avec ${markerId}:`, event);
                 if (options.onInteract) {
@@ -198,6 +246,10 @@ export function SingleStaticObject({ objectKey, position, options = {} }) {
         return null;
     }
 
+    const textureModelId = sceneObjectManager.getTextureModelId(objectKey);
+    const useTextures = options.useTextures !== undefined ?
+        options.useTextures : sceneObjectManager.doesObjectUseTextures(objectKey);
+
     return (
         <StaticObject
             path={objectConfig.path}
@@ -207,6 +259,8 @@ export function SingleStaticObject({ objectKey, position, options = {} }) {
             castShadow={options.castShadow !== undefined ? options.castShadow : true}
             receiveShadow={options.receiveShadow !== undefined ? options.receiveShadow : true}
             visible={options.visible !== undefined ? options.visible : true}
+            textureModelId={textureModelId}
+            useTextures={useTextures}
         />
     );
 }

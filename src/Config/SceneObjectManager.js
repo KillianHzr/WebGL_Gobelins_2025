@@ -2,9 +2,9 @@
 // Système centralisé pour la gestion des objets individuels dans la scène
 // Gère à la fois les objets interactifs et les objets statiques avec leur placement par défaut
 
-import { INTERACTION_TYPES } from '../Utils/EnhancedObjectMarker';
-import { EventBus } from '../Utils/EventEmitter';
-import MARKER_EVENTS from "../Utils/EventEmitter";
+import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
+import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
+import {textureManager} from './TextureManager';
 
 class SceneObjectManager {
     constructor() {
@@ -41,6 +41,7 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TreeNaked.gltf',
                 scale: [0.1, 0.1, 0.1],
                 interactive: true,
+                useTextures: true,  // Indique si ce modèle doit utiliser des textures
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Examiner l'arbre",
@@ -61,6 +62,7 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TreeStump.gltf',
                 scale: [0.25, 0.25, 0.25],
                 interactive: true,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Inspecter la souche",
@@ -81,6 +83,7 @@ class SceneObjectManager {
                 path: '/models/forest/bush/Bush.glb',
                 scale: [0.15, 0.15, 0.15],
                 interactive: true,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_LEFT,
                     text: "Écarter les feuilles",
@@ -92,7 +95,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-1, 0, -4],
                     rotation: [0, 0, 0],
-                    outlinePulse: true
+                    outlinePulse: false
                     // requiredStep sera attribué automatiquement
                 }
             },
@@ -103,9 +106,10 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TreeNaked.gltf',
                 scale: [0.2, 0.2, 0.2],
                 interactive: false,
+                useTextures: true,
                 // Placements statiques par défaut (plusieurs instances)
                 defaultPlacements: [
-                    { position: [5, 0, -8], rotation: [0, 0, 0] }
+                    {position: [5, 0, -8], rotation: [0, 0, 0]}
                 ]
             },
             'TreeStaticSmall': {
@@ -113,10 +117,11 @@ class SceneObjectManager {
                 path: '/models/forest/tree/ThinTrunk.gltf',
                 scale: [0.15, 0.15, 0.15],
                 interactive: false,
+                useTextures: true,
                 // Placements statiques par défaut (plusieurs instances)
                 defaultPlacements: [
-                    { position: [4, 0, -6], rotation: [0, 0, 0] },
-                    { position: [6, 0, -7], rotation: [0, Math.PI/6, 0] }
+                    {position: [4, 0, -6], rotation: [0, 0, 0]},
+                    {position: [6, 0, -7], rotation: [0, Math.PI / 6, 0]}
                 ]
             },
             'StumpStatic': {
@@ -124,9 +129,10 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TreeStump.gltf',
                 scale: [0.2, 0.2, 0.2],
                 interactive: false,
+                useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    { position: [-5, 0, -3], rotation: [0, 0, 0] }
+                    {position: [-5, 0, -3], rotation: [0, 0, 0]}
                 ]
             },
             'BushStatic': {
@@ -134,10 +140,23 @@ class SceneObjectManager {
                 path: '/models/forest/bush/Bush.glb',
                 scale: [0.12, 0.12, 0.12],
                 interactive: false,
+                useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    { position: [-4, 0, -5], rotation: [0, 0, 0] },
-                    { position: [3, 0, -7], rotation: [0, Math.PI/4, 0] }
+                    {position: [-4, 0, -5], rotation: [0, 0, 0]},
+                    {position: [3, 0, -7], rotation: [0, Math.PI / 4, 0]}
+                ]
+            },
+            'Ground': {
+                id: 'Bush',
+                path: '/models/Ground.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [0, 0, 0], rotation: [0, 0, 0]},
+                    {position: [0, 0, 0], rotation: [0, 0, 0]},
                 ]
             },
             'TrunkLargeStatic': {
@@ -145,9 +164,10 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TrunkLarge.gltf',
                 scale: [0.18, 0.18, 0.18],
                 interactive: false,
+                useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    { position: [0, 0, -6], rotation: [0, Math.PI/4, 0] }
+                    {position: [0, 0, -6], rotation: [0, Math.PI / 4, 0]}
                 ]
             }
         };
@@ -280,7 +300,8 @@ class SceneObjectManager {
             id: config.id || key,
             path: config.path,
             scale: config.scale || [1, 1, 1],
-            interactive: config.interactive !== undefined ? config.interactive : false
+            interactive: config.interactive !== undefined ? config.interactive : false,
+            useTextures: config.useTextures !== undefined ? config.useTextures : true
         };
 
         // Ajouter les propriétés d'interaction si l'objet est interactif
@@ -337,6 +358,16 @@ class SceneObjectManager {
         return this.objectCatalog[key] || null;
     }
 
+    // Vérifier si un objet utilise des textures
+    doesObjectUseTextures(key) {
+        return this.objectCatalog[key]?.useTextures === true;
+    }
+
+    // Obtenir l'ID de modèle pour appliquer les textures
+    getTextureModelId(key) {
+        return this.objectCatalog[key]?.id || null;
+    }
+
     // Ajouter un placement d'objet dans la scène
     addPlacement(key, position, options = {}) {
         const objectConfig = this.objectCatalog[key];
@@ -352,7 +383,8 @@ class SceneObjectManager {
             scale: options.scale || objectConfig.scale || [1, 1, 1],
             visible: options.visible !== undefined ? options.visible : true,
             castShadow: options.castShadow !== undefined ? options.castShadow : true,
-            receiveShadow: options.receiveShadow !== undefined ? options.receiveShadow : true
+            receiveShadow: options.receiveShadow !== undefined ? options.receiveShadow : true,
+            useTextures: options.useTextures !== undefined ? options.useTextures : objectConfig.useTextures
         };
 
         // Si l'objet est interactif, ajouter les propriétés d'interaction
@@ -386,6 +418,20 @@ class SceneObjectManager {
 
         this.placements.push(placement);
         return placement;
+    }
+
+    // Appliquer les textures à un objet
+    async applyTexturesToObject(placement, modelObject) {
+        if (!placement || !modelObject) return;
+
+        // Vérifier si l'objet doit utiliser des textures
+        if (placement.useTextures === false) return;
+
+        const modelId = this.getTextureModelId(placement.objectKey);
+
+        if (modelId && textureManager) {
+            await textureManager.applyTexturesToModel(modelId, modelObject);
+        }
     }
 
     // Récupérer tous les placements
@@ -442,7 +488,7 @@ class SceneObjectManager {
 
     // Récupérer les objets pour une étape spécifique
     getObjectsForStep(stepId) {
-        return this.getInteractivePlacements({ requiredStep: stepId });
+        return this.getInteractivePlacements({requiredStep: stepId});
     }
 
     // Récupérer l'ordre des étapes d'interaction
@@ -570,6 +616,12 @@ class SceneObjectManager {
                 });
             }
         });
+
+        // Ajouter les textures si TextureManager est disponible
+        if (textureManager) {
+            const textureAssets = textureManager.generateTextureAssetList();
+            assets.push(...textureAssets);
+        }
 
         return assets;
     }

@@ -4,6 +4,7 @@ import {Group, Vector3, Quaternion, Matrix4, Box3, Euler, Object3D} from 'three'
 import useStore from '../Store/useStore';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import templateManager from '../Config/TemplateManager';
+import {textureManager} from '../Config/TextureManager';
 
 export default function MapWithInstances() {
     const {scene} = useThree();
@@ -90,6 +91,11 @@ export default function MapWithInstances() {
                                 scaleY: dummy.scale.y,
                                 scaleZ: dummy.scale.z
                             });
+
+                            // Appliquer des textures si nécessaire - pour les modèles présents dans la scène
+                            if (templateManager.doesModelUseTextures(templateName)) {
+                                applyTexturesToInstance(node, objectId);
+                            }
                         }
                     }
                 }
@@ -129,6 +135,19 @@ export default function MapWithInstances() {
             return () => {
                 EventBus.off('forest-ready', forestReadyListener);
             };
+        };
+
+        // Fonction pour appliquer des textures à une instance
+        const applyTexturesToInstance = async (node, objectId) => {
+            if (!textureManager || !textureManager.hasTextures(objectId)) return;
+
+            try {
+                console.log(`Chargement des textures pour l'instance ${node.name} (${objectId})...`);
+                await textureManager.applyTexturesToModel(objectId, node);
+                console.log(`Textures appliquées avec succès à l'instance ${node.name} (${objectId})`);
+            } catch (error) {
+                console.warn(`Erreur lors de l'application des textures à l'instance ${node.name}:`, error);
+            }
         };
 
         // Charger la carte
@@ -347,6 +366,15 @@ function extractAndSaveGeoNodesPositions(mapModel) {
                     yz: fingerprint.aspectRatio.yz.toFixed(2)
                 }
             });
+
+            // Préchargement des textures pour ce template si nécessaire
+            const modelId = templateManager.getObjectTypeFromTemplate(node.name);
+            if (modelId && templateManager.doesModelUseTextures(node.name) && textureManager) {
+                console.log(`Préchargement des textures pour le template ${node.name} (${modelId})...`);
+                textureManager.preloadTexturesForModel(modelId)
+                    .then(() => console.log(`Textures préchargées pour ${modelId}`))
+                    .catch(err => console.warn(`Erreur lors du préchargement des textures pour ${modelId}:`, err));
+            }
         }
     });
 
@@ -388,14 +416,16 @@ function extractAndSaveGeoNodesPositions(mapModel) {
                 // Si l'ID est dans la map d'ID vers template, utiliser cette correspondance directe
                 // sinon utiliser l'analyse géométrique
                 let objectId;
-                const templateName = templateManager.getTemplateFromId(id);
+                let templateName;
+
+                templateName = templateManager.getTemplateFromId(id);
 
                 if (templateName) {
                     objectId = templateManager.getObjectTypeFromTemplate(templateName);
                 } else {
                     // Utiliser l'analyse géométrique comme fallback
-                    const detectedTemplate = findMatchingTemplate(node);
-                    objectId = templateManager.getObjectTypeFromTemplate(detectedTemplate);
+                    templateName = findMatchingTemplate(node);
+                    objectId = templateManager.getObjectTypeFromTemplate(templateName);
                 }
 
                 // Statistiques
@@ -435,6 +465,13 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
                 // Ajouter aux données par modèle
                 modelPositions[objectId].push(instanceInfo);
+
+                // Appliquer les textures si le modèle utilise des textures
+                if (templateManager.doesModelUseTextures(templateName) && textureManager) {
+                    // On applique les textures de manière asynchrone, mais on ne bloque pas le processus
+                    textureManager.applyTexturesToModel(objectId, node)
+                        .catch(err => console.warn(`Erreur lors de l'application des textures à ${node.name}:`, err));
+                }
             }
         }
 
