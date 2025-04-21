@@ -14,7 +14,6 @@ import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
 import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
-import EnhancedCube from "./World/EnhancedCube.jsx";
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import EasyModelMarker from "./World/EasyModelMarker.jsx";
 import {INTERACTION_TYPES} from "./Utils/EnhancedObjectMarker.jsx";
@@ -128,9 +127,27 @@ export default function Experience() {
                         markerOffset={1.5}
                         markerAxis="y"
                         outlineColor="#44ff44"
+                        outlinePulse={false}  // Désactive la pulsation de l'outline
                         requiredStep="firstStop"
                         onInteract={(event) => {
                             console.log("Interaction avec l'arbre:", event);
+                        }}
+                    />
+                    <EasyModelMarker
+                        modelPath="/models/forest/tree/TreeStump.glb"
+                        position={[-3, 0, -2]}
+                        scale={[0.25, 0.25, 0.25]}
+                        markerId="tree-marker"
+                        markerType={INTERACTION_TYPES.LONG_PRESS}
+                        markerText="Cliquez ici"
+                        markerColor="#44ff44"
+                        markerOffset={1.5}
+                        markerAxis="y"
+                        outlineColor="#44ff44"
+                        outlinePulse={false}  // Désactive la pulsation de l'outline
+                        requiredStep="SecondStop"
+                        onInteract={(event) => {
+                            console.log("Interaction avec la souche:", event);
                         }}
                     />
 

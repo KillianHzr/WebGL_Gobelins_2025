@@ -10,24 +10,6 @@ import useStore from '../Store/useStore';
 
 /**
  * Composant simple pour ajouter un marqueur à n'importe quel modèle 3D
- *
- * @param {Object} props
- * @param {string} props.modelPath - Chemin vers le modèle 3D (GLB, GLTF, etc.)
- * @param {[number, number, number]} props.position - Position du modèle [x, y, z]
- * @param {[number, number, number]} props.scale - Échelle du modèle [x, y, z]
- * @param {[number, number, number]} props.rotation - Rotation du modèle [x, y, z] en radians
- * @param {string} props.markerId - ID unique pour le marqueur
- * @param {string} props.markerType - Type d'interaction (CLICK, LONG_PRESS, DRAG_LEFT, etc.)
- * @param {string} props.markerText - Texte à afficher sur le marqueur
- * @param {string} props.markerColor - Couleur du marqueur (format hex ou nom de couleur)
- * @param {number} props.markerOffset - Distance du marqueur par rapport au modèle
- * @param {string} props.markerAxis - Axe préféré pour le positionnement du marqueur ('x', 'y', 'z')
- * @param {boolean} props.alwaysVisible - Si true, le marqueur est toujours visible, sinon seulement au survol
- * @param {Function} props.onInteract - Fonction à appeler lors de l'interaction
- * @param {Object} props.modelProps - Props supplémentaires à passer au modèle
- * @param {Object} props.nodeProps - Props spécifiques aux nodes du modèle GLTF
- * @param {boolean} props.useBox - Si true, utilise une boxGeometry au lieu d'un modèle
- * @param {boolean} props.playSound - Si true, joue un son lors de l'interaction
  */
 export default function EasyModelMarker({
                                             // Props du modèle
@@ -91,11 +73,17 @@ export default function EasyModelMarker({
             updateEffectRef.current.color = outlineColor;
             updateEffectRef.current.thickness = outlineThickness;
             updateEffectRef.current.intensity = outlineIntensity;
-            updateEffectRef.current.pulseSpeed = outlinePulseSpeed;
-        }
-    }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, updateEffectRef]);
+            // Désactiver complètement la pulsation si outlinePulse est false
+            updateEffectRef.current.pulseSpeed = outlinePulse ? outlinePulseSpeed : 0;
 
-    // Surveiller l'état d'interaction pour activer l'effet de glow et définir le type d'interaction
+            // Force une mise à jour immédiate pour arrêter tout mouvement existant
+            if (!outlinePulse && updateEffectRef.current.pulseRef) {
+                updateEffectRef.current.pulseRef.current = { value: 0, direction: 0 };
+            }
+        }
+    }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
+
+    // Surveiller l'état d'interaction pour activer l'effet de glow
     useEffect(() => {
         // Vérifier si ce modèle est l'objet qui nécessite une interaction
         const isCurrentInteractionTarget = interaction?.waitingForInteraction &&
@@ -103,13 +91,12 @@ export default function EasyModelMarker({
 
         setIsWaitingForInteraction(isCurrentInteractionTarget);
 
-        // Afficher les informations de débogage
         if (isCurrentInteractionTarget) {
             console.log(`[EasyModelMarker] ${markerId} is waiting for interaction: ${interaction.currentStep}`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId]);
 
-    // Effet pour réinitialiser l'état d'interaction complétée lorsque l'étape change
+    // Réinitialiser l'état d'interaction complétée lorsque l'étape change
     useEffect(() => {
         if (interaction && interaction.currentStep) {
             setIsInteractionCompleted(false);
@@ -216,7 +203,7 @@ export default function EasyModelMarker({
                             color={effectSettings.color}
                             thickness={effectSettings.thickness}
                             intensity={effectSettings.intensity}
-                            pulseSpeed={effectSettings.pulseSpeed}
+                            pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
                             ref={updateEffectRef}
                         />
                     )}
@@ -264,7 +251,7 @@ export default function EasyModelMarker({
                             color={effectSettings.color}
                             thickness={effectSettings.thickness}
                             intensity={effectSettings.intensity}
-                            pulseSpeed={effectSettings.pulseSpeed}
+                            pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
                             ref={updateEffectRef}
                         />
                     )}
