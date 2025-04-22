@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react'
+import React, {useEffect, useMemo, useRef, useState, useCallback} from 'react'
 import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
@@ -17,61 +17,114 @@ import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects, {SingleInteractiveObject} from './World/SceneObjects';
 
+// Activer ou désactiver les logs pour le débogage
+const DEBUG_EXPERIENCE = false;
+
+// Helper pour les logs conditionnels
+const debugLog = (message, ...args) => {
+    if (DEBUG_EXPERIENCE) console.log(`[Experience] ${message}`, ...args);
+};
+
 export default function Experience() {
     const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
     const {scene, camera} = useThree()
     const ambientLightRef = useRef()
     const directionalLightRef = useRef()
 
-    // Gestion des événements des marqueurs
+    // Références pour gérer les écouteurs d'événements
+    const eventListenersRef = useRef([]);
+
+    // État pour suivre si le composant est monté
+    const isMountedRef = useRef(true);
+
+    // Gestion optimisée des événements des marqueurs
     useEffect(() => {
-        // Écouter les événements de marqueurs
+        // Ne procéder que si le composant est monté
+        if (!isMountedRef.current) return;
+
+        debugLog('Setting up marker event handlers');
+
+        // Fonction optimisée pour gérer les clics de marqueurs
         const markerClickHandler = (data) => {
-            console.log('Marqueur cliqué:', data);
+            debugLog('Marqueur cliqué:', data);
         };
 
+        // Fonction optimisée pour gérer les événements d'interaction
         const interactionRequiredHandler = (data) => {
-            console.log('Interaction requise:', data);
-            // Déclencher l'interaction dans le store si nécessaire
-            const {setWaitingForInteraction, setCurrentStep} = useStore.getState().interaction;
-            if (setWaitingForInteraction && setCurrentStep) {
-                setWaitingForInteraction(true);
-                setCurrentStep(data.id);
+            debugLog('Interaction requise:', data);
+
+            // Récupérer l'état global de manière optimisée
+            const store = useStore.getState();
+            const interaction = store.interaction;
+
+            // Déclencher l'interaction dans le store si nécessaire et disponible
+            if (interaction && typeof interaction.setWaitingForInteraction === 'function' &&
+                typeof interaction.setCurrentStep === 'function') {
+                interaction.setWaitingForInteraction(true);
+                interaction.setCurrentStep(data.id);
             }
         };
 
+        // Fonction optimisée pour gérer le survol des marqueurs
         const markerHoverHandler = (data) => {
-            console.log('Marqueur survolé:', data);
+            debugLog('Marqueur survolé:', data);
         };
 
-        // S'abonner aux événements
-        const cleanupClickEvent = EventBus.on(MARKER_EVENTS.MARKER_CLICK, markerClickHandler);
-        const cleanupHoverEvent = EventBus.on(MARKER_EVENTS.MARKER_HOVER, markerHoverHandler);
-        const cleanupInteractionEvent = EventBus.on(MARKER_EVENTS.INTERACTION_REQUIRED, interactionRequiredHandler);
+        // S'abonner aux événements avec gestion des erreurs
+        try {
+            const cleanupClickEvent = EventBus.on(MARKER_EVENTS.MARKER_CLICK, markerClickHandler);
+            const cleanupHoverEvent = EventBus.on(MARKER_EVENTS.MARKER_HOVER, markerHoverHandler);
+            const cleanupInteractionEvent = EventBus.on(MARKER_EVENTS.INTERACTION_REQUIRED, interactionRequiredHandler);
 
+            // Stocker les références pour le nettoyage
+            eventListenersRef.current = [
+                cleanupClickEvent,
+                cleanupHoverEvent,
+                cleanupInteractionEvent
+            ];
+        } catch (error) {
+            console.error('Error setting up marker event handlers:', error);
+        }
+
+        // Nettoyage optimisé lors du démontage
         return () => {
-            // Nettoyage
-            cleanupClickEvent();
-            cleanupHoverEvent();
-            cleanupInteractionEvent();
+            // Nettoyer tous les écouteurs d'événements
+            eventListenersRef.current.forEach(cleanup => {
+                try {
+                    if (typeof cleanup === 'function') {
+                        cleanup();
+                    }
+                } catch (error) {
+                    console.warn('Error cleaning up event listener:', error);
+                }
+            });
+
+            // Vider la liste
+            eventListenersRef.current = [];
         };
     }, []);
 
+    // Configurer la caméra de manière optimisée
     useEffect(() => {
-        if (camera) {
-            setCamera(camera);
-            setCameraInitialZoom(camera.zoom);
-        }
+        if (!camera) return;
+
+        setCamera(camera);
+        setCameraInitialZoom(camera.zoom);
     }, [camera, setCamera, setCameraInitialZoom]);
 
-    // Appliquer les valeurs par défaut aux lumières lors du montage
+    // Appliquer les valeurs par défaut aux lumières lors du montage - optimisé
     useEffect(() => {
+        // Ne procéder que si la scène est disponible et le composant monté
+        if (!scene || !isMountedRef.current) return;
+
         // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
         if (!debug?.active) {
+            // Masquer le studio TheatreJS si présent
             if (window.__theatreStudio) {
                 window.__theatreStudio.ui.hide();
             }
 
+            // Parcourir la scène une seule fois pour initialiser les lumières
             scene.traverse((object) => {
                 if (object.isLight) {
                     const lightType = object.type.replace('Light', '');
@@ -79,59 +132,71 @@ export default function Experience() {
                     // Trouver l'index de cette lumière parmi les autres du même type
                     let index = 0;
                     let foundLights = 0;
+
+                    // Utiliser une approche plus efficace pour trouver l'index
+                    const lights = [];
                     scene.traverse((obj) => {
                         if (obj.isLight && obj.type === object.type) {
-                            if (obj === object) {
-                                index = foundLights;
-                            }
-                            foundLights++;
+                            lights.push(obj);
                         }
                     });
+
+                    index = lights.indexOf(object);
 
                     // Initialiser avec les valeurs par défaut
                     initializeLight(object, lightType, index);
                 }
             });
         }
+
+        // Nettoyage lors du démontage
+        return () => {
+            // Pas besoin de nettoyer les lumières, elles seront gérées par Three.js
+        };
     }, [scene, debug]);
 
-    return (<EventEmitterProvider>
-        <DebugInitializer/>
-        <AudioManagerComponent/>
+    // Marquer le composant comme démonté lors du nettoyage
+    useEffect(() => {
+        // Initialiser
+        isMountedRef.current = true;
 
-        {debug?.active && debug?.showStats && <Stats/>}
-        {debug?.active && debug?.showGui && <Debug/>}
-        {debug?.active && debug?.showGui && <Camera/>}
-        {debug?.active && debug?.showGui && <Controls/>}
-        {debug?.active && debug?.showGui && <Lights/>}
+        // Nettoyer
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
 
-        <RayCaster>
-            <InteractiveMarkersProvider>
-                <ScrollControls>
-                    {/* Lights */}
-                    <ambientLight intensity={0.5}/>
-                    <directionalLight position={[1, 2, 3]} intensity={1.5}/>
-                    <color attach="background" args={['#1e1e2f']}/>
+    // Optimiser le rendu de la scène forestière avec useMemo
+    const forestScene = useMemo(() => <ForestSceneWrapper/>, []);
 
-                    {/* Utiliser le composant principal qui affiche tous les objets de scène
-                        avec les placements par défaut du SceneObjectManager */}
-                    <SceneObjects />
+    return (
+        <EventEmitterProvider>
+            <DebugInitializer/>
+            <AudioManagerComponent/>
 
-                    {/* Exemple d'ajout d'un objet interactif spécial que nous voulons différencier des placements par défaut */}
-                    {/*<SingleInteractiveObject*/}
-                    {/*    objectKey="BushInteractive"*/}
-                    {/*    position={[3, 0, -3]}*/}
-                    {/*    options={{*/}
-                    {/*        markerId: "special-bush",*/}
-                    {/*        markerText: "Buisson spécial",*/}
-                    {/*        requiredStep: "specialStop"*/}
-                    {/*    }}*/}
-                    {/*/>*/}
+            {debug?.active && debug?.showStats && <Stats/>}
+            {debug?.active && debug?.showGui && <Debug/>}
+            {debug?.active && debug?.showGui && <Camera/>}
+            {debug?.active && debug?.showGui && <Controls/>}
+            {debug?.active && debug?.showGui && <Lights/>}
 
-                    {/* La forêt avec ses instances nombreuses (instanced meshes) */}
-                    {useMemo(() => (<ForestSceneWrapper/>), [])}
-                </ScrollControls>
-            </InteractiveMarkersProvider>
-        </RayCaster>
-    </EventEmitterProvider>)
+            <RayCaster>
+                <InteractiveMarkersProvider>
+                    <ScrollControls>
+                        {/* Lights */}
+                        <ambientLight intensity={0.5}/>
+                        <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+                        <color attach="background" args={['#1e1e2f']}/>
+
+                        {/* Utiliser le composant principal qui affiche tous les objets de scène
+                            avec les placements par défaut du SceneObjectManager */}
+                        <SceneObjects />
+
+                        {/* La forêt avec ses instances nombreuses (instanced meshes) */}
+                        {forestScene}
+                    </ScrollControls>
+                </InteractiveMarkersProvider>
+            </RayCaster>
+        </EventEmitterProvider>
+    )
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import EventEmitter, { EventBus } from "../Utils/EventEmitter.jsx";
+import { EventBus } from "../Utils/EventEmitter.jsx";
 import baseAssets from "./assets";
 import templateManager from '../Config/TemplateManager';
 import gsap from 'gsap';
@@ -9,6 +9,20 @@ import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
+
+// Activer ou désactiver les logs pour le débogage
+const DEBUG_ASSET_MANAGER = false;
+
+// Helper pour les logs conditionnels
+const debugLog = (message, ...args) => {
+    if (DEBUG_ASSET_MANAGER) console.log(`[AssetManager] ${message}`, ...args);
+};
+
+// Variable pour suivre l'état d'initialisation global
+let isAssetManagerInitialized = false;
+
+// Variable pour suivre les assets déjà chargés
+const loadedAssets = new Map();
 
 // Composant AssetManager
 const AssetManager = React.forwardRef((props, ref) => {
@@ -19,6 +33,7 @@ const AssetManager = React.forwardRef((props, ref) => {
     const loadingManagerRef = useRef(null);
     const loadingOverlayRef = useRef(null);
     const loadingBarRef = useRef(null);
+    const initializationInProgress = useRef(false);
 
     // Cache pour les matériaux partagés
     const sharedMaterialsRef = useRef({});
@@ -38,10 +53,55 @@ const AssetManager = React.forwardRef((props, ref) => {
         ).map(e => e.name);
     };
 
+    // Vérifier si un asset est valide
+    const isAssetValid = (asset) => {
+        if (!asset) return false;
+
+        // Pour les modèles GLTF
+        if (asset.scene) {
+            return true;
+        }
+
+        // Pour les textures
+        if (asset instanceof THREE.Texture) {
+            return true;
+        }
+
+        // Pour d'autres types d'assets
+        return true;
+    };
+
+    // Vérifier si un asset est déjà chargé et valide
+    const isAssetLoaded = (assetName) => {
+        const asset = itemsRef.current[assetName];
+        return isAssetValid(asset);
+    };
+
+    // Fonction auxiliaire pour trouver un asset de secours en cas d'erreur
+    const findFallbackAsset = (assetType) => {
+        if (!itemsRef.current) return null;
+
+        // Chercher un asset existant du même type
+        for (const [name, asset] of Object.entries(itemsRef.current)) {
+            if (!asset) continue;
+
+            const isGltf = assetType.toLowerCase() === "gltf" && asset.scene;
+            const isTexture = assetType.toLowerCase() === "texture" && asset instanceof THREE.Texture;
+
+            if (isGltf || isTexture) {
+                return asset;
+            }
+        }
+
+        return null;
+    };
+
     const getItem = (name) => {
         // Vérification de base
         if (!itemsRef.current || !itemsRef.current[name]) {
-            console.warn(`Asset not found: ${name}`);
+            if (DEBUG_ASSET_MANAGER) {
+                console.warn(`Asset not found: ${name}`);
+            }
             return null;
         }
 
@@ -111,6 +171,7 @@ const AssetManager = React.forwardRef((props, ref) => {
         getItemNamesOfType,
         items: itemsRef.current,
         sharedMaterials: sharedMaterialsRef.current,
+        initialized: isAssetManagerInitialized,
         // Ajout de méthodes spécifiques au TemplateManager
         templateManager,
         addTemplate: (templateName, objectId, assetPath, priority = 999) => {
@@ -134,7 +195,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     (model) => {
                         const optimizedModel = optimizeGltfModel(model);
                         itemsRef.current[objectId] = optimizedModel;
-                        console.log(`Dynamically loaded asset: ${objectId}`);
+                        debugLog(`Dynamically loaded asset: ${objectId}`);
                     },
                     undefined,
                     (error) => {
@@ -152,6 +213,31 @@ const AssetManager = React.forwardRef((props, ref) => {
 
     // Initialiser tout
     useEffect(() => {
+        // Vérifier si l'AssetManager est déjà initialisé
+        if (isAssetManagerInitialized) {
+            debugLog('AssetManager already initialized, skipping initialization');
+
+            // Assurez-vous que le callback onReady est appelé même si l'AssetManager est déjà initialisé
+            if (onReady && typeof onReady === 'function') {
+                onReady();
+            }
+
+            // Assurez-vous que l'événement ready est déclenché même si l'AssetManager est déjà initialisé
+            setTimeout(() => {
+                EventBus.trigger('ready');
+            }, 0);
+
+            return;
+        }
+
+        // Éviter les initialisations concurrentes
+        if (initializationInProgress.current) {
+            debugLog('AssetManager initialization already in progress, skipping');
+            return;
+        }
+
+        initializationInProgress.current = true;
+
         console.log('AssetManager: Initializing...');
 
         // Configurer le stockage des éléments
@@ -167,8 +253,12 @@ const AssetManager = React.forwardRef((props, ref) => {
             getItem,
             getItemNamesOfType,
             items: itemsRef.current,
-            templateManager
+            templateManager,
+            initialized: true
         };
+
+        // Marquer l'AssetManager comme initialisé
+        isAssetManagerInitialized = true;
 
         // Initialiser l'interface utilisateur de chargement
         initProgressBar();
@@ -186,16 +276,16 @@ const AssetManager = React.forwardRef((props, ref) => {
         dracoLoader.setDecoderPath('./draco/');
         loadersRef.current.gltf.setDRACOLoader(dracoLoader);
 
-        console.log('Total assets to load:', assets.length);
-        console.log('Base assets:', baseAssets.length);
-        console.log('Template assets:', templateAssets.length);
+        debugLog('Total assets to load:', assets.length);
+        debugLog('Base assets:', baseAssets.length);
+        debugLog('Template assets:', templateAssets.length);
 
         // Commencer le chargement s'il y a des assets
         if (assets.length > 0) {
-            console.log(`AssetManager: Loading ${assets.length} assets...`);
+            debugLog(`AssetManager: Loading ${assets.length} assets...`);
             loadAssets();
         } else {
-            console.log('AssetManager: No assets to load, triggering ready event');
+            debugLog('AssetManager: No assets to load, triggering ready event');
             if (onReady) onReady();
             EventBus.trigger('ready');
         }
@@ -207,30 +297,11 @@ const AssetManager = React.forwardRef((props, ref) => {
                 loadersRef.current.gltf.dracoLoader.dispose();
             }
 
-            // Nettoyer les matériaux partagés
-            Object.values(sharedMaterialsRef.current).forEach(material => {
-                if (material && material.dispose) {
-                    material.dispose();
-                }
-            });
-            sharedMaterialsRef.current = {};
-            window.sharedMaterials = null;
+            // Ne pas nettoyer les ressources globales lors du démontage du composant AssetManager
+            // car elles peuvent être utilisées par d'autres composants qui en dépendent
 
-            // Supprimer la référence globale
-            window.assetManager = null;
-
-            // Nettoyer les références
-            loadersRef.current = null;
-            itemsRef.current = null;
-            loadingBarRef.current = null;
-            loadingManagerRef.current = null;
-
-            // Nettoyer les objets Three.js
-            if (loadingOverlayRef.current) {
-                loadingOverlayRef.current.geometry?.dispose();
-                loadingOverlayRef.current.material?.dispose();
-                loadingOverlayRef.current = null;
-            }
+            // Réinitialiser le flag d'initialisation en cours
+            initializationInProgress.current = false;
         };
     }, [onReady]);
 
@@ -279,15 +350,15 @@ const AssetManager = React.forwardRef((props, ref) => {
 
                 // Appeler le callback onReady et déclencher l'événement
                 if (onReady) {
-                    console.log('AssetManager: Calling onReady callback');
+                    debugLog('AssetManager: Calling onReady callback');
                     onReady();
                 }
-                console.log('AssetManager: Triggering ready event');
+                debugLog('AssetManager: Triggering ready event');
                 EventBus.trigger('ready');
 
                 // Animations de chargement terminées
                 gsap.delayedCall(0.5, () => {
-                    console.log(`AssetManager :: assets load complete`);
+                    debugLog(`AssetManager :: assets load complete`);
 
                     if (loadingBarRef.current) {
                         loadingBarRef.current.classList.add('ended');
@@ -315,7 +386,7 @@ const AssetManager = React.forwardRef((props, ref) => {
 
             // Callback de progression
             (itemUrl, itemsLoaded, itemsTotal) => {
-                console.log(`AssetManager: Loading progress ${itemsLoaded}/${itemsTotal} - ${itemUrl}`);
+                debugLog(`AssetManager: Loading progress ${itemsLoaded}/${itemsTotal} - ${itemUrl}`);
                 if (loadingBarRef.current) {
                     const progressRatio = itemsLoaded / itemsTotal;
                     loadingBarRef.current.style.transform = `scaleX(${progressRatio})`;
@@ -332,26 +403,44 @@ const AssetManager = React.forwardRef((props, ref) => {
 
     // Charger les assets
     const loadAssets = () => {
-        console.log(`AssetManager: Starting to load ${assets.length} assets`);
+        debugLog(`AssetManager: Starting to load ${assets.length} assets`);
 
         // Pour éviter les doublons, garder une trace des URL déjà chargées
         const loadedUrls = new Set();
         // Pour éviter les doublons de noms, garder une trace des noms déjà traités
         const processedNames = new Set();
 
+        // Compter combien d'assets sont déjà chargés pour mettre à jour la progression
+        let alreadyLoadedCount = 0;
+
         for (const asset of assets) {
             // Éviter les doublons de noms
             if (processedNames.has(asset.name)) {
-                console.log(`AssetManager: Skipping duplicate asset name: ${asset.name}`);
+                debugLog(`AssetManager: Skipping duplicate asset name: ${asset.name}`);
                 continue;
             }
             processedNames.add(asset.name);
 
-            console.log(`AssetManager: Loading asset ${asset.name} (${asset.type}) from ${asset.path}`);
+            // Vérifier si l'asset est déjà chargé et valide
+            if (isAssetLoaded(asset.name)) {
+                debugLog(`AssetManager: Asset ${asset.name} already loaded, skipping`);
+                alreadyLoadedCount++;
+                continue;
+            }
+
+            // Vérifier si cet asset existe dans loadedAssets (cache global)
+            if (loadedAssets.has(asset.name) && isAssetValid(loadedAssets.get(asset.name))) {
+                debugLog(`AssetManager: Asset ${asset.name} found in global cache, reusing`);
+                itemsRef.current[asset.name] = loadedAssets.get(asset.name);
+                alreadyLoadedCount++;
+                continue;
+            }
+
+            debugLog(`AssetManager: Loading asset ${asset.name} (${asset.type}) from ${asset.path}`);
 
             // Vérifier si l'URL a déjà été chargée
             if (loadedUrls.has(asset.path)) {
-                console.log(`AssetManager: Asset ${asset.name} has the same URL as a previously loaded asset, reusing...`);
+                debugLog(`AssetManager: Asset ${asset.name} has the same URL as a previously loaded asset, reusing...`);
                 // Rechercher le nom de l'asset déjà chargé avec cette URL
                 let sourceAssetName = null;
                 for (const key in itemsRef.current) {
@@ -363,15 +452,20 @@ const AssetManager = React.forwardRef((props, ref) => {
                 }
 
                 // Si on a trouvé la source, copier la référence
-                if (sourceAssetName && itemsRef.current[sourceAssetName]) {
+                if (sourceAssetName && itemsRef.current[sourceAssetName] && isAssetValid(itemsRef.current[sourceAssetName])) {
                     // Cloner l'objet pour éviter les problèmes de référence
                     if (asset.type.toLowerCase() === "gltf" && itemsRef.current[sourceAssetName].scene) {
-                        // Pour GLTF, cloner la scène
-                        const clonedModel = {
-                            scene: itemsRef.current[sourceAssetName].scene.clone(),
-                            animations: itemsRef.current[sourceAssetName].animations
-                        };
-                        loadComplete(asset, clonedModel);
+                        try {
+                            // Pour GLTF, cloner la scène
+                            const clonedModel = {
+                                scene: itemsRef.current[sourceAssetName].scene.clone(),
+                                animations: itemsRef.current[sourceAssetName].animations
+                            };
+                            loadComplete(asset, clonedModel);
+                        } catch (error) {
+                            console.warn(`Error cloning GLTF model ${asset.name}:`, error);
+                            // Continuer avec le chargement normal
+                        }
                     } else {
                         // Pour d'autres types, réutiliser simplement la référence
                         loadComplete(asset, itemsRef.current[sourceAssetName]);
@@ -383,6 +477,18 @@ const AssetManager = React.forwardRef((props, ref) => {
             // Ajouter l'URL à l'ensemble des URLs chargées
             loadedUrls.add(asset.path);
 
+            // Gérer les erreurs de manière plus robuste pour chaque type d'asset
+            const handleLoadError = (error) => {
+                console.error(`AssetManager: Error loading ${asset.type} ${asset.name} from ${asset.path}:`, error);
+
+                // Tenter de récupérer un asset déjà chargé du même type comme fallback
+                const fallbackAsset = findFallbackAsset(asset.type);
+                if (fallbackAsset) {
+                    console.warn(`AssetManager: Using fallback for ${asset.name}`);
+                    loadComplete(asset, fallbackAsset);
+                }
+            };
+
             if (asset.type.toLowerCase() === "texture") {
                 loadersRef.current.texture.load(asset.path,
                     (texture) => {
@@ -390,11 +496,11 @@ const AssetManager = React.forwardRef((props, ref) => {
                             texture.mapping = THREE.EquirectangularReflectionMapping;
                         }
                         loadComplete(asset, texture);
+                        // Stocker pour une réutilisation future
+                        loadedAssets.set(asset.name, texture);
                     },
                     undefined,
-                    (error) => {
-                        console.error(`AssetManager: Error loading texture ${asset.name}:`, error);
-                    }
+                    handleLoadError
                 );
             }
             else if (asset.type.toLowerCase() === "exr") {
@@ -402,11 +508,10 @@ const AssetManager = React.forwardRef((props, ref) => {
                     (texture) => {
                         texture.mapping = THREE.EquirectangularReflectionMapping;
                         loadComplete(asset, texture);
+                        loadedAssets.set(asset.name, texture);
                     },
                     undefined,
-                    (error) => {
-                        console.error(`AssetManager: Error loading EXR ${asset.name}:`, error);
-                    }
+                    handleLoadError
                 );
             }
             else if (asset.type.toLowerCase() === "hdr") {
@@ -414,39 +519,45 @@ const AssetManager = React.forwardRef((props, ref) => {
                     (texture) => {
                         texture.mapping = THREE.EquirectangularReflectionMapping;
                         loadComplete(asset, texture);
+                        loadedAssets.set(asset.name, texture);
                     },
                     undefined,
-                    (error) => {
-                        console.error(`AssetManager: Error loading HDR ${asset.name}:`, error);
-                    }
+                    handleLoadError
                 );
             }
             else if (asset.type.toLowerCase() === "fbx") {
                 loadersRef.current.fbx.load(asset.path,
                     (model) => {
                         loadComplete(asset, model);
+                        loadedAssets.set(asset.name, model);
                     },
                     undefined,
-                    (error) => {
-                        console.error(`AssetManager: Error loading FBX ${asset.name}:`, error);
-                    }
+                    handleLoadError
                 );
             }
             else if (asset.type.toLowerCase() === "gltf") {
                 loadersRef.current.gltf.load(
                     asset.path,
                     (model) => {
-                        // Optimiser le modèle pour réduire les drawcalls
-                        const optimizedModel = optimizeGltfModel(model);
-                        loadComplete(asset, optimizedModel);
+                        try {
+                            // Optimiser le modèle pour réduire les drawcalls
+                            const optimizedModel = optimizeGltfModel(model);
+                            loadComplete(asset, optimizedModel);
+                            loadedAssets.set(asset.name, optimizedModel);
+                        } catch (error) {
+                            console.error(`Error optimizing GLTF model ${asset.name}:`, error);
+                            // En cas d'erreur d'optimisation, utiliser le modèle tel quel
+                            loadComplete(asset, model);
+                            loadedAssets.set(asset.name, model);
+                        }
                     },
                     (progress) => {
                         // Progress callback (optional)
-                        console.log(`AssetManager: GLTF ${asset.name} loading progress:`, progress);
+                        if (DEBUG_ASSET_MANAGER) {
+                            console.log(`AssetManager: GLTF ${asset.name} loading progress:`, progress);
+                        }
                     },
-                    (error) => {
-                        console.error(`AssetManager: Error loading GLTF ${asset.name}:`, error);
-                    }
+                    handleLoadError
                 );
             }
             else if (asset.type.toLowerCase() === "material") {
@@ -459,11 +570,14 @@ const AssetManager = React.forwardRef((props, ref) => {
                     path += '/';
                 }
 
-                textures.map((texObject) => {
+                textures.forEach((texObject) => {
                     const type = texObject[0];
 
                     if (typeof texObject[1] === 'object' && !Array.isArray(texObject[1]) && texObject[1] !== null) {
-                        for (const [key, value] of Object.entries(texObject[1])) {
+                        const textureEntries = Object.entries(texObject[1]);
+                        nTex += textureEntries.length - 1; // Ajuster le compteur
+
+                        for (const [key, value] of textureEntries) {
                             const url = path + value;
 
                             loadersRef.current.texture.load(
@@ -471,15 +585,19 @@ const AssetManager = React.forwardRef((props, ref) => {
                                 (texture) => {
                                     texture.flipY = false;
                                     material[type][key] = texture;
-                                    if (--nTex === 0) {
+                                    nTex--;
+                                    if (nTex === 0) {
                                         loadComplete(asset, material);
+                                        loadedAssets.set(asset.name, material);
                                     }
                                 },
                                 undefined,
                                 (error) => {
                                     console.error(`AssetManager: Error loading material texture ${key} for ${asset.name}:`, error);
-                                    if (--nTex === 0) {
+                                    nTex--;
+                                    if (nTex === 0) {
                                         loadComplete(asset, material);
+                                        loadedAssets.set(asset.name, material);
                                     }
                                 }
                             );
@@ -492,15 +610,19 @@ const AssetManager = React.forwardRef((props, ref) => {
                             (texture) => {
                                 texture.flipY = false;
                                 material[type] = texture;
-                                if (--nTex === 0) {
+                                nTex--;
+                                if (nTex === 0) {
                                     loadComplete(asset, material);
+                                    loadedAssets.set(asset.name, material);
                                 }
                             },
                             undefined,
                             (error) => {
                                 console.error(`AssetManager: Error loading material texture ${type} for ${asset.name}:`, error);
-                                if (--nTex === 0) {
+                                nTex--;
+                                if (nTex === 0) {
                                     loadComplete(asset, material);
+                                    loadedAssets.set(asset.name, material);
                                 }
                             }
                         );
@@ -508,11 +630,20 @@ const AssetManager = React.forwardRef((props, ref) => {
                 });
             }
         }
+
+        // Si tous les assets sont déjà chargés, déclencher directement l'événement "ready"
+        if (alreadyLoadedCount === assets.length) {
+            console.log('AssetManager: All assets already loaded, triggering ready event immediately');
+            if (onReady) {
+                onReady();
+            }
+            EventBus.trigger('ready');
+        }
     };
 
     // Gérer l'achèvement du chargement des assets
     const loadComplete = (asset, object) => {
-        console.log(`AssetManager :: new item stored : ${asset.name}`);
+        debugLog(`AssetManager :: new item stored : ${asset.name}`);
         itemsRef.current[asset.name] = object;
     };
 
