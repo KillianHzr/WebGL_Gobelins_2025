@@ -15,6 +15,8 @@ class SceneObjectManager {
             'thirdStop',
             'fourthStop',
             'fifthStop',
+            'sixthStop'
+            // Ajoutez d'autres étapes si nécessaire
         ];
 
         // Textes standard pour les différentes étapes d'interaction
@@ -24,6 +26,7 @@ class SceneObjectManager {
             'thirdStop': "Troisième point d'intérêt",
             'fourthStop': "Quatrième point d'intérêt",
             'fifthStop': "Cinquième point d'intérêt",
+            'sixthStop': "Sixième point d'intérêt",
             'specialStop': "Point spécial",
             // Ajoutez d'autres textes par défaut ici
         };
@@ -40,21 +43,20 @@ class SceneObjectManager {
                 path: '/models/forest/tree/TreeNaked.gltf',
                 scale: [0.1, 0.1, 0.1],
                 interactive: true,
-                useTextures: true,  // Indique si ce modèle doit utiliser des textures
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Examiner l'arbre",
                     color: "#44ff44",
                     offset: 1.5,
                     axis: "y",
-                    interfaceToShow: "camera"
+                    interfaceToShow: "none"
                 },
-                // Placement par défaut
                 defaultPlacement: {
-                    position: [2, 0, -5],
+                    position: [23, 0, -150],
                     rotation: [0, 0, 0],
-                    outlinePulse: false
-                    // requiredStep sera attribué automatiquement
+                    outlinePulse: true,
+                    requiredStep: 'firstStop'
                 }
             },
             'StumpInteractive': {
@@ -69,14 +71,99 @@ class SceneObjectManager {
                     color: "#ffbb00",
                     offset: 1.0,
                     axis: "y",
+                    interfaceToShow: "camera"
+                },
+                defaultPlacement: {
+                    position: [-1, 0, -138.00],
+                    rotation: [0, 0, 0],
+                    outlinePulse: true,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            // Nouveaux objets interactifs - Ajouter sans perturber les existants
+            'TrunkLargeInteractive': {
+                id: 'TrunkLarge',
+                path: '/models/forest/tree/TrunkLarge.gltf',
+                scale: [0.15, 0.15, 0.15],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 1.2,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-48, 0, -95],
+                    rotation: [0, 0, 0],
+                    outlinePulse: true,
+                    requiredStep: 'thirdStop'
+                }
+            },
+            'ThinTrunkInteractive': {
+                id: 'ThinTrunk',
+                path: '/models/forest/tree/ThinTrunk.gltf',
+                scale: [0.2, 0.2, 0.2],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Examiner le tronc fin",
+                    color: "#ff88cc",
+                    offset: 1.0,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-40, 0, -80],
+                    rotation: [0, 0, 0],
+                    outlinePulse: true,
+                    requiredStep: 'fourthStop'
+                }
+            },
+            'BushInteractive': {
+                id: 'Bush',
+                path: '/models/forest/bush/Bush.glb',
+                scale: [0.25, 0.25, 0.25],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Écarter le buisson",
+                    color: "#88cc44",
+                    offset: 1.0,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-8, 0, -60],
+                    rotation: [0, 0, 0],
+                    outlinePulse: true,
+                    requiredStep: 'fifthStop'
+                }
+            },
+            'DirectionPanelInteractive': {
+                id: 'DirectionPanel',
+                path: '/models/primary/DirectionPanel.gltf',
+                scale: [0.5, 0.5, 0.5],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 1.5,
+                    axis: "y",
                     interfaceToShow: "scanner"
                 },
-                // Placement par défaut
                 defaultPlacement: {
-                    position: [-3, 0, -2],
+                    position: [3, 0, -23],
                     rotation: [0, 0, 0],
-                    outlinePulse: false
-                    // requiredStep sera attribué automatiquement
+                    outlinePulse: true,
+                    requiredStep: 'sixthStop'
                 }
             },
             'Ground': {
@@ -85,7 +172,6 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: false,
-                // Placements statiques par défaut
                 defaultPlacements: [
                     {position: [0, 0, 0], rotation: [0, 0, 0]},
                 ]
@@ -96,7 +182,6 @@ class SceneObjectManager {
                 scale: [0.605, 0.605, 0.605],
                 interactive: false,
                 useTextures: true,
-                // Placements statiques par défaut
                 defaultPlacements: [
                     {position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}
                 ]
@@ -107,17 +192,16 @@ class SceneObjectManager {
                 scale: [0.018, 0.018, 0.018],
                 interactive: false,
                 useTextures: true,
-                // Placements statiques par défaut
                 defaultPlacements: [
                     {position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}
                 ]
-            }, 'OakLeaf': {
+            },
+            'OakLeaf': {
                 id: 'OakLeaf',
                 path: '/models/primary/OakLeaf.glb',
                 scale: [0.048, 0.048, 0.048],
                 interactive: false,
                 useTextures: true,
-                // Placements statiques par défaut
                 defaultPlacements: [
                     {position: [-5.747, 0.187, -56.018], rotation: [0, 0, 0]}
                 ]
@@ -228,7 +312,12 @@ class SceneObjectManager {
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
+                console.log(`==== INTERACTION COMPLÉTÉE ====`);
                 console.log(`SceneObjectManager: Interaction complétée pour ${placement.markerId}`);
+                console.log(`Objet: ${placement.objectKey} à la position [${placement.position}]`);
+                console.log(`Étape requise: ${placement.requiredStep}`);
+                console.log(`Type d'interaction: ${placement.markerType}`);
+                console.log(`=============================`);
 
                 // Exécuter le callback personnalisé si défini
                 if (placement.onInteract && typeof placement.onInteract === 'function') {
