@@ -127,7 +127,7 @@ class SceneObjectManager {
             'BushInteractive': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
-                scale: [0.25, 0.25, 0.25],
+                scale: [0.2, 0.2, 0.2],
                 interactive: true,
                 useTextures: true,
                 interaction: {
