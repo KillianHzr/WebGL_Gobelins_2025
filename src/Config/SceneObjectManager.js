@@ -15,7 +15,6 @@ class SceneObjectManager {
             'thirdStop',
             'fourthStop',
             'fifthStop',
-            // Ajoutez d'autres étapes si nécessaire
         ];
 
         // Textes standard pour les différentes étapes d'interaction
@@ -581,6 +580,5 @@ class SceneObjectManager {
     }
 }
 
-// Export d'une instance singleton
 export const sceneObjectManager = new SceneObjectManager();
 export default sceneObjectManager;

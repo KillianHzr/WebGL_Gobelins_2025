@@ -23,7 +23,25 @@ export default function MapWithInstances() {
         let mapModel = null;
 
         const loadMap = () => {
-            // Load and add map
+            // Vérification plus robuste de l'AssetManager
+            if (!assetManager || !assetManager.getItem) {
+                console.log("AssetManager not fully initialized, retrying in 500ms...");
+                setTimeout(loadMap, 500);
+                return;
+            }
+
+            // Vérification plus robuste de l'asset MapInstance
+            const mapAsset = assetManager.getItem('MapInstance');
+            if (!mapAsset) {
+                console.log("MapInstance asset not found, retrying in 500ms...");
+                setTimeout(loadMap, 500);
+                return;
+            }
+
+            // Continuer avec le chargement
+            mapModel = mapAsset.scene.clone();
+            mapModel.name = 'MapInstanceModel';
+            mapGroup.add(mapModel);
             if (assetManager?.getItem && assetManager.getItem('MapInstance')) {
                 console.log('Loading MapInstance model...');
                 mapModel = assetManager.getItem('MapInstance').scene.clone();

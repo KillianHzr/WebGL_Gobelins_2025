@@ -8,23 +8,20 @@ const baseAssets = [
     {
         name: 'Map',
         type: 'gltf',
-        path: '/models/Map.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/Map.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
     },
-    // Map
     {
         name: 'MapInstance',
         type: 'gltf',
-        path: '/models/MapInstance.glb', // Chemin absolu depuis le dossier "static"
+        path: '/models/MapInstance.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
     }
-    // Les assets des templates (arbres, rochers, etc.) sont ajoutés automatiquement
-    // par l'AssetManager en utilisant templateManager.generateAssetList()
-];
+    ];
 
 // Export de la liste d'assets de base
 export default baseAssets;

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import Forest from './Forest';
-import { EventBus, useEventEmitter } from '../Utils/EventEmitter';
+import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
 
 export default function ForestScene() {
@@ -41,8 +41,8 @@ export default function ForestScene() {
     }, [mapReady, forestReady]);
 
     // Utiliser useMemo pour éviter les re-rendus inutiles
-    const mapComponent = useMemo(() => <MapWithInstances />, []);
-    const forestComponent = useMemo(() => <Forest />, []);
+    const mapComponent = useMemo(() => <MapWithInstances/>, []);
+    const forestComponent = useMemo(() => <Forest/>, []);
 
     return (
         <>
