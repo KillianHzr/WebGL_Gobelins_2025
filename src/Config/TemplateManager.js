@@ -41,7 +41,7 @@ class TemplateManager {
             },
             'Plane003': {
                 id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
+                path: '/models/forest/bush/Bush.gltf',
                 priority: 6,
                 useTextures: true
             },

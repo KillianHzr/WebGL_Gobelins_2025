@@ -5,13 +5,13 @@ class TextureManager {
     constructor() {
         // Textures disponibles avec leurs informations
         this.textures = {
-            // 'TreeNaked': {
-            //     baseColor: '/textures/forest/tree/TreeNaked_BaseColor.png',
-            //     normal: '/textures/forest/tree/TreeNaked_Normal.png',
-            //     roughness: '/textures/forest/tree/TreeNaked_Roughness.png',
-            //     metalness: '/textures/forest/tree/TreeNaked_Metallic.png',
-            //     ao: '/textures/forest/tree/TreeNaked_Height.png', // Utiliser height comme AO
-            // },
+            'TreeNaked': {
+                baseColor: '/textures/forest/tree/TreeNaked_BaseColor.png',
+                normal: '/textures/forest/tree/TreeNaked_Normal.png',
+                roughness: '/textures/forest/tree/TreeNaked_Roughness.png',
+                metalness: '/textures/forest/tree/TreeNaked_Metallic.png',
+                ao: '/textures/forest/tree/TreeNaked_Height.png', // Utiliser height comme AO
+            },
             'TrunkLarge': {
                 baseColor: '/textures/forest/tree/TrunkLarge_BaseColor.png',
                 ao: '/textures/forest/tree/TrunkLarge_Height.png', // Utiliser height comme AO
@@ -19,20 +19,20 @@ class TextureManager {
                 roughness: '/textures/forest/tree/TrunkLarge_Roughness.png',
                 metalness: '/textures/forest/tree/TrunkLarge_Metallic.png',
             },
-            // 'ThinTrunk': {
-            //     baseColor: '/textures/forest/tree/ThinTrunk_BaseColor.png',
-            //     normal: '/textures/forest/tree/ThinTrunk_Normal.png',
-            //     roughness: '/textures/forest/tree/ThinTrunk_Roughness.png',
-            //     metalness: '/textures/forest/tree/ThinTrunk_Metallic.png',
-            //     ao: '/textures/forest/tree/ThinTrunk_Height.png', // Utiliser height comme AO
-            // },
-            // 'TreeStump': {
-            //     baseColor: '/textures/forest/tree/TreeStump_BaseColor.png',
-            //     normal: '/textures/forest/tree/TreeStump_Normal.png',
-            //     roughness: '/textures/forest/tree/TreeStump_Roughness.png',
-            //     metalness: '/textures/forest/tree/TreeStump_Metallic.png',
-            //     ao: '/textures/forest/tree/TreeStump_Height.png', // Utiliser height comme AO
-            // },
+            'ThinTrunk': {
+                baseColor: '/textures/forest/tree/TrunkThin_BaseColor.png',
+                normal: '/textures/forest/tree/TrunkThin_Normal.png',
+                roughness: '/textures/forest/tree/TrunkThin_Roughness.png',
+                metalness: '/textures/forest/tree/TrunkThin_Metallic.png',
+                ao: '/textures/forest/tree/TrunkThin_Height.png', // Utiliser height comme AO
+            },
+            'TreeStump': {
+                baseColor: '/textures/forest/tree/TreeStump_BaseColor.png',
+                normal: '/textures/forest/tree/TreeStump_Normal.png',
+                roughness: '/textures/forest/tree/TreeStump_Roughness.png',
+                metalness: '/textures/forest/tree/TreeStump_Metallic.png',
+                ao: '/textures/forest/tree/TreeStump_Height.png', // Utiliser height comme AO
+            },
 
             'BranchEucalyptus': {
                 baseColor: '/textures/forest/plant/BranchEucalyptus_BaseColor.png',
@@ -51,6 +51,13 @@ class TextureManager {
                 // ao: '/textures/forest/bush/Bush_Height.png', // Utiliser height comme AO
                 alpha: '/textures/forest/bush/Bush_Alpha.png', // Conservation de l'alpha pour le Bush
             },
+            'DirectionPanel': {
+                baseColor: '/textures/primary/DirectionPanel_BaseColor.png',
+                normal: '/textures/primary/DirectionPanel_Normal.png',
+                roughness: '/textures/primary/DirectionPanel_Roughness.png',
+                metalness: '/textures/primary/DirectionPanel_Metallic.png',
+                ao: '/textures/primary/DirectionPanel_Height.png', // Utiliser height comme AO
+            }
             // Ajoutez d'autres textures au besoin
         };
 
@@ -172,7 +179,7 @@ class TextureManager {
 
         // Configuration par défaut
         const config = {
-            aoIntensity: 0.7,     // Intensité AO par défaut
+            aoIntensity: 0.0,     // Intensité AO par défaut
             useDisplacement: false, // Désactiver le displacement par défaut
             displacementScale: 0.05,
             ...options
