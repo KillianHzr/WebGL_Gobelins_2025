@@ -8,7 +8,6 @@ class TemplateManager {
         // Templates disponibles avec leurs informations
         this.templates = {
             'Retopo_TRONC001': {
-                // Utilisation du même identifiant pour le type et l'asset
                 id: 'TreeNaked',
                 path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1,
@@ -39,12 +38,48 @@ class TemplateManager {
                 priority: 5,
                 useTextures: true
             },
-            'Plane003': {
+            'BUSHv2': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.gltf',
                 priority: 6,
                 useTextures: true
             },
+            'BranchEucalyptus_1': {
+                id: 'BranchEucalyptus',
+                path: '/models/forest/plant/BranchEucalyptus.glb',
+                priority: 6,
+                useTextures: true
+            },
+            'BranchFig_1': {
+                id: 'BranchFig',
+                path: '/models/forest/plant/BranchFig.glb',
+                priority: 7,
+                useTextures: true
+            },
+            'BushBlueberry_1': {
+                id: 'BushBlueberry',
+                path: '/models/forest/bush/BushBlueberry.glb',
+                priority: 8,
+                useTextures: true
+            },
+            'BushRaspberry_1': {
+                id: 'BushRaspberry',
+                path: '/models/forest/bush/BushRaspberry.glb',
+                priority: 9,
+                useTextures: true
+            }, 'BushTrunk_1': {
+                id: 'BushTrunk',
+                path: '/models/forest/bush/BushTrunk.glb',
+                priority: 10,
+                useTextures: true
+            },
+            'BushStrawberry': {
+                id: 'BushStrawberry',
+                path: '/models/forest/bush/BushStrawberry.glb',
+                priority: 11,
+                useTextures: true
+            }
+
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {
             //     id: 'NouvelArbre',
