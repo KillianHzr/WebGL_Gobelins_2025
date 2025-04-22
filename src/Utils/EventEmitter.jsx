@@ -1,19 +1,27 @@
 import React, {createContext, forwardRef, useContext, useImperativeHandle, useState} from 'react';
 
+// Activer ou désactiver les logs pour le débogage
+const DEBUG_EVENTS = false;
+
+// Helper pour les logs conditionnels
+const debugLog = (message, ...args) => {
+    if (DEBUG_EVENTS) console.log(`[EventEmitter] ${message}`, ...args);
+};
+
 // Singleton pour stocker l'instance de l'EventEmitter
 // Initialisé immédiatement avec des méthodes de base pour éviter les "not initialized yet"
 let emitterInstance = {
     on: (eventName, callback) => {
-        console.warn('EventEmitter on() called before initialization, will be queued');
+        debugLog('EventEmitter on() called before initialization, will be queued');
         queuedEvents.push({ type: 'on', eventName, callback });
         return () => {};
     },
     off: (eventName) => {
-        console.warn('EventEmitter off() called before initialization, will be queued');
+        debugLog('EventEmitter off() called before initialization, will be queued');
         queuedEvents.push({ type: 'off', eventName });
     },
     trigger: (eventName, data) => {
-        console.warn('EventEmitter trigger() called before initialization, will be queued');
+        debugLog('EventEmitter trigger() called before initialization, will be queued');
         queuedEvents.push({ type: 'trigger', eventName, data });
     }
 };
@@ -76,7 +84,12 @@ export const createCustomMarkerEvent = (baseName, specificName) => {
 const EventEmitter = forwardRef((props, ref) => {
     const [callbacks, setCallbacks] = useState({base: {}});
 
+    // Map pour tracer les écouteurs actifs à des fins de débogage
+    const [activeListeners, setActiveListeners] = useState(new Map());
+
     const resolveNames = (_names) => {
+        if (!_names) return [];
+
         let names = _names;
         names = names.replace(/[^a-zA-Z0-9 ,/.:-]/g, '');
         names = names.replace(/[,/]+/g, ' ');
@@ -86,6 +99,8 @@ const EventEmitter = forwardRef((props, ref) => {
     };
 
     const resolveName = (name) => {
+        if (!name) return null;
+
         const newName = {};
         const parts = name.split('.');
 
@@ -104,12 +119,12 @@ const EventEmitter = forwardRef((props, ref) => {
     const on = (_names, callback) => {
         // Errors
         if (typeof _names === 'undefined' || _names === '') {
-            console.warn('wrong names');
+            debugLog('wrong names');
             return false;
         }
 
         if (typeof callback === 'undefined') {
-            console.warn('wrong callback');
+            debugLog('wrong callback');
             return false;
         }
 
@@ -119,10 +134,18 @@ const EventEmitter = forwardRef((props, ref) => {
         // Create a new callbacks object to avoid direct state mutation
         const newCallbacks = {...callbacks};
 
+        // Track new active listeners
+        const newActiveListeners = new Map(activeListeners);
+
         // Each name
         names.forEach((_name) => {
             // Resolve name
             const name = resolveName(_name);
+
+            if (!name) {
+                debugLog(`Invalid name in on(): ${_name}`);
+                return;
+            }
 
             // Create namespace if not exist
             if (!(newCallbacks[name.namespace] instanceof Object)) {
@@ -136,33 +159,68 @@ const EventEmitter = forwardRef((props, ref) => {
 
             // Add callback
             newCallbacks[name.namespace][name.value].push(callback);
+
+            // Track the listener (pour débogage)
+            const listenerId = `${name.namespace}.${name.value}.${newCallbacks[name.namespace][name.value].length - 1}`;
+            newActiveListeners.set(listenerId, {
+                event: _name,
+                addedAt: new Date().toISOString(),
+                callbackName: callback.name || 'anonymous'
+            });
         });
 
         setCallbacks(newCallbacks);
-        return true;
+        setActiveListeners(newActiveListeners);
+
+        // Retourner une fonction de nettoyage pour faciliter la désabonnement
+        return () => {
+            off(_names);
+        };
     };
 
     const off = (_names) => {
         // Errors
         if (typeof _names === 'undefined' || _names === '') {
-            console.warn('wrong name');
+            debugLog('wrong name');
             return false;
         }
 
         // Resolve names
         const names = resolveNames(_names);
 
+        if (names.length === 0) {
+            debugLog(`No valid names to unsubscribe from: ${_names}`);
+            return false;
+        }
+
         // Create a new callbacks object to avoid direct state mutation
         const newCallbacks = {...callbacks};
+
+        // Track removed listeners
+        const newActiveListeners = new Map(activeListeners);
 
         // Each name
         names.forEach((_name) => {
             // Resolve name
             const name = resolveName(_name);
 
+            if (!name) {
+                debugLog(`Invalid name in off(): ${_name}`);
+                return;
+            }
+
             // Remove namespace
             if (name.namespace !== 'base' && name.value === '') {
-                delete newCallbacks[name.namespace];
+                if (newCallbacks[name.namespace]) {
+                    delete newCallbacks[name.namespace];
+
+                    // Remove all listeners in this namespace from tracking
+                    for (const [id, info] of newActiveListeners) {
+                        if (id.startsWith(`${name.namespace}.`)) {
+                            newActiveListeners.delete(id);
+                        }
+                    }
+                }
             }
 
             // Remove specific callback in namespace
@@ -176,6 +234,13 @@ const EventEmitter = forwardRef((props, ref) => {
                             newCallbacks[namespace][name.value] instanceof Array
                         ) {
                             delete newCallbacks[namespace][name.value];
+
+                            // Remove all listeners with this value from tracking
+                            for (const [id, info] of newActiveListeners) {
+                                if (id.startsWith(`${namespace}.${name.value}.`)) {
+                                    newActiveListeners.delete(id);
+                                }
+                            }
 
                             // Remove namespace if empty
                             if (Object.keys(newCallbacks[namespace]).length === 0) {
@@ -192,6 +257,13 @@ const EventEmitter = forwardRef((props, ref) => {
                 ) {
                     delete newCallbacks[name.namespace][name.value];
 
+                    // Remove all listeners with this namespace and value from tracking
+                    for (const [id, info] of newActiveListeners) {
+                        if (id.startsWith(`${name.namespace}.${name.value}.`)) {
+                            newActiveListeners.delete(id);
+                        }
+                    }
+
                     // Remove namespace if empty
                     if (Object.keys(newCallbacks[name.namespace]).length === 0) {
                         delete newCallbacks[name.namespace];
@@ -201,13 +273,14 @@ const EventEmitter = forwardRef((props, ref) => {
         });
 
         setCallbacks(newCallbacks);
+        setActiveListeners(newActiveListeners);
         return true;
     };
 
     const trigger = (_name, _args) => {
         // Errors
         if (typeof _name === 'undefined' || _name === '') {
-            console.warn('wrong name');
+            debugLog('wrong name');
             return false;
         }
 
@@ -220,8 +293,20 @@ const EventEmitter = forwardRef((props, ref) => {
         // Resolve names (should on have one event)
         let name = resolveNames(_name);
 
+        if (name.length === 0) {
+            debugLog(`No valid name to trigger: ${_name}`);
+            return false;
+        }
+
         // Resolve name
         name = resolveName(name[0]);
+
+        if (!name) {
+            debugLog(`Invalid name in trigger(): ${_name}`);
+            return false;
+        }
+
+        const callbacksCalled = [];
 
         // Default namespace
         if (name.namespace === 'base') {
@@ -231,11 +316,21 @@ const EventEmitter = forwardRef((props, ref) => {
                     callbacks[namespace] instanceof Object &&
                     callbacks[namespace][name.value] instanceof Array
                 ) {
-                    callbacks[namespace][name.value].forEach((callback) => {
-                        result = callback.apply(null, args);
+                    callbacks[namespace][name.value].forEach((callback, index) => {
+                        if (typeof callback !== 'function') {
+                            debugLog(`Invalid callback for ${namespace}.${name.value}[${index}]`);
+                            return;
+                        }
 
-                        if (typeof finalResult === 'undefined') {
-                            finalResult = result;
+                        try {
+                            result = callback.apply(null, args);
+                            callbacksCalled.push(`${namespace}.${name.value}.${index}`);
+
+                            if (typeof finalResult === 'undefined') {
+                                finalResult = result;
+                            }
+                        } catch (error) {
+                            console.error(`Error in event handler for ${namespace}.${name.value}:`, error);
                         }
                     });
                 }
@@ -245,17 +340,37 @@ const EventEmitter = forwardRef((props, ref) => {
         // Specified namespace
         else if (callbacks[name.namespace] instanceof Object) {
             if (name.value === '') {
-                console.warn('wrong name');
+                debugLog('wrong name');
                 return null;
             }
 
-            callbacks[name.namespace][name.value].forEach((callback) => {
-                result = callback.apply(null, args);
+            if (callbacks[name.namespace][name.value] instanceof Array) {
+                callbacks[name.namespace][name.value].forEach((callback, index) => {
+                    if (typeof callback !== 'function') {
+                        debugLog(`Invalid callback for ${name.namespace}.${name.value}[${index}]`);
+                        return;
+                    }
 
-                if (typeof finalResult === 'undefined') {
-                    finalResult = result;
-                }
-            });
+                    try {
+                        result = callback.apply(null, args);
+                        callbacksCalled.push(`${name.namespace}.${name.value}.${index}`);
+
+                        if (typeof finalResult === 'undefined') {
+                            finalResult = result;
+                        }
+                    } catch (error) {
+                        console.error(`Error in event handler for ${name.namespace}.${name.value}:`, error);
+                    }
+                });
+            }
+        }
+
+        if (DEBUG_EVENTS) {
+            if (callbacksCalled.length > 0) {
+                debugLog(`Event '${_name}' triggered ${callbacksCalled.length} callbacks: ${callbacksCalled.join(', ')}`);
+            } else {
+                debugLog(`Event '${_name}' triggered but no callbacks were found`);
+            }
         }
 
         return finalResult;
@@ -266,7 +381,9 @@ const EventEmitter = forwardRef((props, ref) => {
         const methods = {
             on,
             off,
-            trigger
+            trigger,
+            // Méthode de débogage
+            getActiveListeners: () => Array.from(activeListeners.entries())
         };
 
         // Stocker l'instance pour le singleton
@@ -289,7 +406,8 @@ export const EventEmitterProvider = ({children}) => {
     const emitterMethods = React.useMemo(() => ({
         on: (...args) => emitterRef.current?.on(...args),
         off: (...args) => emitterRef.current?.off(...args),
-        trigger: (...args) => emitterRef.current?.trigger(...args)
+        trigger: (...args) => emitterRef.current?.trigger(...args),
+        getActiveListeners: () => emitterRef.current?.getActiveListeners() || []
     }), []);
 
     return (
@@ -322,9 +440,10 @@ export const EventBus = {
      */
     trigger: (eventName, data) => {
         if (emitterInstance) {
-            emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
+            return emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
         } else {
-            console.warn('EventEmitter not initialized yet');
+            debugLog('EventEmitter not initialized yet');
+            return null;
         }
     },
 
@@ -333,12 +452,16 @@ export const EventBus = {
      */
     on: (eventName, callback) => {
         if (emitterInstance) {
-            emitterInstance.on(eventName, callback);
-            return () => emitterInstance.off(eventName);
+            try {
+                return emitterInstance.on(eventName, callback);
+            } catch (error) {
+                console.error(`Error subscribing to event ${eventName}:`, error);
+                // Retourner une fonction vide pour éviter les erreurs
+                return () => {};
+            }
         } else {
-            console.warn('EventEmitter not initialized yet');
-            return () => {
-            };
+            debugLog('EventEmitter not initialized yet');
+            return () => {};
         }
     },
 
@@ -347,9 +470,15 @@ export const EventBus = {
      */
     off: (eventName) => {
         if (emitterInstance) {
-            emitterInstance.off(eventName);
+            try {
+                return emitterInstance.off(eventName);
+            } catch (error) {
+                console.error(`Error unsubscribing from event ${eventName}:`, error);
+                return false;
+            }
         } else {
-            console.warn('EventEmitter not initialized yet');
+            debugLog('EventEmitter not initialized yet');
+            return false;
         }
     },
 
@@ -364,7 +493,17 @@ export const EventBus = {
     /**
      * Constantes pour les événements de marqueurs
      */
-    MARKER: MARKER_EVENTS
+    MARKER: MARKER_EVENTS,
+
+    /**
+     * Méthode de débogage pour voir tous les écouteurs actifs
+     */
+    getActiveListeners: () => {
+        if (emitterInstance && emitterInstance.getActiveListeners) {
+            return emitterInstance.getActiveListeners();
+        }
+        return [];
+    }
 };
 
 export default EventEmitter;

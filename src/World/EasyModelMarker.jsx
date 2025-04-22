@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ModelMarker, INTERACTION_TYPES } from '../Utils/EnhancedObjectMarker';
 import { EventBus } from '../Utils/EventEmitter';
@@ -9,127 +9,197 @@ import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import useStore from '../Store/useStore';
 import { textureManager } from '../Config/TextureManager';
 
+// Activer ou désactiver les logs pour le débogage
+const DEBUG_EASY_MARKER = false;
+
+// Helper pour les logs conditionnels
+const debugLog = (message, ...args) => {
+    if (DEBUG_EASY_MARKER) console.log(`[EasyModelMarker] ${message}`, ...args);
+};
+
+// Pool d'objets pour limiter les allocations
+const objectPool = {
+    dummyObjects: [],
+    getDummyObject: function() {
+        if (this.dummyObjects.length > 0) {
+            return this.dummyObjects.pop();
+        }
+        return new THREE.Object3D();
+    },
+    returnDummyObject: function(obj) {
+        obj.position.set(0, 0, 0);
+        obj.rotation.set(0, 0, 0);
+        obj.scale.set(1, 1, 1);
+        this.dummyObjects.push(obj);
+    }
+};
+
 /**
  * Composant simple pour ajouter un marqueur à n'importe quel modèle 3D
+ * Version refactorisée pour optimiser les performances
  */
-export default function EasyModelMarker({
-                                            // Props du modèle
-                                            modelPath = null,
-                                            position = [0, 0, 0],
-                                            scale = [1, 1, 1],
-                                            rotation = [0, 0, 0],
-                                            color = "#5533ff",
+const EasyModelMarker = React.memo(function EasyModelMarker({
+                                                                // Props du modèle
+                                                                modelPath = null,
+                                                                position = [0, 0, 0],
+                                                                scale = [1, 1, 1],
+                                                                rotation = [0, 0, 0],
+                                                                color = "#5533ff",
 
-                                            // Props du marqueur
-                                            markerId = `marker-${Math.random().toString(36).substr(2, 9)}`,
-                                            markerType = INTERACTION_TYPES.CLICK,
-                                            markerText = "Interagir",
-                                            markerColor = "#44ff44",
-                                            markerOffset = 0.8,
-                                            markerAxis = 'y',
-                                            alwaysVisible = false,
+                                                                // Props du marqueur
+                                                                markerId = `marker-${Math.random().toString(36).substr(2, 9)}`,
+                                                                markerType = INTERACTION_TYPES.CLICK,
+                                                                markerText = "Interagir",
+                                                                markerColor = "#44ff44",
+                                                                markerOffset = 0.8,
+                                                                markerAxis = 'y',
+                                                                alwaysVisible = false,
 
-                                            // Props de callback
-                                            onInteract = null,
+                                                                // Props de callback
+                                                                onInteract = null,
 
-                                            // Props avancées
-                                            modelProps = {},
-                                            nodeProps = {},
-                                            useBox = false,
-                                            playSound = true,
+                                                                // Props avancées
+                                                                modelProps = {},
+                                                                nodeProps = {},
+                                                                useBox = false,
+                                                                playSound = true,
 
-                                            // Props d'effet visuel
-                                            showOutline = true,
-                                            outlineColor = "#ffffff",
-                                            outlineThickness = 1.5,
-                                            outlineIntensity = 1,
-                                            outlinePulse = true,
-                                            outlinePulseSpeed = 2,
+                                                                // Props d'effet visuel
+                                                                showOutline = true,
+                                                                outlineColor = "#ffffff",
+                                                                outlineThickness = 1.5,
+                                                                outlineIntensity = 1,
+                                                                outlinePulse = true,
+                                                                outlinePulseSpeed = 2,
 
-                                            // Props d'interaction spécifiques
-                                            requiredStep = null,
+                                                                // Props d'interaction spécifiques
+                                                                requiredStep = null,
 
-                                            // Props pour les textures
-                                            textureModelId = null,
-                                            useTextures = true,
+                                                                // Props pour les textures
+                                                                textureModelId = null,
+                                                                useTextures = true,
 
-                                            // Props pour enfants personnalisés
-                                            children,
-                                            interfaceToShow = null,
-                                        }) {
+                                                                // Props pour enfants personnalisés
+                                                                children,
+                                                                interfaceToShow = null,
+                                                            }) {
+    // Références
     const modelRef = useRef();
+    const isComponentMounted = useRef(true);
+    const cleanupFunctions = useRef([]);
+
+    // État local
     const [hovered, setHovered] = useState(false);
     const [active, setActive] = useState(false);
     const [isMarkerHovered, setIsMarkerHovered] = useState(false);
-
-    // Accéder à l'état d'interaction global
-    const interaction = useStore(state => state.interaction);
     const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
     const [isInteractionCompleted, setIsInteractionCompleted] = useState(false);
 
-    // Charger le modèle GLTF si un chemin est fourni
+    // Accéder à l'état d'interaction global
+    const interaction = useStore(state => state.interaction);
+
+    // Charger le modèle GLTF si un chemin est fourni, avec mise en cache
     const gltf = modelPath ? useGLTF(modelPath) : null;
+
+// Ajouter un useEffect pour gérer et logger les erreurs si nécessaire
+    useEffect(() => {
+        if (modelPath && !gltf && DEBUG_EASY_MARKER) {
+            console.warn(`Issue loading model from ${modelPath}`);
+        }
+    }, [modelPath, gltf]);
 
     // Utiliser le composant de debug pour l'effet de glow
     const { effectSettings, updateEffectRef } = GlowEffectDebug({ objectRef: modelRef });
 
-    // Gestion des textures
+    // Gestion des textures de manière optimisée
     useEffect(() => {
         // Vérifier si l'objet a un modèle 3D et si nous devons appliquer des textures
-        if (modelRef.current && gltf && useTextures && textureModelId) {
-            // Appliquer les textures au modèle
-            const applyTextures = async () => {
-                try {
-                    await textureManager.applyTexturesToModel(textureModelId, modelRef.current);
-                    console.log(`[EasyModelMarker] Textures appliquées à ${markerId} (${textureModelId})`);
-                } catch (error) {
-                    console.error(`[EasyModelMarker] Erreur lors de l'application des textures:`, error);
+        if (!modelRef.current || !gltf || !useTextures || !textureModelId || !isComponentMounted.current) return;
+
+        // Variable pour suivre si l'application des textures est en cours
+        let isApplyingTextures = true;
+
+        // Appliquer les textures au modèle
+        const applyTextures = async () => {
+            try {
+                await textureManager.applyTexturesToModel(textureModelId, modelRef.current);
+                // Vérifier si le composant est toujours monté avant de continuer
+                if (isComponentMounted.current && isApplyingTextures) {
+                    debugLog(`Textures appliquées à ${markerId} (${textureModelId})`);
                 }
-            };
-
-            applyTextures();
-        }
-    }, [gltf, modelRef.current, useTextures, textureModelId, markerId]);
-
-    // Personnaliser les paramètres d'effet
-    useEffect(() => {
-        if (updateEffectRef && updateEffectRef.current) {
-            updateEffectRef.current.color = outlineColor;
-            updateEffectRef.current.thickness = outlineThickness;
-            updateEffectRef.current.intensity = outlineIntensity;
-            // Désactiver complètement la pulsation si outlinePulse est false
-            updateEffectRef.current.pulseSpeed = outlinePulse ? outlinePulseSpeed : 0;
-
-            // Force une mise à jour immédiate pour arrêter tout mouvement existant
-            if (!outlinePulse && updateEffectRef.current.pulseRef) {
-                updateEffectRef.current.pulseRef.current = { value: 0, direction: 0 };
+            } catch (error) {
+                if (isComponentMounted.current && isApplyingTextures) {
+                    console.error(`Erreur lors de l'application des textures:`, error);
+                }
             }
+        };
+
+        applyTextures();
+
+        // Nettoyage - marquer comme non monté pour éviter les mises à jour sur un composant démonté
+        return () => {
+            isApplyingTextures = false;
+        };
+    }, [gltf, textureModelId, useTextures, markerId]);
+
+    // Personnaliser les paramètres d'effet - optimisé pour éviter les recalculs inutiles
+    useEffect(() => {
+        if (!updateEffectRef || !updateEffectRef.current) return;
+
+        const effectRef = updateEffectRef.current;
+
+        // Mettre à jour uniquement les paramètres qui ont changé
+        if (effectRef.color !== outlineColor) {
+            effectRef.color = outlineColor;
+        }
+
+        if (effectRef.thickness !== outlineThickness) {
+            effectRef.thickness = outlineThickness;
+        }
+
+        if (effectRef.intensity !== outlineIntensity) {
+            effectRef.intensity = outlineIntensity;
+        }
+
+        // Désactiver complètement la pulsation si outlinePulse est false
+        const targetPulseSpeed = outlinePulse ? outlinePulseSpeed : 0;
+        if (effectRef.pulseSpeed !== targetPulseSpeed) {
+            effectRef.pulseSpeed = targetPulseSpeed;
+        }
+
+        // Force une mise à jour immédiate pour arrêter tout mouvement existant
+        if (!outlinePulse && effectRef.pulseRef) {
+            effectRef.pulseRef.current = { value: 0, direction: 0 };
         }
     }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
 
-    // Surveiller l'état d'interaction pour activer l'effet de glow
+    // Surveiller l'état d'interaction de manière optimisée
     useEffect(() => {
         // Vérifier si ce modèle est l'objet qui nécessite une interaction
-        const isCurrentInteractionTarget = interaction?.waitingForInteraction &&
-            (requiredStep ? interaction.currentStep === requiredStep : false);
+        const isCurrentInteractionTarget =
+            interaction?.waitingForInteraction &&
+            requiredStep &&
+            interaction.currentStep === requiredStep;
 
-        setIsWaitingForInteraction(isCurrentInteractionTarget);
+        if (isWaitingForInteraction !== isCurrentInteractionTarget) {
+            setIsWaitingForInteraction(isCurrentInteractionTarget);
+        }
 
         if (isCurrentInteractionTarget) {
-            console.log(`[EasyModelMarker] ${markerId} is waiting for interaction: ${interaction.currentStep}`);
+            debugLog(`${markerId} is waiting for interaction: ${interaction.currentStep}`);
         }
-    }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId]);
+    }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId, isWaitingForInteraction]);
 
     // Réinitialiser l'état d'interaction complétée lorsque l'étape change
     useEffect(() => {
-        if (interaction && interaction.currentStep) {
+        if (interaction && interaction.currentStep && isInteractionCompleted) {
             setIsInteractionCompleted(false);
         }
-    }, [interaction?.currentStep]);
+    }, [interaction?.currentStep, isInteractionCompleted]);
 
-    // Gérer l'interaction avec le marqueur
-    const handleMarkerInteraction = (eventData = {}) => {
-        console.log(`Interaction avec le marqueur ${markerId}:`, eventData);
+    // Gérer l'interaction avec le marqueur - optimisé avec useCallback
+    const handleMarkerInteraction = useCallback((eventData = {}) => {
+        debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
 
         // Jouer un son si activé
         if (playSound && audioManager) {
@@ -145,15 +215,18 @@ export default function EasyModelMarker({
         }
 
         // Vérifier si l'interaction est attendue et la compléter
-        if (interaction?.waitingForInteraction && isWaitingForInteraction) {
-            interaction.completeInteraction();
-            console.log(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
-
-            // Mettre à jour l'état
+        if (interaction?.waitingForInteraction && isWaitingForInteraction && !isInteractionCompleted) {
+            // Mettre à jour l'état avant de compléter l'interaction
             setIsInteractionCompleted(true);
 
-            if (interfaceToShow) {
+            // Compléter l'interaction
+            if (interaction.completeInteraction) {
+                interaction.completeInteraction();
+                debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
+            }
 
+            // Gérer les interfaces spécifiques
+            if (interfaceToShow) {
                 const store = useStore.getState();
 
                 if (interfaceToShow === 'camera') {
@@ -161,10 +234,8 @@ export default function EasyModelMarker({
                         store.setShowCaptureInterface(true);
                     } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
                         store.interaction.setShowCaptureInterface(true);
-                    } else if (interaction && typeof interaction.setShowCaptureInterface === 'function') {
-                        interaction.setShowCaptureInterface(true);
                     } else {
-                        console.warn("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
+                        debugLog("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
                         useStore.setState(state => ({
                             interaction: {
                                 ...state.interaction,
@@ -172,16 +243,13 @@ export default function EasyModelMarker({
                             }
                         }));
                     }
-
                 } else if (interfaceToShow === 'scanner') {
                     if (typeof store.setShowScannerInterface === 'function') {
                         store.setShowScannerInterface(true);
                     } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
                         store.interaction.setShowScannerInterface(true);
-                    } else if (interaction && typeof interaction.setShowScannerInterface === 'function') {
-                        interaction.setShowScannerInterface(true);
                     } else {
-                        console.warn("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
+                        debugLog("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
                         useStore.setState(state => ({
                             interaction: {
                                 ...state.interaction,
@@ -199,14 +267,27 @@ export default function EasyModelMarker({
         }
 
         // Émettre l'événement d'interaction complète
-        EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
-            id: markerId,
-            type: markerType
-        });
-    };
+        try {
+            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                id: markerId,
+                type: markerType
+            });
+        } catch (error) {
+            console.error(`Error triggering interaction complete event for ${markerId}:`, error);
+        }
+    }, [
+        markerId,
+        markerType,
+        playSound,
+        interaction,
+        isWaitingForInteraction,
+        isInteractionCompleted,
+        interfaceToShow,
+        onInteract
+    ]);
 
     // Fonction pour déterminer si le contour doit être affiché
-    const shouldShowOutline = () => {
+    const shouldShowOutline = useCallback(() => {
         // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
         if (isMarkerHovered || !showOutline) {
             return false;
@@ -227,114 +308,213 @@ export default function EasyModelMarker({
             // Comportement par défaut pour les objets sans requiredStep
             return isWaitingForInteraction || alwaysVisible || hovered;
         }
-    };
+    }, [
+        isMarkerHovered,
+        showOutline,
+        requiredStep,
+        interaction?.currentStep,
+        interaction?.waitingForInteraction,
+        isWaitingForInteraction,
+        alwaysVisible,
+        hovered
+    ]);
 
-    // Handlers pour le survol du marqueur
-    const handleMarkerPointerEnter = (e) => {
-        console.log(`[EasyModelMarker] Marker ${markerId} hover enter`);
+    // Handlers pour le survol du marqueur optimisés avec useCallback
+    const handleMarkerPointerEnter = useCallback((e) => {
+        debugLog(`Marker ${markerId} hover enter`);
         setIsMarkerHovered(true);
         // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {
             e.stopPropagation();
         }
-    };
+    }, [markerId]);
 
-    const handleMarkerPointerLeave = (e) => {
-        console.log(`[EasyModelMarker] Marker ${markerId} hover leave`);
+    const handleMarkerPointerLeave = useCallback((e) => {
+        debugLog(`Marker ${markerId} hover leave`);
         setIsMarkerHovered(false);
         // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {
             e.stopPropagation();
         }
-    };
+    }, [markerId]);
+
+    // Nettoyer les ressources lors du démontage
+    useEffect(() => {
+        // Marquer le composant comme monté
+        isComponentMounted.current = true;
+
+        return () => {
+            // Marquer le composant comme démonté
+            isComponentMounted.current = false;
+
+            // Nettoyer toutes les fonctions enregistrées
+            cleanupFunctions.current.forEach(cleanup => {
+                try {
+                    if (typeof cleanup === 'function') {
+                        cleanup();
+                    }
+                } catch (error) {
+                    console.warn('Error cleaning up:', error);
+                }
+            });
+
+            // Vider la liste
+            cleanupFunctions.current = [];
+        };
+    }, []);
+
+    // Éléments de marqueur mémorisés pour éviter les re-rendus inutiles
+    const markerProps = useMemo(() => ({
+        id: markerId,
+        markerType: markerType,
+        markerColor: markerColor,
+        markerText: markerText,
+        onInteract: handleMarkerInteraction,
+        positionOptions: {
+            offset: markerOffset,
+            preferredAxis: markerAxis
+        },
+        alwaysVisible: false,
+        requiredStep: requiredStep,
+        onPointerEnter: handleMarkerPointerEnter,
+        onPointerLeave: handleMarkerPointerLeave,
+        showMarkerOnHover: true
+    }), [
+        markerId,
+        markerType,
+        markerColor,
+        markerText,
+        handleMarkerInteraction,
+        markerOffset,
+        markerAxis,
+        requiredStep,
+        handleMarkerPointerEnter,
+        handleMarkerPointerLeave
+    ]);
+
+    // Optimiser le rendu conditionnel des enfants
+    const renderChildren = useMemo(() => {
+        if (!children) return null;
+
+        return React.Children.map(children, child =>
+            React.cloneElement(child, { ref: modelRef })
+        );
+    }, [children]);
+
+    // Optimiser le rendu conditionnel de l'effet de contour
+    const renderOutlineEffect = useMemo(() => {
+        if (active) return null;
+
+        return (
+            <OutlineEffect
+                objectRef={modelRef}
+                active={shouldShowOutline()}
+                color={effectSettings.color}
+                thickness={effectSettings.thickness}
+                intensity={effectSettings.intensity}
+                pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
+                ref={updateEffectRef}
+            />
+        );
+    }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
+
+    // Optimiser le rendu conditionnel du modèle par défaut
+    const renderDefaultModel = useMemo(() => {
+        if (useBox) {
+            return (
+                <mesh
+                    ref={modelRef}
+                    position={position}
+                    rotation={rotation}
+                    scale={scale}
+                    onPointerOver={() => setHovered(true)}
+                    onPointerOut={() => setHovered(false)}
+                    castShadow
+                    {...modelProps}
+                >
+                    <boxGeometry args={[1, 1, 1]} />
+                    <meshStandardMaterial color={color} />
+                </mesh>
+            );
+        } else if (modelPath && gltf && gltf.scene) {
+            // Vérifier explicitement que gltf.scene existe avant de l'utiliser
+            try {
+                // Utiliser une copie de la scène pour éviter des problèmes de partage
+                const clonedScene = gltf.scene.clone();
+
+                return (
+                    <primitive
+                        ref={modelRef}
+                        object={clonedScene}
+                        position={position}
+                        rotation={rotation}
+                        scale={scale}
+                        onPointerOver={() => setHovered(true)}
+                        onPointerOut={() => setHovered(false)}
+                        castShadow
+                        {...modelProps}
+                        {...nodeProps}
+                    />
+                );
+            } catch (error) {
+                // En cas d'erreur, afficher une boxGeometry comme fallback silencieux
+                if (DEBUG_EASY_MARKER) {
+                    console.warn(`Error cloning GLTF scene: ${error.message}`);
+                }
+                return (
+                    <mesh
+                        ref={modelRef}
+                        position={position}
+                        rotation={rotation}
+                        scale={scale}
+                        onPointerOver={() => setHovered(true)}
+                        onPointerOut={() => setHovered(false)}
+                        castShadow
+                        {...modelProps}
+                    >
+                        <boxGeometry args={[0.5, 0.5, 0.5]} />
+                        <meshStandardMaterial color="#ff0000" wireframe={true} />
+                    </mesh>
+                );
+            }
+        } else if (modelPath) {
+            // Si modelPath est fourni mais gltf n'est pas encore chargé, afficher un placeholder
+            return (
+                <mesh
+                    ref={modelRef}
+                    position={position}
+                    rotation={rotation}
+                    scale={scale}
+                    onPointerOver={() => setHovered(true)}
+                    onPointerOut={() => setHovered(false)}
+                    castShadow
+                    {...modelProps}
+                >
+                    <boxGeometry args={[0.5, 0.5, 0.5]} />
+                    <meshStandardMaterial color="#888888" wireframe={true} opacity={0.5} transparent />
+                </mesh>
+            );
+        }
+
+        return null;
+    }, [useBox, modelPath, gltf, position, rotation, scale, color, modelProps, nodeProps]);
 
     return (
-        <ModelMarker
-            id={markerId}
-            markerType={markerType}
-            markerColor={markerColor}
-            markerText={markerText}
-            onInteract={handleMarkerInteraction}
-            positionOptions={{
-                offset: markerOffset,
-                preferredAxis: markerAxis
-            }}
-            // Montrer le marqueur uniquement si en attente d'interaction et que l'interaction n'est pas encore complétée
-            alwaysVisible={false}
-            requiredStep={requiredStep}
-            onPointerEnter={handleMarkerPointerEnter}
-            onPointerLeave={handleMarkerPointerLeave}
-            showMarkerOnHover={true}
-        >
+        <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}
             {children ? (
                 <>
-                    {React.Children.map(children, child =>
-                        React.cloneElement(child, { ref: modelRef })
-                    )}
-
-                    {/* Ajouter l'effet de contour */}
-                    {active ? null : (
-                        <OutlineEffect
-                            objectRef={modelRef}
-                            active={shouldShowOutline()}
-                            color={effectSettings.color}
-                            thickness={effectSettings.thickness}
-                            intensity={effectSettings.intensity}
-                            pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
-                            ref={updateEffectRef}
-                        />
-                    )}
+                    {renderChildren}
+                    {renderOutlineEffect}
                 </>
             ) : (
                 <>
-                    {/* Si useBox est true, utiliser une boxGeometry */}
-                    {useBox ? (
-                        <mesh
-                            ref={modelRef}
-                            position={position}
-                            rotation={rotation}
-                            scale={scale}
-                            onPointerOver={() => setHovered(true)}
-                            onPointerOut={() => setHovered(false)}
-                            castShadow
-                            {...modelProps}
-                        >
-                            <boxGeometry args={[1, 1, 1]} />
-                            <meshStandardMaterial color={color} />
-                        </mesh>
-                    ) : (
-                        /* Sinon, si un chemin de modèle est fourni et qu'il est chargé, utiliser le modèle */
-                        modelPath && gltf ? (
-                            <primitive
-                                ref={modelRef}
-                                object={gltf.scene}
-                                position={position}
-                                rotation={rotation}
-                                scale={scale}
-                                onPointerOver={() => setHovered(true)}
-                                onPointerOut={() => setHovered(false)}
-                                castShadow
-                                {...modelProps}
-                                {...nodeProps}
-                            />
-                        ) : null
-                    )}
-
-                    {/* Ajouter l'effet de contour */}
-                    {active ? null : (
-                        <OutlineEffect
-                            objectRef={modelRef}
-                            active={shouldShowOutline()}
-                            color={effectSettings.color}
-                            thickness={effectSettings.thickness}
-                            intensity={effectSettings.intensity}
-                            pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
-                            ref={updateEffectRef}
-                        />
-                    )}
+                    {renderDefaultModel}
+                    {renderOutlineEffect}
                 </>
             )}
         </ModelMarker>
     );
-}
+});
+
+export default EasyModelMarker;
