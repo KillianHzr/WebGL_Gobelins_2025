@@ -32,6 +32,7 @@ function CameraController({children}) {
     const [countdown, setCountdown] = useState(null);
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
+    const previousAllowScrollRef = useRef(true); // Référence pour suivre l'état précédent de allowScroll
 
     const {size, camera, scene} = useThree(); // Import scene from useThree
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
@@ -46,18 +47,54 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
+    // Surveiller les changements de allowScroll pour réinitialiser la vélocité
+    useEffect(() => {
+        // Si allowScroll passe de false à true (la fin d'une interaction)
+        if (allowScroll && !previousAllowScrollRef.current) {
+            console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
+            scrollVelocity.current = 0; // Réinitialiser la vélocité à 0
+        }
+
+        // Mettre à jour la référence avec la valeur actuelle
+        previousAllowScrollRef.current = allowScroll;
+    }, [allowScroll]);
+
     // Définition des points d'interaction avec leurs types
     const interactions = [
         {
             id: 'firstStop',
             name: 'Premier arrêt',
-            triggers: {x: 4.9},
+            triggers: {x: 26.5, z: -148},
             isActive: true
         },
         {
             id: 'secondStop',
             name: 'Second arrêt',
-            triggers: {x: -6, y: 2.1},
+            triggers: {x: 3, z: -138},
+            isActive: true
+        },
+        {
+            id: 'thirdStop',
+            name: 'Troisième arrêt',
+            triggers: {x: -46, z: -105},
+            isActive: true
+        },
+        {
+            id: 'fourthStop',
+            name: 'Quatrième arrêt',
+            triggers: {x: -45.7, z: -86.3},
+            isActive: true
+        },
+        {
+            id: 'fifthStop',
+            name: 'Cinquième arrêt',
+            triggers: {x: -10.2, z: -64.7},
+            isActive: true
+        },
+        {
+            id: 'sixthStop',
+            name: 'Sixième arrêt',
+            triggers: {x: 3.2, z: -25.4},
             isActive: true
         }
     ];
@@ -370,8 +407,14 @@ function CameraController({children}) {
     };
 
     const checkInteractionTriggers = (position) => {
+        // Variable pour stocker l'interaction déclenchée
+        let triggeredInteraction = null;
+
         // Récupérer la liste des interactions complétées avec une valeur par défaut
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+        // Définir une distance maximale pour considérer qu'on est "proche" du trigger
+        const TRIGGER_PROXIMITY = 1.0; // Ajuster cette valeur selon les besoins
 
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
@@ -379,24 +422,24 @@ function CameraController({children}) {
                 return;
             }
 
-            const allTriggersMatched = Object.entries(interaction.triggers).every(([axis, value]) => {
-                const currentValue = position[axis];
-                if (axis === 'z') {
-                    return currentValue <= value;
-                }
-                const tolerance = 0.1;
-                return Math.abs(currentValue - value) <= tolerance;
-            });
+            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
+            const dx = position.x - interaction.triggers.x;
+            const dz = position.z - interaction.triggers.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
 
-            // Si toutes les conditions de position sont remplies et que le défilement est actuellement autorisé
-            if (allTriggersMatched && allowScroll) {
-                console.log(`Point d'interaction atteint: ${interaction.id} - ${interaction.name} (type: ${interaction.interactionType})`);
+            // Si la distance est inférieure au seuil ET que le défilement est autorisé
+            if (distance < TRIGGER_PROXIMITY && allowScroll) {
+                // Stocker l'interaction déclenchée pour le log
+                triggeredInteraction = interaction;
 
                 // Trouver l'objet cible dans la scène
                 const targetObject = findObjectByName(interaction.targetId);
 
                 // Bloquer le défilement
                 setAllowScroll(false);
+
+                // Réinitialiser la vélocité pour éviter tout mouvement résiduel
+                scrollVelocity.current = 0;
 
                 // Indiquer que nous attendons une interaction de l'utilisateur
                 setWaitingForInteraction(true);
@@ -411,6 +454,17 @@ function CameraController({children}) {
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
             }
         });
+
+        // Afficher le log uniquement si une interaction est déclenchée
+        if (triggeredInteraction) {
+            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            console.log(`Distance: ${Math.sqrt(
+                Math.pow(position.x - triggeredInteraction.triggers.x, 2) +
+                Math.pow(position.z - triggeredInteraction.triggers.z, 2)
+            ).toFixed(2)} unités`);
+        }
     };
 
     const startCountdown = () => {
