@@ -1,8 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import { useThree } from '@react-three/fiber';
-import { EventBus } from '../Utils/EventEmitter';
-import useStore from '../Store/useStore';
+import {useEffect, useRef, useState} from 'react';
+import {useThree} from '@react-three/fiber';
 
 /**
  * Hook pour détecter les gestes de glissement (drag) sur des objets 3D dans la scène
@@ -29,7 +26,7 @@ export const useDragGesture = ({
                                    onDragSuccess,
                                    debug = false
                                }) => {
-    const { gl, camera, raycaster } = useThree();
+    const {gl, camera, raycaster} = useThree();
     const [isDragging, setIsDragging] = useState(false);
 
     // Références pour gérer l'état du drag
@@ -57,7 +54,7 @@ export const useDragGesture = ({
         const mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         const mouseY = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera({ x: mouseX, y: mouseY }, camera);
+        raycaster.setFromCamera({x: mouseX, y: mouseY}, camera);
         const intersects = raycaster.intersectObject(objectRef.current);
 
         return intersects.length > 0;
@@ -65,7 +62,7 @@ export const useDragGesture = ({
 
     // Vérifier la direction et la distance du drag
     const validateDrag = () => {
-        const { startX, startY, currentX, currentY } = dragStateRef.current;
+        const {startX, startY, currentX, currentY} = dragStateRef.current;
         const deltaX = currentX - startX;
         const deltaY = currentY - startY;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -74,7 +71,7 @@ export const useDragGesture = ({
 
         // Distance minimale
         if (distance < minDistance) {
-            debugLog('Drag distance too short', { distance, minDistance });
+            debugLog('Drag distance too short', {distance, minDistance});
             return false;
         }
 
@@ -211,7 +208,7 @@ export const useDragGesture = ({
 
             // Appeler le callback de fin de drag avec annulation
             if (onDragEnd && typeof onDragEnd === 'function') {
-                onDragEnd({ canceled: true });
+                onDragEnd({canceled: true});
             }
         };
 
@@ -231,7 +228,7 @@ export const useDragGesture = ({
                     preventDefault: () => e.preventDefault()
                 });
             }
-        }, { passive: false });
+        }, {passive: false});
 
         canvas.addEventListener('touchmove', (e) => {
             if (e.touches.length > 0) {
@@ -242,7 +239,7 @@ export const useDragGesture = ({
                     preventDefault: () => e.preventDefault()
                 });
             }
-        }, { passive: false });
+        }, {passive: false});
 
         canvas.addEventListener('touchend', (e) => {
             if (e.changedTouches.length > 0) {
@@ -253,7 +250,7 @@ export const useDragGesture = ({
                     preventDefault: () => e.preventDefault()
                 });
             }
-        }, { passive: false });
+        }, {passive: false});
 
         // Nettoyage
         return () => {

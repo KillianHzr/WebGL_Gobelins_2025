@@ -1,45 +1,179 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { RGBELoader } from 'three/examples/jsm/Addons.js';
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
-import EventEmitter from "../Utils/EventEmitter.jsx";
-import assets from "./assets";
-import App from '../App';
+import EventEmitter, { EventBus } from "../Utils/EventEmitter.jsx";
+import baseAssets from "./assets";
+import templateManager from '../Config/TemplateManager';
 import gsap from 'gsap';
+import {EXRLoader} from "three/examples/jsm/loaders/EXRLoader.js";
+import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
+import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader.js";
+import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
+import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
 
-export default function AssetManager({ onReady }) {
-    const appRef = useRef(null);
-    const emitterRef = useRef(new EventEmitter());
+// Composant AssetManager
+const AssetManager = React.forwardRef((props, ref) => {
+    const { onReady } = props;
+
     const itemsRef = useRef({});
     const loadersRef = useRef({});
     const loadingManagerRef = useRef(null);
     const loadingOverlayRef = useRef(null);
     const loadingBarRef = useRef(null);
 
+    // Cache pour les matériaux partagés
+    const sharedMaterialsRef = useRef({});
+
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadedCount, setLoadedCount] = useState(0);
+
+    // Fusionner les assets de base avec les assets du TemplateManager
+    const templateAssets = templateManager.generateAssetList();
+    const assets = [...baseAssets, ...templateAssets];
     const loadingCount = assets.length;
 
-    // Initialize everything
-    useEffect(() => {
-        // Initialize app
-        appRef.current = new App();
+    // Méthodes d'utilitaire - exposées via la référence React
+    const getItemNamesOfType = (type) => {
+        return assets.filter(asset =>
+            asset.type.toLowerCase() === type.toLowerCase()
+        ).map(e => e.name);
+    };
 
-        // Setup event listener for ready event
-        if (onReady) {
-            emitterRef.current.on('ready', onReady);
+    const getItem = (name) => {
+        // Vérification de base
+        if (!itemsRef.current || !itemsRef.current[name]) {
+            console.warn(`Asset not found: ${name}`);
+            return null;
         }
 
-        // Setup items storage
+        // Vérifier si c'est un matériau gltf
+        if (itemsRef.current[name]?.scene
+            && itemsRef.current[name].scene.getObjectByName('pbr_node')
+            && itemsRef.current[name].scene.getObjectByName('pbr_node').material) {
+            return itemsRef.current[name].scene.getObjectByName('pbr_node').material;
+        }
+
+        return itemsRef.current[name];
+    };
+
+    // Optimise un modèle GLTF pour réduire les drawcalls
+    const optimizeGltfModel = (gltfModel) => {
+        if (!gltfModel || !gltfModel.scene) return gltfModel;
+
+        try {
+            // Optimiser les matériaux - partager les matériaux similaires
+            gltfModel.scene.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    // Partager les matériaux
+                    if (Array.isArray(child.material)) {
+                        child.material = child.material.map(mat => {
+                            const key = mat.type + '_' + (mat.color ? mat.color.getHexString() : 'nocolor');
+                            if (!sharedMaterialsRef.current[key]) {
+                                sharedMaterialsRef.current[key] = mat;
+                            }
+                            return sharedMaterialsRef.current[key];
+                        });
+                    } else {
+                        const key = child.material.type + '_' + (child.material.color ? child.material.color.getHexString() : 'nocolor');
+                        if (!sharedMaterialsRef.current[key]) {
+                            sharedMaterialsRef.current[key] = child.material;
+                        } else {
+                            child.material = sharedMaterialsRef.current[key];
+                        }
+                    }
+
+                    // Désactiver les shadows pour les petits objets
+                    // Vérification plus robuste du boundingSphere
+                    if (child.geometry) {
+                        // Calculer la boundingSphere si elle n'existe pas
+                        if (!child.geometry.boundingSphere) {
+                            child.geometry.computeBoundingSphere();
+                        }
+
+                        // Vérifier si boundingSphere existe maintenant et appliquer la logique
+                        if (child.geometry.boundingSphere && child.geometry.boundingSphere.radius < 0.5) {
+                            child.castShadow = false;
+                            child.receiveShadow = false;
+                        }
+                    }
+                }
+            });
+
+            return gltfModel;
+        } catch (error) {
+            console.error("Error optimizing GLTF model:", error);
+            return gltfModel; // Retourner le modèle non optimisé en cas d'erreur
+        }
+    };
+
+    // Exposer les fonctions via la référence React
+    React.useImperativeHandle(ref, () => ({
+        getItem,
+        getItemNamesOfType,
+        items: itemsRef.current,
+        sharedMaterials: sharedMaterialsRef.current,
+        // Ajout de méthodes spécifiques au TemplateManager
+        templateManager,
+        addTemplate: (templateName, objectId, assetPath, priority = 999) => {
+            // Ajouter le template
+            templateManager.addTemplate(templateName, objectId, assetPath, priority);
+
+            // Créer un nouvel asset
+            const newAsset = {
+                name: objectId,
+                type: 'gltf',
+                path: assetPath,
+                license: 'CC-BY',
+                author: 'Author',
+                url: ''
+            };
+
+            // Charger dynamiquement l'asset si l'AssetManager est déjà initialisé
+            if (loadingComplete && loadersRef.current.gltf) {
+                loadersRef.current.gltf.load(
+                    assetPath,
+                    (model) => {
+                        const optimizedModel = optimizeGltfModel(model);
+                        itemsRef.current[objectId] = optimizedModel;
+                        console.log(`Dynamically loaded asset: ${objectId}`);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`Error loading dynamic asset ${objectId}:`, error);
+                    }
+                );
+            }
+
+            return newAsset;
+        },
+        addIdMapping: (id, templateName) => {
+            return templateManager.addIdMapping(id, templateName);
+        }
+    }));
+
+    // Initialiser tout
+    useEffect(() => {
+        console.log('AssetManager: Initializing...');
+
+        // Configurer le stockage des éléments
         itemsRef.current = {};
 
-        // Initialize loading UI
+        // Initialiser le cache de matériaux
+        sharedMaterialsRef.current = {};
+        // Rendre le cache de matériaux accessible globalement
+        window.sharedMaterials = sharedMaterialsRef.current;
+
+        // Définir l'AssetManager dans l'objet global window pour y accéder depuis d'autres composants
+        window.assetManager = {
+            getItem,
+            getItemNamesOfType,
+            items: itemsRef.current,
+            templateManager
+        };
+
+        // Initialiser l'interface utilisateur de chargement
         initProgressBar();
 
-        // Setup loaders
+        // Configurer les loaders
         loadersRef.current = {};
         loadersRef.current.texture = new THREE.TextureLoader(loadingManagerRef.current);
         loadersRef.current.exr = new EXRLoader(loadingManagerRef.current);
@@ -47,48 +181,60 @@ export default function AssetManager({ onReady }) {
         loadersRef.current.fbx = new FBXLoader(loadingManagerRef.current);
         loadersRef.current.gltf = new GLTFLoader(loadingManagerRef.current);
 
-        // Setup DRACO
+        // Configurer DRACO
         const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('./lib/draco/');
+        dracoLoader.setDecoderPath('./draco/');
         loadersRef.current.gltf.setDRACOLoader(dracoLoader);
 
-        // Start loading if there are assets
+        console.log('Total assets to load:', assets.length);
+        console.log('Base assets:', baseAssets.length);
+        console.log('Template assets:', templateAssets.length);
+
+        // Commencer le chargement s'il y a des assets
         if (assets.length > 0) {
+            console.log(`AssetManager: Loading ${assets.length} assets...`);
             loadAssets();
         } else {
-            emitterRef.current.trigger('ready');
+            console.log('AssetManager: No assets to load, triggering ready event');
+            if (onReady) onReady();
+            EventBus.trigger('ready');
         }
 
-        // Cleanup
+        // Nettoyage
         return () => {
-            // Cleanup event listeners
-            if (onReady) {
-                emitterRef.current.off('ready', onReady);
-            }
-
-            // Clean up loaders
+            // Nettoyer les loaders
             if (loadersRef.current?.gltf?.dracoLoader) {
                 loadersRef.current.gltf.dracoLoader.dispose();
             }
 
-            // Clean up references
+            // Nettoyer les matériaux partagés
+            Object.values(sharedMaterialsRef.current).forEach(material => {
+                if (material && material.dispose) {
+                    material.dispose();
+                }
+            });
+            sharedMaterialsRef.current = {};
+            window.sharedMaterials = null;
+
+            // Supprimer la référence globale
+            window.assetManager = null;
+
+            // Nettoyer les références
             loadersRef.current = null;
             itemsRef.current = null;
-            appRef.current = null;
             loadingBarRef.current = null;
             loadingManagerRef.current = null;
 
-            // Clean up Three.js objects
+            // Nettoyer les objets Three.js
             if (loadingOverlayRef.current) {
-                appRef.current?.scene?.remove(loadingOverlayRef.current);
-                loadingOverlayRef.current.geometry.dispose();
-                loadingOverlayRef.current.material.dispose();
+                loadingOverlayRef.current.geometry?.dispose();
+                loadingOverlayRef.current.material?.dispose();
                 loadingOverlayRef.current = null;
             }
         };
     }, [onReady]);
 
-    // Initialize progress bar and loading manager
+    // Initialiser la barre de progression et le gestionnaire de chargement
     const initProgressBar = () => {
         // Create loading overlay mesh
         const overlayGeometry = new THREE.PlaneGeometry(2, 2, 1, 1);
@@ -115,25 +261,31 @@ export default function AssetManager({ onReady }) {
         loadingOverlayMesh.material.uniforms.uAlpha.value = 1.0;
         loadingOverlayRef.current = loadingOverlayMesh;
 
-        // Add to scene if app is initialized
-        if (appRef.current?.scene) {
-            appRef.current.scene.add(loadingOverlayMesh);
-        }
-
         // Get loading bar DOM element
         loadingBarRef.current = document.querySelector('.loading-bar');
         if (loadingBarRef.current) {
             loadingBarRef.current.style.opacity = 1;
         }
 
-        // Setup loading manager
+        // Configurer le gestionnaire de chargement
         loadingManagerRef.current = new THREE.LoadingManager(
-            // Loaded callback
+            // Callback chargé
             () => {
+                console.log('AssetManager: All assets loaded successfully');
                 setLoadingComplete(true);
-                emitterRef.current.trigger('ready');
 
-                // Match original 500ms delay
+                // Ajouter cette ligne pour marquer les items comme chargés
+                itemsRef.current.loaded = true;
+
+                // Appeler le callback onReady et déclencher l'événement
+                if (onReady) {
+                    console.log('AssetManager: Calling onReady callback');
+                    onReady();
+                }
+                console.log('AssetManager: Triggering ready event');
+                EventBus.trigger('ready');
+
+                // Animations de chargement terminées
                 gsap.delayedCall(0.5, () => {
                     console.log(`AssetManager :: assets load complete`);
 
@@ -145,8 +297,7 @@ export default function AssetManager({ onReady }) {
                     // Fade out loading overlay
                     const tl = gsap.timeline({
                         onComplete: () => {
-                            if (appRef.current?.scene && loadingOverlayRef.current) {
-                                appRef.current.scene.remove(loadingOverlayRef.current);
+                            if (loadingOverlayRef.current) {
                                 loadingOverlayRef.current = null;
                             }
                         }
@@ -162,49 +313,141 @@ export default function AssetManager({ onReady }) {
                 });
             },
 
-            // Progress callback
+            // Callback de progression
             (itemUrl, itemsLoaded, itemsTotal) => {
+                console.log(`AssetManager: Loading progress ${itemsLoaded}/${itemsTotal} - ${itemUrl}`);
                 if (loadingBarRef.current) {
                     const progressRatio = itemsLoaded / itemsTotal;
                     loadingBarRef.current.style.transform = `scaleX(${progressRatio})`;
                 }
                 setLoadedCount(itemsLoaded);
+            },
+
+            // Callback d'erreur
+            (url) => {
+                console.error(`AssetManager: Error loading asset from URL: ${url}`);
             }
         );
     };
 
-    // Load assets
+    // Charger les assets
     const loadAssets = () => {
+        console.log(`AssetManager: Starting to load ${assets.length} assets`);
+
+        // Pour éviter les doublons, garder une trace des URL déjà chargées
+        const loadedUrls = new Set();
+        // Pour éviter les doublons de noms, garder une trace des noms déjà traités
+        const processedNames = new Set();
+
         for (const asset of assets) {
-            if (asset.type.toLowerCase() === "texture") {
-                loadersRef.current.texture.load(asset.path, (texture) => {
-                    if (asset.envmap) {
-                        texture.mapping = THREE.EquirectangularReflectionMapping;
+            // Éviter les doublons de noms
+            if (processedNames.has(asset.name)) {
+                console.log(`AssetManager: Skipping duplicate asset name: ${asset.name}`);
+                continue;
+            }
+            processedNames.add(asset.name);
+
+            console.log(`AssetManager: Loading asset ${asset.name} (${asset.type}) from ${asset.path}`);
+
+            // Vérifier si l'URL a déjà été chargée
+            if (loadedUrls.has(asset.path)) {
+                console.log(`AssetManager: Asset ${asset.name} has the same URL as a previously loaded asset, reusing...`);
+                // Rechercher le nom de l'asset déjà chargé avec cette URL
+                let sourceAssetName = null;
+                for (const key in itemsRef.current) {
+                    const loadedAsset = assets.find(a => a.name === key);
+                    if (loadedAsset && loadedAsset.path === asset.path) {
+                        sourceAssetName = key;
+                        break;
                     }
-                    loadComplete(asset, texture);
-                });
+                }
+
+                // Si on a trouvé la source, copier la référence
+                if (sourceAssetName && itemsRef.current[sourceAssetName]) {
+                    // Cloner l'objet pour éviter les problèmes de référence
+                    if (asset.type.toLowerCase() === "gltf" && itemsRef.current[sourceAssetName].scene) {
+                        // Pour GLTF, cloner la scène
+                        const clonedModel = {
+                            scene: itemsRef.current[sourceAssetName].scene.clone(),
+                            animations: itemsRef.current[sourceAssetName].animations
+                        };
+                        loadComplete(asset, clonedModel);
+                    } else {
+                        // Pour d'autres types, réutiliser simplement la référence
+                        loadComplete(asset, itemsRef.current[sourceAssetName]);
+                    }
+                    continue;
+                }
+            }
+
+            // Ajouter l'URL à l'ensemble des URLs chargées
+            loadedUrls.add(asset.path);
+
+            if (asset.type.toLowerCase() === "texture") {
+                loadersRef.current.texture.load(asset.path,
+                    (texture) => {
+                        if (asset.envmap) {
+                            texture.mapping = THREE.EquirectangularReflectionMapping;
+                        }
+                        loadComplete(asset, texture);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`AssetManager: Error loading texture ${asset.name}:`, error);
+                    }
+                );
             }
             else if (asset.type.toLowerCase() === "exr") {
-                loadersRef.current.exr.load(asset.path, (texture) => {
-                    texture.mapping = THREE.EquirectangularReflectionMapping;
-                    loadComplete(asset, texture);
-                });
+                loadersRef.current.exr.load(asset.path,
+                    (texture) => {
+                        texture.mapping = THREE.EquirectangularReflectionMapping;
+                        loadComplete(asset, texture);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`AssetManager: Error loading EXR ${asset.name}:`, error);
+                    }
+                );
             }
             else if (asset.type.toLowerCase() === "hdr") {
-                loadersRef.current.hdr.load(asset.path, (texture) => {
-                    texture.mapping = THREE.EquirectangularReflectionMapping;
-                    loadComplete(asset, texture);
-                });
+                loadersRef.current.hdr.load(asset.path,
+                    (texture) => {
+                        texture.mapping = THREE.EquirectangularReflectionMapping;
+                        loadComplete(asset, texture);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`AssetManager: Error loading HDR ${asset.name}:`, error);
+                    }
+                );
             }
             else if (asset.type.toLowerCase() === "fbx") {
-                loadersRef.current.fbx.load(asset.path, (model) => {
-                    loadComplete(asset, model);
-                });
+                loadersRef.current.fbx.load(asset.path,
+                    (model) => {
+                        loadComplete(asset, model);
+                    },
+                    undefined,
+                    (error) => {
+                        console.error(`AssetManager: Error loading FBX ${asset.name}:`, error);
+                    }
+                );
             }
             else if (asset.type.toLowerCase() === "gltf") {
-                loadersRef.current.gltf.load(asset.path, (model) => {
-                    loadComplete(asset, model);
-                });
+                loadersRef.current.gltf.load(
+                    asset.path,
+                    (model) => {
+                        // Optimiser le modèle pour réduire les drawcalls
+                        const optimizedModel = optimizeGltfModel(model);
+                        loadComplete(asset, optimizedModel);
+                    },
+                    (progress) => {
+                        // Progress callback (optional)
+                        console.log(`AssetManager: GLTF ${asset.name} loading progress:`, progress);
+                    },
+                    (error) => {
+                        console.error(`AssetManager: Error loading GLTF ${asset.name}:`, error);
+                    }
+                );
             }
             else if (asset.type.toLowerCase() === "material") {
                 const textures = Object.entries(asset.textures);
@@ -223,61 +466,58 @@ export default function AssetManager({ onReady }) {
                         for (const [key, value] of Object.entries(texObject[1])) {
                             const url = path + value;
 
-                            loadersRef.current.texture.load(url, (texture) => {
-                                texture.flipY = false;
-                                material[type][key] = texture;
-                                if (--nTex === 0) {
-                                    loadComplete(asset, material);
+                            loadersRef.current.texture.load(
+                                url,
+                                (texture) => {
+                                    texture.flipY = false;
+                                    material[type][key] = texture;
+                                    if (--nTex === 0) {
+                                        loadComplete(asset, material);
+                                    }
+                                },
+                                undefined,
+                                (error) => {
+                                    console.error(`AssetManager: Error loading material texture ${key} for ${asset.name}:`, error);
+                                    if (--nTex === 0) {
+                                        loadComplete(asset, material);
+                                    }
                                 }
-                            });
+                            );
                         }
                     }
                     else {
                         const url = path + texObject[1];
-                        loadersRef.current.texture.load(url, (texture) => {
-                            texture.flipY = false;
-                            material[type] = texture;
-                            if (--nTex === 0) {
-                                loadComplete(asset, material);
+                        loadersRef.current.texture.load(
+                            url,
+                            (texture) => {
+                                texture.flipY = false;
+                                material[type] = texture;
+                                if (--nTex === 0) {
+                                    loadComplete(asset, material);
+                                }
+                            },
+                            undefined,
+                            (error) => {
+                                console.error(`AssetManager: Error loading material texture ${type} for ${asset.name}:`, error);
+                                if (--nTex === 0) {
+                                    loadComplete(asset, material);
+                                }
                             }
-                        });
+                        );
                     }
                 });
             }
         }
     };
 
-    // Handle asset load completion
+    // Gérer l'achèvement du chargement des assets
     const loadComplete = (asset, object) => {
         console.log(`AssetManager :: new item stored : ${asset.name}`);
         itemsRef.current[asset.name] = object;
     };
 
-    // Utility methods - exposed through ref forwarding
-    const getItemNamesOfType = (type) => {
-        return assets.filter(asset =>
-            asset.type.toLowerCase() === type.toLowerCase()
-        ).map(e => e.name);
-    };
-
-    const getItem = (name) => {
-        // Check if it's a gltf material
-        if (itemsRef.current[name]?.scene
-            && itemsRef.current[name].scene.getObjectByName('pbr_node')
-            && itemsRef.current[name].scene.getObjectByName('pbr_node').material) {
-            return itemsRef.current[name].scene.getObjectByName('pbr_node').material;
-        }
-
-        return itemsRef.current[name];
-    };
-
-    // Expose functions via React ref
-    React.useImperativeHandle(React.forwardRef, () => ({
-        getItem,
-        getItemNamesOfType,
-        items: itemsRef.current
-    }));
-
-    // This component doesn't render visible UI
+    // Ce composant ne rend pas d'interface utilisateur visible
     return null;
-}
+});
+
+export default AssetManager;

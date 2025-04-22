@@ -1,0 +1,48 @@
+@use '../variables' as v;
+@use 'sass:map';
+
+// Loading & progress elements
+.loading {
+  &-bar {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: v.color(text);
+    transform-origin: top left;
+    transform: scaleX(0);
+    transition: transform 0.5s;
+    z-index: map.get(v.$z-index, base);
+
+    &.ended {
+      transform: scaleX(0);
+      transform-origin: top right;
+      transition: transform 1.5s ease-in-out;
+    }
+  }
+}
+
+// Timeline elements
+#timeline {
+  &-progress {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    height: 4px;
+    background-color: rgba(v.color(text), 0.2);
+    border-radius: 2px;
+    z-index: map.get(v.$z-index, timeline);
+  }
+}
+
+#progress {
+  &-indicator {
+    height: 100%;
+    width: 0%;
+    background-color: v.color(text);
+    border-radius: 2px;
+    transition: width 0.05s ease-out;
+  }
+}

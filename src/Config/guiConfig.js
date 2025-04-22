@@ -3,11 +3,6 @@
  * Ce fichier contient toutes les configurations pour les contrôles du GUI
  */
 
-/**
- * Configuration centralisée pour l'interface GUI de debugging
- * Ce fichier contient toutes les configurations pour les contrôles du GUI
- */
-
 const guiConfig = {
     gui: {
         title: "Debug Controls",
@@ -20,6 +15,26 @@ const guiConfig = {
             name: "Afficher UI Theatre",
             default: true
         }
+    },
+    // Nouvelle section pour les contrôles de visualisation générale
+    visualization: {
+        folder: "Visualisation",
+        wireframe: {
+            name: "Mode Wireframe",
+            default: false
+        },
+        showInstances: {
+            name: "Afficher Instances",
+            default: true
+        },
+        showInteractive: {
+            name: "Afficher Interactifs",
+            default: true
+        },
+        showStatic: {
+            name: "Afficher Statiques",
+            default: true
+        },
     },
     camera: {
         // Configuration caméra existante...
@@ -272,7 +287,7 @@ const guiConfig = {
                 max: 10,
                 step: 0.01,
                 name: "Intensity",
-                default: 1.0
+                default: 2.0
             },
             color: {
                 name: "Color",
@@ -400,10 +415,47 @@ const guiConfig = {
         defaults: {
             Ambient: {
                 0: {
-                    intensity: 4.03,
+                    intensity: 1.0,
                     color: "#ffffff",
                     visible: true
                 }
+            }
+        }
+    },
+    // Effets
+    effects: {
+        folder: "Effects",
+        glow: {
+            folder: "Glow Effect",
+            active: {
+                name: "Active",
+                default: false
+            },
+            color: {
+                color: "#ffffff",
+                name: "Color",
+                default: "#ffffff"
+            },
+            thickness: {
+                min: 0.01,
+                max: 0.1,
+                step: 0.01,
+                name: "Thickness",
+                default: 0.03
+            },
+            intensity: {
+                min: 1,
+                max: 10,
+                step: 0.1,
+                name: "Intensity",
+                default: 5
+            },
+            pulseSpeed: {
+                min: 0,
+                max: 5,
+                step: 0.1,
+                name: "Pulse Speed",
+                default: 1.2
             }
         }
     },

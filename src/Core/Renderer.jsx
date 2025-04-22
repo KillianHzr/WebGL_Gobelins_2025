@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from 'react';
-import { WebGLRenderer } from "three";
+import React, {useEffect, useRef} from 'react';
+import {WebGLRenderer} from "three";
 import App from "../App";
-import EventEmitter from "../Utils/EventEmitter.jsx";
+import { EventBus, useEventEmitter } from "../Utils/EventEmitter.jsx";
 
 export default function Renderer() {
     const appRef = useRef(null);
     const rendererRef = useRef(null);
-    const emitterRef = useRef(new EventEmitter());
+    const eventEmitter = useEventEmitter(); // Utiliser le hook au lieu de créer une instance
 
     useEffect(() => {
         // Initialize
@@ -27,7 +27,7 @@ export default function Renderer() {
 
         // Handle resize
         const resizeHandler = (data) => {
-            const { width, height } = data;
+            const {width, height} = data;
             renderer.setSize(width, height);
         };
 
@@ -44,7 +44,7 @@ export default function Renderer() {
     }, []);
 
     return (
-        <div style={{ display: 'none' }}>
+        <div style={{display: 'none'}}>
             {/* Renderer doesn't render any visible React elements */}
         </div>
     );

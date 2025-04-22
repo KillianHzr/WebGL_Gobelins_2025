@@ -1,66 +1,137 @@
-import React, { useEffect, Suspense } from 'react'
-import { useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import React, {useEffect, useMemo, useRef, useState} from 'react'
+import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
-import DebugInitializer from "./Utils/DebugInitializer.jsx"
-import { EventEmitterProvider } from './Utils/EventEmitter'
-import { OrbitControls } from "@react-three/drei"
-import Map from './World/Map' // Nouveau composant Map importé
+import {initializeLight} from "./Utils/defaultValues.js";
+import DebugInitializer from "./Utils/DebugInitializer.jsx";
+import Debug from "./Utils/Debug.jsx";
+import Camera from "./Core/Camera.jsx";
+import Controls from "./Core/Controls.jsx";
+import Lights from "./Core/Lights.jsx";
+import Stats from "./Utils/Stats.jsx";
+import RayCaster from "./Utils/RayCaster.jsx";
+import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
+import ForestSceneWrapper from './World/ForestSceneWrapper';
+import AudioManagerComponent from './Utils/AudioManager';
+import InteractiveMarkersProvider from './Utils/MarkerSystem';
+import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
+import SceneObjects, {SingleInteractiveObject} from './World/SceneObjects';
 
 export default function Experience() {
-    const { debug, loaded, setLoaded } = useStore();
-    const { scene } = useThree();
+    const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
+    const {scene, camera} = useThree()
+    const ambientLightRef = useRef()
+    const directionalLightRef = useRef()
 
-    // État pour les contrôles de caméra
-    const orbitControlsEnabled = useStore(state => state.orbitControlsEnabled || false);
-
-    // Afficher l'UI de Theatre.js si le mode debug est activé
+    // Gestion des événements des marqueurs
     useEffect(() => {
-        if (debug?.active && debug?.showTheatre && window.__theatreStudio) {
-            window.__theatreStudio.ui.restore();
+        // Écouter les événements de marqueurs
+        const markerClickHandler = (data) => {
+            console.log('Marqueur cliqué:', data);
+        };
+
+        const interactionRequiredHandler = (data) => {
+            console.log('Interaction requise:', data);
+            // Déclencher l'interaction dans le store si nécessaire
+            const {setWaitingForInteraction, setCurrentStep} = useStore.getState().interaction;
+            if (setWaitingForInteraction && setCurrentStep) {
+                setWaitingForInteraction(true);
+                setCurrentStep(data.id);
+            }
+        };
+
+        const markerHoverHandler = (data) => {
+            console.log('Marqueur survolé:', data);
+        };
+
+        // S'abonner aux événements
+        const cleanupClickEvent = EventBus.on(MARKER_EVENTS.MARKER_CLICK, markerClickHandler);
+        const cleanupHoverEvent = EventBus.on(MARKER_EVENTS.MARKER_HOVER, markerHoverHandler);
+        const cleanupInteractionEvent = EventBus.on(MARKER_EVENTS.INTERACTION_REQUIRED, interactionRequiredHandler);
+
+        return () => {
+            // Nettoyage
+            cleanupClickEvent();
+            cleanupHoverEvent();
+            cleanupInteractionEvent();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (camera) {
+            setCamera(camera);
+            setCameraInitialZoom(camera.zoom);
         }
+    }, [camera, setCamera, setCameraInitialZoom]);
 
-        setLoaded(true);
-    }, [debug, setLoaded]);
+    // Appliquer les valeurs par défaut aux lumières lors du montage
+    useEffect(() => {
+        // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
+        if (!debug?.active) {
+            if (window.__theatreStudio) {
+                window.__theatreStudio.ui.hide();
+            }
 
-    return (
-        <EventEmitterProvider>
-            {/* Initialize debug mode */}
-            <DebugInitializer />
+            scene.traverse((object) => {
+                if (object.isLight) {
+                    const lightType = object.type.replace('Light', '');
 
-            {/* OrbitControls conditionnel */}
-            {orbitControlsEnabled && <OrbitControls enableDamping dampingFactor={0.05} />}
+                    // Trouver l'index de cette lumière parmi les autres du même type
+                    let index = 0;
+                    let foundLights = 0;
+                    scene.traverse((obj) => {
+                        if (obj.isLight && obj.type === object.type) {
+                            if (obj === object) {
+                                index = foundLights;
+                            }
+                            foundLights++;
+                        }
+                    });
 
-            <ScrollControls>
-                {/* Éclairage */}
-                <ambientLight intensity={0.3} />
-                <directionalLight
-                    position={[10, 20, 5]}
-                    intensity={1.5}
-                    castShadow
-                    shadow-camera-far={100}
-                    shadow-camera-left={-20}
-                    shadow-camera-right={20}
-                    shadow-camera-top={20}
-                    shadow-camera-bottom={-20}
-                    shadow-mapSize-width={2048}
-                    shadow-mapSize-height={2048}
-                />
-                <hemisphereLight intensity={0.4} />
+                    // Initialiser avec les valeurs par défaut
+                    initializeLight(object, lightType, index);
+                }
+            });
+        }
+    }, [scene, debug]);
 
-                {/* Environment */}
-                <color attach="background" args={['#87CEEB']} />
+    return (<EventEmitterProvider>
+        <DebugInitializer/>
+        <AudioManagerComponent/>
 
-                {loaded && (
-                    <>
-                        <Suspense fallback={null}>
-                            <Map />
-                        </Suspense>
-                        <fog attach="fog" args={['#87CEEB', 1, 100]} />
-                    </>
-                )}
-            </ScrollControls>
-        </EventEmitterProvider>
-    )
+        {debug?.active && debug?.showStats && <Stats/>}
+        {debug?.active && debug?.showGui && <Debug/>}
+        {debug?.active && debug?.showGui && <Camera/>}
+        {debug?.active && debug?.showGui && <Controls/>}
+        {debug?.active && debug?.showGui && <Lights/>}
+
+        <RayCaster>
+            <InteractiveMarkersProvider>
+                <ScrollControls>
+                    {/* Lights */}
+                    <ambientLight intensity={0.5}/>
+                    <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+                    <color attach="background" args={['#1e1e2f']}/>
+
+                    {/* Utiliser le composant principal qui affiche tous les objets de scène
+                        avec les placements par défaut du SceneObjectManager */}
+                    <SceneObjects />
+
+                    {/* Exemple d'ajout d'un objet interactif spécial que nous voulons différencier des placements par défaut */}
+                    {/*<SingleInteractiveObject*/}
+                    {/*    objectKey="BushInteractive"*/}
+                    {/*    position={[3, 0, -3]}*/}
+                    {/*    options={{*/}
+                    {/*        markerId: "special-bush",*/}
+                    {/*        markerText: "Buisson spécial",*/}
+                    {/*        requiredStep: "specialStop"*/}
+                    {/*    }}*/}
+                    {/*/>*/}
+
+                    {/* La forêt avec ses instances nombreuses (instanced meshes) */}
+                    {useMemo(() => (<ForestSceneWrapper/>), [])}
+                </ScrollControls>
+            </InteractiveMarkersProvider>
+        </RayCaster>
+    </EventEmitterProvider>)
 }
