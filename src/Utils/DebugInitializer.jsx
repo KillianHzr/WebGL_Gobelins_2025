@@ -1,8 +1,10 @@
 import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
 import {audioManager} from './AudioManager';
+import {EventBus} from './EventEmitter';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -10,6 +12,7 @@ import {audioManager} from './AudioManager';
  * related to debug mode initialization
  */
 const DebugInitializer = () => {
+    const {scene, camera, controls} = useThree();
     const {debug, setDebug, setGui, setDebugConfig} = useStore();
     const initializedRef = useRef(false);
 
@@ -44,6 +47,118 @@ const DebugInitializer = () => {
         }
     };
 
+    // Fonction pour basculer entre les modes de caméra
+    const toggleCameraMode = (mode) => {
+        if (!controls) return;
+
+        if (mode === 'free') {
+            // Activer la caméra libre (OrbitControls)
+            if (controls.enabled !== undefined) {
+                controls.enabled = true;
+            }
+
+            // Désactiver les contrôles TheatreJS s'ils existent
+            if (window.__theatreStudio) {
+                // Masquer l'UI Theatre si on passe en mode libre
+                if (window.__theatreStudio.ui) {
+                    const studioUI = window.__theatreStudio.ui;
+                    // Stocker l'état actuel de l'UI pour pouvoir le restaurer
+                    const wasVisible = studioUI.isHidden ? false : true;
+                    if (wasVisible) {
+                        studioUI.hide();
+                    }
+                    // Stocker cette info pour la restaurer plus tard
+                    window.__wasTheatreUIVisible = wasVisible;
+                }
+                console.log('Passing to free camera mode, disabling TheatreJS camera');
+            }
+        } else if (mode === 'theatre') {
+            // Désactiver la caméra libre
+            if (controls.enabled !== undefined) {
+                controls.enabled = false;
+            }
+
+            // Activer les contrôles TheatreJS s'ils existent
+            if (window.__theatreStudio) {
+                // Restaurer l'état de l'UI si nécessaire
+                if (window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
+                    window.__theatreStudio.ui.restore();
+                }
+                console.log('Passing to TheatreJS camera mode');
+            }
+        }
+
+        // Mettre à jour l'état dans le store
+        useStore.getState().visualization.cameraMode = mode;
+
+        // Émettre un événement pour informer d'autres composants
+        EventBus.trigger('camera-mode-changed', { mode });
+    };
+
+    // Fonction pour appliquer le mode wireframe à tous les objets de la scène
+    const applyWireframeToScene = (enabled) => {
+        if (!scene) return;
+
+        scene.traverse((object) => {
+            if (object.isMesh && object.material) {
+                // Gérer les matériaux multiples
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => {
+                        material.wireframe = enabled;
+                    });
+                } else {
+                    object.material.wireframe = enabled;
+                }
+
+                // S'assurer que le matériau est mis à jour
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => {
+                        material.needsUpdate = true;
+                    });
+                } else {
+                    object.material.needsUpdate = true;
+                }
+            }
+        });
+
+        console.log(`Wireframe mode ${enabled ? 'enabled' : 'disabled'}`);
+    };
+
+    // Fonction pour mettre à jour la visibilité des objets dans la scène
+    const updateObjectsVisibility = (settings) => {
+        if (!scene) return;
+
+        // Parcourir tous les objets de la scène
+        scene.traverse((object) => {
+            // Vérification des objets de la forêt (instances)
+            if (object.name === 'Forest' || object.name?.includes('instances') || object.name?.includes('MapInstance')) {
+                if (object.visible !== settings.showInstances) {
+                    object.visible = settings.showInstances;
+                    console.log(`${object.name} visibility set to ${settings.showInstances}`);
+                }
+            }
+
+            // Gestion des objets interactifs
+            else if (object.name === 'interactive-objects' || object.parent?.name === 'interactive-objects') {
+                if (object.visible !== settings.showInteractive) {
+                    object.visible = settings.showInteractive;
+                    console.log(`${object.name} visibility set to ${settings.showInteractive}`);
+                }
+            }
+
+            // Gestion des objets statiques
+            else if (object.name === 'static-objects' || object.parent?.name === 'static-objects') {
+                if (object.visible !== settings.showStatic) {
+                    object.visible = settings.showStatic;
+                    console.log(`${object.name} visibility set to ${settings.showStatic}`);
+                }
+            }
+        });
+
+        // Émettre un événement pour informer d'autres composants
+        EventBus.trigger('objects-visibility-changed', settings);
+    };
+
     useEffect(() => {
         // Initialize GUI if debug mode is active
         if (debug?.active && debug?.showGui && !initializedRef.current) {
@@ -59,6 +174,128 @@ const DebugInitializer = () => {
             if (guiConfig.gui.closeFolders) {
                 gui.close();
             }
+
+            // Ajout des contrôles de visualisation
+            const visualizationFolder = gui.addFolder('Visualisation');
+
+            // Configurer les paramètres de visualisation
+            const visualizationSettings = {
+                wireframe: false,
+                showInstances: true,
+                showInteractive: true,
+                showStatic: true,
+                cameraMode: 'theatre' // 'theatre' ou 'free'
+            };
+
+            // Obtenir les valeurs sauvegardées si disponibles
+            if (useStore.getState().getDebugConfigValue) {
+                visualizationSettings.wireframe = useStore.getState().getDebugConfigValue(
+                    'visualization.wireframe.value',
+                    false
+                );
+                visualizationSettings.showInstances = useStore.getState().getDebugConfigValue(
+                    'visualization.showInstances.value',
+                    true
+                );
+                visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue(
+                    'visualization.showInteractive.value',
+                    true
+                );
+                visualizationSettings.showStatic = useStore.getState().getDebugConfigValue(
+                    'visualization.showStatic.value',
+                    true
+                );
+                visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue(
+                    'visualization.cameraMode.value',
+                    'theatre'
+                );
+            }
+
+            // Initialiser l'état dans le store
+            if (!useStore.getState().visualization) {
+                useStore.getState().visualization = {...visualizationSettings};
+            }
+
+            // Contrôle du mode wireframe
+            visualizationFolder.add(visualizationSettings, 'wireframe')
+                .name('Mode Wireframe')
+                .onChange(value => {
+                    applyWireframeToScene(value);
+                    useStore.getState().visualization.wireframe = value;
+
+                    // Mettre à jour la configuration enregistrée
+                    if (useStore.getState().updateDebugConfig) {
+                        useStore.getState().updateDebugConfig('visualization.wireframe.value', value);
+                    }
+                });
+
+            // Contrôle de la visibilité des instances (forêt)
+            visualizationFolder.add(visualizationSettings, 'showInstances')
+                .name('Afficher Instances')
+                .onChange(value => {
+                    useStore.getState().visualization.showInstances = value;
+                    updateObjectsVisibility(useStore.getState().visualization);
+
+                    // Mettre à jour la configuration enregistrée
+                    if (useStore.getState().updateDebugConfig) {
+                        useStore.getState().updateDebugConfig('visualization.showInstances.value', value);
+                    }
+                });
+
+            // Contrôle de la visibilité des objets interactifs
+            visualizationFolder.add(visualizationSettings, 'showInteractive')
+                .name('Afficher Interactifs')
+                .onChange(value => {
+                    useStore.getState().visualization.showInteractive = value;
+                    updateObjectsVisibility(useStore.getState().visualization);
+
+                    // Mettre à jour la configuration enregistrée
+                    if (useStore.getState().updateDebugConfig) {
+                        useStore.getState().updateDebugConfig('visualization.showInteractive.value', value);
+                    }
+                });
+
+            // Contrôle de la visibilité des objets statiques
+            visualizationFolder.add(visualizationSettings, 'showStatic')
+                .name('Afficher Statiques')
+                .onChange(value => {
+                    useStore.getState().visualization.showStatic = value;
+                    updateObjectsVisibility(useStore.getState().visualization);
+
+                    // Mettre à jour la configuration enregistrée
+                    if (useStore.getState().updateDebugConfig) {
+                        useStore.getState().updateDebugConfig('visualization.showStatic.value', value);
+                    }
+                });
+
+            // Contrôle du mode de caméra
+            const cameraModeOptions = {
+                "TheatreJS": 'theatre',
+                "Libre": 'free'
+            };
+
+            visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
+                .name('Mode Caméra')
+                .onChange(value => {
+                    toggleCameraMode(value);
+
+                    // Mettre à jour la configuration enregistrée
+                    if (useStore.getState().updateDebugConfig) {
+                        useStore.getState().updateDebugConfig('visualization.cameraMode.value', value);
+                    }
+                });
+
+            // Si configuré ainsi, fermer le dossier
+            if (guiConfig.gui.closeFolders) {
+                visualizationFolder.close();
+            }
+
+            // Appliquer les paramètres de visualisation initiaux
+            setTimeout(() => {
+                applyWireframeToScene(visualizationSettings.wireframe);
+                updateObjectsVisibility(visualizationSettings);
+                toggleCameraMode(visualizationSettings.cameraMode);
+            }, 500);
 
             // Ajout du contrôle Theatre.js
             const theatreFolder = gui.addFolder(guiConfig.theatre.folder);
@@ -92,18 +329,30 @@ const DebugInitializer = () => {
             const audioControls = {
                 playAmbient: () => {
                     const store = useStore.getState();
-                    store.audio.playAmbient();
-                    audioManager.playAmbient();
+                    if (store.audio && store.audio.playAmbient) {
+                        store.audio.playAmbient();
+                    }
+                    if (audioManager && audioManager.playAmbient) {
+                        audioManager.playAmbient();
+                    }
                 },
                 pauseAmbient: () => {
                     const store = useStore.getState();
-                    store.audio.pauseAmbient();
-                    audioManager.pauseAmbient();
+                    if (store.audio && store.audio.pauseAmbient) {
+                        store.audio.pauseAmbient();
+                    }
+                    if (audioManager && audioManager.pauseAmbient) {
+                        audioManager.pauseAmbient();
+                    }
                 },
                 resumeAmbient: () => {
                     const store = useStore.getState();
-                    store.audio.resumeAmbient();
-                    audioManager.resumeAmbient();
+                    if (store.audio && store.audio.resumeAmbient) {
+                        store.audio.resumeAmbient();
+                    }
+                    if (audioManager && audioManager.resumeAmbient) {
+                        audioManager.resumeAmbient();
+                    }
                 },
                 volume: 1.0
             };
@@ -117,8 +366,12 @@ const DebugInitializer = () => {
             const volumeControl = audioFolder.add(audioControls, 'volume', 0, 1, 0.01).name('Master Volume');
             volumeControl.onChange(value => {
                 const store = useStore.getState();
-                store.audio.setVolume(value);
-                audioManager.setMasterVolume(value);
+                if (store.audio && store.audio.setVolume) {
+                    store.audio.setVolume(value);
+                }
+                if (audioManager && audioManager.setMasterVolume) {
+                    audioManager.setMasterVolume(value);
+                }
             });
 
             // Fermer le dossier audio si configuré
@@ -169,6 +422,57 @@ const DebugInitializer = () => {
                     // Theatre.js UI toggle
                     if (currentConfig.theatre.showUI && currentConfig.theatre.showUI.value !== undefined) {
                         baseConfig.theatre.showUI.default = currentConfig.theatre.showUI.value;
+                    }
+                }
+
+                // Ajouter le traitement pour les nouvelles options de visualisation
+                if (currentConfig.visualization) {
+                    // Ajout des options de visualisation au fichier de configuration
+                    if (!baseConfig.visualization) {
+                        baseConfig.visualization = {
+                            folder: 'Visualisation',
+                            wireframe: {
+                                name: 'Mode Wireframe',
+                                default: false
+                            },
+                            showInstances: {
+                                name: 'Afficher Instances',
+                                default: true
+                            },
+                            showInteractive: {
+                                name: 'Afficher Interactifs',
+                                default: true
+                            },
+                            showStatic: {
+                                name: 'Afficher Statiques',
+                                default: true
+                            },
+                            cameraMode: {
+                                name: 'Mode Caméra',
+                                options: {
+                                    "TheatreJS": 'theatre',
+                                    "Libre": 'free'
+                                },
+                                default: 'theatre'
+                            }
+                        };
+                    }
+
+                    // Mettre à jour les valeurs par défaut avec les valeurs actuelles
+                    if (currentConfig.visualization.wireframe && currentConfig.visualization.wireframe.value !== undefined) {
+                        baseConfig.visualization.wireframe.default = currentConfig.visualization.wireframe.value;
+                    }
+                    if (currentConfig.visualization.showInstances && currentConfig.visualization.showInstances.value !== undefined) {
+                        baseConfig.visualization.showInstances.default = currentConfig.visualization.showInstances.value;
+                    }
+                    if (currentConfig.visualization.showInteractive && currentConfig.visualization.showInteractive.value !== undefined) {
+                        baseConfig.visualization.showInteractive.default = currentConfig.visualization.showInteractive.value;
+                    }
+                    if (currentConfig.visualization.showStatic && currentConfig.visualization.showStatic.value !== undefined) {
+                        baseConfig.visualization.showStatic.default = currentConfig.visualization.showStatic.value;
+                    }
+                    if (currentConfig.visualization.cameraMode && currentConfig.visualization.cameraMode.value !== undefined) {
+                        baseConfig.visualization.cameraMode.default = currentConfig.visualization.cameraMode.value;
                     }
                 }
 
@@ -346,7 +650,7 @@ export default guiConfig;`;
                 initializedRef.current = false;
             }
         };
-    }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig]);
+    }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);
 
     // This component doesn't render anything
     return null;

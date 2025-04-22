@@ -16,6 +16,26 @@ const guiConfig = {
             default: true
         }
     },
+    // Nouvelle section pour les contrôles de visualisation générale
+    visualization: {
+        folder: "Visualisation",
+        wireframe: {
+            name: "Mode Wireframe",
+            default: false
+        },
+        showInstances: {
+            name: "Afficher Instances",
+            default: true
+        },
+        showInteractive: {
+            name: "Afficher Interactifs",
+            default: true
+        },
+        showStatic: {
+            name: "Afficher Statiques",
+            default: true
+        },
+    },
     camera: {
         // Configuration caméra existante...
         folder: "Camera",
@@ -402,7 +422,7 @@ const guiConfig = {
             }
         }
     },
-    // Nouvelle section pour les effets
+    // Effets
     effects: {
         folder: "Effects",
         glow: {
