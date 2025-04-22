@@ -51,13 +51,13 @@ function CameraController({children}) {
         {
             id: 'firstStop',
             name: 'Premier arrêt',
-            triggers: {x: 4.9},
+            triggers: {x: 26.5, z: -148},
             isActive: true
         },
         {
             id: 'secondStop',
             name: 'Second arrêt',
-            triggers: {x: -6, y: 2.1},
+            triggers: {x: -38, z: -122},
             isActive: true
         }
     ];
