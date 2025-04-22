@@ -132,12 +132,69 @@ export default function CaptureInterface() {
                             </div>
                         </div>
                         {/* Bouton de capture repositionné dans le viewport */}
-                        <button
-                            onClick={handleCaptureClick}
-                            className="camera-button"
+                        <div
+                            style={{
+                                position: 'absolute',
+                                width: '88px',
+                                height: '88px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                                aspectRatio: 1,
+                                borderRadius: '999px',
+                                border: '1.5px solid #F9FEFF',
+                                pointerEvents: 'auto',
+                                bottom: '-44px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
+                                backdropFilter: 'blur(2px)',
+                            }}
                         >
-                            <span className="camera-objective"></span>
-                        </button>
+                            <div
+                                onClick={handleCaptureClick}
+                                style={{
+                                    position: 'absolute',
+                                    width: '88px',
+                                    height: '88px',
+                                    display: 'flex',
+                                    padding: '8px',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    flexShrink: 0,
+                                    aspectRatio: 1,
+                                    borderRadius: '999px',
+                                    border: '1.5px solid #F9FEFF',
+                                    background: 'rgba(249, 254, 255, 0.50)',
+                                    pointerEvents: 'auto',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: '56px',
+                                        height: '100%',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        color: '#F9FEFF',
+                                        textAlign: 'center',
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: '12px',
+                                        fontStyle: 'normal',
+                                        fontWeight: 600,
+                                        lineHeight: 'normal',
+                                    }}
+                                >
+                                    Prend la photo
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

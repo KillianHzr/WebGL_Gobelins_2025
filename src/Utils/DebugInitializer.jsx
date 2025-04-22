@@ -322,6 +322,94 @@ const DebugInitializer = () => {
                 theatreFolder.close();
             }
 
+            // Ajouter un dossier pour les interfaces
+            const interfacesFolder = gui.addFolder('Interfaces');
+
+            // Contrôles pour les interfaces
+            const interfaceControls = {
+                showCameraInterface: () => {
+                    const store = useStore.getState();
+
+                    // Afficher l'interface caméra
+                    if (typeof store.setShowCaptureInterface === 'function') {
+                        store.setShowCaptureInterface(true);
+                    } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                        store.interaction.setShowCaptureInterface(true);
+                    } else {
+                        console.warn("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showCaptureInterface: true
+                            }
+                        }));
+                    }
+                },
+                showScannerInterface: () => {
+                    const store = useStore.getState();
+
+                    // Afficher l'interface scanner
+                    if (typeof store.setShowScannerInterface === 'function') {
+                        store.setShowScannerInterface(true);
+                    } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                        store.interaction.setShowScannerInterface(true);
+                    } else {
+                        console.warn("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showScannerInterface: true
+                            }
+                        }));
+                    }
+                },
+                hideCameraInterface: () => {
+                    const store = useStore.getState();
+
+                    // Cacher l'interface caméra
+                    if (typeof store.setShowCaptureInterface === 'function') {
+                        store.setShowCaptureInterface(false);
+                    } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                        store.interaction.setShowCaptureInterface(false);
+                    } else {
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showCaptureInterface: false
+                            }
+                        }));
+                    }
+                },
+                hideScannerInterface: () => {
+                    const store = useStore.getState();
+
+                    // Cacher l'interface scanner
+                    if (typeof store.setShowScannerInterface === 'function') {
+                        store.setShowScannerInterface(false);
+                    } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                        store.interaction.setShowScannerInterface(false);
+                    } else {
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showScannerInterface: false
+                            }
+                        }));
+                    }
+                }
+            };
+
+            // Ajouter les boutons pour afficher/cacher les interfaces
+            interfacesFolder.add(interfaceControls, 'showCameraInterface').name('Show Camera');
+            interfacesFolder.add(interfaceControls, 'hideCameraInterface').name('Hide Camera');
+            interfacesFolder.add(interfaceControls, 'showScannerInterface').name('Show Scanner');
+            interfacesFolder.add(interfaceControls, 'hideScannerInterface').name('Hide Scanner');
+
+            // Fermer le dossier interfaces si configuré
+            if (guiConfig.gui.closeFolders) {
+                interfacesFolder.close();
+            }
+
             // Ajouter un dossier pour l'audio
             const audioFolder = gui.addFolder('Audio');
 

@@ -181,16 +181,92 @@ export default function ScannerInterface() {
                         )}
 
                         {/* Scan button */}
-                        <button
-                            onMouseDown={handleScanButtonDown}
-                            onMouseUp={handleScanButtonUp}
-                            onMouseLeave={handleScanButtonUp}
-                            onTouchStart={handleScanButtonDown}
-                            onTouchEnd={handleScanButtonUp}
-                            className="scanner-button"
+                        <div
+                            style={{
+                                position: 'absolute',
+                                width: '88px',
+                                height: '88px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                flexShrink: 0,
+                                aspectRatio: 1,
+                                borderRadius: '999px',
+                                border: '1.5px solid #F9FEFF',
+                                pointerEvents: 'auto',
+                                bottom: '-44px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
+                                backdropFilter: 'blur(2px)',
+                            }}
                         >
-                            <span className="scanner-objective"></span>
-                        </button>
+                            <div
+                                onMouseDown={handleScanButtonDown}
+                                onMouseUp={handleScanButtonUp}
+                                onMouseLeave={handleScanButtonUp}
+                                onTouchStart={handleScanButtonDown}
+                                onTouchEnd={handleScanButtonUp}
+                                style={{
+                                    position: 'absolute',
+                                    width: '88px',
+                                    height: '88px',
+                                    display: 'flex',
+                                    padding: '8px',
+                                    flexDirection: 'column',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    flexShrink: 0,
+                                    aspectRatio: 1,
+                                    borderRadius: '999px',
+                                    border: '1.5px solid #F9FEFF',
+                                    background: 'rgba(249, 254, 255, 0.50)',
+                                    pointerEvents: 'auto',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: '56px',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        color: '#F9FEFF',
+                                        textAlign: 'center',
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: '12px',
+                                        fontStyle: 'normal',
+                                        fontWeight: 600,
+                                        lineHeight: 'normal',
+                                    }}
+                                >
+                                    Scan les traces
+                                </div>
+                                <div
+                                    style={{
+                                        position: 'absolute',
+                                        width: '64px',
+                                        height: '64px',
+                                        display: 'flex',
+                                        padding: '8px',
+                                        flexDirection: 'column',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        flexShrink: 0,
+                                        aspectRatio: 1,
+                                        borderRadius: '999px',
+                                        border: '1px solid #F9FEFF',
+                                        background: 'transparent',
+                                        pointerEvents: 'none',
+                                    }}
+                                >
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
