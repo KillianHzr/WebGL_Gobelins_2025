@@ -38,11 +38,22 @@ class SceneObjectManager {
                 interaction: {
                     type: INTERACTION_TYPES.CLICK, text: "Examiner l'arbre", color: "#44ff44", offset: 1.5, axis: "y"
                 }, // Placement par défaut
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Examiner l'arbre",
+                    color: "#44ff44",
+                    offset: 1.5,
+                    axis: "y",
+                    interfaceToShow: "camera"
+                },
+                // Placement par défaut
                 defaultPlacement: {
-                    position: [2, 0, -5], rotation: [0, 0, 0], outlinePulse: false
+                    position: [2, 0, -5],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false
                     // requiredStep sera attribué automatiquement
                 }
-            }, 'StumpInteractive': {
+            },
+            'StumpInteractive': {
                 id: 'TreeStump',
                 path: '/models/forest/tree/TreeStump.gltf',
                 scale: [0.25, 0.25, 0.25],
@@ -54,84 +65,58 @@ class SceneObjectManager {
                     color: "#ffbb00",
                     offset: 1.0,
                     axis: "y"
-                }, // Placement par défaut
+                },
+                // Placement par défaut
                 defaultPlacement: {
-                    position: [-3, 0, -2], rotation: [0, 0, 0], outlinePulse: false
+                    position: [-3, 0, -2],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false
                     // requiredStep sera attribué automatiquement
                 }
-            }, 'Ground': {
-                id: 'Bush', path: '/models/Ground.glb', scale: [1, 1, 1], interactive: false, useTextures: false, // Placements statiques par défaut
-                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
-            }, 'DirectionPanel': {
+            },
+            'Ground': {
+                id: 'Bush',
+                path: '/models/Ground.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: false,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [0, 0, 0], rotation: [0, 0, 0]},
+                ]
+            },
+            'DirectionPanel': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
                 interactive: false,
-                useTextures: true, // Placements statiques par défaut
-                defaultPlacements: [{position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}]
-            }, 'LeafErable': {
+                useTextures: true,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}
+                ]
+            },
+            'LeafErable': {
                 id: 'LeafErable',
                 path: '/models/primary/LeafErable.glb',
                 scale: [0.018, 0.018, 0.018],
                 interactive: false,
-                useTextures: true, // Placements statiques par défaut
+                useTextures: true,
+                // Placements statiques par défaut
                 defaultPlacements: [
-                    {position: [-5.652, 0.193, -56.072], rotation: [180.00, -20.16, 180.00]},
-                    {position: [-5.778, 0.193, -55.977], rotation: [0.00, -49.13, 0.00]},
-                    {position: [-5.634, 0.193, -55.936], rotation: [0.00, 28.05, 0.00]},
-                    {position: [-5.698, 0.193, -56.012], rotation: [180.00, -70.37, 180.00]},
-                    {position: [-5.771, 0.193, -56.079], rotation: [180.00, -81.64, 180.00]},
-                    {position: [-5.895, 0.193, -56.018], rotation: [0.00, -49.13, 0.00]},
+                    {position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}
                 ]
-            },
-            'OakLeaf': {
+            }, 'OakLeaf': {
                 id: 'OakLeaf',
                 path: '/models/primary/OakLeaf.glb',
-                scale: [0.018, 0.018, 0.018],
+                scale: [0.048, 0.048, 0.048],
                 interactive: false,
-                useTextures: true, // Placements statiques par défaut
-                defaultPlacements: [{position: [-5.895, 0.193, -56.018], rotation: [0, -49.13, 0]}]
+                useTextures: true,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [-5.747, 0.187, -56.018], rotation: [0, 0, 0]}
+                ]
             },
-            'Obstacle1Tree': {
-                id: 'ThinTrunk',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.065, 0.065, 0.065],
-                interactive: false,
-                useTextures: true, // Placements statiques par défaut
-                defaultPlacements: [{position: [-44.531, 0.241, -116.143], rotation: [-194.82, 30.79, -265.54]}]
-            },
-            'Obstacle2Tree': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.055, 0.055, 0.055],
-                interactive: false,
-                useTextures: true, // Placements statiques par défaut
-                defaultPlacements: [{position: [4.622, 0.258, -11.687], rotation: [-32.13, -3.63, 84.63]}]
-            },
-            // 'Obstacle1RockFirst': { // need edit soon
-            //     id: 'RockObstacle',
-            //     path: '/models/forest/tree/ThinTrunk.gltf',
-            //     scale: [1.884, 1.884, 1.884],
-            //     interactive: false,
-            //     useTextures: true, // Placements statiques par défaut
-            //     defaultPlacements: [{position: [-31.255, 3.820, -115.704], rotation: [-90.00, 127.20, 0]}]
-            // },
-            // 'Obstacle1RockSecond': { // need edit soon
-            //     id: 'RockObstacle',
-            //     path: '/models/forest/tree/ThinTrunk.gltf',
-            //     scale: [0.483, 0.483, 0.483],
-            //     interactive: false,
-            //     useTextures: true, // Placements statiques par défaut
-            //     defaultPlacements: [{position: [-40.811, 1.942, -115.704], rotation: [0, 127.20, 0]}]
-            // },
-            // 'AnimalPaws': { // need edit soon
-            //     id: 'AnimalPaws',
-            //     path: '/models/primary/AnimalPaws.gltf',
-            //     scale: [0.48, 0.48, 0.48],
-            //     interactive: false,
-            //     useTextures: true, // Placements statiques par défaut
-            //     defaultPlacements: [{position: [-5.747, 0.187, -56.043], rotation: [0.0, 0.0, 0.0]}]
-            // },
         };
 
         // Liste des placements d'objets dans la scène
@@ -195,7 +180,8 @@ class SceneObjectManager {
 
                 // Générer automatiquement markerId et markerText si nécessaire
                 const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-                const markerText = config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, config.interaction.text);
+                const markerText = config.defaultPlacement.markerText ||
+                    this._generateMarkerText(key, requiredStep, config.interaction.text);
 
                 // Placer un objet interactif
                 this.addPlacement(key, config.defaultPlacement.position, {
@@ -212,7 +198,8 @@ class SceneObjectManager {
                 // Placer plusieurs instances d'objets statiques
                 config.defaultPlacements.forEach((placement, index) => {
                     this.addPlacement(key, placement.position, {
-                        rotation: placement.rotation || [0, 0, 0], scale: placement.scale || config.scale
+                        rotation: placement.rotation || [0, 0, 0],
+                        scale: placement.scale || config.scale
                     });
                 });
             }
@@ -290,8 +277,10 @@ class SceneObjectManager {
             // Attribuer automatiquement la prochaine étape si non spécifiée
             const requiredStep = config.defaultPlacement.requiredStep || this._getNextStep();
 
-            const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-            const markerText = config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, config.interaction.text);
+            const markerId = config.defaultPlacement.markerId ||
+                this._generateMarkerId(key, requiredStep);
+            const markerText = config.defaultPlacement.markerText ||
+                this._generateMarkerText(key, requiredStep, config.interaction.text);
 
             this.addPlacement(key, config.defaultPlacement.position, {
                 rotation: config.defaultPlacement.rotation || [0, 0, 0],
@@ -348,10 +337,14 @@ class SceneObjectManager {
         // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
             // Attribuer automatiquement la prochaine étape si non spécifiée
-            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
+            const requiredStep = options.requiredStep ||
+                objectConfig.defaultPlacement?.requiredStep ||
+                this._getNextStep();
 
-            const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
-            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
+            const markerId = options.markerId ||
+                this._generateMarkerId(key, requiredStep);
+            const markerText = options.markerText ||
+                this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
 
             Object.assign(placement, {
                 markerId: markerId,
@@ -363,7 +356,9 @@ class SceneObjectManager {
                 markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
                 markerType: options.markerType || objectConfig.interaction.type,
                 outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
+                    (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
+                        objectConfig.defaultPlacement.outlinePulse : true),
                 interacted: false
             });
         }
@@ -413,7 +408,9 @@ class SceneObjectManager {
             }
 
             // Filtrer par état d'interaction (pour les objets interactifs)
-            if (filters.interacted !== undefined && placement.interacted !== undefined && placement.interacted !== filters.interacted) {
+            if (filters.interacted !== undefined &&
+                placement.interacted !== undefined &&
+                placement.interacted !== filters.interacted) {
                 return false;
             }
 
@@ -468,15 +465,23 @@ class SceneObjectManager {
         // Si requiredStep est modifié, mettre à jour également le markerId et markerText
         // sauf si explicitement fournis
         if (updates.requiredStep && !updates.markerId) {
-            updates.markerId = this._generateMarkerId(this.placements[index].objectKey, updates.requiredStep);
+            updates.markerId = this._generateMarkerId(
+                this.placements[index].objectKey,
+                updates.requiredStep
+            );
         }
 
         if (updates.requiredStep && !updates.markerText) {
-            updates.markerText = this._generateMarkerText(this.placements[index].objectKey, updates.requiredStep, this.objectCatalog[this.placements[index].objectKey]?.interaction?.text);
+            updates.markerText = this._generateMarkerText(
+                this.placements[index].objectKey,
+                updates.requiredStep,
+                this.objectCatalog[this.placements[index].objectKey]?.interaction?.text
+            );
         }
 
         this.placements[index] = {
-            ...this.placements[index], ...updates
+            ...this.placements[index],
+            ...updates
         };
 
         return true;
@@ -549,7 +554,12 @@ class SceneObjectManager {
                 assetSet.add(obj.path);
 
                 assets.push({
-                    name: obj.id, type: 'gltf', path: obj.path, license: 'CC-BY', author: 'Author', url: ''
+                    name: obj.id,
+                    type: 'gltf',
+                    path: obj.path,
+                    license: 'CC-BY',
+                    author: 'Author',
+                    url: ''
                 });
             }
         });

@@ -179,6 +179,7 @@ export function InteractiveObjects({ filter = {} }) {
                         requiredStep={placement.requiredStep}
                         textureModelId={textureModelId}
                         useTextures={useTextures}
+                        interfaceToShow={objectConfig.interaction?.interfaceToShow}
                         onInteract={(event) => {
                             console.log(`Interaction avec ${placement.markerId}:`, event);
                             if (placement.onInteract) {
