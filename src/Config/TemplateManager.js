@@ -31,7 +31,7 @@ class TemplateManager {
                 priority: 4,
                 useTextures: true
             },
-            'Plane_7': {
+            'BranchEucalyptus_1': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/plant/BranchEucalyptus.glb',
                 priority: 5,
@@ -40,12 +40,6 @@ class TemplateManager {
             'BUSHv2': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
-                priority: 6,
-                useTextures: true
-            },
-            'BranchEucalyptus_1': {
-                id: 'BranchEucalyptus',
-                path: '/models/forest/plant/BranchEucalyptus.glb',
                 priority: 6,
                 useTextures: true
             },

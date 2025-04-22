@@ -60,12 +60,12 @@ class TextureManager {
             },
 
             'BranchFig': {
-                // baseColor: '/textures/forest/plant/BranchFig_BaseColor.png',
+                baseColor: '/textures/forest/plant/BranchFig_BaseColor.png',
                 // normal: '/textures/forest/plant/BranchFig_Normal.png',
                 // roughness: '/textures/forest/plant/BranchFig_Roughness.png',
                 // metalness: '/textures/forest/plant/BranchFig_Metallic.png',
                 // ao: '/textures/forest/plant/BranchFig_Height.png',
-                // alpha: '/textures/forest/plant/BranchFig_Alpha.png', // Conservation de l'alpha comme pour BranchEucalyptus
+                alpha: '/textures/forest/plant/BranchFig_Alpha.png', // Conservation de l'alpha comme pour BranchEucalyptus
             },
             'BushBlueberry': {
                 baseColor: '/textures/forest/bush/BushBlueberry_BaseColor.png',
