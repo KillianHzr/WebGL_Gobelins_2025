@@ -52,17 +52,13 @@ function CameraController({children}) {
             id: 'firstStop',
             name: 'Premier arrêt',
             triggers: {x: 4.9},
-            isActive: true,
-            interactionType: 'click', // Requiert un clic
-            targetId: 'MainCube' // Nom du cube dans la scène
+            isActive: true
         },
         {
             id: 'secondStop',
             name: 'Second arrêt',
             triggers: {x: -6, y: 2.1},
-            isActive: true,
-            interactionType: 'drag', // Requiert un drag horizontal
-            targetId: 'MainCube' // Nom du cube dans la scène
+            isActive: true
         }
     ];
 
