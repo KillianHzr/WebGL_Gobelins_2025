@@ -78,108 +78,38 @@ class SceneObjectManager {
                     // requiredStep sera attribué automatiquement
                 }
             },
-            'BushInteractive': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                scale: [0.15, 0.15, 0.15],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.DRAG_LEFT,
-                    text: "Écarter les feuilles",
-                    color: "#22ccaa",
-                    offset: 0.8,
-                    axis: "y"
-                },
-                // Placement par défaut
-                defaultPlacement: {
-                    position: [-1, 0, -4],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
-                    // requiredStep sera attribué automatiquement
-                }
-            },
-
-            // Objets statiques (sans interaction)
-            'TreeStaticBig': {
-                id: 'TreeNaked',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                scale: [0.2, 0.2, 0.2],
-                interactive: false,
-                useTextures: true,
-                // Placements statiques par défaut (plusieurs instances)
-                defaultPlacements: [
-                    {position: [5, 0, -8], rotation: [0, 0, 0]}
-                ]
-            },
-            'TreeStaticSmall': {
-                id: 'ThinTrunk',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.15, 0.15, 0.15],
-                interactive: false,
-                useTextures: true,
-                // Placements statiques par défaut (plusieurs instances)
-                defaultPlacements: [
-                    {position: [4, 0, -6], rotation: [0, 0, 0]},
-                    {position: [6, 0, -7], rotation: [0, Math.PI / 6, 0]}
-                ]
-            },
-            'StumpStatic': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.gltf',
-                scale: [0.2, 0.2, 0.2],
+            'DirectionPanel': {
+                id: 'DirectionPanel',
+                path: '/models/primary/DirectionPanel.gltf',
+                scale: [0.605, 0.605, 0.605],
                 interactive: false,
                 useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    {position: [-5, 0, -3], rotation: [0, 0, 0]}
+                    {position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}
                 ]
             },
-            'BushStatic': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                scale: [0.12, 0.12, 0.12],
+            'LeafErable': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018, 0.018, 0.018],
                 interactive: false,
                 useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    {position: [-4, 0, -5], rotation: [0, 0, 0]},
-                    {position: [3, 0, -7], rotation: [0, Math.PI / 4, 0]}
+                    {position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}
                 ]
-            },
-            'BranchEucalyptusStatic': {
-                id: 'BranchEucalyptus',
-                path: '/models/forest/plant/BranchEucalyptus.glb',
-                scale: [0.12, 0.12, 0.12],
+            }, 'OakLeaf': {
+                id: 'OakLeaf',
+                path: '/models/primary/OakLeaf.glb',
+                scale: [0.048, 0.048, 0.048],
                 interactive: false,
                 useTextures: true,
                 // Placements statiques par défaut
                 defaultPlacements: [
-                    {position: [0, 2, -0.25], rotation: [0, 0, 0]},
+                    {position: [-5.747, 0.187, -56.018], rotation: [0, 0, 0]}
                 ]
             },
-            'Ground': {
-                id: 'Bush',
-                path: '/models/Ground.glb',
-                scale: [1, 1, 1],
-                interactive: false,
-                useTextures: false,
-                // Placements statiques par défaut
-                defaultPlacements: [
-                    {position: [0, 0, 0], rotation: [0, 0, 0]},
-                ]
-            },
-            'TrunkLargeStatic': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.18, 0.18, 0.18],
-                interactive: false,
-                useTextures: true,
-                // Placements statiques par défaut
-                defaultPlacements: [
-                    {position: [0, 0, -6], rotation: [0, Math.PI / 4, 0]}
-                ]
-            }
         };
 
         // Liste des placements d'objets dans la scène
