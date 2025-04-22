@@ -127,7 +127,7 @@ class SceneObjectManager {
             'BushInteractive': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
-                scale: [0.25, 0.25, 0.25],
+                scale: [0.05, 0.05, 0.05],
                 interactive: true,
                 useTextures: true,
                 interaction: {
@@ -161,8 +161,8 @@ class SceneObjectManager {
                 },
                 defaultPlacement: {
                     position: [3, 0, -23],
-                    rotation: [0, 0, 0],
-                    outlinePulse: true,
+                        rotation: [0, 0, 0],
+                    outlinePulse: false,
                     requiredStep: 'sixthStop'
                 }
             },
@@ -200,6 +200,16 @@ class SceneObjectManager {
                 id: 'OakLeaf',
                 path: '/models/primary/OakLeaf.glb',
                 scale: [0.048, 0.048, 0.048],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [
+                    {position: [-5.747, 0.187, -56.018], rotation: [0, 0, 0]}
+                ]
+            },
+            'Goat': {
+                id: 'Goat',
+                path: '/models/goat_from_goat_simulator.glb',
+                scale: [10.0, 10.0, 10.0],
                 interactive: false,
                 useTextures: true,
                 defaultPlacements: [
