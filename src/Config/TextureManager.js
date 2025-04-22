@@ -57,8 +57,48 @@ class TextureManager {
                 roughness: '/textures/primary/DirectionPanel_Roughness.png',
                 metalness: '/textures/primary/DirectionPanel_Metallic.png',
                 ao: '/textures/primary/DirectionPanel_Height.png', // Utiliser height comme AO
+            },
+
+            'BranchFig': {
+                // baseColor: '/textures/forest/plant/BranchFig_BaseColor.png',
+                // normal: '/textures/forest/plant/BranchFig_Normal.png',
+                // roughness: '/textures/forest/plant/BranchFig_Roughness.png',
+                // metalness: '/textures/forest/plant/BranchFig_Metallic.png',
+                // ao: '/textures/forest/plant/BranchFig_Height.png',
+                // alpha: '/textures/forest/plant/BranchFig_Alpha.png', // Conservation de l'alpha comme pour BranchEucalyptus
+            },
+            'BushBlueberry': {
+                baseColor: '/textures/forest/bush/BushBlueberry_BaseColor.png',
+                // normal: '/textures/forest/bush/BushBlueberry_Normal.png',
+                // roughness: '/textures/forest/bush/BushBlueberry_Roughness.png',
+                // metalness: '/textures/forest/bush/BushBlueberry_Metallic.png',
+                // ao: '/textures/forest/bush/BushBlueberry_Height.png',
+                alpha: '/textures/forest/bush/BushBlueberry_Alpha.png', // Conservation de l'alpha comme pour Bush
+            },
+            'BushRaspberry': {
+                baseColor: '/textures/forest/bush/BushRaspberry_BaseColor.png',
+                // normal: '/textures/forest/bush/BushRaspberry_Normal.png',
+                // roughness: '/textures/forest/bush/BushRaspberry_Roughness.png',
+                // metalness: '/textures/forest/bush/BushRaspberry_Metallic.png',
+                // ao: '/textures/forest/bush/BushRaspberry_Height.png',
+                alpha: '/textures/forest/bush/BushRaspberry_Alpha.png', // Conservation de l'alpha comme pour Bush
+            },
+            'BushTrunk': {
+                baseColor: '/textures/forest/bush/BushTrunk_BaseColor.png',
+                // normal: '/textures/forest/bush/BushTrunk_Normal.png',
+                // roughness: '/textures/forest/bush/BushTrunk_Roughness.png',
+                // metalness: '/textures/forest/bush/BushTrunk_Metallic.png',
+                // ao: '/textures/forest/bush/BushTrunk_Height.png', // Utiliser height comme AO
+                alpha: '/textures/forest/bush/BushTrunk_Alpha.png', // Conservation de l'alpha comme pour Bush
+            },
+            'BushStrawberry': {
+                baseColor: '/textures/forest/bush/BushStrawberry_BaseColor.png',
+                // normal: '/textures/forest/bush/BushStrawberry_Normal.png',
+                // roughness: '/textures/forest/bush/BushStrawberry_Roughness.png',
+                // metalness: '/textures/forest/bush/BushStrawberry_Metallic.png',
+                // ao: '/textures/forest/bush/BushStrawberry_Height.png',
+                alpha: '/textures/forest/bush/BushStrawberry_Alpha.png', // Conservation de l'alpha comme pour Bush
             }
-            // Ajoutez d'autres textures au besoin
         };
 
         // Garde en mémoire les textures déjà chargées

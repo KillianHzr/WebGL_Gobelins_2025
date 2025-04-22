@@ -1,7 +1,7 @@
 // TemplateManager.js
 // Système centralisé pour la gestion des templates et des instances
 
-import { textureManager } from './TextureManager';
+import {textureManager} from './TextureManager';
 
 class TemplateManager {
     constructor() {
@@ -11,7 +11,7 @@ class TemplateManager {
                 id: 'TreeNaked',
                 path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1,
-                useTextures: true  // Indique si ce modèle doit utiliser des textures
+                useTextures: true
             },
             'Retopo_GROS_TRONC001': {
                 id: 'TrunkLarge',
@@ -31,7 +31,6 @@ class TemplateManager {
                 priority: 4,
                 useTextures: true
             },
-
             'Plane_7': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/plant/BranchEucalyptus.glb',
@@ -40,7 +39,7 @@ class TemplateManager {
             },
             'BUSHv2': {
                 id: 'Bush',
-                path: '/models/forest/bush/Bush.gltf',
+                path: '/models/forest/bush/Bush.glb',
                 priority: 6,
                 useTextures: true
             },
