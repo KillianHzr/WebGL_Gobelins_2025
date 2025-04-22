@@ -55,6 +55,7 @@ export default function EasyModelMarker({
 
                                             // Props pour enfants personnalisés
                                             children,
+                                            interfaceToShow = null,
                                         }) {
     const modelRef = useRef();
     const [hovered, setHovered] = useState(false);
@@ -150,6 +151,46 @@ export default function EasyModelMarker({
 
             // Mettre à jour l'état
             setIsInteractionCompleted(true);
+
+            if (interfaceToShow) {
+
+                const store = useStore.getState();
+
+                if (interfaceToShow === 'camera') {
+                    if (typeof store.setShowCaptureInterface === 'function') {
+                        store.setShowCaptureInterface(true);
+                    } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                        store.interaction.setShowCaptureInterface(true);
+                    } else if (interaction && typeof interaction.setShowCaptureInterface === 'function') {
+                        interaction.setShowCaptureInterface(true);
+                    } else {
+                        console.warn("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showCaptureInterface: true
+                            }
+                        }));
+                    }
+
+                } else if (interfaceToShow === 'scanner') {
+                    if (typeof store.setShowScannerInterface === 'function') {
+                        store.setShowScannerInterface(true);
+                    } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                        store.interaction.setShowScannerInterface(true);
+                    } else if (interaction && typeof interaction.setShowScannerInterface === 'function') {
+                        interaction.setShowScannerInterface(true);
+                    } else {
+                        console.warn("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showScannerInterface: true
+                            }
+                        }));
+                    }
+                }
+            }
         }
 
         // Appeler le callback personnalisé

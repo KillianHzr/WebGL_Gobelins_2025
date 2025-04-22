@@ -47,7 +47,8 @@ class SceneObjectManager {
                     text: "Examiner l'arbre",
                     color: "#44ff44",
                     offset: 1.5,
-                    axis: "y"
+                    axis: "y",
+                    interfaceToShow: "camera"
                 },
                 // Placement par défaut
                 defaultPlacement: {
@@ -68,7 +69,8 @@ class SceneObjectManager {
                     text: "Inspecter la souche",
                     color: "#ffbb00",
                     offset: 1.0,
-                    axis: "y"
+                    axis: "y",
+                    interfaceToShow: "scanner"
                 },
                 // Placement par défaut
                 defaultPlacement: {
@@ -262,7 +264,8 @@ class SceneObjectManager {
                 text: config.interaction?.text || "Interagir",
                 color: config.interaction?.color || "#44ff44",
                 offset: config.interaction?.offset || 1.0,
-                axis: config.interaction?.axis || "y"
+                axis: config.interaction?.axis || "y",
+                interfaceToShow: config.interaction?.interfaceToShow || null
             };
 
             // Ajouter le placement par défaut si fourni
