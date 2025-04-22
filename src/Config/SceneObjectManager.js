@@ -9,7 +9,12 @@ import {textureManager} from './TextureManager';
 class SceneObjectManager {
     constructor() {
         // Définition des étapes dans l'ordre
-        this.interactionSteps = ['firstStop', 'secondStop', 'thirdStop', 'fourthStop', 'fifthStop', // Ajoutez d'autres étapes si nécessaire
+        this.interactionSteps = [
+            'firstStop',
+            'secondStop',
+            'thirdStop',
+            'fourthStop',
+            'fifthStop',
         ];
 
         // Textes standard pour les différentes étapes d'interaction
@@ -19,7 +24,8 @@ class SceneObjectManager {
             'thirdStop': "Troisième point d'intérêt",
             'fourthStop': "Quatrième point d'intérêt",
             'fifthStop': "Cinquième point d'intérêt",
-            'specialStop': "Point spécial", // Ajoutez d'autres textes par défaut ici
+            'specialStop': "Point spécial",
+            // Ajoutez d'autres textes par défaut ici
         };
 
         // Compteur pour suivre l'ordre des objets interactifs
@@ -36,8 +42,6 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,  // Indique si ce modèle doit utiliser des textures
                 interaction: {
-                    type: INTERACTION_TYPES.CLICK, text: "Examiner l'arbre", color: "#44ff44", offset: 1.5, axis: "y"
-                }, // Placement par défaut
                     type: INTERACTION_TYPES.CLICK,
                     text: "Examiner l'arbre",
                     color: "#44ff44",
@@ -64,7 +68,8 @@ class SceneObjectManager {
                     text: "Inspecter la souche",
                     color: "#ffbb00",
                     offset: 1.0,
-                    axis: "y"
+                    axis: "y",
+                    interfaceToShow: "scanner"
                 },
                 // Placement par défaut
                 defaultPlacement: {
@@ -258,7 +263,8 @@ class SceneObjectManager {
                 text: config.interaction?.text || "Interagir",
                 color: config.interaction?.color || "#44ff44",
                 offset: config.interaction?.offset || 1.0,
-                axis: config.interaction?.axis || "y"
+                axis: config.interaction?.axis || "y",
+                interfaceToShow: config.interaction?.interfaceToShow || null
             };
 
             // Ajouter le placement par défaut si fourni
@@ -574,6 +580,5 @@ class SceneObjectManager {
     }
 }
 
-// Export d'une instance singleton
 export const sceneObjectManager = new SceneObjectManager();
 export default sceneObjectManager;
