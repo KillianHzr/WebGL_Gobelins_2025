@@ -78,6 +78,17 @@ class SceneObjectManager {
                     // requiredStep sera attribué automatiquement
                 }
             },
+            'Ground': {
+                id: 'Bush',
+                path: '/models/Ground.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: false,
+                // Placements statiques par défaut
+                defaultPlacements: [
+                    {position: [0, 0, 0], rotation: [0, 0, 0]},
+                ]
+            },
             'DirectionPanel': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
