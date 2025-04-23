@@ -7,6 +7,7 @@ export default function ScannerInterface() {
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
     const [showNotification, setShowNotification] = useState(false);
+    const [pulseSize, setPulseSize] = useState(0); // For the pulsation effect
     const scanLineRef = useRef(null);
     const interaction = useStore(state => state.interaction);
     const scanTimerRef = useRef(null);
@@ -26,6 +27,21 @@ export default function ScannerInterface() {
             }
         }
     }, [interaction?.showScannerInterface]);
+
+    // Create pulsation effect that syncs with scan line
+    useEffect(() => {
+        if (isScanning) {
+            // Use the same timer as scan progress to sync the pulsation
+            // The pulsation will be updated in the scan progress timer
+            // No separate timer needed for pulsation
+        } else {
+            setPulseSize(0);
+        }
+
+        return () => {
+            // Cleanup handled in the main timer cleanup
+        };
+    }, [isScanning]);
 
     // Clean up on unmount
     useEffect(() => {
@@ -64,13 +80,20 @@ export default function ScannerInterface() {
 
         setIsScanning(true);
         setScanProgress(0);
+        setPulseSize(0);
         scanStartTimeRef.current = Date.now();
 
-        // Create interval to update progress
+        // Create interval to update progress and sync pulsation
         scanTimerRef.current = setInterval(() => {
             const elapsed = Date.now() - scanStartTimeRef.current;
             const progress = Math.min((elapsed / scanDuration) * 100, 100);
             setScanProgress(progress);
+
+            // Update pulse size based on scan line position
+            // We use a cosine wave to match the up/down movement of scan line
+            // Map progress 0-100 to pulse position for one full oscillation
+            const pulsePosition = (elapsed % 2000) / 2000; // 0 to 1 every 2 seconds (matches scan line)
+            setPulseSize(pulsePosition * 100);
 
             if (progress >= 100) {
                 completeScan();
@@ -94,6 +117,7 @@ export default function ScannerInterface() {
         audioManager.playSound('scan-cancel');
         setIsScanning(false);
         setScanProgress(0);
+        setPulseSize(0);
     };
 
     // Complete the scanning process successfully
@@ -111,6 +135,7 @@ export default function ScannerInterface() {
 
         setIsScanning(false);
         setScanProgress(0);
+        setPulseSize(0);
 
         audioManager.playSound('scan-complete');
 
@@ -142,6 +167,34 @@ export default function ScannerInterface() {
         }
     };
 
+    // Calculate pulsating size - synced with scan line
+    const getPulsatingSize = () => {
+        // Min is 72px (quand la barre est en bas)
+        // Max is 88px (quand la barre est en haut)
+        // Il ne faut jamais descendre en dessous de 72px
+
+        // On utilise une fonction cosinus modifiée:
+        // cosinus varie de -1 à +1
+        // on ajoute 1 pour avoir une variation de 0 à 2
+        // on divise par 2 pour avoir une variation de 0 à 1
+        // on multiplie par la différence (16px)
+        // on ajoute la taille minimum (72px)
+
+        const minSize = 72; // taille minimale
+        const maxSize = 88; // taille maximale
+        const range = maxSize - minSize; // différence (16px)
+
+        // Transforme pulseSize (0-100) pour suivre le mouvement de la barre:
+        // 0 ou 100 = barre en haut = taille max
+        // 50 = barre en bas = taille min
+        const normalizedCos = (1 + Math.cos(pulseSize * Math.PI * 2 / 100)) / 2;
+
+        // Calcule la taille entre min et max (sans jamais descendre sous min)
+        const size = minSize + (normalizedCos * range);
+
+        return `${size}px`;
+    };
+
     if (!isVisible && !showNotification) return null;
 
     return (
@@ -168,16 +221,6 @@ export default function ScannerInterface() {
                                 ref={scanLineRef}
                                 className="scanner-scan-line"
                             ></div>
-                        )}
-
-                        {/* Progress bar for scanning */}
-                        {isScanning && (
-                            <div className="scanner-progress-container">
-                                <div
-                                    className="scanner-progress-bar"
-                                    style={{ width: `${scanProgress}%` }}
-                                ></div>
-                            </div>
                         )}
 
                         {/* Scan button */}
@@ -248,8 +291,8 @@ export default function ScannerInterface() {
                                 <div
                                     style={{
                                         position: 'absolute',
-                                        width: '64px',
-                                        height: '64px',
+                                        width: isScanning ? (72 + scanProgress * 0.01 * 16) : '72px',
+                                        height: isScanning ? (72 + scanProgress * 0.01 * 16) : '72px',
                                         display: 'flex',
                                         padding: '8px',
                                         flexDirection: 'column',
@@ -262,6 +305,7 @@ export default function ScannerInterface() {
                                         border: '1px solid #F9FEFF',
                                         background: 'transparent',
                                         pointerEvents: 'none',
+                                        transition: 'width 0.2s ease-in-out, height 0.2s ease-in-out',
                                     }}
                                 >
                                 </div>

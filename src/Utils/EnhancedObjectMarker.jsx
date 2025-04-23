@@ -297,7 +297,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
 };
 
 // Fonction pour créer une texture de texte
-function createTextCanvas(text, fontSize = 32, fontWeight = 'bold', fontFamily = 'Arial') {
+function createTextCanvas(text, fontSize = 32, fontWeight = 'bold', fontFamily = 'Albert Sans') {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 64;
@@ -725,9 +725,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         color: 'white',
                         padding: '5px 10px',
                         borderRadius: '4px',
-                        fontFamily: 'Arial, sans-serif',
+                        fontFamily: 'Albert Sans',
                         fontSize: '14px',
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         textAlign: 'center',
                         whiteSpace: 'nowrap',
                         pointerEvents: 'none',
