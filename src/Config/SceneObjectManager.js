@@ -118,7 +118,7 @@ class SceneObjectManager {
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [-40, 0, -80],
+                    position: [-43, 0, -81],
                     rotation: [0, 0, 0],
                     outlinePulse: true,
                     requiredStep: 'fourthStop'
