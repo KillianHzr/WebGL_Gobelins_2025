@@ -1,13 +1,14 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import { useGLTF } from '@react-three/drei';
-import { ModelMarker, INTERACTION_TYPES } from '../Utils/EnhancedObjectMarker';
-import { EventBus } from '../Utils/EventEmitter';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useGLTF} from '@react-three/drei';
+import {INTERACTION_TYPES, ModelMarker} from '../Utils/EnhancedObjectMarker';
+import {EventBus} from '../Utils/EventEmitter';
 import MARKER_EVENTS from "../Utils/EventEmitter.jsx";
-import { audioManager } from '../Utils/AudioManager';
+import {audioManager} from '../Utils/AudioManager';
 import OutlineEffect from '../Utils/OutlineEffect';
 import GlowEffectDebug from '../Utils/GlowEffectDebug';
 import useStore from '../Store/useStore';
-import { textureManager } from '../Config/TextureManager';
+import {textureManager} from '../Config/TextureManager';
+import {Object3D} from "three";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EASY_MARKER = false;
@@ -20,13 +21,13 @@ const debugLog = (message, ...args) => {
 // Pool d'objets pour limiter les allocations
 const objectPool = {
     dummyObjects: [],
-    getDummyObject: function() {
+    getDummyObject: function () {
         if (this.dummyObjects.length > 0) {
             return this.dummyObjects.pop();
         }
-        return new THREE.Object3D();
+        return new Object3D();
     },
-    returnDummyObject: function(obj) {
+    returnDummyObject: function (obj) {
         obj.position.set(0, 0, 0);
         obj.rotation.set(0, 0, 0);
         obj.scale.set(1, 1, 1);
@@ -109,7 +110,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     }, [modelPath, gltf]);
 
     // Utiliser le composant de debug pour l'effet de glow
-    const { effectSettings, updateEffectRef } = GlowEffectDebug({ objectRef: modelRef });
+    const {effectSettings, updateEffectRef} = GlowEffectDebug({objectRef: modelRef});
 
     // Gestion des textures de manière optimisée
     useEffect(() => {
@@ -169,7 +170,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         // Force une mise à jour immédiate pour arrêter tout mouvement existant
         if (!outlinePulse && effectRef.pulseRef) {
-            effectRef.pulseRef.current = { value: 0, direction: 0 };
+            effectRef.pulseRef.current = {value: 0, direction: 0};
         }
     }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
 
@@ -397,7 +398,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         if (!children) return null;
 
         return React.Children.map(children, child =>
-            React.cloneElement(child, { ref: modelRef })
+            React.cloneElement(child, {ref: modelRef})
         );
     }, [children]);
 
@@ -432,8 +433,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     castShadow
                     {...modelProps}
                 >
-                    <boxGeometry args={[1, 1, 1]} />
-                    <meshStandardMaterial color={color} />
+                    <boxGeometry args={[1, 1, 1]}/>
+                    <meshStandardMaterial color={color}/>
                 </mesh>
             );
         } else if (modelPath && gltf && gltf.scene) {
@@ -472,8 +473,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         castShadow
                         {...modelProps}
                     >
-                        <boxGeometry args={[0.5, 0.5, 0.5]} />
-                        <meshStandardMaterial color="#ff0000" wireframe={true} />
+                        <boxGeometry args={[0.5, 0.5, 0.5]}/>
+                        <meshStandardMaterial color="#ff0000" wireframe={true}/>
                     </mesh>
                 );
             }
@@ -490,8 +491,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     castShadow
                     {...modelProps}
                 >
-                    <boxGeometry args={[0.5, 0.5, 0.5]} />
-                    <meshStandardMaterial color="#888888" wireframe={true} opacity={0.5} transparent />
+                    <boxGeometry args={[0.5, 0.5, 0.5]}/>
+                    <meshStandardMaterial color="#888888" wireframe={true} opacity={0.5} transparent/>
                 </mesh>
             );
         }

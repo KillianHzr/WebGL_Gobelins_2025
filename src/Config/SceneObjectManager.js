@@ -45,7 +45,7 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.CLICK,
+                    type: INTERACTION_TYPES.DRAG_UP,
                     text: "Examiner l'arbre",
                     color: "#44ff44",
                     offset: 1.5,
