@@ -55,7 +55,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [23, 0, -150],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'firstStop'
                 }
             },
@@ -76,7 +76,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-1, 0, -138.00],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'secondStop'
                 }
             },
@@ -99,7 +99,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-48, 0, -95],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'thirdStop'
                 }
             },
@@ -120,7 +120,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-43, 0, -81],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'fourthStop'
                 }
             },
@@ -141,7 +141,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-8, 0, -60],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'fifthStop'
                 }
             },
@@ -162,7 +162,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [3, 0, -23],
                     rotation: [0, 0, 0],
-                    outlinePulse: true,
+                    outlinePulse: false,
                     requiredStep: 'sixthStop'
                 }
             },
