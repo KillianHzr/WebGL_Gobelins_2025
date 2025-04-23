@@ -13,16 +13,15 @@ const debugLog = (message, ...args) => {
 let emitterInstance = {
     on: (eventName, callback) => {
         debugLog('EventEmitter on() called before initialization, will be queued');
-        queuedEvents.push({ type: 'on', eventName, callback });
-        return () => {};
-    },
-    off: (eventName) => {
+        queuedEvents.push({type: 'on', eventName, callback});
+        return () => {
+        };
+    }, off: (eventName) => {
         debugLog('EventEmitter off() called before initialization, will be queued');
-        queuedEvents.push({ type: 'off', eventName });
-    },
-    trigger: (eventName, data) => {
+        queuedEvents.push({type: 'off', eventName});
+    }, trigger: (eventName, data) => {
         debugLog('EventEmitter trigger() called before initialization, will be queued');
-        queuedEvents.push({ type: 'trigger', eventName, data });
+        queuedEvents.push({type: 'trigger', eventName, data});
     }
 };
 
@@ -44,6 +43,9 @@ export const MARKER_EVENTS = {
     MARKER_HOVER_END: 'marker:hover:end',
     MARKER_SHOW: 'marker:show',
     MARKER_HIDE: 'marker:hide',
+
+
+    INTERACTION_ANIMATION: 'marker:interaction:animation',
 
     // Événements pour les groupes de marqueurs
     GROUP_VISIBILITY_CHANGED: 'marker:group:visibility',
@@ -163,9 +165,7 @@ const EventEmitter = forwardRef((props, ref) => {
             // Track the listener (pour débogage)
             const listenerId = `${name.namespace}.${name.value}.${newCallbacks[name.namespace][name.value].length - 1}`;
             newActiveListeners.set(listenerId, {
-                event: _name,
-                addedAt: new Date().toISOString(),
-                callbackName: callback.name || 'anonymous'
+                event: _name, addedAt: new Date().toISOString(), callbackName: callback.name || 'anonymous'
             });
         });
 
@@ -229,10 +229,7 @@ const EventEmitter = forwardRef((props, ref) => {
                 if (name.namespace === 'base') {
                     // Try to remove from each namespace
                     for (const namespace in newCallbacks) {
-                        if (
-                            newCallbacks[namespace] instanceof Object &&
-                            newCallbacks[namespace][name.value] instanceof Array
-                        ) {
+                        if (newCallbacks[namespace] instanceof Object && newCallbacks[namespace][name.value] instanceof Array) {
                             delete newCallbacks[namespace][name.value];
 
                             // Remove all listeners with this value from tracking
@@ -251,10 +248,7 @@ const EventEmitter = forwardRef((props, ref) => {
                 }
 
                 // Specified namespace
-                else if (
-                    newCallbacks[name.namespace] instanceof Object &&
-                    newCallbacks[name.namespace][name.value] instanceof Array
-                ) {
+                else if (newCallbacks[name.namespace] instanceof Object && newCallbacks[name.namespace][name.value] instanceof Array) {
                     delete newCallbacks[name.namespace][name.value];
 
                     // Remove all listeners with this namespace and value from tracking
@@ -312,10 +306,7 @@ const EventEmitter = forwardRef((props, ref) => {
         if (name.namespace === 'base') {
             // Try to find callback in each namespace
             for (const namespace in callbacks) {
-                if (
-                    callbacks[namespace] instanceof Object &&
-                    callbacks[namespace][name.value] instanceof Array
-                ) {
+                if (callbacks[namespace] instanceof Object && callbacks[namespace][name.value] instanceof Array) {
                     callbacks[namespace][name.value].forEach((callback, index) => {
                         if (typeof callback !== 'function') {
                             debugLog(`Invalid callback for ${namespace}.${name.value}[${index}]`);
@@ -379,10 +370,7 @@ const EventEmitter = forwardRef((props, ref) => {
     // Exposer les méthodes via useImperativeHandle pour les rendre accessibles via ref
     useImperativeHandle(ref, () => {
         const methods = {
-            on,
-            off,
-            trigger,
-            // Méthode de débogage
+            on, off, trigger, // Méthode de débogage
             getActiveListeners: () => Array.from(activeListeners.entries())
         };
 
@@ -410,12 +398,10 @@ export const EventEmitterProvider = ({children}) => {
         getActiveListeners: () => emitterRef.current?.getActiveListeners() || []
     }), []);
 
-    return (
-        <EventEmitterContext.Provider value={emitterMethods}>
-            <EventEmitter ref={emitterRef}/>
-            {children}
-        </EventEmitterContext.Provider>
-    );
+    return (<EventEmitterContext.Provider value={emitterMethods}>
+        <EventEmitter ref={emitterRef}/>
+        {children}
+    </EventEmitterContext.Provider>);
 };
 
 /**
@@ -457,11 +443,13 @@ export const EventBus = {
             } catch (error) {
                 console.error(`Error subscribing to event ${eventName}:`, error);
                 // Retourner une fonction vide pour éviter les erreurs
-                return () => {};
+                return () => {
+                };
             }
         } else {
             debugLog('EventEmitter not initialized yet');
-            return () => {};
+            return () => {
+            };
         }
     },
 

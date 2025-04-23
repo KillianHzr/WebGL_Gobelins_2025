@@ -23,6 +23,7 @@ export const ModelMarker = React.memo(function ModelMarker({
                                                                customMarker = null, // Marqueur personnalisé
                                                                onPointerEnter,     // Fonction pour gérer les événements de survol
                                                                onPointerLeave,     // Fonctions pour gérer les événements de survol
+                                                               postInteractionAnimation = null, // Nouvelle prop pour l'animation après interaction
                                                                ...props
                                                            }) {
     // Référence pour l'objet englobant
@@ -73,6 +74,17 @@ export const ModelMarker = React.memo(function ModelMarker({
         setInteractionCompleted(true);
         setLastCompletedStep(interaction?.currentStep);
         setKeepMarkerVisible(false);
+
+        // Jouer l'animation après l'interaction si spécifiée
+        if (postInteractionAnimation) {
+            // Déclencher un événement personnalisé pour l'animation post-interaction
+            EventBus.trigger(MARKER_EVENTS.INTERACTION_ANIMATION, {
+                id,
+                animationName: postInteractionAnimation.name,
+                animationOptions: postInteractionAnimation.options || {},
+                targetObject: postInteractionAnimation.targetObject || null
+            });
+        }
     };
 
     // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant

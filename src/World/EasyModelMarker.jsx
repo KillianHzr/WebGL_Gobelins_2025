@@ -82,6 +82,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 // Props pour enfants personnalisés
                                                                 children,
                                                                 interfaceToShow = null,
+                                                                postInteractionAnimation = null,
+
                                                             }) {
     // Références
     const modelRef = useRef();
@@ -259,6 +261,21 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     }
                 }
             }
+
+            // Si une animation post-interaction est définie, la déclencher
+            if (postInteractionAnimation) {
+                try {
+                    debugLog(`Déclenchement de l'animation post-interaction: ${postInteractionAnimation.name}`);
+                    EventBus.trigger(MARKER_EVENTS.INTERACTION_ANIMATION, {
+                        id: markerId,
+                        animationName: postInteractionAnimation.name,
+                        animationOptions: postInteractionAnimation.options || {},
+                        targetObject: postInteractionAnimation.targetObject || null
+                    });
+                } catch (error) {
+                    console.error(`Erreur lors du déclenchement de l'animation post-interaction:`, error);
+                }
+            }
         }
 
         // Appeler le callback personnalisé
@@ -283,7 +300,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         isWaitingForInteraction,
         isInteractionCompleted,
         interfaceToShow,
-        onInteract
+        onInteract,
+        postInteractionAnimation
     ]);
 
     // Fonction pour déterminer si le contour doit être affiché

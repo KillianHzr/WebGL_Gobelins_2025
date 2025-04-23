@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState, useCallback} from 'react'
+import React, {useEffect, useMemo, useRef} from 'react'
 import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
@@ -15,7 +15,7 @@ import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
-import SceneObjects, {SingleInteractiveObject} from './World/SceneObjects';
+import SceneObjects from './World/SceneObjects';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EXPERIENCE = false;
@@ -190,7 +190,7 @@ export default function Experience() {
 
                         {/* Utiliser le composant principal qui affiche tous les objets de scène
                             avec les placements par défaut du SceneObjectManager */}
-                        <SceneObjects />
+                        <SceneObjects/>
 
                         {/* La forêt avec ses instances nombreuses (instanced meshes) */}
                         {forestScene}
