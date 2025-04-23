@@ -831,6 +831,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             fontStyle: 'normal',
                             fontWeight: 600,
                             lineHeight: 'normal',
+                            transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
                         }}
                     >
                         {text}
@@ -888,6 +889,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         border: '1.5px solid #F9FEFF',
                         background: 'rgba(249, 254, 255, 0.50)',
                         pointerEvents: 'auto',
+                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
                         cursor: 'pointer', ...(buttonHovered ? {
                             boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
                         } : {})
@@ -949,6 +951,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         borderRadius: '999px',
                         border: '1.5px solid #F9FEFF',
                         pointerEvents: 'auto',
+                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
                         transform: isDraggingRef.current ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none',
                         // transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease-out',
                     }}
