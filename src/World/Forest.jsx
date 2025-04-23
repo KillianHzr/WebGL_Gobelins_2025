@@ -190,6 +190,49 @@ export default function Forest() {
                 return null;
             }
 
+            // NOUVEAU: Simplifier davantage la géométrie pour les instances multiples
+            const triangleCount = geometry.index ?
+                geometry.index.count / 3 :
+                geometry.attributes.position.count / 3;
+
+            // Pour les objets instanciés, nous pouvons utiliser une simplification plus agressive
+            // car ils seront répliqués de nombreuses fois
+            if (triangleCount > 100 && positions.length > 10) {
+                try {
+                    const simplifier = new SimplifyModifier();
+
+                    // Plus d'instances = simplification plus agressive
+                    let reductionFactor = 0.3; // 70% de réduction par défaut
+
+                    if (positions.length > 50) reductionFactor = 0.2;       // 80% de réduction
+                    else if (positions.length > 20) reductionFactor = 0.25; // 75% de réduction
+
+                    const targetTriangles = Math.max(50, Math.floor(triangleCount * reductionFactor));
+                    const trianglesToRemove = triangleCount - targetTriangles;
+
+                    if (trianglesToRemove > 0) {
+                        // Sauvegarder les UVs
+                        const hasUvs = geometry.attributes.uv !== undefined;
+                        const originalUvs = hasUvs ? geometry.attributes.uv.array.slice() : null;
+
+                        // Appliquer la simplification
+                        const originalGeometry = geometry;
+                        geometry = simplifier.modify(geometry, trianglesToRemove);
+
+                        // Gérer les UVs après simplification
+                        if (hasUvs && originalUvs && geometry.attributes.uv === undefined) {
+                            // Traiter la perte d'UVs si nécessaire
+                            console.warn(`UV maps lost during decimation for ${objectId}, this might affect texturing`);
+                        }
+
+                        console.log(`Instanced mesh ${objectId} (${positions.length} instances) decimated from ${triangleCount} to ${targetTriangles} triangles`);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to decimate instanced mesh ${objectId}:`, error);
+                    // Continuer avec la géométrie originale
+                }
+            }
+
             // Créer un nouveau matériau
             material = new THREE.MeshStandardMaterial({
                 name: `${objectId}_material`,

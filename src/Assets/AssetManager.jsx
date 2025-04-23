@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
-import { EventBus } from "../Utils/EventEmitter.jsx";
+import {EventBus} from "../Utils/EventEmitter.jsx";
 import baseAssets from "./assets";
 import templateManager from '../Config/TemplateManager';
 import gsap from 'gsap';
@@ -9,6 +9,7 @@ import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
+import {SimplifyModifier} from "three/examples/jsm/modifiers/SimplifyModifier.js";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_ASSET_MANAGER = false;
@@ -26,7 +27,7 @@ const loadedAssets = new Map();
 
 // Composant AssetManager
 const AssetManager = React.forwardRef((props, ref) => {
-    const { onReady } = props;
+    const {onReady} = props;
 
     const itemsRef = useRef({});
     const loadersRef = useRef({});
@@ -120,10 +121,13 @@ const AssetManager = React.forwardRef((props, ref) => {
         if (!gltfModel || !gltfModel.scene) return gltfModel;
 
         try {
+            // Créer un simplificateur pour réduire le nombre de triangles
+            const simplifier = new SimplifyModifier();
+
             // Optimiser les matériaux - partager les matériaux similaires
             gltfModel.scene.traverse((child) => {
                 if (child.isMesh && child.material) {
-                    // Partager les matériaux
+                    // Partager les matériaux (code existant)
                     if (Array.isArray(child.material)) {
                         child.material = child.material.map(mat => {
                             const key = mat.type + '_' + (mat.color ? mat.color.getHexString() : 'nocolor');
@@ -141,15 +145,69 @@ const AssetManager = React.forwardRef((props, ref) => {
                         }
                     }
 
-                    // Désactiver les shadows pour les petits objets
-                    // Vérification plus robuste du boundingSphere
+                    // NOUVEAU: Décimation de la géométrie
+                    // Ne pas décimer les petits objets (moins de 100 triangles)
+                    const triangleCount = child.geometry.index ?
+                        child.geometry.index.count / 3 :
+                        child.geometry.attributes.position.count / 3;
+
+                    if (triangleCount > 100) {
+                        try {
+                            // Sauvegarder les attributs UV avant simplification
+                            const hasUvs = child.geometry.attributes.uv !== undefined;
+                            const originalUvs = hasUvs ? child.geometry.attributes.uv.array.slice() : null;
+
+                            // Calculer le ratio de simplification en fonction du nombre de triangles
+                            // Plus progressif pour les grands modèles
+                            let reductionRatio = 0.75; // Réduction par défaut de 50%
+
+                            // Réduction plus agressive pour les très grands modèles
+                            if (triangleCount > 10000) reductionRatio = 0.8;      // 75% de réduction
+                            else if (triangleCount > 5000) reductionRatio = 0.8;  // 65% de réduction
+                            else if (triangleCount > 1000) reductionRatio = 0.8;   // 60% de réduction
+
+                            // Calculer le nombre cible de triangles après réduction
+                            const targetTriangles = Math.max(100, Math.floor(triangleCount * reductionRatio));
+
+                            // Simplifier la géométrie
+                            const originalGeometry = child.geometry;
+                            const clonedGeometry = originalGeometry.clone();
+
+                            // Nombre de triangles à supprimer
+                            const trianglesToRemove = triangleCount - targetTriangles;
+
+                            if (trianglesToRemove > 0) {
+                                // Appliquer la simplification
+                                const simplified = simplifier.modify(clonedGeometry, trianglesToRemove);
+
+                                // Restaurer les UVs si nécessaire (des fois perdus pendant la simplification)
+                                if (hasUvs && originalUvs && simplified.attributes.uv === undefined) {
+                                    // Si on perd les UVs, essayer de les recréer ou réappliquer les originaux
+                                    // Ceci est une approche basique, peut nécessiter des ajustements
+                                    if (simplified.attributes.position.count === originalGeometry.attributes.position.count) {
+                                        simplified.setAttribute('uv', new THREE.BufferAttribute(originalUvs, 2));
+                                    }
+                                }
+
+                                // Remplacer la géométrie d'origine par la version simplifiée
+                                child.geometry = simplified;
+
+                                // Libérer la mémoire de l'ancienne géométrie
+                                originalGeometry.dispose();
+
+                                console.log(`Decimated mesh from ${triangleCount} to ${targetTriangles} triangles (${(reductionRatio * 100).toFixed(0)}% of original)`);
+                            }
+                        } catch (decimationError) {
+                            console.warn(`Simplification failed for mesh with ${triangleCount} triangles:`, decimationError);
+                            // Continuer avec la géométrie originale en cas d'erreur
+                        }
+                    }
+
+                    // Désactiver les shadows pour les petits objets (code existant)
                     if (child.geometry) {
-                        // Calculer la boundingSphere si elle n'existe pas
                         if (!child.geometry.boundingSphere) {
                             child.geometry.computeBoundingSphere();
                         }
-
-                        // Vérifier si boundingSphere existe maintenant et appliquer la logique
                         if (child.geometry.boundingSphere && child.geometry.boundingSphere.radius < 0.5) {
                             child.castShadow = false;
                             child.receiveShadow = false;
@@ -502,8 +560,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     undefined,
                     handleLoadError
                 );
-            }
-            else if (asset.type.toLowerCase() === "exr") {
+            } else if (asset.type.toLowerCase() === "exr") {
                 loadersRef.current.exr.load(asset.path,
                     (texture) => {
                         texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -513,8 +570,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     undefined,
                     handleLoadError
                 );
-            }
-            else if (asset.type.toLowerCase() === "hdr") {
+            } else if (asset.type.toLowerCase() === "hdr") {
                 loadersRef.current.hdr.load(asset.path,
                     (texture) => {
                         texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -524,8 +580,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     undefined,
                     handleLoadError
                 );
-            }
-            else if (asset.type.toLowerCase() === "fbx") {
+            } else if (asset.type.toLowerCase() === "fbx") {
                 loadersRef.current.fbx.load(asset.path,
                     (model) => {
                         loadComplete(asset, model);
@@ -534,8 +589,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     undefined,
                     handleLoadError
                 );
-            }
-            else if (asset.type.toLowerCase() === "gltf") {
+            } else if (asset.type.toLowerCase() === "gltf") {
                 loadersRef.current.gltf.load(
                     asset.path,
                     (model) => {
@@ -559,8 +613,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                     },
                     handleLoadError
                 );
-            }
-            else if (asset.type.toLowerCase() === "material") {
+            } else if (asset.type.toLowerCase() === "material") {
                 const textures = Object.entries(asset.textures);
                 const material = Object.assign(asset.textures);
 
@@ -602,8 +655,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                                 }
                             );
                         }
-                    }
-                    else {
+                    } else {
                         const url = path + texObject[1];
                         loadersRef.current.texture.load(
                             url,
