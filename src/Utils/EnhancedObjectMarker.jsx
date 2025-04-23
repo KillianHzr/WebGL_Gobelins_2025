@@ -183,25 +183,25 @@ export const ModelMarker = React.memo(function ModelMarker({
     }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep, isMarkerHovered]);
 
     return (<group ref={groupRef} {...props}>
-            {React.Children.map(children, child => React.cloneElement(child, {
-                ref: objectRef || child.ref
-            }))}
+        {React.Children.map(children, child => React.cloneElement(child, {
+            ref: objectRef || child.ref
+        }))}
 
-            {shouldShowMarker && (<EnhancedObjectMarker
-                    objectRef={objectRef || groupRef}
-                    markerType={effectiveMarkerType}
-                    color={markerColor}
-                    scale={markerScale}
-                    text={markerText}
-                    onClick={handleObjectInteraction}
-                    positionOptions={positionOptions}
-                    id={id}
-                    custom={customMarker}
-                    keepVisible={true}
-                    onPointerEnter={handleMarkerPointerEnter}
-                    onPointerLeave={handleMarkerPointerLeave}
-                />)}
-        </group>);
+        {shouldShowMarker && (<EnhancedObjectMarker
+            objectRef={objectRef || groupRef}
+            markerType={effectiveMarkerType}
+            color={markerColor}
+            scale={markerScale}
+            text={markerText}
+            onClick={handleObjectInteraction}
+            positionOptions={positionOptions}
+            id={id}
+            custom={customMarker}
+            keepVisible={true}
+            onPointerEnter={handleMarkerPointerEnter}
+            onPointerLeave={handleMarkerPointerLeave}
+        />)}
+    </group>);
 });
 // Types d'interaction supportés
 export const INTERACTION_TYPES = {
@@ -356,6 +356,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
     const {camera} = useThree();
     const time = useRef(0);
     const [buttonHovered, setButtonHovered] = useState(false);
+    const [dragOffset, setDragOffset] = useState({x: 0, y: 0});
     const isDraggingRef = useRef(false);
     const startDragPos = useRef({x: 0, y: 0});
     const currentDragPos = useRef({x: 0, y: 0});
@@ -512,11 +513,15 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         startDragPos.current = {x: clientX, y: clientY};
         currentDragPos.current = {...startDragPos.current};
 
+        // Réinitialiser l'offset de drag
+        setDragOffset({x: 0, y: 0});
+
         window.addEventListener('mousemove', handleDragMove);
         window.addEventListener('touchmove', handleDragMove);
         window.addEventListener('mouseup', handleDragEnd);
         window.addEventListener('touchend', handleDragEnd);
     };
+
 
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) return;
@@ -530,8 +535,25 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         const dy = currentDragPos.current.y - startDragPos.current.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        const dragValue = 200;
+        // Mettre à jour l'offset de déplacement visuel (limité à une certaine distance max)
+        const maxOffset = dragValue; // Pixels maximum de déplacement visuel
+        const scale = 1.0; // Facteur d'échelle pour contrôler la sensibilité
+
+        // Calculer l'offset en fonction de la direction du drag
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT) {
+            offsetX = Math.min(Math.abs(dx * scale), maxOffset) * Math.sign(dx);
+        } else if (markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) {
+            offsetY = Math.min(Math.abs(dy * scale), maxOffset) * Math.sign(dy);
+        }
+
+        setDragOffset({x: offsetX, y: offsetY});
+
         let direction = '';
-        const threshold = 50;
+        const threshold = dragValue;
 
         if (distance > threshold) {
             if (Math.abs(dx) > Math.abs(dy)) {
@@ -566,7 +588,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
                 if (onClick) {
                     onClick({
-                        type: markerType, direction, distance
+                        type: markerType,
+                        direction, distance
                     });
                 }
 
@@ -578,10 +601,14 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
     };
 
+
     const handleDragEnd = () => {
         if (!isDraggingRef.current) return;
 
         isDraggingRef.current = false;
+
+        // Réinitialiser l'offset avec animation
+        setDragOffset({x: 0, y: 0});
 
         window.removeEventListener('mousemove', handleDragMove);
         window.removeEventListener('touchmove', handleDragMove);
@@ -922,6 +949,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         borderRadius: '999px',
                         border: '1.5px solid #F9FEFF',
                         pointerEvents: 'auto',
+                        transform: isDraggingRef.current ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none',
+                        // transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease-out',
                     }}
                     position={[0, 0, 0.002]}
                     center>
@@ -960,8 +989,10 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             border: '1.5px solid #F9FEFF',
                             background: 'rgba(249, 254, 255, 0.50)',
                             pointerEvents: 'auto',
-                            cursor: isDraggingRef.current ? 'grabbing' : 'grab', ...(buttonHovered ? {
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
+                            cursor: isDraggingRef.current ? 'grabbing' : 'grab',
+                            ...(buttonHovered ? {
+                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
+                                backdropFilter: 'blur(2px)',
                             } : {})
                         }}
                     >
@@ -981,7 +1012,10 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             }}>
                                 <svg
                                     style={{
-                                        transform: markerType === INTERACTION_TYPES.DRAG_LEFT ? 'rotate(-180deg)' : markerType === INTERACTION_TYPES.DRAG_RIGHT ? 'rotate(0deg)' : markerType === INTERACTION_TYPES.DRAG_UP ? 'rotate(-90deg)' : 'rotate(90deg)'
+                                        transform: markerType === INTERACTION_TYPES.DRAG_LEFT ? 'rotate(-180deg)' :
+                                            markerType === INTERACTION_TYPES.DRAG_RIGHT ? 'rotate(0deg)' :
+                                                markerType === INTERACTION_TYPES.DRAG_UP ? 'rotate(-90deg)' :
+                                                    'rotate(90deg)'
                                     }}
                                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                     fill="none">
@@ -1011,7 +1045,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             </div>
                         </div>
                     </div>
-                </Html>)}
+                </Html>
+            )}
         </group>
     </>);
 });
