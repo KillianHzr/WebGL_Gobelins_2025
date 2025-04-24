@@ -37,135 +37,368 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
-            // Objets interactifs
-            'TreeInteractive': {
-                id: 'TreeNaked',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                scale: [0.1, 0.1, 0.1],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Examiner l'arbre",
-                    color: "#44ff44",
-                    offset: 1.5,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [23, 0, -150],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'firstStop'
-                }
-            },
-            'StumpInteractive': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.gltf',
-                scale: [0.25, 0.25, 0.25],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Inspecter la souche",
-                    color: "#ffbb00",
-                    offset: 1.0,
-                    axis: "y",
-                    interfaceToShow: "camera"
-                },
-                defaultPlacement: {
-                    position: [-1, 0, -138.00],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'secondStop'
-                }
-            },
 
             // Nouveaux objets interactifs - Ajouter sans perturber les existants
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.15, 0.15, 0.15],
-                interactive: true,
+                scale: [0.055 * 2.150, 0.055 * 2.150, 0.055 * 2.150],
+                interactive: false,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Observer le tronc",
                     color: "#44aacc",
-                    offset: 1.2,
+                    offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [-48, 0, -95],
-                    rotation: [0, 0, 0],
+                    position: [4.622, 0.258 + 0.5, -11.687],
+                    rotation: [-32.13 - 90.0, 3.63, 84.63 + 90.0],
                     outlinePulse: false,
-                    requiredStep: 'thirdStop'
+                    requiredStep: 'firstStop'
                 }
             },
-            'ThinTrunkInteractive': {
-                id: 'ThinTrunk',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.2, 0.2, 0.2],
-                interactive: true,
+            // Nouveaux objets interactifs - Ajouter sans perturber les existants
+            'Vison': {
+                id: 'Vison',
+                path: '/models/primary/Vison.glb',
+                scale: [1.000, 1.000, 1.000],
+                interactive: false,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Examiner le tronc fin",
-                    color: "#ff88cc",
-                    offset: 1.0,
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [-43, 0, -81],
+                    position: [55.029, 0.0, -132.646],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
-                    requiredStep: 'fourthStop'
+                    requiredStep: 'secondStop'
                 }
             },
-            'BushInteractive': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                scale: [0.2, 0.2, 0.2],
-                interactive: true,
+            'LeafErable': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Écarter le buisson",
-                    color: "#88cc44",
-                    offset: 1.0,
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [-8, 0, -60],
+                    position: [-5.895, 0.193, -56.018],
+                    rotation: [0, -49.33, 0],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+            'LeafErable2': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.771, 0.193, -56.079],
+                    rotation: [180, -81.64, 180],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            'LeafErable3': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.698, 0.193, -56.012],
+                    rotation: [180, -70.37, 180],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            'LeafErable4': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.634, 0.193, -55.936],
+                    rotation: [0, 28.05, 0],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            'LeafErable5': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.778, 0.193, -55.977],
+                    rotation: [180, -49.13, 180],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            'LeafErable6': {
+                id: 'LeafErable',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.652, 0.193, -56.072],
+                    rotation: [180, -20.16, 180],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            'Paws': {
+                id: 'Paws',
+                path: '/models/primary/LeafErable.glb',
+                scale: [0.048 * 4.188, 0.048 * 4.188, 0.048 * 4.188],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-5.747, 0.187, -56.043],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
-                    requiredStep: 'fifthStop'
+                    requiredStep: 'secondStop'
                 }
             },
             'DirectionPanelInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.5, 0.5, 0.5],
-                interactive: true,
+                scale: [0.605, 0.605, 0.605],
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
-                    offset: 1.5,
+                    offset: 0.5,
                     axis: "y",
                     interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
-                    position: [3, 0, -23],
+                    position: [-8.343, 0, 13.953],
+                    rotation: [0, 29.02, 0],
+                    outlinePulse: false,
+                    requiredStep: 'sixthStop'
+                }
+            },
+            'JumpRock1': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.glb',
+                scale: [0.179, 0.179, 0.179],
+                interactive: false,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-30.164, 0, -75.977],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'sixthStop'
+                }
+            },'JumpRock2': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.gltf',
+                scale: [0.179, 0.179, 0.179],
+                interactive: false,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-30.137, 0, -76.954],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'sixthStop'
+                }
+            },'JumpRock3': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.gltf',
+                scale: [0.179, 0.179, 0.179],
+                interactive: false,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-31.319, 0, -76.848],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'sixthStop'
+                }
+            },'JumpRock4': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.gltf',
+                scale: [0.179, 0.179, 0.179],
+                interactive: false,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-31.648, 0, -77.683],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'sixthStop'
                 }
             },
+            // 'ThinTrunkInteractive': {
+            //     id: 'ThinTrunk',
+            //     path: '/models/forest/tree/ThinTrunk.gltf',
+            //     scale: [0.2, 0.2, 0.2],
+            //     interactive: false,
+            //     useTextures: true,
+            //     interaction: {
+            //         type: INTERACTION_TYPES.LONG_PRESS,
+            //         text: "Examiner le tronc fin",
+            //         color: "#ff88cc",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none"
+            //     },
+            //     defaultPlacement: {
+            //         position: [-43, 0, -81],
+            //         rotation: [0, 0, 0],
+            //         outlinePulse: false,
+            //         requiredStep: 'fourthStop'
+            //     }
+            // },
+            // 'BushInteractive': {
+            //     id: 'Bush',
+            //     path: '/models/forest/bush/Bush.glb',
+            //     scale: [0.05, 0.05, 0.05],
+            //     interactive: false,
+            //     useTextures: true,
+            //     interaction: {
+            //         type: INTERACTION_TYPES.DRAG_RIGHT,
+            //         text: "Écarter le buisson",
+            //         color: "#88cc44",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none"
+            //     },
+            //     defaultPlacement: {
+            //         position: [-8, 0, -60],
+            //         rotation: [0, 0, 0],
+            //         outlinePulse: false,
+            //         requiredStep: 'fifthStop'
+            //     }
+            // },
+            // 'DirectionPanelInteractive': {
+            //     id: 'DirectionPanel',
+            //     path: '/models/primary/DirectionPanel.gltf',
+            //     scale: [0.5, 0.5, 0.5],
+            //     interactive: false,
+            //     useTextures: false,
+            //     interaction: {
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //         color: "#ffcc44",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "scanner"
+            //     },
+            //     defaultPlacement: {
+            //         position: [3, 0, -23],
+            //         rotation: [0, 0, 0],
+            //         outlinePulse: false,
+            //         requiredStep: 'sixthStop'
+            //     }
+            // },
             'Ground': {
                 id: 'Bush',
                 path: '/models/Ground.glb',
@@ -186,16 +419,16 @@ class SceneObjectManager {
                     {position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}
                 ]
             },
-            'LeafErable': {
-                id: 'LeafErable',
-                path: '/models/primary/LeafErable.glb',
-                scale: [0.018, 0.018, 0.018],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [
-                    {position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}
-                ]
-            },
+            // 'LeafErable': {
+            //     id: 'LeafErable',
+            //     path: '/models/primary/LeafErable.glb',
+            //     scale: [0.018, 0.018, 0.018],
+            //     interactive: false,
+            //     useTextures: true,
+            //     defaultPlacements: [
+            //         {position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}
+            //     ]
+            // },
             'OakLeaf': {
                 id: 'OakLeaf',
                 path: '/models/primary/OakLeaf.glb',

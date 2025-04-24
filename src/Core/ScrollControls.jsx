@@ -4,6 +4,7 @@ import {getProject, val} from '@theatre/core';
 import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
+import sceneObjectManager from '../Config/SceneObjectManager';
 
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
@@ -32,9 +33,9 @@ function CameraController({children}) {
     const [countdown, setCountdown] = useState(null);
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
-    const previousAllowScrollRef = useRef(true); // Référence pour suivre l'état précédent de allowScroll
+    const previousAllowScrollRef = useRef(true);
 
-    const {size, camera, scene} = useThree(); // Import scene from useThree
+    const {size, camera, scene} = useThree();
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
 
     // Get interaction state from the store
@@ -49,55 +50,37 @@ function CameraController({children}) {
 
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
-        // Si allowScroll passe de false à true (la fin d'une interaction)
         if (allowScroll && !previousAllowScrollRef.current) {
             console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
-            scrollVelocity.current = 0; // Réinitialiser la vélocité à 0
+            scrollVelocity.current = 0;
         }
-
-        // Mettre à jour la référence avec la valeur actuelle
         previousAllowScrollRef.current = allowScroll;
     }, [allowScroll]);
 
-    // Définition des points d'interaction avec leurs types
-    const interactions = [
-        {
-            id: 'firstStop',
-            name: 'Premier arrêt',
-            triggers: {x: 26.5, z: -148},
-            isActive: true
-        },
-        {
-            id: 'secondStop',
-            name: 'Second arrêt',
-            triggers: {x: 3, z: -138},
-            isActive: true
-        },
-        {
-            id: 'thirdStop',
-            name: 'Troisième arrêt',
-            triggers: {x: -46, z: -105},
-            isActive: true
-        },
-        {
-            id: 'fourthStop',
-            name: 'Quatrième arrêt',
-            triggers: {x: -45.7, z: -86.3},
-            isActive: true
-        },
-        {
-            id: 'fifthStop',
-            name: 'Cinquième arrêt',
-            triggers: {x: -10.2, z: -64.7},
-            isActive: true
-        },
-        {
-            id: 'sixthStop',
-            name: 'Sixième arrêt',
-            triggers: {x: 3.2, z: -25.4},
-            isActive: true
-        }
-    ];
+    // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
+    const [interactions, setInteractions] = useState([]);
+
+    useEffect(() => {
+        // Récupérer les placements d'objets interactifs depuis le SceneObjectManager
+        const interactivePlacements = sceneObjectManager.getInteractivePlacements();
+
+        // Convertir les placements en points d'interaction
+        const interactionPoints = interactivePlacements.map(placement => {
+            return {
+                id: placement.requiredStep, // Utiliser l'étape requise comme identifiant
+                name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep),
+                triggers: {
+                    x: placement.position[0], // Position X du modèle
+                    z: placement.position[2]  // Position Z du modèle
+                },
+                isActive: true,
+                objectKey: placement.objectKey // Référence à l'objet associé
+            };
+        });
+
+        setInteractions(interactionPoints);
+        console.log('Points d\'interaction chargés:', interactionPoints);
+    }, []);
 
     useEffect(() => {
         // Ajouter le contrôle de la caméra via Theatre.js
@@ -320,28 +303,6 @@ function CameraController({children}) {
                 progressBar.appendChild(progressIndicator);
                 document.body.appendChild(progressBar);
             }
-
-            // Instruction pour cube interaction
-            // if (!document.getElementById('interaction-instruction')) {
-            //     const instruction = document.createElement('div');
-            //     instruction.id = 'interaction-instruction';
-            //     instruction.style.position = 'fixed';
-            //     instruction.style.top = '25%';
-            //     instruction.style.left = '50%';
-            //     instruction.style.transform = 'translate(-50%, -50%)';
-            //     instruction.style.fontSize = '24px';
-            //     instruction.style.fontWeight = 'bold';
-            //     instruction.style.color = 'white';
-            //     instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            //     instruction.style.padding = '15px 25px';
-            //     instruction.style.borderRadius = '8px';
-            //     instruction.style.textAlign = 'center';
-            //     instruction.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-            //     instruction.style.zIndex = '100';
-            //     instruction.style.display = 'none';
-            //     instruction.textContent = 'Cliquez sur le cube pour continuer';
-            //     document.body.appendChild(instruction);
-            // }
         };
 
         createUI();
@@ -370,14 +331,18 @@ function CameraController({children}) {
 
         const instruction = document.getElementById('interaction-instruction');
         if (instruction) {
-            // Mettre à jour le texte d'instruction en fonction de l'étape
             if (isWaitingForInteraction) {
                 const currentInteraction = interactions.find(i => i.id === interactionStep);
                 if (currentInteraction) {
-                    if (currentInteraction.interactionType === 'click') {
-                        instruction.textContent = 'Cliquez sur le cube pour continuer';
-                    } else if (currentInteraction.interactionType === 'drag') {
-                        instruction.textContent = 'Glissez le cube horizontalement pour continuer';
+                    const objectConfig = sceneObjectManager.getObjectFromCatalog(currentInteraction.objectKey);
+                    if (objectConfig && objectConfig.interaction) {
+                        let instructionText = 'Interagir pour continuer';
+                        if (objectConfig.interaction.type === 'click') {
+                            instructionText = 'Cliquez pour continuer';
+                        } else if (objectConfig.interaction.type === 'drag') {
+                            instructionText = 'Glissez pour continuer';
+                        }
+                        instruction.textContent = instructionText;
                     }
                 }
                 instruction.style.display = 'block';
@@ -390,7 +355,7 @@ function CameraController({children}) {
         if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
             clickListener.startListening();
         }
-    }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener]);
+    }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener, interactions]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
@@ -414,7 +379,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale pour considérer qu'on est "proche" du trigger
-        const TRIGGER_PROXIMITY = 1.0; // Ajuster cette valeur selon les besoins
+        const TRIGGER_PROXIMITY = 2.0; // Ajuster cette valeur selon les besoins
 
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
@@ -432,8 +397,16 @@ function CameraController({children}) {
                 // Stocker l'interaction déclenchée pour le log
                 triggeredInteraction = interaction;
 
-                // Trouver l'objet cible dans la scène
-                const targetObject = findObjectByName(interaction.targetId);
+                // Récupérer l'objet associé à cette interaction
+                const relatedObjectKey = interaction.objectKey;
+                const placement = sceneObjectManager.getPlacements({
+                    objectKey: relatedObjectKey,
+                    requiredStep: interaction.id
+                })[0];
+
+                // Trouver l'objet cible dans la scène si spécifié
+                const targetObject = placement?.targetId ?
+                    findObjectByName(placement.targetId) : null;
 
                 // Bloquer le défilement
                 setAllowScroll(false);
