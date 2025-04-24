@@ -16,7 +16,25 @@ const LOD_CONFIG = {
     DEBUG_LOD: false
 };
 
-// Nouveau: Configuration du chargement progressif
+// Configuration de l'occlusion culling
+const OCCLUSION_CONFIG = {
+    // Activer l'occlusion culling
+    ENABLED: true,
+    // Distance maximale pour considérer l'occlusion (au-delà de cette distance, on utilise seulement le frustum culling)
+    MAX_OCCLUSION_DISTANCE: 120,
+    // Nombre maximum d'occluders à considérer pour chaque test
+    MAX_OCCLUDERS: 5,
+    // Marge additionnelle pour l'occlusion (en unités) - aide à éviter le "popping"
+    OCCLUSION_MARGIN: 1.5,
+    // Intervalle de mise à jour de la structure d'occlusion (en frames)
+    UPDATE_INTERVAL: 10,
+    // Debug occlusion culling
+    DEBUG_OCCLUSION: false,
+    // Utiliser un octree pour l'accélération spatiale
+    USE_OCTREE: true
+};
+
+// Configuration du chargement progressif
 const LOADING_CONFIG = {
     // Nombre maximum d'objets à charger par lot
     BATCH_SIZE: 5,
@@ -33,7 +51,7 @@ const LOADING_CONFIG = {
 };
 // ----------------------------------------------------------------------
 
-// Nouveau: Cache de géométrie partagé entre les instances
+// Cache de géométrie partagé entre les instances
 const GeometryCache = {
     cache: new Map(),
 
@@ -63,6 +81,183 @@ const GeometryCache = {
     }
 };
 
+// Structure Octree pour l'occlusion culling
+class OctreeNode {
+    constructor(center, size) {
+        this.center = center.clone();
+        this.size = size;
+        this.bounds = new THREE.Box3(
+            new THREE.Vector3(center.x - size/2, center.y - size/2, center.z - size/2),
+            new THREE.Vector3(center.x + size/2, center.y + size/2, center.z + size/2)
+        );
+        this.children = null;
+        this.objects = [];
+        this.isLeaf = true;
+    }
+
+    // Subdiviser le nœud en 8 enfants
+    split() {
+        if (!this.isLeaf) return;
+
+        const halfSize = this.size / 2;
+        const quarterSize = halfSize / 2;
+
+        this.children = [];
+        for (let x = -1; x <= 1; x += 2) {
+            for (let y = -1; y <= 1; y += 2) {
+                for (let z = -1; z <= 1; z += 2) {
+                    const childCenter = new THREE.Vector3(
+                        this.center.x + quarterSize * x,
+                        this.center.y + quarterSize * y,
+                        this.center.z + quarterSize * z
+                    );
+                    this.children.push(new OctreeNode(childCenter, halfSize));
+                }
+            }
+        }
+
+        this.isLeaf = false;
+
+        // Redistribuer les objets aux enfants
+        const objectsToRedistribute = [...this.objects];
+        this.objects = [];
+
+        for (const obj of objectsToRedistribute) {
+            this.insert(obj);
+        }
+    }
+
+    // Insérer un objet dans l'octree
+    insert(obj) {
+        if (!obj.userData || !obj.userData.boundingSphere) return false;
+
+        // Vérifier si l'objet est dans les limites de ce nœud
+        if (!this.bounds.intersectsSphere(obj.userData.boundingSphere)) {
+            return false;
+        }
+
+        // Si c'est une feuille avec peu d'objets, ajouter l'objet ici
+        if (this.isLeaf) {
+            this.objects.push(obj);
+
+            // Diviser si nécessaire (plus de 8 objets et taille suffisante)
+            if (this.objects.length > 8 && this.size > LOADING_CONFIG.CHUNK_SIZE / 2) {
+                this.split();
+            }
+
+            return true;
+        }
+
+        // Essayer d'insérer dans les enfants
+        let inserted = false;
+        for (const child of this.children) {
+            if (child.insert(obj)) {
+                inserted = true;
+            }
+        }
+
+        // Si aucun enfant ne peut contenir l'objet, l'ajouter à ce nœud
+        if (!inserted) {
+            this.objects.push(obj);
+        }
+
+        return true;
+    }
+
+    // Trouver tous les objets qui pourraient occulter un objet donné
+    findPotentialOccluders(viewpoint, targetSphere, maxDistance, result = []) {
+        // Si ce nœud est trop loin de la ligne de vue, ignorer
+        if (!this.bounds.intersectsSphere(targetSphere)) {
+            return result;
+        }
+
+        // Ajouter les objets de ce nœud qui sont des occluders potentiels
+        for (const obj of this.objects) {
+            // Vérifier si l'objet est entre la caméra et la cible
+            if (this.isPotentialOccluder(viewpoint, targetSphere, obj, maxDistance)) {
+                result.push(obj);
+
+                // Limiter le nombre d'occluders
+                if (result.length >= OCCLUSION_CONFIG.MAX_OCCLUDERS) {
+                    return result;
+                }
+            }
+        }
+
+        // Si c'est une feuille ou si on a assez d'occluders, arrêter
+        if (this.isLeaf || result.length >= OCCLUSION_CONFIG.MAX_OCCLUDERS) {
+            return result;
+        }
+
+        // Parcourir les enfants
+        for (const child of this.children) {
+            child.findPotentialOccluders(viewpoint, targetSphere, maxDistance, result);
+
+            if (result.length >= OCCLUSION_CONFIG.MAX_OCCLUDERS) {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    // Vérifier si un objet peut occulter une sphère cible
+    isPotentialOccluder(viewpoint, targetSphere, occluder, maxDistance) {
+        if (!occluder.userData || !occluder.userData.boundingSphere) {
+            return false;
+        }
+
+        const occluderSphere = occluder.userData.boundingSphere;
+
+        // L'occluder doit être visible
+        if (!occluder.visible) {
+            return false;
+        }
+
+        // L'occluder ne peut pas être l'objet cible
+        if (occluderSphere === targetSphere) {
+            return false;
+        }
+
+        // Vérifier si l'occluder est plus proche de la caméra que la cible
+        const distToOccluder = viewpoint.distanceTo(occluderSphere.center);
+        const distToTarget = viewpoint.distanceTo(targetSphere.center);
+
+        if (distToOccluder >= distToTarget) {
+            return false;
+        }
+
+        // Vérifier si l'occluder est trop loin pour être pris en compte
+        if (distToOccluder > maxDistance) {
+            return false;
+        }
+
+        // Vérifier si l'occluder est dans la direction générale de la cible
+        const dirToTarget = new THREE.Vector3().subVectors(targetSphere.center, viewpoint).normalize();
+        const dirToOccluder = new THREE.Vector3().subVectors(occluderSphere.center, viewpoint).normalize();
+
+        // Si le produit scalaire est négatif, l'occluder est dans une direction opposée
+        if (dirToTarget.dot(dirToOccluder) < 0.7) { // 0.7 = ~45 degrés
+            return false;
+        }
+
+        return true;
+    }
+
+    // Effacer l'octree
+    clear() {
+        this.objects = [];
+
+        if (!this.isLeaf) {
+            for (const child of this.children) {
+                child.clear();
+            }
+            this.children = null;
+            this.isLeaf = true;
+        }
+    }
+}
+
 export default function Forest() {
     const {scene, camera} = useThree();
     const forestRef = useRef(new THREE.Group());
@@ -78,7 +273,7 @@ export default function Forest() {
     const frameSkipRef = useRef(0);
     const FRAME_SKIP = 2;
 
-    // Nouveaux refs pour le chargement prioritaire
+    // Refs pour le chargement prioritaire
     const loadingQueueRef = useRef([]);
     const isLoadingRef = useRef(false);
     const loadedChunksRef = useRef(new Set());
@@ -88,11 +283,24 @@ export default function Forest() {
     const frustumRef = useRef(new THREE.Frustum());
     const projScreenMatrixRef = useRef(new THREE.Matrix4());
 
+    // Refs pour l'occlusion culling
+    const octreeRef = useRef(null);
+    const occlusionUpdateCounterRef = useRef(0);
+    const raycasterRef = useRef(new THREE.Raycaster());
+    const tempVectorRef = useRef(new THREE.Vector3());
+    const tempSphereRef = useRef(new THREE.Sphere());
+
     useEffect(() => {
         console.log('Forest: Component mounted');
         console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` +
             `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` +
             `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
+
+        if (OCCLUSION_CONFIG.ENABLED) {
+            console.log(`Occlusion Culling: Enabled, Max distance: ${OCCLUSION_CONFIG.MAX_OCCLUSION_DISTANCE}, ` +
+                `Margin: ${OCCLUSION_CONFIG.OCCLUSION_MARGIN}, ` +
+                `Using ${OCCLUSION_CONFIG.USE_OCTREE ? 'Octree' : 'Linear'} spatial partitioning`);
+        }
 
         // Créer le groupe principal
         const forestGroup = new THREE.Group();
@@ -100,7 +308,15 @@ export default function Forest() {
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Nouveau: Initialiser le pool de workers
+        // Initialiser l'octree pour l'occlusion culling
+        if (OCCLUSION_CONFIG.ENABLED && OCCLUSION_CONFIG.USE_OCTREE) {
+            // Créer un octree qui couvre tout le terrain (à ajuster selon vos dimensions)
+            const worldSize = 1000; // Taille du monde (à ajuster)
+            octreeRef.current = new OctreeNode(new THREE.Vector3(0, 0, 0), worldSize);
+            console.log('Initialized octree for occlusion culling');
+        }
+
+        // Initialiser le pool de workers
         initializeWorkerPool();
 
         // Charger les données de la forêt
@@ -112,7 +328,7 @@ export default function Forest() {
         };
     }, [scene, camera, assetManager]);
 
-    // Nouveau: Initialiser le pool de workers pour la création de géométrie
+    // Initialiser le pool de workers pour la création de géométrie
     const initializeWorkerPool = () => {
         // On pourrait implémenter ici un pool de Web Workers pour la création de géométrie
         // Mais pour la simplicité, nous allons simuler le comportement
@@ -122,7 +338,7 @@ export default function Forest() {
         }));
     };
 
-    // Nouveau: Fonction principale de chargement de la forêt
+    // Fonction principale de chargement de la forêt
     const initForestLoading = async () => {
         try {
             // 1. Charger les positions d'abord
@@ -274,7 +490,7 @@ export default function Forest() {
         }
     };
 
-    // Nouveau: Préparation de la file d'attente de chargement
+    // Préparation de la file d'attente de chargement
     const prepareLoadingQueue = (positions) => {
         if (!positions || !camera) return;
 
@@ -339,7 +555,7 @@ export default function Forest() {
         loadingQueueRef.current = queue;
     };
 
-    // Nouveau: Lancement du chargement progressif
+    // Lancement du chargement progressif
     const startProgressiveLoading = () => {
         if (isLoadingRef.current || loadingQueueRef.current.length === 0) return;
 
@@ -347,7 +563,7 @@ export default function Forest() {
         processNextBatch();
     };
 
-    // Nouveau: Traitement d'un lot de chunks
+    // Traitement d'un lot de chunks
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
 
@@ -380,7 +596,7 @@ export default function Forest() {
         }, LOADING_CONFIG.BATCH_DELAY);
     };
 
-    // Nouveau: Création des instances pour un chunk
+    // Création des instances pour un chunk
     const createChunkInstances = async (chunk, preloadedTextures) => {
         const { objectId, chunkId, positions, center } = chunk;
 
@@ -414,6 +630,11 @@ export default function Forest() {
             instances.forEach(instance => {
                 forestRef.current.add(instance);
                 lodInstancesRef.current.push(instance);
+
+                // Ajouter à l'octree pour l'occlusion culling
+                if (OCCLUSION_CONFIG.ENABLED && OCCLUSION_CONFIG.USE_OCTREE && octreeRef.current) {
+                    octreeRef.current.insert(instance);
+                }
             });
 
         } catch (error) {
@@ -421,7 +642,7 @@ export default function Forest() {
         }
     };
 
-    // Modifié: Création des instances LOD pour un chunk spécifique
+    // Création des instances LOD pour un chunk spécifique
     const createLodInstancedMeshesForChunk = async (objectId, model, positions, preloadedTextures, chunkCenter, chunkId) => {
         if (!positions || positions.length === 0) {
             return [];
@@ -451,7 +672,7 @@ export default function Forest() {
             return [];
         }
 
-        // Appliquer les textures au matériau (version originale)
+        // Appliquer les textures au matériau
         const textures = preloadedTextures[objectId];
         if (textures) {
             // Base color texture
@@ -568,6 +789,11 @@ export default function Forest() {
             );
             instancedMesh.userData.boundingSphere = boundingSphere;
 
+            // Propriétés pour l'occlusion culling
+            instancedMesh.userData.occlusionCulled = false;
+            instancedMesh.userData.lastVisibilityTest = 0;
+            instancedMesh.userData.occluderPotential = objectId.includes('tree') ? 1.0 : 0.5; // Les arbres sont de meilleurs occluders
+
             // Définir les matrices d'instance
             positions.forEach((pos, index) => {
                 dummy.position.set(pos.x, pos.y, pos.z);
@@ -593,7 +819,7 @@ export default function Forest() {
         return instances;
     };
 
-    // Nouveau: Version asynchrone pour la création de géométrie simplifiée
+    // Version asynchrone pour la création de géométrie simplifiée
     const createSimplifiedGeometryAsync = (geometry, detailLevel, objectId) => {
         return new Promise(resolve => {
             // Pour les détails maximaux, pas besoin de simplifier
@@ -622,7 +848,7 @@ export default function Forest() {
         });
     };
 
-    // Fonction de création de géométrie simplifiée (non modifiée)
+    // Fonction de création de géométrie simplifiée
     const createSimplifiedGeometry = (geometry, detailLevel, objectId) => {
         if (!geometry) return null;
 
@@ -724,7 +950,7 @@ export default function Forest() {
         return clonedGeometry;
     };
 
-    // Fonction de préchargement des textures originale (non modifiée)
+    // Fonction de préchargement des textures
     const preloadTexturesForModels = async (modelIds) => {
         if (!textureManager) return {};
 
@@ -750,12 +976,109 @@ export default function Forest() {
         return loadedTextures;
     };
 
-    // Vérification du frustum culling (non modifiée)
+    // Vérification du frustum culling
     const isInFrustum = (boundingSphere, frustum) => {
         return frustum.intersectsSphere(boundingSphere);
     };
 
-    // Mise à jour des LOD (non modifiée)
+    // Vérification d'occlusion via raycasting
+    const isOccluded = (instance, cameraPosition, occluders) => {
+        if (!OCCLUSION_CONFIG.ENABLED || !instance.userData.boundingSphere) {
+            return false;
+        }
+
+        const targetSphere = instance.userData.boundingSphere;
+
+        // Si aucun occluder potentiel n'a été trouvé
+        if (!occluders || occluders.length === 0) {
+            return false;
+        }
+
+        // Obtenir le vecteur de direction de la caméra à la cible
+        const direction = tempVectorRef.current.subVectors(targetSphere.center, cameraPosition).normalize();
+
+        // Configurer le raycaster
+        raycasterRef.current.set(cameraPosition, direction);
+        raycasterRef.current.far = cameraPosition.distanceTo(targetSphere.center) + targetSphere.radius;
+
+        // Tester l'intersection avec les occluders potentiels
+        const intersections = raycasterRef.current.intersectObjects(occluders, false);
+
+        // Si aucune intersection ou si la première intersection est la cible elle-même
+        if (intersections.length === 0) {
+            return false;
+        }
+
+        // Calculer la distance à la cible
+        const distanceToTarget = cameraPosition.distanceTo(targetSphere.center) - targetSphere.radius;
+
+        // Vérifier si quelque chose bloque la vue avant d'atteindre la cible
+        // On ajoute une marge pour éviter le "popping"
+        for (const intersection of intersections) {
+            // Si l'objet intersecté est la cible elle-même, ignorer
+            if (intersection.object === instance) continue;
+
+            // Si l'intersection est plus proche que la cible (moins la marge)
+            if (intersection.distance < distanceToTarget - OCCLUSION_CONFIG.OCCLUSION_MARGIN) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    // Fonction simplifiée utilisant une approche conique pour l'occlusion
+    const isOccludedCone = (instance, cameraPosition, occluders) => {
+        if (!OCCLUSION_CONFIG.ENABLED || !instance.userData.boundingSphere) {
+            return false;
+        }
+
+        const targetSphere = instance.userData.boundingSphere;
+        const distanceToTarget = cameraPosition.distanceTo(targetSphere.center);
+
+        // Si aucun occluder potentiel ou distance trop grande
+        if (!occluders || occluders.length === 0 || distanceToTarget > OCCLUSION_CONFIG.MAX_OCCLUSION_DISTANCE) {
+            return false;
+        }
+
+        // Vecteur direction normalisé vers la cible
+        const dirToTarget = tempVectorRef.current.subVectors(targetSphere.center, cameraPosition).normalize();
+
+        // Vérifier chaque occluder potentiel
+        for (const occluder of occluders) {
+            if (occluder === instance || !occluder.userData.boundingSphere) continue;
+
+            const occluderSphere = occluder.userData.boundingSphere;
+            const distanceToOccluder = cameraPosition.distanceTo(occluderSphere.center);
+
+            // Si l'occluder est plus loin que la cible ou trop proche de la cible, ignorer
+            if (distanceToOccluder >= distanceToTarget - OCCLUSION_CONFIG.OCCLUSION_MARGIN ||
+                distanceToOccluder > OCCLUSION_CONFIG.MAX_OCCLUSION_DISTANCE) {
+                continue;
+            }
+
+            // Vecteur direction normalisé vers l'occluder
+            const dirToOccluder = new THREE.Vector3().subVectors(occluderSphere.center, cameraPosition).normalize();
+
+            // L'angle entre les deux directions
+            const angle = dirToTarget.angleTo(dirToOccluder);
+
+            // Calculer l'angle maximal que peut occuper l'occluder depuis la caméra
+            const occluderAngle = Math.asin(Math.min(1, occluderSphere.radius / distanceToOccluder));
+
+            // Calculer l'angle maximal que peut occuper la cible depuis la caméra
+            const targetAngle = Math.asin(Math.min(1, targetSphere.radius / distanceToTarget));
+
+            // Si l'angle entre les directions est inférieur à la somme des angles, il y a occlusion potentielle
+            if (angle < occluderAngle + targetAngle) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    // Mise à jour des LOD et ajout de l'occlusion culling
     const updateLODs = () => {
         // Sauter des frames pour réduire la fréquence de mise à jour
         frameSkipRef.current++;
@@ -775,7 +1098,20 @@ export default function Forest() {
             );
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
-            // Mettre à jour la visibilité des LOD pour tous les meshes instanciés
+            // Mettre à jour périodiquement l'octree pour l'occlusion culling
+            occlusionUpdateCounterRef.current++;
+            if (OCCLUSION_CONFIG.ENABLED && OCCLUSION_CONFIG.USE_OCTREE &&
+                occlusionUpdateCounterRef.current >= OCCLUSION_CONFIG.UPDATE_INTERVAL) {
+                occlusionUpdateCounterRef.current = 0;
+
+                // On pourrait reconstruire l'octree ici si nécessaire
+                // Par exemple, si la caméra s'est beaucoup déplacée
+            }
+
+            // Liste pour stocker les objets visibles (pour le raycast d'occlusion)
+            const visibleInstances = [];
+
+            // Première passe: frustum culling pour tous les objets
             lodInstancesRef.current.forEach(instance => {
                 if (!instance.userData) return;
 
@@ -785,29 +1121,103 @@ export default function Forest() {
 
                 const distance = chunkCenter.distanceTo(cameraPosition);
 
-                // Vérifier d'abord le frustum culling (optimisation majeure)
-                const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
+                // Réinitialiser l'état d'occlusion si nécessaire (périodiquement)
+                if (instance.userData.occlusionCulled &&
+                    performance.now() - instance.userData.lastVisibilityTest > 500) {
+                    instance.userData.occlusionCulled = false;
+                }
 
-                if (visible) {
+                // Vérifier d'abord le frustum culling (optimisation majeure)
+                const inFrustum = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
+
+                if (inFrustum) {
                     // Vérifier si ce niveau LOD doit être visible en fonction de la distance
                     const minDistance = instance.userData.minDistance || 0;
                     const maxDistance = instance.userData.maxDistance || Infinity;
 
-                    // Définir la visibilité en fonction de la distance
-                    instance.visible = (distance >= minDistance && distance < maxDistance);
+                    // Définir la visibilité LOD en fonction de la distance
+                    const lodVisible = (distance >= minDistance && distance < maxDistance);
+
+                    // Si LOD visible et pas déjà marqué comme occulté
+                    if (lodVisible && !instance.userData.occlusionCulled) {
+                        // Ajouter à la liste des objets potentiellement visibles
+                        visibleInstances.push(instance);
+
+                        // Provisoirement visible - l'occlusion sera testée plus tard
+                        instance.visible = true;
+                    } else {
+                        // Non visible à cause du LOD ou déjà occulté
+                        instance.visible = false;
+                    }
                 } else {
                     // Pas dans le frustum de vue, le cacher
                     instance.visible = false;
                 }
-
-                // Logging de débogage pour les premières instances
-                if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001) {
-                    console.log(`LOD update for ${instance.name}: ` +
-                        `distance=${distance.toFixed(1)}, ` +
-                        `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` +
-                        `visible=${instance.visible}, in frustum=${visible}`);
-                }
             });
+
+            // Deuxième passe: occlusion culling uniquement pour les objets dans le frustum et LOD visibles
+            if (OCCLUSION_CONFIG.ENABLED && visibleInstances.length > 0) {
+                // Trier les instances par distance (plus proches d'abord)
+                visibleInstances.sort((a, b) => {
+                    const distA = a.userData.chunkCenter.distanceTo(cameraPosition);
+                    const distB = b.userData.chunkCenter.distanceTo(cameraPosition);
+                    return distA - distB;
+                });
+
+                // Les objets visibles peuvent occulter les objets plus éloignés
+                const occluders = [];
+
+                for (const instance of visibleInstances) {
+                    const distanceToCamera = instance.userData.chunkCenter.distanceTo(cameraPosition);
+
+                    // Ne pas faire d'occlusion culling au-delà d'une certaine distance
+                    if (distanceToCamera > OCCLUSION_CONFIG.MAX_OCCLUSION_DISTANCE) {
+                        continue;
+                    }
+
+                    // Trouver les occluders potentiels via octree ou parcours linéaire
+                    let potentialOccluders = [];
+
+                    if (OCCLUSION_CONFIG.USE_OCTREE && octreeRef.current) {
+                        // Utiliser l'octree pour trouver les occluders potentiels
+                        tempSphereRef.current.copy(instance.userData.boundingSphere);
+                        potentialOccluders = octreeRef.current.findPotentialOccluders(
+                            cameraPosition,
+                            tempSphereRef.current,
+                            distanceToCamera
+                        );
+                    } else {
+                        // Approche linéaire simple: utiliser les occluders déjà trouvés
+                        potentialOccluders = occluders.slice(0, OCCLUSION_CONFIG.MAX_OCCLUDERS);
+                    }
+
+                    // Tester si cet objet est occulté
+                    const occluded = isOccludedCone(instance, cameraPosition, potentialOccluders);
+
+                    // Mettre à jour la visibilité et l'état d'occlusion
+                    instance.visible = !occluded;
+                    instance.userData.occlusionCulled = occluded;
+                    instance.userData.lastVisibilityTest = performance.now();
+
+                    // Si visible, cet objet peut occulter d'autres objets
+                    if (!occluded && instance.userData.occluderPotential > 0.5) {
+                        occluders.push(instance);
+
+                        // Limiter le nombre d'occluders pour des performances optimales
+                        if (occluders.length > OCCLUSION_CONFIG.MAX_OCCLUDERS * 2) {
+                            occluders.length = OCCLUSION_CONFIG.MAX_OCCLUDERS * 2;
+                        }
+                    }
+
+                    // Logging de débogage
+                    if (OCCLUSION_CONFIG.DEBUG_OCCLUSION && Math.random() < 0.001) {
+                        console.log(`Occlusion test for ${instance.name}: ` +
+                            `distance=${distanceToCamera.toFixed(1)}, ` +
+                            `occluded=${occluded}, ` +
+                            `occluders=${potentialOccluders.length}`);
+                    }
+                }
+            }
         }
 
         // Continuer la boucle d'animation
@@ -849,6 +1259,12 @@ export default function Forest() {
         // Vider le cache de géométrie
         if (LOADING_CONFIG.ENABLE_GEOMETRY_CACHE) {
             GeometryCache.clear();
+        }
+
+        // Nettoyer l'octree
+        if (OCCLUSION_CONFIG.ENABLED && OCCLUSION_CONFIG.USE_OCTREE && octreeRef.current) {
+            octreeRef.current.clear();
+            octreeRef.current = null;
         }
     };
 
