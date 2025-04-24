@@ -24,6 +24,7 @@ const StaticObject = React.memo(function StaticObject({
                                                           path,
                                                           position,
                                                           rotation,
+                                                          quaternion, // Nouveau paramètre ajouté
                                                           scale,
                                                           castShadow = true,
                                                           receiveShadow = true,
@@ -79,14 +80,24 @@ const StaticObject = React.memo(function StaticObject({
     }, []);
 
     // Éviter les re-rendus inutiles des attributs de primitive
-    const primitiveProps = useMemo(() => ({
-        position,
-        rotation,
-        scale,
-        castShadow,
-        receiveShadow,
-        visible
-    }), [position, rotation, scale, castShadow, receiveShadow, visible]);
+    const primitiveProps = useMemo(() => {
+        const props = {
+            position,
+            scale,
+            castShadow,
+            receiveShadow,
+            visible
+        };
+
+        // Utiliser quaternion si disponible, sinon utiliser rotation
+        if (quaternion) {
+            props.quaternion = quaternion;
+        } else {
+            props.rotation = rotation;
+        }
+
+        return props;
+    }, [position, rotation, quaternion, scale, castShadow, receiveShadow, visible]);
 
     return (
         <primitive
@@ -143,6 +154,7 @@ export const StaticObjects = React.memo(function StaticObjects({ filter = {} }) 
                     path={objectConfig.path}
                     position={placement.position}
                     rotation={placement.rotation}
+                    quaternion={placement.quaternion} // Nouveau paramètre ajouté
                     scale={placement.scale}
                     castShadow={placement.castShadow}
                     receiveShadow={placement.receiveShadow}

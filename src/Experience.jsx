@@ -184,7 +184,7 @@ export default function Experience() {
                 <InteractiveMarkersProvider>
                     <ScrollControls>
                         {/* Lights */}
-                        <ambientLight intensity={0.5}/>
+                        <ambientLight intensity={5}/>
                         <directionalLight position={[1, 2, 3]} intensity={1.5}/>
                         <color attach="background" args={['#1e1e2f']}/>
 
