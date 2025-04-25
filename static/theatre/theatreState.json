@@ -38,203 +38,21 @@
                 "__debugName": "Camera:[\"position\",\"x\"]",
                 "keyframes": [
                   {
-                    "id": "BwXo66rLLs",
-                    "position": 0,
+                    "id": "9P3bbDFmk6",
+                    "position": 0.040000000000000036,
                     "connectedRight": true,
                     "handles": [
+                      1,
+                      1,
                       0.5,
-                      1,
-                      0,
                       0
                     ],
                     "type": "bezier",
-                    "value": 53.196
-                  },
-                  {
-                    "id": "kpOV1utOTg",
-                    "position": 0.8162882084524066,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 28.0459228904338
-                  },
-                  {
-                    "id": "yxQKXzNtUJ",
-                    "position": 0.8572081853749733,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 26.569
-                  },
-                  {
-                    "id": "BLS12xE3S_",
-                    "position": 0.8980098763673785,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 25.10541519306202
-                  },
-                  {
-                    "id": "9Hxot88WdO",
-                    "position": 1.148234156591204,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 16.794983193383466
-                  },
-                  {
-                    "id": "iuWl6CmK8_",
-                    "position": 1.2033796442382967,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 15.963784134317295
-                  },
-                  {
-                    "id": "Nk-aQyK0Ll",
-                    "position": 1.29476955451044,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 12.704331967374898
-                  },
-                  {
-                    "id": "lQlX1Ap1ZC",
-                    "position": 1.5988489158174903,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 2.3812474625358675
-                  },
-                  {
-                    "id": "oKEAMXsB7G",
-                    "position": 1.8667925765506486,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -6.601990344059686
-                  },
-                  {
-                    "id": "gaf8WAELzn",
-                    "position": 2.0966125834110545,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -14.561006166139425
-                  },
-                  {
-                    "id": "fsgY5osLdS",
-                    "position": 2.752145547832611,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -36.04398041014752
-                  },
-                  {
-                    "id": "PbL11zJu2c",
-                    "position": 2.8140715658846234,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -38.223
-                  },
-                  {
-                    "id": "C0f7pbnkEl",
-                    "position": 3.3297981779744013,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -46.15
-                  },
-                  {
-                    "id": "lkjzn5XAuh",
-                    "position": 3.8385291772644883,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -45.778
-                  },
-                  {
-                    "id": "y1ttydmDBY",
-                    "position": 4.975041227509244,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -10.23
+                    "value": -2.197
                   },
                   {
                     "id": "xQa9F7fDD4",
-                    "position": 6.108779394772155,
+                    "position": 0.9312206052278453,
                     "connectedRight": true,
                     "handles": [
                       1,
@@ -246,17 +64,199 @@
                     "value": 3.197
                   },
                   {
-                    "id": "9P3bbDFmk6",
-                    "position": 7,
+                    "id": "y1ttydmDBY",
+                    "position": 2.0649587724907557,
                     "connectedRight": true,
                     "handles": [
                       1,
                       1,
-                      0.5,
+                      0,
                       0
                     ],
                     "type": "bezier",
-                    "value": -2.197
+                    "value": -10.23
+                  },
+                  {
+                    "id": "lkjzn5XAuh",
+                    "position": 3.2014708227355118,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -45.778
+                  },
+                  {
+                    "id": "C0f7pbnkEl",
+                    "position": 3.710201822025599,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -46.15
+                  },
+                  {
+                    "id": "PbL11zJu2c",
+                    "position": 4.225928434115376,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -38.223
+                  },
+                  {
+                    "id": "fsgY5osLdS",
+                    "position": 4.287854452167389,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -36.04398041014752
+                  },
+                  {
+                    "id": "gaf8WAELzn",
+                    "position": 4.943387416588946,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -14.561006166139425
+                  },
+                  {
+                    "id": "oKEAMXsB7G",
+                    "position": 5.173207423449352,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -6.601990344059686
+                  },
+                  {
+                    "id": "lQlX1Ap1ZC",
+                    "position": 5.4411510841825095,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 2.3812474625358675
+                  },
+                  {
+                    "id": "Nk-aQyK0Ll",
+                    "position": 5.74523044548956,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 12.704331967374898
+                  },
+                  {
+                    "id": "iuWl6CmK8_",
+                    "position": 5.836620355761704,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 15.963784134317295
+                  },
+                  {
+                    "id": "9Hxot88WdO",
+                    "position": 5.8917658434087965,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 16.794983193383466
+                  },
+                  {
+                    "id": "BLS12xE3S_",
+                    "position": 6.141990123632621,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 25.10541519306202
+                  },
+                  {
+                    "id": "yxQKXzNtUJ",
+                    "position": 6.182791814625027,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 26.569
+                  },
+                  {
+                    "id": "kpOV1utOTg",
+                    "position": 6.2237117915475935,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 28.0459228904338
+                  },
+                  {
+                    "id": "BwXo66rLLs",
+                    "position": 7.04,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 53.196
                   }
                 ]
               },
@@ -284,203 +284,21 @@
                 "__debugName": "Camera:[\"position\",\"z\"]",
                 "keyframes": [
                   {
-                    "id": "ICUcrQydPa",
-                    "position": 0,
+                    "id": "m3dPnraPXV",
+                    "position": 0.040000000000000036,
                     "connectedRight": true,
                     "handles": [
+                      1,
+                      1,
                       0.5,
-                      1,
-                      0,
                       0
                     ],
                     "type": "bezier",
-                    "value": -133.85
-                  },
-                  {
-                    "id": "zkC5lmykGS",
-                    "position": 0.8162882084524066,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -149.9619260350903
-                  },
-                  {
-                    "id": "P79KU3qNP_",
-                    "position": 0.8572081853749733,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -150.208
-                  },
-                  {
-                    "id": "V4ytEctNf8",
-                    "position": 0.8980098763673785,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -150.5026709558762
-                  },
-                  {
-                    "id": "K19JkgGYmS",
-                    "position": 1.148234156591204,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -146.66002433163783
-                  },
-                  {
-                    "id": "7pSugcCI9e",
-                    "position": 1.2033796442382967,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -144.82137618027252
-                  },
-                  {
-                    "id": "6aN741nYDt",
-                    "position": 1.29476955451044,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -144.0741684949953
-                  },
-                  {
-                    "id": "BSgXfvhnO8",
-                    "position": 1.5988489158174903,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -139.92314445764487
-                  },
-                  {
-                    "id": "YcLMWe6_eY",
-                    "position": 1.8667925765506486,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -135.9958570896453
-                  },
-                  {
-                    "id": "E32Xmw4TbW",
-                    "position": 2.0966125834110545,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -133.2812361297128
-                  },
-                  {
-                    "id": "5TNXqpC0AM",
-                    "position": 2.752145547832611,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -122.61244354721858
-                  },
-                  {
-                    "id": "aO7L0Vi2Fs",
-                    "position": 2.8140715658846234,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -121.991
-                  },
-                  {
-                    "id": "yKFBfTyLSR",
-                    "position": 3.3297981779744013,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -104.866
-                  },
-                  {
-                    "id": "2M3BMnSp69",
-                    "position": 3.8385291772644883,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -86.255
-                  },
-                  {
-                    "id": "Zd1_3x8SxW",
-                    "position": 4.975041227509244,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": -64.675
+                    "value": 6.737
                   },
                   {
                     "id": "FOSEVDLln1",
-                    "position": 6.108779394772155,
+                    "position": 0.9312206052278453,
                     "connectedRight": true,
                     "handles": [
                       1,
@@ -492,17 +310,199 @@
                     "value": -25.424
                   },
                   {
-                    "id": "m3dPnraPXV",
-                    "position": 7,
+                    "id": "Zd1_3x8SxW",
+                    "position": 2.0649587724907557,
                     "connectedRight": true,
                     "handles": [
                       1,
                       1,
-                      0.5,
+                      0,
                       0
                     ],
                     "type": "bezier",
-                    "value": 6.737
+                    "value": -64.675
+                  },
+                  {
+                    "id": "2M3BMnSp69",
+                    "position": 3.2014708227355118,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -86.255
+                  },
+                  {
+                    "id": "yKFBfTyLSR",
+                    "position": 3.710201822025599,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -104.866
+                  },
+                  {
+                    "id": "aO7L0Vi2Fs",
+                    "position": 4.225928434115376,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -121.991
+                  },
+                  {
+                    "id": "5TNXqpC0AM",
+                    "position": 4.287854452167389,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -122.61244354721858
+                  },
+                  {
+                    "id": "E32Xmw4TbW",
+                    "position": 4.943387416588946,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -133.2812361297128
+                  },
+                  {
+                    "id": "YcLMWe6_eY",
+                    "position": 5.173207423449352,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -135.9958570896453
+                  },
+                  {
+                    "id": "BSgXfvhnO8",
+                    "position": 5.4411510841825095,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -139.92314445764487
+                  },
+                  {
+                    "id": "6aN741nYDt",
+                    "position": 5.74523044548956,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -144.0741684949953
+                  },
+                  {
+                    "id": "7pSugcCI9e",
+                    "position": 5.836620355761704,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -144.82137618027252
+                  },
+                  {
+                    "id": "K19JkgGYmS",
+                    "position": 5.8917658434087965,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -146.66002433163783
+                  },
+                  {
+                    "id": "V4ytEctNf8",
+                    "position": 6.141990123632621,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -150.5026709558762
+                  },
+                  {
+                    "id": "P79KU3qNP_",
+                    "position": 6.182791814625027,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -150.208
+                  },
+                  {
+                    "id": "zkC5lmykGS",
+                    "position": 6.2237117915475935,
+                    "connectedRight": true,
+                    "handles": [
+                      1,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -149.9619260350903
+                  },
+                  {
+                    "id": "ICUcrQydPa",
+                    "position": 7.04,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -133.85
                   }
                 ]
               },
@@ -621,8 +621,8 @@
                 "__debugName": "Camera:[\"rotation\",\"y\"]",
                 "keyframes": [
                   {
-                    "id": "C9UHR-Lk3N",
-                    "position": 0,
+                    "id": "rotation-0",
+                    "position": 0.040000000000000036,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -631,189 +631,215 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 1
+                    "value": 6.1170132383093705
                   },
                   {
-                    "id": "dB_lDMIVRH",
-                    "position": 0.8349174946791373,
+                    "id": "rotation-1",
+                    "position": 0.9312206052278453,
                     "connectedRight": true,
                     "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 1
-                  },
-                  {
-                    "id": "_pM7cJr2WN",
-                    "position": 0.8657341180110193,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 1.5107027525916688
-                  },
-                  {
-                    "id": "7mP57tE_OZ",
-                    "position": 0.8980098763673785,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 1.8
-                  },
-                  {
-                    "id": "7kY5lPGg-q",
-                    "position": 2.316216126492276,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 1.8
-                  },
-                  {
-                    "id": "4gomTNRrtg",
-                    "position": 2.8534858559941076,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 2.5
-                  },
-                  {
-                    "id": "zLbKpimiLJ",
-                    "position": 3.1723832941526635,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 2.5
-                  },
-                  {
-                    "id": "YA2cJ5GmPw",
-                    "position": 3.462876952397515,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 3.1
-                  },
-                  {
-                    "id": "-a7CUjwEYB",
-                    "position": 3.6949169841157605,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 3.1
-                  },
-                  {
-                    "id": "E50WeAP-bj",
-                    "position": 3.9924042042673573,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 4.1
-                  },
-                  {
-                    "id": "htqO3qwzkL",
-                    "position": 4.818427052221625,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 4.1
-                  },
-                  {
-                    "id": "W66fz0dh4a",
-                    "position": 5.1486378665898975,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 3.5
-                  },
-                  {
-                    "id": "htQ3yKZGmW",
-                    "position": 5.909213526110813,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 3.5
-                  },
-                  {
-                    "id": "cr5-27XwT-",
-                    "position": 6.140261933761886,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
-                      0,
-                      0
-                    ],
-                    "type": "bezier",
-                    "value": 3
-                  },
-                  {
-                    "id": "N_-CaHpCdC",
-                    "position": 6.967276405783324,
-                    "connectedRight": true,
-                    "handles": [
-                      1,
-                      1,
                       0.5,
+                      1,
+                      0,
                       0
                     ],
                     "type": "bezier",
-                    "value": 3.1
+                    "value": 6.1170132383093705
+                  },
+                  {
+                    "id": "rotation-2",
+                    "position": 2.0649587724907557,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 6.612787506903144
+                  },
+                  {
+                    "id": "rotation-3",
+                    "position": 3.2014708227355118,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 7.308382371384617
+                  },
+                  {
+                    "id": "rotation-4",
+                    "position": 3.710201822025599,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 6.303170824910345
+                  },
+                  {
+                    "id": "rotation-5",
+                    "position": 4.225928434115376,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.849663488833204
+                  },
+                  {
+                    "id": "rotation-6",
+                    "position": 4.287854452167389,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4.990207653883499
+                  },
+                  {
+                    "id": "rotation-7",
+                    "position": 4.943387416588946,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.173325870176055
+                  },
+                  {
+                    "id": "rotation-8",
+                    "position": 5.173207423449352,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.041090737598842
+                  },
+                  {
+                    "id": "rotation-9",
+                    "position": 5.4411510841825095,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.124530376313917
+                  },
+                  {
+                    "id": "rotation-10",
+                    "position": 5.74523044548956,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.094713709572103
+                  },
+                  {
+                    "id": "rotation-11",
+                    "position": 5.836620355761704,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4.9377386012774265
+                  },
+                  {
+                    "id": "rotation-12",
+                    "position": 5.8917658434087965,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.858610674077463
+                  },
+                  {
+                    "id": "rotation-13",
+                    "position": 6.141990123632621,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 5.145497137787746
+                  },
+                  {
+                    "id": "rotation-14",
+                    "position": 6.182791814625027,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4.513710025438778
+                  },
+                  {
+                    "id": "rotation-15",
+                    "position": 6.2237117915475935,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4.547292907430112
+                  },
+                  {
+                    "id": "rotation-16",
+                    "position": 7.04,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4.14262807584863
                   }
                 ]
               },

@@ -9,13 +9,7 @@ import {textureManager} from './TextureManager';
 class SceneObjectManager {
     constructor() {
         // Définition des étapes dans l'ordre
-        this.interactionSteps = [
-            'firstStop',
-            'secondStop',
-            'thirdStop',
-            'fourthStop',
-            'fifthStop',
-            'sixthStop'
+        this.interactionSteps = ['firstStop', 'secondStop', 'thirdStop', 'fourthStop', 'fifthStop', 'sixthStop'
             // Ajoutez d'autres étapes si nécessaire
         ];
 
@@ -27,8 +21,7 @@ class SceneObjectManager {
             'fourthStop': "Quatrième point d'intérêt",
             'fifthStop': "Cinquième point d'intérêt",
             'sixthStop': "Sixième point d'intérêt",
-            'specialStop': "Point spécial",
-            // Ajoutez d'autres textes par défaut ici
+            'specialStop': "Point spécial", // Ajoutez d'autres textes par défaut ici
         };
 
         // Compteur pour suivre l'ordre des objets interactifs
@@ -37,53 +30,238 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
+            // Scene 01 - Starting point
+            'Ground': {
+                id: 'Bush',
+                path: '/models/Ground.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: false,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            },
 
-            // Nouveaux objets interactifs - Ajouter sans perturber les existants
+            // Scene 02 - Information Panel (First stop)
+            'DirectionPanelStartInteractive': {
+                id: 'DirectionPanel',
+                path: '/models/primary/DirectionPanel.gltf',
+                scale: [0.605, 0.605, 0.605],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-8.343, 0, 13.953],
+                    rotation: [0, 29.02, 0],
+                    outlinePulse: false,
+                    requiredStep: 'initialStop'
+                }
+            },
+
+            // Scene 03 - Tree trunk obstacle (First stop)
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.119, 0.119, 0.119],
+                path: '/models/forest/tree/ObstacleTree.glb',
+                scale: [1.000, 1.000, 1.000],
                 interactive: true,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.CLICK,
+                    type: INTERACTION_TYPES.DRAG_UP,
                     text: "Observer le tronc",
                     color: "#44aacc",
-                    offset: 0.5,
+                    offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none"
                 },
-                // Utilisation de rotation en degrés directement compatibles avec ThreeJS Editor
                 defaultPlacement: {
-                    position: [4.621769992696183, 0.258036105368497, -11.687682917956636],
-                    rotation: [-156.78, -83.47, -34.82],
+                    position: [1.833, 0, -11.911],
+                    rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'firstStop'
                 }
             },
-            'ThinTrunkInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.171, 0.171, 0.171],
-                interactive: true,
+
+            // Scene 04 - Searching for traces (Third stop)
+            'LeafErable': {
+                id: 'LeafErable',
+                path: '/models/primary/Leaf.glb',
+                scale: [1, 1, 1],
+                interactive: false,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.CLICK,
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
                     text: "Observer le tronc",
                     color: "#44aacc",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
                 },
-                // Utilisation de rotation en degrés directement compatibles avec ThreeJS Editor
                 defaultPlacement: {
-                    position: [-40.32784019773521, 0.5295456759631634, -113.82825644624903],
-                    rotation: [-175.94, 2.29, 124.30],
+                    position: [-6.905, 0.193, -55.498],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'thirdStop'
+                }
+            },
+            'AnimalPaws': {
+                id: 'AnimalPaws',
+                path: '/models/primary/AnimalPaws.glb',
+                scale: [0.184, 0.184, 0.184],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-6.921, 0.038, -55.531],
+                    rotation: [0, 24.64, 0],
+                    outlinePulse: false,
+                    requiredStep: 'fifthStop'
+                }
+            },
+
+            // Scene 05 - River crossing with stones
+            'JumpRock1': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-30.164, 0, -75.977],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'eleventhStop'
+                }
+            },
+            'JumpRock2': {
+                id: 'RockWater2',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-30.137, 0, -76.954],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'twelfthStop'
+                }
+            },
+            'JumpRock3': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-31.319, 0, -76.848],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'thirteenthStop'
+                }
+            },
+            'JumpRock4': {
+                id: 'RockWater2',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-31.648, 0, -77.683],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'fourteenthStop'
+                }
+            },
+
+            // Scene 06 - Branch obstacle (Fourth stop)
+            'ThinTrunkInteractive': {
+                id: 'TrunkLarge',
+                path: '/models/forest/tree/Obstacle2Tree.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.DRAG_DOWN,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-41.72699737548828, 0.051, -115.571],
+                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174],
                     outlinePulse: false,
                     requiredStep: 'fourthStop'
                 }
             },
-            // Nouveaux objets interactifs - Ajouter sans perturber les existants
+            'BigRock': {
+                id: 'BigRock',
+                path: '/models/rock/Obstacle2BigRocks.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-41.72699737548828, 0.059255074709653854, -115.571],
+                    rotation: [0, 40.81, 0]
+                }]
+            },
+            'TreeStump': {
+                id: 'TreeStump',
+                path: '/models/forest/tree/TreeStump.glb',
+                scale: [0.10, 0.10, 0.10],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-41.258, 0.0642661452293396, -115.151],
+                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174]
+                }]
+            },
+
+            // Scene 07 & 08 - Discovering the mink (Second stop)
             'Vison': {
                 id: 'Vison',
                 path: '/models/primary/Vison.glb',
@@ -94,39 +272,20 @@ class SceneObjectManager {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Observer le tronc",
                     color: "#44aacc",
-                    offset: 0.5,
+                    offset: -1.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "camera"
                 },
                 defaultPlacement: {
-                    position: [55.218, 0.0, -133.50735473632812],
-                    rotation: [-0.87, 0, 0],
+                    position: [51.907, 0.0, -134.251],
+                    rotation: [0, -121.79, 0],
                     outlinePulse: false,
                     requiredStep: 'secondStop'
                 }
             },
-            'LeafErable': {
-                id: 'LeafErable',
-                path: '/models/primary/LeafErable.glb',
-                scale: [0.018 * 3.186, 0.018 * 3.186, 0.018 * 3.186],
-                interactive: false,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-5.895, 0.193, -56.018],
-                    rotation: [0, -23.82, 0],
-                    outlinePulse: false,
-                    requiredStep: 'thirdStop'
-                }
-            },
-            'DirectionPanelInteractive': {
+
+            // Scene 09 & 10 - Final revelation and call to action
+            'DirectionPanelEndInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
@@ -146,127 +305,8 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'tenthStop'
                 }
-            },
-            'JumpRock1': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: false,
-                useTextures: false,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [-30.164, 0, -75.977],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'eleventhStop'
-                }
-            },
-            'JumpRock2': {
-                id: 'RockWater2',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: false,
-                useTextures: false,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [-30.137, 0, -76.954],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'twelfthStop'
-                }
-            },
-            'JumpRock3': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: false,
-                useTextures: false,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [-31.319, 0, -76.848],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'thirteenthStop'
-                }
-            },
-            'JumpRock4': {
-                id: 'RockWater2',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: false,
-                useTextures: false,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [-31.648, 0, -77.683],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'fourteenthStop'
-                }
-            },
-            'Ground': {
-                id: 'Bush',
-                path: '/models/Ground.glb',
-                scale: [1, 1, 1],
-                interactive: false,
-                useTextures: false,
-                defaultPlacements: [
-                    {position: [0, 0, 0], rotation: [0, 0, 0]},
-                ]
-            },
-            'BigRock': {
-                id: 'BigRock',
-                path: '/models/rock/BigRock.glb',
-                scale: [0.124, 0.124, 0.124],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [
-                    // Utilisation de rotation en degrés directement compatibles avec ThreeJS Editor
-                    {position: [-42.508, 0.296, -116.069], rotation: [-180.00 - 90, -86.39 - 90, -180 - 90]}
-                ]
-            },
-            'TreeStump': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.glb',
-                scale: [0.1079983276941005, 0.07866267167580791, 0.10799827499234016],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [
-                    {
-                        position: [-41.66100311279297, 0.0642661452293396, -115.3348617553711],
-                        quaternion: [-0.24631331758581484, 0.6632777435614647, 0.6622137399718296, 0.24670903156702406]
-                    }
-                ]
-            },
+            }
         };
-
         // Liste des placements d'objets dans la scène
         this.placements = [];
 
@@ -328,8 +368,7 @@ class SceneObjectManager {
 
                 // Générer automatiquement markerId et markerText si nécessaire
                 const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-                const markerText = config.defaultPlacement.markerText ||
-                    this._generateMarkerText(key, requiredStep, config.interaction.text);
+                const markerText = config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, config.interaction.text);
 
                 // Placer un objet interactif
                 this.addPlacement(key, config.defaultPlacement.position, {
@@ -346,8 +385,7 @@ class SceneObjectManager {
                 // Placer plusieurs instances d'objets statiques
                 config.defaultPlacements.forEach((placement, index) => {
                     this.addPlacement(key, placement.position, {
-                        rotation: placement.rotation || [0, 0, 0],
-                        scale: placement.scale || config.scale
+                        rotation: placement.rotation || [0, 0, 0], scale: placement.scale || config.scale
                     });
                 });
             }
@@ -431,10 +469,8 @@ class SceneObjectManager {
             // Attribuer automatiquement la prochaine étape si non spécifiée
             const requiredStep = config.defaultPlacement.requiredStep || this._getNextStep();
 
-            const markerId = config.defaultPlacement.markerId ||
-                this._generateMarkerId(key, requiredStep);
-            const markerText = config.defaultPlacement.markerText ||
-                this._generateMarkerText(key, requiredStep, config.interaction.text);
+            const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
+            const markerText = config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, config.interaction.text);
 
             this.addPlacement(key, config.defaultPlacement.position, {
                 rotation: config.defaultPlacement.rotation || [0, 0, 0],
@@ -491,14 +527,10 @@ class SceneObjectManager {
         // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
             // Attribuer automatiquement la prochaine étape si non spécifiée
-            const requiredStep = options.requiredStep ||
-                objectConfig.defaultPlacement?.requiredStep ||
-                this._getNextStep();
+            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
 
-            const markerId = options.markerId ||
-                this._generateMarkerId(key, requiredStep);
-            const markerText = options.markerText ||
-                this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
+            const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
+            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
 
             Object.assign(placement, {
                 markerId: markerId,
@@ -510,9 +542,7 @@ class SceneObjectManager {
                 markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
                 markerType: options.markerType || objectConfig.interaction.type,
                 outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
-                    (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
-                        objectConfig.defaultPlacement.outlinePulse : true),
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
                 interacted: false
             });
         }
@@ -562,9 +592,7 @@ class SceneObjectManager {
             }
 
             // Filtrer par état d'interaction (pour les objets interactifs)
-            if (filters.interacted !== undefined &&
-                placement.interacted !== undefined &&
-                placement.interacted !== filters.interacted) {
+            if (filters.interacted !== undefined && placement.interacted !== undefined && placement.interacted !== filters.interacted) {
                 return false;
             }
 
@@ -619,23 +647,15 @@ class SceneObjectManager {
         // Si requiredStep est modifié, mettre à jour également le markerId et markerText
         // sauf si explicitement fournis
         if (updates.requiredStep && !updates.markerId) {
-            updates.markerId = this._generateMarkerId(
-                this.placements[index].objectKey,
-                updates.requiredStep
-            );
+            updates.markerId = this._generateMarkerId(this.placements[index].objectKey, updates.requiredStep);
         }
 
         if (updates.requiredStep && !updates.markerText) {
-            updates.markerText = this._generateMarkerText(
-                this.placements[index].objectKey,
-                updates.requiredStep,
-                this.objectCatalog[this.placements[index].objectKey]?.interaction?.text
-            );
+            updates.markerText = this._generateMarkerText(this.placements[index].objectKey, updates.requiredStep, this.objectCatalog[this.placements[index].objectKey]?.interaction?.text);
         }
 
         this.placements[index] = {
-            ...this.placements[index],
-            ...updates
+            ...this.placements[index], ...updates
         };
 
         return true;
@@ -708,12 +728,7 @@ class SceneObjectManager {
                 assetSet.add(obj.path);
 
                 assets.push({
-                    name: obj.id,
-                    type: 'gltf',
-                    path: obj.path,
-                    license: 'CC-BY',
-                    author: 'Author',
-                    url: ''
+                    name: obj.id, type: 'gltf', path: obj.path, license: 'CC-BY', author: 'Author', url: ''
                 });
             }
         });
