@@ -25,7 +25,7 @@ const guiConfig = {
         },
         showInstances: {
             name: "Afficher Instances",
-            default: true
+            default: false
         },
         showInteractive: {
             name: "Afficher Interactifs",

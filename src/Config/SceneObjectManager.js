@@ -30,163 +30,283 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
-            // Objets interactifs
-            'TreeInteractive': {
-                id: 'TreeNaked',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                scale: [0.1, 0.1, 0.1],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Examiner l'arbre",
-                    color: "#44ff44",
-                    offset: 1.5,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [23, 0, -150], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'firstStop'
-                }
-            }, 'StumpInteractive': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.gltf',
-                scale: [0.25, 0.25, 0.25],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Inspecter la souche",
-                    color: "#ffbb00",
-                    offset: 1.0,
-                    axis: "y",
-                    interfaceToShow: "camera"
-                },
-                defaultPlacement: {
-                    position: [-1, 0, -138.00], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'secondStop'
-                }
-            },
-
-            // Nouveaux objets interactifs - Ajouter sans perturber les existants
-            'TrunkLargeInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.15, 0.15, 0.15],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
-                    offset: 1.2,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-48, 0, -95], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'thirdStop'
-                }
-            }, 'ThinTrunkInteractive': {
-                id: 'ThinTrunk',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.2, 0.2, 0.2],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Examiner le tronc fin",
-                    color: "#ff88cc",
-                    offset: 1.0,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-40, 0, -80], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'fourthStop'
-                }
-            }, 'BushInteractive': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                scale: [0.2, 0.2, 0.2],
-                interactive: true,
-                useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Écarter le buisson",
-                    color: "#88cc44",
-                    offset: 1.0,
-                    axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-8, 0, -60], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'fifthStop'
-                }
-            }, 'DirectionPanelInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.5, 0.5, 0.5],
-                interactive: true,
-                useTextures: false,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 1.5,
-                    axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [3, 0, -23], rotation: [0, 0, 0], outlinePulse: true, requiredStep: 'sixthStop'
-                }
-            }, 'Ground': {
+            // Scene 01 - Starting point
+            'Ground': {
                 id: 'Bush',
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
-            }, 'DirectionPanel': {
+            },
+
+            // Scene 02 - Information Panel (First stop)
+            'DirectionPanelStartInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{position: [-8.343, 0, 13.953], rotation: [0, 0.5061454831, 0]}]
-            }, 'LeafErable': {
-                id: 'LeafErable',
-                path: '/models/primary/LeafErable.glb',
-                scale: [0.018, 0.018, 0.018],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{position: [-5.895, 0.193, -56.018], rotation: [0, -0.8552113335, 0]}]
-            }, 'OakLeaf': {
-                id: 'OakLeaf',
-                path: '/models/primary/OakLeaf.glb',
-                scale: [0.048, 0.048, 0.048],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{position: [-5.747, 0.187, -56.018], rotation: [0, 0, 0]}]
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-8.343, 0, 13.953],
+                    rotation: [0, 29.02, 0],
+                    outlinePulse: false,
+                    requiredStep: 'initialStop'
+                }
             },
-            // 'play': {
-            //     id: 'Play',
-            //     path: '/models/Ground.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: false,
-            //     useTextures: false,
-            //     animations: {
-            //         'idle': {
-            //             defaultLoop: true,
-            //             defaultClamp: false,
-            //             defaultTimeScale: 1.0
-            //         },
-            //         'wave': {
-            //             defaultLoop: false,
-            //             defaultClamp: true,
-            //             defaultTimeScale: 1.2
-            //         }
-            //     },
-            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
-            // },
-        };
 
+            // Scene 03 - Tree trunk obstacle (First stop)
+            'TrunkLargeInteractive': {
+                id: 'TrunkLarge',
+                path: '/models/forest/tree/ObstacleTree.glb',
+                scale: [1.000, 1.000, 1.000],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [1.833, 0, -11.911],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'firstStop'
+                }
+            },
+
+            // Scene 04 - Searching for traces (Third stop)
+            'LeafErable': {
+                id: 'LeafErable',
+                path: '/models/primary/Leaf.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-6.905, 0.193, -55.498],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'thirdStop'
+                }
+            },
+            'AnimalPaws': {
+                id: 'AnimalPaws',
+                path: '/models/primary/AnimalPaws.glb',
+                scale: [0.184, 0.184, 0.184],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-6.921, 0.038, -55.531],
+                    rotation: [0, 24.64, 0],
+                    outlinePulse: false,
+                    requiredStep: 'fifthStop'
+                }
+            },
+
+            // Scene 05 - River crossing with stones
+            'JumpRock1': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-30.164, 0, -75.977],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'eleventhStop'
+                }
+            },
+            'JumpRock2': {
+                id: 'RockWater2',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-30.137, 0, -76.954],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'twelfthStop'
+                }
+            },
+            'JumpRock3': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-31.319, 0, -76.848],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'thirteenthStop'
+                }
+            },
+            'JumpRock4': {
+                id: 'RockWater2',
+                path: '/models/rock/RockWater2.glb',
+                scale: [0.279, 0.279, 0.279],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-31.648, 0, -77.683],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'fourteenthStop'
+                }
+            },
+
+            // Scene 06 - Branch obstacle (Fourth stop)
+            'ThinTrunkInteractive': {
+                id: 'TrunkLarge',
+                path: '/models/forest/tree/Obstacle2Tree.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.DRAG_DOWN,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none"
+                },
+                defaultPlacement: {
+                    position: [-41.72699737548828, 0.051, -115.571],
+                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174],
+                    outlinePulse: false,
+                    requiredStep: 'fourthStop'
+                }
+            },
+            'BigRock': {
+                id: 'BigRock',
+                path: '/models/rock/Obstacle2BigRocks.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-41.72699737548828, 0.059255074709653854, -115.571],
+                    rotation: [0, 40.81, 0]
+                }]
+            },
+            'TreeStump': {
+                id: 'TreeStump',
+                path: '/models/forest/tree/TreeStump.glb',
+                scale: [0.10, 0.10, 0.10],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-41.258, 0.0642661452293396, -115.151],
+                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174]
+                }]
+            },
+
+            // Scene 07 & 08 - Discovering the mink (Second stop)
+            'Vison': {
+                id: 'Vison',
+                path: '/models/primary/Vison.glb',
+                scale: [1.000, 1.000, 1.000],
+                interactive: true,
+                useTextures: true,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Observer le tronc",
+                    color: "#44aacc",
+                    offset: -1.5,
+                    axis: "y",
+                    interfaceToShow: "camera"
+                },
+                defaultPlacement: {
+                    position: [51.907, 0.0, -134.251],
+                    rotation: [0, -121.79, 0],
+                    outlinePulse: false,
+                    requiredStep: 'secondStop'
+                }
+            },
+
+            // Scene 09 & 10 - Final revelation and call to action
+            'DirectionPanelEndInteractive': {
+                id: 'DirectionPanel',
+                path: '/models/primary/DirectionPanel.gltf',
+                scale: [0.605, 0.605, 0.605],
+                interactive: true,
+                useTextures: false,
+                interaction: {
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner"
+                },
+                defaultPlacement: {
+                    position: [-8.343, 0, 13.953],
+                    rotation: [0, 29.02, 0],
+                    outlinePulse: false,
+                    requiredStep: 'tenthStop'
+                }
+            }
+        };
         // Liste des placements d'objets dans la scène
         this.placements = [];
 
@@ -285,7 +405,7 @@ class SceneObjectManager {
 
     // Configurer les écouteurs d'événements
     _setupEventListeners() {
-        // Réagir aux interactions complétées (code existant)
+        // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
@@ -304,51 +424,6 @@ class SceneObjectManager {
                 // Mettre à jour l'état d'interaction de l'objet
                 placement.interacted = true;
             }
-        });
-
-        // Nouveau gestionnaire pour les animations post-interaction
-        EventBus.on(MARKER_EVENTS.INTERACTION_ANIMATION, (data) => {
-            console.log(`==== ANIMATION POST-INTERACTION ====`);
-            console.log(`SceneObjectManager: Animation post-interaction pour ${data.id}`);
-            console.log(`Animation: ${data.animationName}`);
-            console.log(`Options:`, data.animationOptions);
-            console.log(`==================================`);
-
-            // Si un objet cible spécifique est fourni, jouer l'animation sur cet objet
-            if (data.targetObject) {
-                const targetIndex = this.placements.findIndex(p => p.markerId === data.targetObject);
-                if (targetIndex !== -1) {
-                    this.playAnimation(targetIndex, data.animationName, data.animationOptions);
-                    return;
-                }
-            }
-
-            // Sinon, chercher l'objet interactif qui a déclenché l'événement
-            const interactiveIndex = this.placements.findIndex(p => p.markerId === data.id);
-            if (interactiveIndex !== -1) {
-                // Essayer de jouer l'animation sur l'objet interactif lui-même s'il a des animations
-                const objectConfig = this.getObjectFromCatalog(this.placements[interactiveIndex].objectKey);
-                if (objectConfig && objectConfig.animations && objectConfig.animations[data.animationName]) {
-                    this.playAnimation(interactiveIndex, data.animationName, data.animationOptions);
-                    return;
-                }
-
-                // Si l'objet interactif n'a pas d'animations, chercher un objet statique associé
-                // Exemple: chercher un objet statique avec le même nom mais sans "Interactive"
-                const baseObjectKey = this.placements[interactiveIndex].objectKey.replace(/Interactive$/, '');
-                const staticObject = this.objectCatalog[baseObjectKey];
-
-                if (staticObject) {
-                    // Trouver un placement pour cet objet statique
-                    const staticIndex = this.placements.findIndex(p => p.objectKey === baseObjectKey);
-                    if (staticIndex !== -1) {
-                        this.playAnimation(staticIndex, data.animationName, data.animationOptions);
-                        return;
-                    }
-                }
-            }
-
-            console.warn(`Aucun objet trouvé pour jouer l'animation ${data.animationName}`);
         });
     }
 
@@ -415,7 +490,22 @@ class SceneObjectManager {
         return this;
     }
 
-// Mise à jour de la méthode addPlacement pour gérer les animations
+    // Récupérer la configuration d'un objet du catalogue
+    getObjectFromCatalog(key) {
+        return this.objectCatalog[key] || null;
+    }
+
+    // Vérifier si un objet utilise des textures
+    doesObjectUseTextures(key) {
+        return this.objectCatalog[key]?.useTextures === true;
+    }
+
+    // Obtenir l'ID de modèle pour appliquer les textures
+    getTextureModelId(key) {
+        return this.objectCatalog[key]?.id || null;
+    }
+
+    // Ajouter un placement d'objet dans la scène
     addPlacement(key, position, options = {}) {
         const objectConfig = this.objectCatalog[key];
         if (!objectConfig) {
@@ -434,40 +524,13 @@ class SceneObjectManager {
             useTextures: options.useTextures !== undefined ? options.useTextures : objectConfig.useTextures
         };
 
-        // Ajouter des configurations d'animation si présentes
-        if (options.animation) {
-            placement.animation = {
-                name: options.animation.name || null,
-                play: options.animation.play !== undefined ? options.animation.play : false,
-                loop: options.animation.loop !== undefined ? options.animation.loop : true,
-                clamp: options.animation.clamp !== undefined ? options.animation.clamp : false,
-                timeScale: options.animation.timeScale !== undefined ? options.animation.timeScale : 1.0,
-                onComplete: options.animation.onComplete || null
-            };
-        } else if (objectConfig.animations && options.defaultAnimation) {
-            // Utiliser l'animation par défaut si spécifiée
-            const defaultAnimation = objectConfig.animations[options.defaultAnimation];
-            if (defaultAnimation) {
-                placement.animation = {
-                    name: options.defaultAnimation,
-                    play: options.playDefaultAnimation !== undefined ? options.playDefaultAnimation : false,
-                    loop: defaultAnimation.defaultLoop !== undefined ? defaultAnimation.defaultLoop : true,
-                    clamp: defaultAnimation.defaultClamp !== undefined ? defaultAnimation.defaultClamp : false,
-                    timeScale: defaultAnimation.defaultTimeScale !== undefined ? defaultAnimation.defaultTimeScale : 1.0,
-                    onComplete: options.onAnimationComplete || null
-                };
-            }
-        }
+        // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
             // Attribuer automatiquement la prochaine étape si non spécifiée
-            const requiredStep = options.requiredStep ||
-                objectConfig.defaultPlacement?.requiredStep ||
-                this._getNextStep();
+            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
 
-            const markerId = options.markerId ||
-                this._generateMarkerId(key, requiredStep);
-            const markerText = options.markerText ||
-                this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
+            const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
+            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
 
             Object.assign(placement, {
                 markerId: markerId,
@@ -479,92 +542,13 @@ class SceneObjectManager {
                 markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
                 markerType: options.markerType || objectConfig.interaction.type,
                 outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
-                    (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
-                        objectConfig.defaultPlacement.outlinePulse : true),
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
                 interacted: false
             });
         }
 
         this.placements.push(placement);
         return placement;
-    }
-
-// Ajouter une méthode pour manipuler les animations des objets existants
-    playAnimation(placementIndex, animationName, options = {}) {
-        if (placementIndex < 0 || placementIndex >= this.placements.length) {
-            console.error(`Placement avec index ${placementIndex} non trouvé.`);
-            return false;
-        }
-
-        const placement = this.placements[placementIndex];
-        const objectConfig = this.objectCatalog[placement.objectKey];
-
-        // Vérifier si l'objet a des animations configurées
-        const hasAnimations = objectConfig && objectConfig.animations;
-
-        if (!hasAnimations) {
-            console.warn(`L'objet ${placement.objectKey} n'a pas d'animations configurées.`);
-            return false;
-        }
-
-        // Obtenir les paramètres par défaut de l'animation si elle existe
-        const animationDefaults = objectConfig.animations[animationName] || {};
-
-        // Mettre à jour l'état de l'animation
-        placement.animation = {
-            name: animationName,
-            play: true, // Active la lecture
-            loop: options.loop !== undefined ? options.loop : (animationDefaults.defaultLoop !== undefined ? animationDefaults.defaultLoop : true),
-            clamp: options.clamp !== undefined ? options.clamp : (animationDefaults.defaultClamp !== undefined ? animationDefaults.defaultClamp : false),
-            timeScale: options.timeScale !== undefined ? options.timeScale : (animationDefaults.defaultTimeScale !== undefined ? animationDefaults.defaultTimeScale : 1.0),
-            onComplete: options.onComplete || placement.animation?.onComplete || null
-        };
-
-        console.log(`Animation ${animationName} lancée sur l'objet ${placement.objectKey} à l'index ${placementIndex}`);
-        return true;
-    }
-
-// Ajouter une méthode pour arrêter les animations
-    stopAnimation(placementIndex) {
-        if (placementIndex < 0 || placementIndex >= this.placements.length) {
-            console.error(`Placement avec index ${placementIndex} non trouvé.`);
-            return false;
-        }
-
-        const placement = this.placements[placementIndex];
-
-        // Si l'objet a une animation, mettre à jour son état
-        if (placement.animation) {
-            placement.animation.play = false;
-            console.log(`Animation arrêtée sur l'objet ${placement.objectKey} à l'index ${placementIndex}`);
-        }
-
-        return true;
-    }
-
-// Obtenir des informations sur les animations disponibles pour un objet
-    getAvailableAnimations(objectKey) {
-        const objectConfig = this.objectCatalog[objectKey];
-        if (!objectConfig || !objectConfig.animations) {
-            return [];
-        }
-
-        return Object.keys(objectConfig.animations);
-    }
-    // Récupérer la configuration d'un objet du catalogue
-    getObjectFromCatalog(key) {
-        return this.objectCatalog[key] || null;
-    }
-
-    // Vérifier si un objet utilise des textures
-    doesObjectUseTextures(key) {
-        return this.objectCatalog[key]?.useTextures === true;
-    }
-
-    // Obtenir l'ID de modèle pour appliquer les textures
-    getTextureModelId(key) {
-        return this.objectCatalog[key]?.id || null;
     }
 
     // Appliquer les textures à un objet

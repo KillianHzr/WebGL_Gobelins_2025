@@ -6,6 +6,8 @@ export default function CaptureInterface() {
     const [isVisible, setIsVisible] = useState(false);
     const [isFlashing, setIsFlashing] = useState(false);
     const [showNotification, setShowNotification] = useState(false);
+    const [isButtonHovered, setIsButtonHovered] = useState(false);
+    const [isButtonPressed, setIsButtonPressed] = useState(false);
 
     // Récupérer les états liés à la caméra depuis le store
     const camera = useStore(state => state.camera);
@@ -62,6 +64,7 @@ export default function CaptureInterface() {
     // Gérer le clic sur le bouton de capture
     const handleCaptureClick = () => {
         audioManager.playSound('capture');
+        setIsButtonPressed(true);
 
         // Réinitialiser le zoom au moment où l'effet de flash commence
         if (camera && cameraInitialZoom !== null && currentZoomLevel !== 0) {
@@ -74,6 +77,7 @@ export default function CaptureInterface() {
         setIsFlashing(true);
 
         setTimeout(() => {
+            setIsButtonPressed(false);
             setIsFlashing(false);
 
             if (interaction?.setShowCaptureInterface) {
@@ -149,12 +153,20 @@ export default function CaptureInterface() {
                                 bottom: '-44px',
                                 left: '50%',
                                 transform: 'translateX(-50%)',
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
+                                boxShadow: isButtonHovered ? '0px 0px 12px 6px rgba(255, 255, 255, 0.60)' : '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
                                 backdropFilter: 'blur(2px)',
+                                transition: 'box-shadow 0.3s ease, transform 0.15s ease',
                             }}
                         >
                             <div
                                 onClick={handleCaptureClick}
+                                onMouseDown={() => setIsButtonPressed(true)}
+                                onMouseUp={() => setIsButtonPressed(false)}
+                                onMouseEnter={() => setIsButtonHovered(true)}
+                                onMouseLeave={() => {
+                                    setIsButtonHovered(false);
+                                    setIsButtonPressed(false);
+                                }}
                                 style={{
                                     position: 'absolute',
                                     width: '88px',
@@ -169,9 +181,15 @@ export default function CaptureInterface() {
                                     aspectRatio: 1,
                                     borderRadius: '999px',
                                     border: '1.5px solid #F9FEFF',
-                                    background: 'rgba(249, 254, 255, 0.50)',
+                                    background: isButtonPressed
+                                        ? 'rgba(249, 254, 255, 0.70)'
+                                        : isButtonHovered
+                                            ? 'rgba(249, 254, 255, 0.60)'
+                                            : 'rgba(249, 254, 255, 0.50)',
                                     pointerEvents: 'auto',
                                     cursor: 'pointer',
+                                    transform: isButtonPressed ? 'scale(0.95)' : 'scale(1)',
+                                    transition: 'background 0.3s ease, transform 0.15s ease',
                                 }}
                             >
                                 <div
@@ -189,6 +207,8 @@ export default function CaptureInterface() {
                                         fontStyle: 'normal',
                                         fontWeight: 600,
                                         lineHeight: 'normal',
+                                        textShadow: isButtonHovered ? '0px 0px 4px rgba(255, 255, 255, 0.6)' : 'none',
+                                        transition: 'text-shadow 0.3s ease',
                                     }}
                                 >
                                     Prend la photo

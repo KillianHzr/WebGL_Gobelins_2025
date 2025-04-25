@@ -1,12 +1,13 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
-import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
-import { EventBus } from './EventEmitter';
-import { audioManager } from './AudioManager';
+import {useFrame, useThree} from '@react-three/fiber';
+import {Html} from '@react-three/drei';
+import {EventBus} from './EventEmitter';
+import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
-import { useRayCaster } from "./RayCaster";
-import { MARKER_EVENTS } from './EventEmitter.jsx';
+import {useRayCaster} from "./RayCaster";
+import {MARKER_EVENTS} from './EventEmitter.jsx';
+
 export const ModelMarker = React.memo(function ModelMarker({
                                                                objectRef,         // Référence à l'objet, optionnelle si les enfants sont fournis
                                                                children,          // Enfants à englober (typiquement un mesh)
@@ -52,15 +53,11 @@ export const ModelMarker = React.memo(function ModelMarker({
     const effectiveMarkerType = interactionType || markerType;
 
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
-    const shouldShowMarker = (
-        // Ne pas montrer si l'étape actuelle a déjà été complétée
+    const shouldShowMarker = (// Ne pas montrer si l'étape actuelle a déjà été complétée
         (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
 
         // Conditions standards d'affichage
-        (isHovered || isMarkerHovered) &&
-        showMarkerOnHover &&
-        (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))
-    );
+        (isHovered || isMarkerHovered) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)));
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
@@ -197,30 +194,26 @@ export const ModelMarker = React.memo(function ModelMarker({
         }
     }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep, isMarkerHovered]);
 
-    return (
-        <group ref={groupRef} {...props}>
-            {React.Children.map(children, child => React.cloneElement(child, {
-                ref: objectRef || child.ref
-            }))}
+    return (<group ref={groupRef} {...props}>
+        {React.Children.map(children, child => React.cloneElement(child, {
+            ref: objectRef || child.ref
+        }))}
 
-            {shouldShowMarker && (
-                <EnhancedObjectMarker
-                    objectRef={objectRef || groupRef}
-                    markerType={effectiveMarkerType}
-                    color={markerColor}
-                    scale={markerScale}
-                    text={markerText}
-                    onClick={handleObjectInteraction}
-                    positionOptions={positionOptions}
-                    id={id}
-                    custom={customMarker}
-                    keepVisible={true}
-                    onPointerEnter={handleMarkerPointerEnter}
-                    onPointerLeave={handleMarkerPointerLeave}
-                />
-            )}
-        </group>
-    );
+        {shouldShowMarker && (<EnhancedObjectMarker
+            objectRef={objectRef || groupRef}
+            markerType={effectiveMarkerType}
+            color={markerColor}
+            scale={markerScale}
+            text={markerText}
+            onClick={handleObjectInteraction}
+            positionOptions={positionOptions}
+            id={id}
+            custom={customMarker}
+            keepVisible={true}
+            onPointerEnter={handleMarkerPointerEnter}
+            onPointerLeave={handleMarkerPointerLeave}
+        />)}
+    </group>);
 });
 // Types d'interaction supportés
 export const INTERACTION_TYPES = {
@@ -243,9 +236,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
     const initialPosition = useRef(null);
 
     const {
-        offset = 0.5,
-        preferredAxis = null,
-        forceRecalculate = false
+        offset = 0.5, preferredAxis = null, forceRecalculate = false
     } = options;
 
     const calculateStablePosition = useCallback(() => {
@@ -253,9 +244,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
 
         if (positionCalculated.current && initialPosition.current && !forceRecalculate) {
             return {
-                position: initialPosition.current,
-                point: closestPoint,
-                normal: normalVector
+                position: initialPosition.current, point: closestPoint, normal: normalVector
             };
         }
 
@@ -315,15 +304,12 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
     }, [calculateStablePosition]);
 
     return {
-        position: markerPosition,
-        closestPoint,
-        normal: normalVector,
-        updatePosition: updateMarkerPosition
+        position: markerPosition, closestPoint, normal: normalVector, updatePosition: updateMarkerPosition
     };
 };
 
 // Fonction pour créer une texture de texte
-function createTextCanvas(text, fontSize = 32, fontWeight = 'bold', fontFamily = 'Arial') {
+function createTextCanvas(text, fontSize = 32, fontWeight = 'bold', fontFamily = 'Albert Sans') {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 64;
@@ -382,6 +368,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
     const {camera} = useThree();
     const time = useRef(0);
     const [buttonHovered, setButtonHovered] = useState(false);
+    const [dragOffset, setDragOffset] = useState({x: 0, y: 0});
     const isDraggingRef = useRef(false);
     const startDragPos = useRef({x: 0, y: 0});
     const currentDragPos = useRef({x: 0, y: 0});
@@ -393,9 +380,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
     const longPressStartTime = useRef(0);
 
     const {position: markerPosition, normal: normalVector, updatePosition} = useOptimalMarkerPosition(objectRef, {
-        offset: positionOptions.offsetDistance || 0.5,
-        preferredAxis: positionOptions.preferredAxis,
-        ...positionOptions
+        offset: positionOptions.offsetDistance || 0.5, preferredAxis: positionOptions.preferredAxis, ...positionOptions
     });
 
     const handleMarkerPointerEnter = (e) => {
@@ -428,6 +413,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressStartTime.current = Date.now();
         setIsLongPressing(true);
+        setLongPressFeedback(0); // Réinitialiser la progression au début
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {
@@ -539,11 +525,15 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         startDragPos.current = {x: clientX, y: clientY};
         currentDragPos.current = {...startDragPos.current};
 
+        // Réinitialiser l'offset de drag
+        setDragOffset({x: 0, y: 0});
+
         window.addEventListener('mousemove', handleDragMove);
         window.addEventListener('touchmove', handleDragMove);
         window.addEventListener('mouseup', handleDragEnd);
         window.addEventListener('touchend', handleDragEnd);
     };
+
 
     const handleDragMove = (e) => {
         if (!isDraggingRef.current) return;
@@ -557,8 +547,25 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         const dy = currentDragPos.current.y - startDragPos.current.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        const dragValue = 200;
+        // Mettre à jour l'offset de déplacement visuel (limité à une certaine distance max)
+        const maxOffset = dragValue; // Pixels maximum de déplacement visuel
+        const scale = 1.0; // Facteur d'échelle pour contrôler la sensibilité
+
+        // Calculer l'offset en fonction de la direction du drag
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT) {
+            offsetX = Math.min(Math.abs(dx * scale), maxOffset) * Math.sign(dx);
+        } else if (markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) {
+            offsetY = Math.min(Math.abs(dy * scale), maxOffset) * Math.sign(dy);
+        }
+
+        setDragOffset({x: offsetX, y: offsetY});
+
         let direction = '';
-        const threshold = 50;
+        const threshold = dragValue;
 
         if (distance > threshold) {
             if (Math.abs(dx) > Math.abs(dy)) {
@@ -606,10 +613,14 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
     };
 
+
     const handleDragEnd = () => {
         if (!isDraggingRef.current) return;
 
         isDraggingRef.current = false;
+
+        // Réinitialiser l'offset avec animation
+        setDragOffset({x: 0, y: 0});
 
         window.removeEventListener('mousemove', handleDragMove);
         window.removeEventListener('touchmove', handleDragMove);
@@ -726,9 +737,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         color: 'white',
                         padding: '5px 10px',
                         borderRadius: '4px',
-                        fontFamily: 'Arial, sans-serif',
+                        fontFamily: 'Albert Sans',
                         fontSize: '14px',
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         textAlign: 'center',
                         whiteSpace: 'nowrap',
                         pointerEvents: 'none',
@@ -812,10 +823,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         border: '1.5px solid #F9FEFF',
                         background: 'rgba(249, 254, 255, 0.50)',
                         pointerEvents: 'auto',
-                        cursor: 'pointer',
-                        ...(buttonHovered ? {
-                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
-                            backdropFilter: 'blur(2px)',
+                        cursor: 'pointer', ...(buttonHovered ? {
+                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
                         } : {})
                     }}
                 >
@@ -834,6 +843,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             fontStyle: 'normal',
                             fontWeight: 600,
                             lineHeight: 'normal',
+                            transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
                         }}
                     >
                         {text}
@@ -891,10 +901,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         border: '1.5px solid #F9FEFF',
                         background: 'rgba(249, 254, 255, 0.50)',
                         pointerEvents: 'auto',
-                        cursor: 'pointer',
-                        ...(buttonHovered ? {
-                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
-                            backdropFilter: 'blur(2px)',
+                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
+                        cursor: 'pointer', ...(buttonHovered ? {
+                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
                         } : {})
                     }}
                 >
@@ -919,23 +928,22 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     <div
                         style={{
                             position: 'absolute',
-                            width: '64px',
-                            height: '64px',
+                            width: `${isLongPressing ? (72 + longPressFeedback * 16) : 72}px`, // Commence à 32px et atteint 88px
+                            height: `${isLongPressing ? (72 + longPressFeedback * 16) : 72}px`,
                             display: 'flex',
-                            padding: '8px',
                             flexDirection: 'column',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            gap: '8px',
                             flexShrink: 0,
                             aspectRatio: 1,
                             borderRadius: '999px',
+                            background: 'rgba(249, 254, 255, 0.30)',
                             border: '1px solid #F9FEFF',
-                            background: 'transparent',
+                            transition: isLongPressing ? 'none' : 'all 0.3s ease',
+                            opacity: isLongPressing ? 1 : 0.7,
                             pointerEvents: 'none',
                         }}
-                    >
-                    </div>
+                    />
                 </div>
             </Html>)}
 
@@ -955,6 +963,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         borderRadius: '999px',
                         border: '1.5px solid #F9FEFF',
                         pointerEvents: 'auto',
+                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
+                        transform: isDraggingRef.current ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none',
+                        // transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease-out',
                     }}
                     position={[0, 0, 0.002]}
                     center>
@@ -1049,7 +1060,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             </div>
                         </div>
                     </div>
-                </Html>)}
+                </Html>
+            )}
         </group>
     </>);
 });
