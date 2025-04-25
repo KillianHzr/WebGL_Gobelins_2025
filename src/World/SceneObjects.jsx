@@ -1,15 +1,15 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {useFrame, useThree} from '@react-three/fiber';
 import {useAnimations, useGLTF} from '@react-three/drei';
 import EasyModelMarker from './EasyModelMarker';
 import sceneObjectManager from '../Config/SceneObjectManager';
-import {textureManager} from '../Config/TextureManager';
+import { textureManager } from '../Config/TextureManager';
 import useStore from '../Store/useStore';
-import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
-import * as THREE from 'three';
+import { EventBus } from '../Utils/EventEmitter';
+import MARKER_EVENTS from "../Utils/EventEmitter";
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_SCENE_OBJECTS = true;
+const DEBUG_SCENE_OBJECTS = false;
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -20,7 +20,7 @@ const debugLog = (message, ...args) => {
  * Composant pour afficher un objet statique individuel avec textures
  * Version optimisée pour éviter les problèmes de performance
  */
-export const StaticObject = React.memo(function StaticObject({
+const StaticObject = React.memo(function StaticObject({
                                                           path,
                                                           position,
                                                           rotation,
@@ -45,13 +45,13 @@ export const StaticObject = React.memo(function StaticObject({
     const currentAnimationRef = useRef(null);
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
-    const {scene: modelScene, animations} = useGLTF(path);
+    const { scene: modelScene, animations } = useGLTF(path);
 
     // Cloner le modèle une seule fois avec useMemo
     const model = useMemo(() => modelScene.clone(), [modelScene]);
 
     // Utiliser useAnimations pour gérer les animations
-    const {actions, mixer} = useAnimations(animations, objectRef);
+    const { actions, mixer } = useAnimations(animations, objectRef);
 
     // Référence pour suivre l'état de lecture
     const animationState = useRef({
@@ -66,18 +66,6 @@ export const StaticObject = React.memo(function StaticObject({
     useEffect(() => {
         if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
 
-        console.log(`StaticObject - Actions disponibles pour ${path}:`, Object.keys(actions));
-        console.log(`StaticObject - Animation à jouer: ${animationName}, play: ${playAnimation}`);
-
-        // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
-        if (Object.keys(actions).length > 0 && !animationName) {
-            const firstAnimName = Object.keys(actions)[0];
-            console.log(`Aucune animation spécifiée, utilisation de ${firstAnimName} par défaut`);
-            const action = actions[firstAnimName];
-            action.reset().play();
-            currentAnimationRef.current = action;
-            return;
-        }
         // Si l'animation doit être jouée
         if (playAnimation && animationName) {
             // Si c'est une nouvelle animation ou si l'animation était arrêtée
@@ -167,20 +155,6 @@ export const StaticObject = React.memo(function StaticObject({
         }
     });
 
-    useEffect(() => {
-        if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            console.log(`Animations disponibles pour ${path}:`, animations.map(a => a.name));
-
-            if (playAnimation && animationName) {
-                if (!actions[animationName]) {
-                    console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
-                        Object.keys(actions));
-                } else {
-                    console.log(`Animation "${animationName}" trouvée et sera jouée`);
-                }
-            }
-        }
-    }, [animations, actions, path, playAnimation, animationName]);
     // Appliquer les textures au modèle après le montage - avec optimisations
     useEffect(() => {
         if (!objectRef.current || !useTextures || !textureModelId || !textureManager) return;
@@ -266,9 +240,9 @@ export const StaticObject = React.memo(function StaticObject({
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
  * Version optimisée avec support des animations
  */
-export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
+export const StaticObjects = React.memo(function StaticObjects({ filter = {} }) {
     const [placements, setPlacements] = useState([]);
-    const {scene} = useThree();
+    const { scene } = useThree();
     const lastFilter = useRef(filter);
 
     // Fonction de mise à jour des placements optimisée
@@ -316,7 +290,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
 
                     // Si l'animation n'est pas en boucle, mettre à jour le placement pour indiquer qu'elle est terminée
                     if (!placement.animation.loop) {
-                        const updatedPlacement = {...placement};
+                        const updatedPlacement = { ...placement };
                         updatedPlacement.animation.play = false;
                         sceneObjectManager.updatePlacement(index, updatedPlacement);
 
@@ -329,11 +303,6 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     }
                 }
             } : {};
-            console.log(`Animation pour ${placement.objectKey} :`,
-                placement.animation ? {
-                    play: placement.animation.play,
-                    name: placement.animation.name
-                } : 'Aucune animation');
 
             return (
                 <StaticObject
@@ -364,7 +333,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
  * Composant pour gérer et afficher les objets interactifs dans la scène
  * Version optimisée
  */
-export const InteractiveObjects = React.memo(function InteractiveObjects({filter = {}}) {
+export const InteractiveObjects = React.memo(function InteractiveObjects({ filter = {} }) {
     const [placements, setPlacements] = useState([]);
     const interaction = useStore(state => state.interaction);
     const eventListenerRef = useRef(null);
@@ -534,7 +503,7 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         }
     }, [markerId, options.onInteract]);
 
-    return <EasyModelMarker {...markerProps} onInteract={handleInteract}/>;
+    return <EasyModelMarker {...markerProps} onInteract={handleInteract} />;
 });
 
 /**
@@ -617,8 +586,8 @@ const SceneObjects = React.memo(function SceneObjects({
                                                       }) {
     return (
         <group name="scene-objects">
-            <StaticObjects filter={staticFilter}/>
-            <InteractiveObjects filter={interactiveFilter}/>
+            <StaticObjects filter={staticFilter} />
+            <InteractiveObjects filter={interactiveFilter} />
         </group>
     );
 });

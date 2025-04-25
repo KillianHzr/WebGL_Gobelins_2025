@@ -15,7 +15,7 @@ import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
-import SceneObjects, {StaticObject} from './World/SceneObjects';
+import SceneObjects from './World/SceneObjects';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EXPERIENCE = false;
