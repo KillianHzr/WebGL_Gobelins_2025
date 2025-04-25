@@ -821,7 +821,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         style={{
                             width: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
                             height: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
-                            opacity: isLongPressing ? 1 : 0.7
+                            opacity: 1
                         }}
                     />
                 </div>

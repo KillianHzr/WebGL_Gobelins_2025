@@ -2,7 +2,9 @@
 @use 'variables';
 @use 'base';
 @use 'font';
+@use 'components/sharedComponents';
 @use 'components/loading';
 @use 'components/camera';
 @use 'components/scanner';
 @use 'components/interface';
+@use 'components/marker';

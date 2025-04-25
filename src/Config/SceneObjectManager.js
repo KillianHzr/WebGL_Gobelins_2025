@@ -76,7 +76,7 @@ class SceneObjectManager {
                     color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "camera"
                 },
                 defaultPlacement: {
                     position: [1.833, 0, -11.911],
