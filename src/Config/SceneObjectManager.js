@@ -32,7 +32,7 @@ class SceneObjectManager {
         this.objectCatalog = {
             // Scene 01 - Starting point
             'Ground': {
-                id: 'Bush',
+                id: 'Ground',
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
@@ -133,7 +133,7 @@ class SceneObjectManager {
             // Scene 05 - River crossing with stones
             'JumpRock1': {
                 id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
+                path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: false,
@@ -175,7 +175,7 @@ class SceneObjectManager {
             },
             'JumpRock3': {
                 id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
+                path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: false,
@@ -241,19 +241,19 @@ class SceneObjectManager {
             },
             'BigRock': {
                 id: 'BigRock',
-                path: '/models/primary/Vison.glb',
+                path: '/models/rock/BigRock.glb',
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
-                animations: {
-                    // Animation "move" qui sera jouée automatiquement
-                    'Action.001.001': {
-                        autoplay: true,            // Cette animation démarrera automatiquement
-                        defaultLoop: true,         // Par défaut en boucle
-                        defaultClamp: false,       // Ne pas bloquer à la dernière frame
-                        defaultTimeScale: 1.0      // Vitesse normale
-                    },
-                },
+                // animations: {
+                //     // Animation "move" qui sera jouée automatiquement
+                //     'Action.001.001': {
+                //         autoplay: true,            // Cette animation démarrera automatiquement
+                //         defaultLoop: true,         // Par défaut en boucle
+                //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
+                //         defaultTimeScale: 1.0      // Vitesse normale
+                //     },
+                // },
                 defaultPlacements: [{
                     position: [-41.72699737548828, 0.059255074709653854, -115.571],
                     rotation: [0, 40.81, 0]
@@ -276,7 +276,7 @@ class SceneObjectManager {
                 id: 'Vison',
                 path: '/models/primary/Vison.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 animations: {
                     // Tester plusieurs variations possibles du nom de l'animation
@@ -313,8 +313,8 @@ class SceneObjectManager {
                     }
                 },
                 defaultPlacements: [{
-                    position: [0, 0, 0],
-                    rotation: [0, -121.79, 0]
+                    position: [51.907, 0.0, -134.251],
+                    rotation: [0, -121.79, 0],
                 }]
             },
 
@@ -323,7 +323,7 @@ class SceneObjectManager {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
