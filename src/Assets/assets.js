@@ -20,8 +20,16 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },
+    {
+        name: 'WaterPlane',
+        type: 'gltf',
+        path: '/models/forest/river/River.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     }
-    ];
+];
 
 // Export de la liste d'assets de base
 export default baseAssets;
