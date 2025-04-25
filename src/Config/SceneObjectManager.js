@@ -35,7 +35,7 @@ class SceneObjectManager {
                 id: 'Bush',
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
@@ -487,7 +487,14 @@ class SceneObjectManager {
 
         // Ajouter les propriétés d'interaction si l'objet est interactif
         if (config.interactive) {
-            // [Code existant pour les objets interactifs]
+            baseConfig.interaction = {
+                type: config.interaction?.type || INTERACTION_TYPES.CLICK,
+                text: config.interaction?.text || "Interagir",
+                color: config.interaction?.color || "#44ff44",
+                offset: config.interaction?.offset || 1.0,
+                axis: config.interaction?.axis || "y",
+                interfaceToShow: config.interaction?.interfaceToShow || null
+            };
         } else if (config.defaultPlacements) {
             // Ajouter les placements par défaut pour les objets statiques
             baseConfig.defaultPlacements = config.defaultPlacements;
@@ -592,7 +599,25 @@ class SceneObjectManager {
 
         // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
-            // [code existant pour les objets interactifs]
+            // Attribuer automatiquement la prochaine étape si non spécifiée
+            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
+
+            const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
+            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
+
+            Object.assign(placement, {
+                markerId: markerId,
+                requiredStep: requiredStep,
+                onInteract: options.onInteract || null,
+                markerText: markerText,
+                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction.color,
+                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction.offset,
+                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
+                markerType: options.markerType || objectConfig.interaction.type,
+                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
+                interacted: false
+            });
         }
 
         this.placements.push(placement);
