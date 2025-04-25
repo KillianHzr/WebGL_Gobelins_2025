@@ -45,7 +45,7 @@ class SceneObjectManager {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -68,7 +68,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: true,
+                interactive: false,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_UP,
@@ -112,7 +112,7 @@ class SceneObjectManager {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.184, 0.184, 0.184],
-                interactive: true,
+                interactive: false,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -135,7 +135,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -156,7 +156,7 @@ class SceneObjectManager {
                 id: 'RockWater2',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -177,7 +177,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -198,7 +198,7 @@ class SceneObjectManager {
                 id: 'RockWater2',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -221,7 +221,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/Obstacle2Tree.glb',
                 scale: [1, 1, 1],
-                interactive: true,
+                interactive: false,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_DOWN,
@@ -241,10 +241,19 @@ class SceneObjectManager {
             },
             'BigRock': {
                 id: 'BigRock',
-                path: '/models/rock/Obstacle2BigRocks.glb',
+                path: '/models/primary/Vison.glb',
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
+                animations: {
+                    // Animation "move" qui sera jouée automatiquement
+                    'Action.001.001': {
+                        autoplay: true,            // Cette animation démarrera automatiquement
+                        defaultLoop: true,         // Par défaut en boucle
+                        defaultClamp: false,       // Ne pas bloquer à la dernière frame
+                        defaultTimeScale: 1.0      // Vitesse normale
+                    },
+                },
                 defaultPlacements: [{
                     position: [-41.72699737548828, 0.059255074709653854, -115.571],
                     rotation: [0, 40.81, 0]
@@ -267,22 +276,46 @@ class SceneObjectManager {
                 id: 'Vison',
                 path: '/models/primary/Vison.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: true,
+                interactive: false,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
-                    offset: -1.5,
-                    axis: "y",
-                    interfaceToShow: "camera"
+                animations: {
+                    // Tester plusieurs variations possibles du nom de l'animation
+                    'action': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                    'Action': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                    'Action.001': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                    'Action.001.001': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                    // Ajouter cette variante au cas où
+                    '*': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    }
                 },
-                defaultPlacement: {
-                    position: [51.907, 0.0, -134.251],
-                    rotation: [0, -121.79, 0],
-                    outlinePulse: false,
-                    requiredStep: 'secondStop'
-                }
+                defaultPlacements: [{
+                    position: [0, 0, 0],
+                    rotation: [0, -121.79, 0]
+                }]
             },
 
             // Scene 09 & 10 - Final revelation and call to action
@@ -290,7 +323,7 @@ class SceneObjectManager {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: true,
+                interactive: false,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -385,9 +418,18 @@ class SceneObjectManager {
             } else if (!config.interactive && config.defaultPlacements) {
                 // Placer plusieurs instances d'objets statiques
                 config.defaultPlacements.forEach((placement, index) => {
-                    this.addPlacement(key, placement.position, {
-                        rotation: placement.rotation || [0, 0, 0], scale: placement.scale || config.scale
-                    });
+                    const placementOptions = {
+                        rotation: placement.rotation || [0, 0, 0],
+                        scale: placement.scale || config.scale,
+                        quaternion: placement.quaternion
+                    };
+
+                    // Ajouter l'animation par défaut si disponible
+                    if (config.defaultAnimation) {
+                        placementOptions.animation = {...config.defaultAnimation};
+                    }
+
+                    this.addPlacement(key, placement.position, placementOptions);
                 });
             }
         });
@@ -445,22 +487,33 @@ class SceneObjectManager {
 
         // Ajouter les propriétés d'interaction si l'objet est interactif
         if (config.interactive) {
-            baseConfig.interaction = {
-                type: config.interaction?.type || INTERACTION_TYPES.CLICK,
-                text: config.interaction?.text || "Interagir",
-                color: config.interaction?.color || "#44ff44",
-                offset: config.interaction?.offset || 1.0,
-                axis: config.interaction?.axis || "y",
-                interfaceToShow: config.interaction?.interfaceToShow || null
-            };
-
-            // Ajouter le placement par défaut si fourni
-            if (config.defaultPlacement) {
-                baseConfig.defaultPlacement = config.defaultPlacement;
-            }
+            // [Code existant pour les objets interactifs]
         } else if (config.defaultPlacements) {
             // Ajouter les placements par défaut pour les objets statiques
             baseConfig.defaultPlacements = config.defaultPlacements;
+        }
+
+        // Ajouter le support des animations
+        if (config.animations) {
+            baseConfig.animations = config.animations;
+
+            // Vérifier si une animation est marquée pour démarrer automatiquement
+            const autoplayAnimation = Object.entries(config.animations).find(([name, animConfig]) =>
+                animConfig.autoplay === true
+            );
+
+            if (autoplayAnimation) {
+                const [animName, animConfig] = autoplayAnimation;
+
+                // Configurer l'animation par défaut
+                baseConfig.defaultAnimation = {
+                    play: true,
+                    name: animName,
+                    loop: animConfig.defaultLoop !== undefined ? animConfig.defaultLoop : true,
+                    clamp: animConfig.defaultClamp !== undefined ? animConfig.defaultClamp : false,
+                    timeScale: animConfig.defaultTimeScale !== undefined ? animConfig.defaultTimeScale : 1.0
+                };
+            }
         }
 
         this.objectCatalog[key] = baseConfig;
@@ -525,27 +578,21 @@ class SceneObjectManager {
             useTextures: options.useTextures !== undefined ? options.useTextures : objectConfig.useTextures
         };
 
+        // Gérer les quaternions si fournis
+        if (options.quaternion) {
+            placement.quaternion = options.quaternion;
+        } else if (objectConfig.defaultPlacement?.quaternion) {
+            placement.quaternion = objectConfig.defaultPlacement.quaternion;
+        }
+
+        // Ajouter l'animation par défaut si disponible dans l'objet
+        if (options.animation || objectConfig.defaultAnimation) {
+            placement.animation = options.animation || {...objectConfig.defaultAnimation};
+        }
+
         // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
-            // Attribuer automatiquement la prochaine étape si non spécifiée
-            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
-
-            const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
-            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
-
-            Object.assign(placement, {
-                markerId: markerId,
-                requiredStep: requiredStep,
-                onInteract: options.onInteract || null,
-                markerText: markerText,
-                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction.color,
-                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction.offset,
-                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
-                markerType: options.markerType || objectConfig.interaction.type,
-                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
-                interacted: false
-            });
+            // [code existant pour les objets interactifs]
         }
 
         this.placements.push(placement);
@@ -716,6 +763,16 @@ class SceneObjectManager {
                 requiredStep: step
             });
         });
+    }
+
+
+    getAvailableAnimations(key) {
+        const objectConfig = this.objectCatalog[key];
+        if (!objectConfig || !objectConfig.animations) {
+            return [];
+        }
+
+        return Object.keys(objectConfig.animations);
     }
 
     // Générer la liste des assets nécessaires au format attendu par l'AssetManager
