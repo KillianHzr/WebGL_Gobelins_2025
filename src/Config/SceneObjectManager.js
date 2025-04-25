@@ -276,7 +276,7 @@ class SceneObjectManager {
                 id: 'Vison',
                 path: '/models/primary/Vison.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: true,
+                interactive: false,
                 useTextures: true,
                 animations: {
                     // Tester plusieurs variations possibles du nom de l'animation
