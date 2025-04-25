@@ -137,28 +137,16 @@ export default function CaptureInterface() {
                         </div>
                         {/* Bouton de capture repositionné dans le viewport */}
                         <div
-                            style={{
-                                position: 'absolute',
-                                width: '88px',
-                                height: '88px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                                aspectRatio: 1,
-                                borderRadius: '999px',
-                                border: '1.5px solid #F9FEFF',
-                                pointerEvents: 'auto',
-                                bottom: '-44px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                boxShadow: isButtonHovered ? '0px 0px 12px 6px rgba(255, 255, 255, 0.60)' : '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
-                                backdropFilter: 'blur(2px)',
-                                transition: 'box-shadow 0.3s ease, transform 0.15s ease',
-                            }}
+                            className={`camera-interface-capture-button ${isButtonHovered ? 'camera-interface-capture-button-hover' : ''}`}
                         >
                             <div
+                                className={`camera-interface-capture-button-inner ${
+                                    isButtonPressed ? 'camera-interface-capture-button-inner-pressed' : ''
+                                } ${
+                                    isButtonHovered
+                                        ? 'camera-interface-capture-button-inner-hovered'
+                                        : 'camera-interface-capture-button-inner-default'
+                                }`}
                                 onClick={handleCaptureClick}
                                 onMouseDown={() => setIsButtonPressed(true)}
                                 onMouseUp={() => setIsButtonPressed(false)}
@@ -167,49 +155,9 @@ export default function CaptureInterface() {
                                     setIsButtonHovered(false);
                                     setIsButtonPressed(false);
                                 }}
-                                style={{
-                                    position: 'absolute',
-                                    width: '88px',
-                                    height: '88px',
-                                    display: 'flex',
-                                    padding: '8px',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    flexShrink: 0,
-                                    aspectRatio: 1,
-                                    borderRadius: '999px',
-                                    border: '1.5px solid #F9FEFF',
-                                    background: isButtonPressed
-                                        ? 'rgba(249, 254, 255, 0.70)'
-                                        : isButtonHovered
-                                            ? 'rgba(249, 254, 255, 0.60)'
-                                            : 'rgba(249, 254, 255, 0.50)',
-                                    pointerEvents: 'auto',
-                                    cursor: 'pointer',
-                                    transform: isButtonPressed ? 'scale(0.95)' : 'scale(1)',
-                                    transition: 'background 0.3s ease, transform 0.15s ease',
-                                }}
                             >
                                 <div
-                                    style={{
-                                        width: '100%',
-                                        maxWidth: '56px',
-                                        height: '100%',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        color: '#F9FEFF',
-                                        textAlign: 'center',
-                                        fontFamily: 'Albert Sans',
-                                        fontSize: '12px',
-                                        fontStyle: 'normal',
-                                        fontWeight: 600,
-                                        lineHeight: 'normal',
-                                        textShadow: isButtonHovered ? '0px 0px 4px rgba(255, 255, 255, 0.6)' : 'none',
-                                        transition: 'text-shadow 0.3s ease',
-                                    }}
+                                    className="camera-interface-capture-button-inner-text"
                                 >
                                     Prend la photo
                                 </div>

@@ -7,12 +7,15 @@ export default function ScannerInterface() {
     const [isScanning, setIsScanning] = useState(false);
     const [scanProgress, setScanProgress] = useState(0);
     const [showNotification, setShowNotification] = useState(false);
-    const [pulseSize, setPulseSize] = useState(0); // For the pulsation effect
+    const [pulseSize, setPulseSize] = useState(0);
+    const [progressSize, setProgressSize] = useState(0);
+    // Nouvel état pour le hover
+    const [isButtonHovered, setIsButtonHovered] = useState(false);
     const scanLineRef = useRef(null);
     const interaction = useStore(state => state.interaction);
     const scanTimerRef = useRef(null);
     const scanStartTimeRef = useRef(null);
-    const scanSoundIdRef = useRef(null); // Pour stocker l'ID du son de démarrage
+    const scanSoundIdRef = useRef(null);
     const scanDuration = 7000; // 7 seconds scan time
 
     // Monitor state changes to determine when to display the interface
@@ -31,11 +34,10 @@ export default function ScannerInterface() {
     // Create pulsation effect that syncs with scan line
     useEffect(() => {
         if (isScanning) {
-            // Use the same timer as scan progress to sync the pulsation
-            // The pulsation will be updated in the scan progress timer
-            // No separate timer needed for pulsation
+            // La pulsation sera mise à jour dans le timer du scan progress
         } else {
             setPulseSize(0);
+            setProgressSize(0); // Réinitialiser la taille de progression
         }
 
         return () => {
@@ -81,6 +83,7 @@ export default function ScannerInterface() {
         setIsScanning(true);
         setScanProgress(0);
         setPulseSize(0);
+        setProgressSize(0); // Réinitialiser la taille de progression
         scanStartTimeRef.current = Date.now();
 
         // Create interval to update progress and sync pulsation
@@ -89,11 +92,14 @@ export default function ScannerInterface() {
             const progress = Math.min((elapsed / scanDuration) * 100, 100);
             setScanProgress(progress);
 
+            // Mettre à jour la taille de progression (similaire à l'appui long)
+            setProgressSize(progress);
+
             // Update pulse size based on scan line position
             // We use a cosine wave to match the up/down movement of scan line
             // Map progress 0-100 to pulse position for one full oscillation
             const pulsePosition = (elapsed % 2000) / 2000; // 0 to 1 every 2 seconds (matches scan line)
-            setPulseSize(pulsePosition * 100);
+            setPulseSize(Math.sin(pulsePosition * Math.PI * 2) * 0.1 + 1); // Similaire à l'animation du long press
 
             if (progress >= 100) {
                 completeScan();
@@ -118,6 +124,7 @@ export default function ScannerInterface() {
         setIsScanning(false);
         setScanProgress(0);
         setPulseSize(0);
+        setProgressSize(0); // Réinitialiser la taille de progression
     };
 
     // Complete the scanning process successfully
@@ -136,6 +143,7 @@ export default function ScannerInterface() {
         setIsScanning(false);
         setScanProgress(0);
         setPulseSize(0);
+        setProgressSize(0); // Réinitialiser la taille de progression
 
         audioManager.playSound('scan-complete');
 
@@ -167,32 +175,39 @@ export default function ScannerInterface() {
         }
     };
 
-    // Calculate pulsating size - synced with scan line
-    const getPulsatingSize = () => {
-        // Min is 72px (quand la barre est en bas)
-        // Max is 88px (quand la barre est en haut)
-        // Il ne faut jamais descendre en dessous de 72px
+    // Gérer les événements de hover sur le bouton
+    const handleButtonMouseEnter = () => {
+        setIsButtonHovered(true);
+    };
 
-        // On utilise une fonction cosinus modifiée:
-        // cosinus varie de -1 à +1
-        // on ajoute 1 pour avoir une variation de 0 à 2
-        // on divise par 2 pour avoir une variation de 0 à 1
-        // on multiplie par la différence (16px)
-        // on ajoute la taille minimum (72px)
+    const handleButtonMouseLeave = () => {
+        setIsButtonHovered(false);
+    };
 
-        const minSize = 72; // taille minimale
-        const maxSize = 88; // taille maximale
-        const range = maxSize - minSize; // différence (16px)
+    // Appliquer les styles de pulsation comme dans le LONG_PRESS
+    const getButtonStyle = () => {
+        if (!isScanning) {
+            return {
+                width: '72px',
+                height: '72px'
+            };
+        }
 
-        // Transforme pulseSize (0-100) pour suivre le mouvement de la barre:
-        // 0 ou 100 = barre en haut = taille max
-        // 50 = barre en bas = taille min
-        const normalizedCos = (1 + Math.cos(pulseSize * Math.PI * 2 / 100)) / 2;
+        // Calculer la taille de la progression (comme pour le long press)
+        // 72px de base, puis croissance jusqu'à 88px (16px de plus) en fonction de la progression
+        const baseSize = 72;
+        const maxGrowth = 16;
+        const progressGrowth = (progressSize / 100) * maxGrowth;
 
-        // Calcule la taille entre min et max (sans jamais descendre sous min)
-        const size = minSize + (normalizedCos * range);
+        // Appliquer la pulsation en plus de la croissance due à la progression
+        const width = baseSize + progressGrowth;
+        const height = baseSize + progressGrowth;
 
-        return `${size}px`;
+        return {
+            width: `${width}px`,
+            height: `${height}px`,
+            borderColor: '#F9FEFF'
+        };
     };
 
     if (!isVisible && !showNotification) return null;
@@ -225,88 +240,30 @@ export default function ScannerInterface() {
 
                         {/* Scan button */}
                         <div
-                            style={{
-                                position: 'absolute',
-                                width: '88px',
-                                height: '88px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                flexShrink: 0,
-                                aspectRatio: 1,
-                                borderRadius: '999px',
-                                border: '1.5px solid #F9FEFF',
-                                pointerEvents: 'auto',
-                                bottom: '-44px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
-                                backdropFilter: 'blur(2px)',
-                            }}
+                            className={`scanner-interface-scan-button ${isButtonHovered ? 'scanner-interface-scan-button-hover' : ''}`}
                         >
                             <div
+                                className={`scanner-interface-scan-button-inner ${
+                                    isButtonHovered
+                                        ? 'scanner-interface-scan-button-inner-hovered'
+                                        : 'scanner-interface-scan-button-inner-default'
+                                }`}
                                 onMouseDown={handleScanButtonDown}
                                 onMouseUp={handleScanButtonUp}
-                                onMouseLeave={handleScanButtonUp}
+                                onMouseLeave={() => {
+                                    handleButtonMouseLeave();
+                                    handleScanButtonUp();
+                                }}
+                                onMouseEnter={handleButtonMouseEnter}
                                 onTouchStart={handleScanButtonDown}
                                 onTouchEnd={handleScanButtonUp}
-                                style={{
-                                    position: 'absolute',
-                                    width: '88px',
-                                    height: '88px',
-                                    display: 'flex',
-                                    padding: '8px',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    flexShrink: 0,
-                                    aspectRatio: 1,
-                                    borderRadius: '999px',
-                                    border: '1.5px solid #F9FEFF',
-                                    background: 'rgba(249, 254, 255, 0.50)',
-                                    pointerEvents: 'auto',
-                                    cursor: 'pointer',
-                                }}
                             >
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        maxWidth: '56px',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        color: '#F9FEFF',
-                                        textAlign: 'center',
-                                        fontFamily: 'Albert Sans',
-                                        fontSize: '12px',
-                                        fontStyle: 'normal',
-                                        fontWeight: 600,
-                                        lineHeight: 'normal',
-                                    }}
-                                >
+                                <div className="scanner-interface-scan-button-inner-text">
                                     Scan les traces
                                 </div>
                                 <div
-                                    style={{
-                                        position: 'absolute',
-                                        width: isScanning ? (72 + scanProgress * 0.01 * 16) : '72px',
-                                        height: isScanning ? (72 + scanProgress * 0.01 * 16) : '72px',
-                                        display: 'flex',
-                                        padding: '8px',
-                                        flexDirection: 'column',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        flexShrink: 0,
-                                        aspectRatio: 1,
-                                        borderRadius: '999px',
-                                        border: '1px solid #F9FEFF',
-                                        background: 'transparent',
-                                        pointerEvents: 'none',
-                                        transition: 'width 0.2s ease-in-out, height 0.2s ease-in-out',
-                                    }}
+                                    className="scanner-interface-scan-button-inner-progress"
+                                    style={getButtonStyle()}
                                 >
                                 </div>
                             </div>

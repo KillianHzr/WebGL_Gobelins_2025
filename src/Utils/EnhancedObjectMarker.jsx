@@ -454,7 +454,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         window.removeEventListener('mousemove', handleLongPressMove);
         window.removeEventListener('touchmove', handleLongPressMove);
     };
-
     const handleLongPressMove = (e) => {
         if (!isLongPressing) return;
 
@@ -600,8 +599,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
                 if (onClick) {
                     onClick({
-                        type: markerType,
-                        direction, distance
+                        type: markerType, direction, distance
                     });
                 }
 
@@ -627,6 +625,23 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         window.removeEventListener('mouseup', handleDragEnd);
         window.removeEventListener('touchend', handleDragEnd);
     };
+
+    useEffect(() => {
+        return () => {
+            if (longPressTimeoutRef.current) {
+                clearTimeout(longPressTimeoutRef.current);
+            }
+            window.removeEventListener('mouseup', handleLongPressCancel);
+            window.removeEventListener('touchend', handleLongPressCancel);
+            window.removeEventListener('mousemove', handleLongPressMove);
+            window.removeEventListener('touchmove', handleLongPressMove);
+            window.removeEventListener('mousemove', handleDragMove);
+            window.removeEventListener('touchmove', handleDragMove);
+            window.removeEventListener('mouseup', handleDragEnd);
+            window.removeEventListener('touchend', handleDragEnd);
+        };
+    }, []);
+
 
     useEffect(() => {
         return () => {
@@ -728,25 +743,8 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
                 {/* Texte en HTML pour toujours rester correctement orienté */}
                 {showText && (<Html
-                    position={[0, 0.4, 0.05]} /* Position au-dessus avec léger décalage en Z */
+                    position={[0, 0.4, 0.05]}
                     className="marker-text"
-                    style={{
-                        opacity: fadeIn ? 1 : 0,
-                        transition: 'opacity 0.3s',
-                        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '5px 10px',
-                        borderRadius: '4px',
-                        fontFamily: 'Albert Sans',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        textAlign: 'center',
-                        whiteSpace: 'nowrap',
-                        pointerEvents: 'none',
-                        userSelect: 'none',
-                        width: 'auto',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)', /* Ombre pour lisibilité */
-                    }}
                     center
                     fullscreen={false}
                     distanceFactor={10}
@@ -770,23 +768,12 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             scale={fadeIn ? [scale, scale, scale] : [0.01, 0.01, 0.01]}
         >
             {markerType === INTERACTION_TYPES.CLICK && (<Html
-                style={{
-                    position: 'absolute',
-                    width: '88px',
-                    height: '88px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    flexShrink: 0,
-                    aspectRatio: 1,
-                    borderRadius: '999px',
-                    border: '1.5px solid #F9FEFF',
-                    pointerEvents: 'auto',
-                }}
+                className="marker-button"
                 position={[0, 0, 0.002]}
-                center>
+                center
+            >
                 <div
+                    className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
                     onMouseEnter={(e) => {
                         console.log('Button hover enter');
                         stopAllPropagation(e);
@@ -807,68 +794,20 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         stopAllPropagation(e);
                         handleMarkerClick(e);
                     }}
-                    style={{
-                        position: 'absolute',
-                        width: '88px',
-                        height: '88px',
-                        display: 'flex',
-                        padding: '8px',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '8px',
-                        flexShrink: 0,
-                        aspectRatio: 1,
-                        borderRadius: '999px',
-                        border: '1.5px solid #F9FEFF',
-                        background: 'rgba(249, 254, 255, 0.50)',
-                        pointerEvents: 'auto',
-                        cursor: 'pointer', ...(buttonHovered ? {
-                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
-                        } : {})
-                    }}
                 >
-                    <div
-                        style={{
-                            width: '100%',
-                            maxWidth: '56px',
-                            height: '100%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: '#F9FEFF',
-                            textAlign: 'center',
-                            fontFamily: 'Albert Sans',
-                            fontSize: '12px',
-                            fontStyle: 'normal',
-                            fontWeight: 600,
-                            lineHeight: 'normal',
-                            transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
-                        }}
-                    >
+                    <div className="marker-button-inner-text">
                         {text}
                     </div>
                 </div>
             </Html>)}
 
             {markerType === INTERACTION_TYPES.LONG_PRESS && (<Html
-                style={{
-                    position: 'absolute',
-                    width: '88px',
-                    height: '88px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    flexShrink: 0,
-                    aspectRatio: 1,
-                    borderRadius: '999px',
-                    border: '1.5px solid #F9FEFF',
-                    pointerEvents: 'auto',
-                }}
+                className="marker-button"
                 position={[0, 0, 0.002]}
-                center>
+                center
+            >
                 <div
+                    className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
                     onMouseDown={handleLongPressStart}
                     onMouseUp={handleLongPressCancel}
                     onTouchStart={handleLongPressStart}
@@ -885,63 +824,16 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         setButtonHovered(false);
                         if (onPointerLeave) onPointerLeave(e);
                     }}
-                    style={{
-                        position: 'absolute',
-                        width: '88px',
-                        height: '88px',
-                        display: 'flex',
-                        padding: '8px',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '8px',
-                        flexShrink: 0,
-                        aspectRatio: 1,
-                        borderRadius: '999px',
-                        border: '1.5px solid #F9FEFF',
-                        background: 'rgba(249, 254, 255, 0.50)',
-                        pointerEvents: 'auto',
-                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
-                        cursor: 'pointer', ...(buttonHovered ? {
-                            boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)', backdropFilter: 'blur(2px)',
-                        } : {})
-                    }}
                 >
-                    <div
-                        style={{
-                            width: '100%',
-                            maxWidth: '56px',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            color: '#F9FEFF',
-                            textAlign: 'center',
-                            fontFamily: 'Albert Sans',
-                            fontSize: '12px',
-                            fontStyle: 'normal',
-                            fontWeight: 600,
-                            lineHeight: 'normal',
-                        }}
-                    >
+                    <div className="marker-button-inner-text">
                         {text}
                     </div>
                     <div
+                        className="marker-button-inner-progress"
                         style={{
-                            position: 'absolute',
-                            width: `${isLongPressing ? (72 + longPressFeedback * 16) : 72}px`, // Commence à 32px et atteint 88px
-                            height: `${isLongPressing ? (72 + longPressFeedback * 16) : 72}px`,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            flexShrink: 0,
-                            aspectRatio: 1,
-                            borderRadius: '999px',
-                            background: 'rgba(249, 254, 255, 0.30)',
-                            border: '1px solid #F9FEFF',
-                            transition: isLongPressing ? 'none' : 'all 0.3s ease',
-                            opacity: isLongPressing ? 1 : 0.7,
-                            pointerEvents: 'none',
+                            width: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
+                            height: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
+                            opacity: 1
                         }}
                     />
                 </div>
@@ -950,26 +842,15 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             {/* Flèches directionnelles pour les drags */}
             {(markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT || markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) && (
                 <Html
-                    style={{
-                        position: 'absolute',
-                        width: '80px',
-                        height: '120px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        flexShrink: 0,
-                        aspectRatio: 1,
-                        borderRadius: '999px',
-                        border: '1.5px solid #F9FEFF',
-                        pointerEvents: 'auto',
-                        transition: 'box-shadow 0.3s ease, backdrop-filter 0.3s ease',
-                        transform: isDraggingRef.current ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none',
-                        // transition: isDraggingRef.current ? 'none' : 'transform 0.3s ease-out',
-                    }}
+                    className="marker-drag"
                     position={[0, 0, 0.002]}
-                    center>
+                    center
+                    style={{
+                        transform: isDraggingRef.current ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : 'none'
+                    }}
+                >
                     <div
+                        className={`marker-drag-inner ${buttonHovered ? 'marker-drag-inner-hovered' : ''} ${isDraggingRef.current ? 'marker-drag-inner-dragging' : ''}`}
                         onMouseDown={handleDragStart}
                         onTouchStart={handleDragStart}
                         onMouseEnter={(e) => {
@@ -988,80 +869,31 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                 onPointerLeave(e);
                             }
                         }}
-                        style={{
-                            position: 'absolute',
-                            width: '80px',
-                            height: '120px',
-                            display: 'flex',
-                            padding: '8px',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '8px',
-                            flexShrink: 0,
-                            aspectRatio: 1,
-                            borderRadius: '999px',
-                            border: '1.5px solid #F9FEFF',
-                            background: 'rgba(249, 254, 255, 0.50)',
-                            pointerEvents: 'auto',
-                            cursor: isDraggingRef.current ? 'grabbing' : 'grab',
-                            ...(buttonHovered ? {
-                                boxShadow: '0px 0px 8px 4px rgba(255, 255, 255, 0.50)',
-                                backdropFilter: 'blur(2px)',
-                            } : {})
-                        }}
                     >
-                        <div
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '8px'
-                            }}
-                        >
-                            <div style={{
-                                width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center'
-                            }}>
+                        <div className="marker-drag-inner-content">
+                            <div className="marker-drag-inner-icon">
                                 <svg
                                     style={{
-                                        transform: markerType === INTERACTION_TYPES.DRAG_LEFT ? 'rotate(-180deg)' :
-                                            markerType === INTERACTION_TYPES.DRAG_RIGHT ? 'rotate(0deg)' :
-                                                markerType === INTERACTION_TYPES.DRAG_UP ? 'rotate(-90deg)' :
-                                                    'rotate(90deg)'
+                                        transform: markerType === INTERACTION_TYPES.DRAG_LEFT ? 'rotate(-180deg)' : markerType === INTERACTION_TYPES.DRAG_RIGHT ? 'rotate(0deg)' : markerType === INTERACTION_TYPES.DRAG_UP ? 'rotate(-90deg)' : 'rotate(90deg)'
                                     }}
-                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none">
-                                    <path d="M12 2L22 12L12 22" stroke="#F9FEFF" strokeWidth="2" strokeLinecap="round"
-                                          strokeLinejoin="round"/>
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                >
+                                    <path d="M12 2L22 12L12 22" stroke="#F9FEFF" strokeWidth="2"
+                                          strokeLinecap="round" strokeLinejoin="round"/>
                                     <path d="M2 12L22 12" stroke="#F9FEFF" strokeWidth="2" strokeLinecap="round"
                                           strokeLinejoin="round"/>
                                 </svg>
                             </div>
-                            <div
-                                style={{
-                                    width: '100%',
-                                    maxWidth: '56px',
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    color: '#F9FEFF',
-                                    textAlign: 'center',
-                                    fontFamily: 'Albert Sans',
-                                    fontSize: '12px',
-                                    fontStyle: 'normal',
-                                    fontWeight: 600,
-                                    lineHeight: 'normal',
-                                }}
-                            >
+                            <div className="marker-drag-inner-text">
                                 {text}
                             </div>
                         </div>
                     </div>
-                </Html>
-            )}
+                </Html>)}
         </group>
     </>);
 });

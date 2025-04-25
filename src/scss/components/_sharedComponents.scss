@@ -1,0 +1,166 @@
+@use '../variables' as v;
+@use 'sass:map';
+
+// Styles partagés pour tous les éléments d'interface
+// Ce fichier définit les styles communs pour les boutons, marqueurs et autres éléments interactifs
+
+// Bouton circulaire standard
+%circular-button {
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border: 1.5px solid #F9FEFF;
+    pointer-events: auto;
+    box-shadow: 0px 0px 8px 4px rgba(255, 255, 255, 0.50);
+    backdrop-filter: blur(2px);
+    transition: box-shadow 0.3s ease, transform 0.15s ease;
+
+    &-hover, &:hover {
+        box-shadow: 0px 0px 12px 6px rgba(255, 255, 255, 0.60);
+    }
+}
+
+// Contenu intérieur du bouton
+%button-inner {
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    display: flex;
+    padding: 8px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border: 1.5px solid #F9FEFF;
+    background: rgba(249, 254, 255, 0.50);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.15s ease;
+
+    &-pressed, &:active {
+        transform: scale(0.95);
+    }
+
+    &-hovered, &:hover {
+        background: rgba(249, 254, 255, 0.60);
+    }
+
+    &-default {
+        background: rgba(249, 254, 255, 0.50);
+    }
+}
+
+// Texte à l'intérieur des boutons
+%button-text {
+    width: 100%;
+    max-width: 56px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #F9FEFF;
+    text-align: center;
+    font-family: 'Albert Sans', serif;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    transition: text-shadow 0.3s ease;
+}
+
+// Indicateur de progression
+%progress-indicator {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    padding: 8px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    border: 1px solid #F9FEFF;
+    background: transparent;
+    pointer-events: none;
+    transition: width 0.2s ease-in-out, height 0.2s ease-in-out;
+}
+
+// Conteneur de viewport standard
+%viewport-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 65%;
+    max-width: 80%;
+    aspect-ratio: 16/10;
+    box-shadow: 0 0 0 9999px v.color(camera-bg);
+    z-index: -1;
+    border: 1px solid white;
+    border-radius: 50px;
+    overflow: visible;
+}
+
+// Coin de viewport
+%viewport-corner {
+    content: '';
+    position: absolute;
+    width: 25%;
+    height: 25%;
+    border-width: 4px;
+    border-style: solid;
+    border-color: white;
+    z-index: 5;
+    pointer-events: none;
+}
+
+// Notification
+%notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: rgba(v.color(black), 0.7);
+    color: #F9FEFF;
+    border-radius: 5px;
+    font-family: 'Albert Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: map.get(v.$z-index, notification);
+    animation: fadeIn 0.3s ease-in;
+}
+
+// Animations communes
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes flash {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}

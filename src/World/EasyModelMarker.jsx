@@ -308,7 +308,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {
         // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
-        if (isMarkerHovered || !showOutline) {
+        if (!showOutline) {
             return false;
         }
 
