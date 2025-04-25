@@ -35,7 +35,7 @@ class SceneObjectManager {
                 id: 'Bush',
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
@@ -45,7 +45,7 @@ class SceneObjectManager {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -68,7 +68,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_UP,
@@ -91,7 +91,7 @@ class SceneObjectManager {
                 id: 'LeafErable',
                 path: '/models/primary/MultipleLeaf.glb',
                 scale: [1, 1, 1],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_RIGHT,
@@ -112,7 +112,7 @@ class SceneObjectManager {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.184, 0.184, 0.184],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -135,7 +135,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -156,7 +156,7 @@ class SceneObjectManager {
                 id: 'RockWater2',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -177,7 +177,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -198,7 +198,7 @@ class SceneObjectManager {
                 id: 'RockWater2',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: false,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -221,7 +221,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/Obstacle2Tree.glb',
                 scale: [1, 1, 1],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_DOWN,
