@@ -3,7 +3,6 @@
 // Les assets des templates seront ajoutés directement par AssetManager
 
 // Définition des assets de base à charger
-// Liste complète incluant tous les objets statiques et interactifs référencés dans SceneObjectManager
 const baseAssets = [
     // Map
     {
@@ -240,9 +239,16 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },
+    {
+        name: 'WaterPlane',
+        type: 'gltf',
+        path: '/models/forest/river/River.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     }
 ];
 
 // Export de la liste d'assets de base
-// Cette liste contient tous les objets statiques et interactifs identifiés dans SceneObjectManager.js
 export default baseAssets;
