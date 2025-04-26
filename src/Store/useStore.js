@@ -1,7 +1,7 @@
 import {create} from 'zustand'
 import {createAudioSlice} from './AudioSlice'
 import {createInteractionSlice} from './InteractionSlice'
-import {createClickListenerSlice} from './ClickListenerSlice'
+import {createClickListenerSlice} from './clickListenerSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
