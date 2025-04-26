@@ -21,18 +21,29 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"POTEAU",
+			"name":"ObstacleTree",
+			"rotation":[
+				-0.49442100524902344,
+				-0.5063279271125793,
+				0.5054981112480164,
+				0.49361082911491394
+			],
+			"scale":[
+				0.11458303034305573,
+				0.11458303034305573,
+				0.11458303034305573
+			],
 			"translation":[
-				0.0007487870752811432,
-				0.0019738494884222746,
-				-0.0008917078375816345
+				0,
+				0.28851020336151123,
+				-0.005406258162111044
 			]
 		}
 	],
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"Material.005",
+			"name":"Material.009",
 			"normalTexture":{
 				"index":0
 			},
@@ -48,7 +59,7 @@
 	],
 	"meshes":[
 		{
-			"name":"POTEAU.001",
+			"name":"mesh",
 			"primitives":[
 				{
 					"attributes":{
@@ -90,56 +101,56 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"DirectionPanel_Height",
-			"uri":"DirectionPanel_Height.png"
+			"name":"TrunkLarge_Height",
+			"uri":"TrunkLarge_Height.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"DirectionPanel_BaseColor",
-			"uri":"DirectionPanel_BaseColor.png"
+			"name":"TrunkLarge_BaseColor",
+			"uri":"TrunkLarge_BaseColor.png"
 		},
 		{
 			"mimeType":"image/png",
-			"name":"DirectionPanel_Metallic-DirectionPanel_Roughness",
-			"uri":"DirectionPanel_Metallic-DirectionPanel_Roughness.png"
+			"name":"TrunkLarge_Metallic-TrunkLarge_Roughness",
+			"uri":"TrunkLarge_Metallic-TrunkLarge_Roughness.png"
 		}
 	],
 	"accessors":[
 		{
 			"componentType":5126,
-			"count":333,
+			"count":2749,
 			"max":[
-				0.5629355907440186,
-				1.9998633861541748,
-				0.4976767301559448
+				3.208186626434326,
+				3.1097402572631836,
+				27.369720458984375
 			],
 			"min":[
-				-0.43285271525382996,
-				-0.0001366138458251953,
-				-0.22978468239307404
+				-3.0979175567626953,
+				-3.0282435417175293,
+				-24.598541259765625
 			],
 			"type":"VEC3"
 		},
 		{
 			"componentType":5126,
-			"count":333,
+			"count":2749,
 			"type":"VEC3"
 		},
 		{
 			"componentType":5126,
-			"count":333,
+			"count":2749,
 			"type":"VEC2"
 		},
 		{
 			"componentType":5123,
-			"count":615,
+			"count":4188,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":2799,
+			"byteLength":17878,
 			"byteOffset":0
 		}
 	],
@@ -151,8 +162,8 @@
 	],
 	"buffers":[
 		{
-			"byteLength":2800,
-			"uri":"DirectionPanel.bin"
+			"byteLength":17880,
+			"uri":"ObstacleTree.bin"
 		}
 	]
 }
