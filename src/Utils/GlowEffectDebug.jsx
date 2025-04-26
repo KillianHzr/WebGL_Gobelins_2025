@@ -2,9 +2,13 @@ import {useEffect, useRef, useState} from 'react';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 
+// Variable globale pour suivre le dossier "Effects" partagé entre toutes les instances
+let sharedEffectsFolder = null;
+let activeInstances = 0;
+
 /**
  * Composant pour ajouter les contrôles de debug de l'effet de glow (OutlineEffect)
- * au GUI de debugging
+ * au GUI de debugging, avec une gestion améliorée pour éviter les duplications
  */
 const GlowEffectDebug = ({objectRef}) => {
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
@@ -25,6 +29,9 @@ const GlowEffectDebug = ({objectRef}) => {
     useEffect(() => {
         if (!debug?.active || !debug?.showGui || !gui || !objectRef?.current) return;
 
+        // Incrémenter le compteur d'instances actives
+        activeInstances++;
+
         // Récupérer les valeurs sauvegardées ou utiliser les valeurs par défaut
         const savedActive = getDebugConfigValue('effects.glow.active.value', effectSettings.active);
         const savedColor = getDebugConfigValue('effects.glow.color.value', effectSettings.color);
@@ -41,17 +48,34 @@ const GlowEffectDebug = ({objectRef}) => {
             pulseSpeed: savedPulseSpeed
         });
 
-        // Vérifier si le dossier "Effects" existe déjà
-        let effectsFolder = gui.folders.find(folder => folder.name === "Effects");
-        if (!effectsFolder) {
-            effectsFolder = gui.addFolder("Effects");
-            if (guiConfig.gui.closeFolders) {
-                effectsFolder.close();
+        // Vérifier si le dossier "Effects" existe déjà globalement
+        if (!sharedEffectsFolder) {
+            // Vérification plus robuste: chercher dans tous les dossiers existants
+            const existingEffectsFolder = gui.folders.find(folder => folder.name === "Effects");
+
+            if (existingEffectsFolder) {
+                // Utiliser le dossier existant
+                sharedEffectsFolder = existingEffectsFolder;
+            } else {
+                // Créer un nouveau dossier
+                sharedEffectsFolder = gui.addFolder("Effects");
+                if (guiConfig.gui.closeFolders) {
+                    sharedEffectsFolder.close();
+                }
             }
         }
 
+        // Utilisez l'ID de l'objet pour créer un nom unique pour le sous-dossier
+        const objectId = objectRef.current.uuid || Math.random().toString(36).substr(2, 9);
+        const glowFolderName = `Glow Effect (${objectId.slice(0, 4)})`;
+
+        // Vérifier si ce sous-dossier existe déjà
+        const existingGlowFolder = sharedEffectsFolder.folders.find(folder =>
+            folder.name === glowFolderName || folder._title === glowFolderName
+        );
+
         // Créer un dossier pour les contrôles de l'effet de glow
-        const glowFolder = effectsFolder.addFolder("Glow Effect");
+        const glowFolder = existingGlowFolder || sharedEffectsFolder.addFolder(glowFolderName);
         folderRef.current = glowFolder;
 
         // Ajouter les contrôles
@@ -64,74 +88,49 @@ const GlowEffectDebug = ({objectRef}) => {
         };
 
         // Contrôle d'activation
-        glowFolder.add(settings, 'active')
-            .name('Active')
-            .onChange(value => {
-                updateDebugConfig('effects.glow.active.value', value);
-                setEffectSettings(prev => ({...prev, active: value}));
-            });
+        const activeController = glowFolder.controllers.find(c => c.property === 'active') ||
+            glowFolder.add(settings, 'active')
+                .name('Active')
+                .onChange(value => {
+                    updateDebugConfig('effects.glow.active.value', value);
+                    setEffectSettings(prev => ({...prev, active: value}));
+                });
 
         // Contrôle de couleur
-        glowFolder.addColor(settings, 'color')
-            .name('Color')
-            .onChange(value => {
-                updateDebugConfig('effects.glow.color.value', value);
-                setEffectSettings(prev => ({...prev, color: value}));
-            });
+        const colorController = glowFolder.controllers.find(c => c.property === 'color') ||
+            glowFolder.addColor(settings, 'color')
+                .name('Color')
+                .onChange(value => {
+                    updateDebugConfig('effects.glow.color.value', value);
+                    setEffectSettings(prev => ({...prev, color: value}));
+                });
 
         // Contrôle d'épaisseur
-        glowFolder.add(settings, 'thickness', 0.01, 0.1, 0.01)
-            .name('Thickness')
-            .onChange(value => {
-                updateDebugConfig('effects.glow.thickness.value', value);
-                setEffectSettings(prev => ({...prev, thickness: value}));
-            });
+        const thicknessController = glowFolder.controllers.find(c => c.property === 'thickness') ||
+            glowFolder.add(settings, 'thickness', 0.01, 0.1, 0.01)
+                .name('Thickness')
+                .onChange(value => {
+                    updateDebugConfig('effects.glow.thickness.value', value);
+                    setEffectSettings(prev => ({...prev, thickness: value}));
+                });
 
         // Contrôle d'intensité
-        glowFolder.add(settings, 'intensity', 1, 10, 0.1)
-            .name('Intensity')
-            .onChange(value => {
-                updateDebugConfig('effects.glow.intensity.value', value);
-                setEffectSettings(prev => ({...prev, intensity: value}));
-            });
+        const intensityController = glowFolder.controllers.find(c => c.property === 'intensity') ||
+            glowFolder.add(settings, 'intensity', 1, 10, 0.1)
+                .name('Intensity')
+                .onChange(value => {
+                    updateDebugConfig('effects.glow.intensity.value', value);
+                    setEffectSettings(prev => ({...prev, intensity: value}));
+                });
 
         // Contrôle de vitesse de pulsation
-        glowFolder.add(settings, 'pulseSpeed', 0, 5, 0.1)
-            .name('Pulse Speed')
-            .onChange(value => {
-                updateDebugConfig('effects.glow.pulseSpeed.value', value);
-                setEffectSettings(prev => ({...prev, pulseSpeed: value}));
-            });
-
-        // Ajouter un bouton pour tester l'effet rapidement
-        const testActions = {
-            testEffect: () => {
-                // Activer l'effet pendant 2 secondes
-                setEffectSettings(prev => ({...prev, active: true}));
-                updateDebugConfig('effects.glow.active.value', true);
-
-                // Mettre à jour le contrôle dans le GUI
-                if (folderRef.current) {
-                    // Trouver le contrôle d'activation et mettre à jour sa valeur
-                    const controller = folderRef.current.controllers.find(c => c.property === 'active');
-                    if (controller) controller.setValue(true);
-                }
-
-                // Désactiver après 2 secondes
-                setTimeout(() => {
-                    setEffectSettings(prev => ({...prev, active: false}));
-                    updateDebugConfig('effects.glow.active.value', false);
-
-                    // Mettre à jour le contrôle dans le GUI
-                    if (folderRef.current) {
-                        const controller = folderRef.current.controllers.find(c => c.property === 'active');
-                        if (controller) controller.setValue(false);
-                    }
-                }, 2000);
-            }
-        };
-
-        glowFolder.add(testActions, 'testEffect').name('Test Effect (2s)');
+        const pulseSpeedController = glowFolder.controllers.find(c => c.property === 'pulseSpeed') ||
+            glowFolder.add(settings, 'pulseSpeed', 0, 5, 0.1)
+                .name('Pulse Speed')
+                .onChange(value => {
+                    updateDebugConfig('effects.glow.pulseSpeed.value', value);
+                    setEffectSettings(prev => ({...prev, pulseSpeed: value}));
+                });
 
         // Fermer le dossier si configuré ainsi
         if (guiConfig.gui.closeFolders) {
@@ -140,13 +139,24 @@ const GlowEffectDebug = ({objectRef}) => {
 
         // Nettoyage lors du démontage
         return () => {
-            if (folderRef.current && effectsFolder) {
-                effectsFolder.removeFolder(folderRef.current);
-                folderRef.current = null;
+            // Décrémenter le compteur d'instances actives
+            activeInstances--;
 
-                // Si le dossier Effects est vide, le supprimer aussi
-                if (effectsFolder.folders.length === 0 && effectsFolder.controllers.length === 0) {
-                    gui.removeFolder(effectsFolder);
+            if (folderRef.current && sharedEffectsFolder) {
+                try {
+                    // Supprimer ce dossier spécifique
+                    sharedEffectsFolder.removeFolder(folderRef.current);
+                    folderRef.current = null;
+
+                    // Si c'est la dernière instance et que le dossier Effects est vide, le supprimer aussi
+                    if (activeInstances === 0 &&
+                        sharedEffectsFolder.folders.length === 0 &&
+                        sharedEffectsFolder.controllers.length === 0) {
+                        gui.removeFolder(sharedEffectsFolder);
+                        sharedEffectsFolder = null;
+                    }
+                } catch (error) {
+                    console.warn("Erreur lors du nettoyage du dossier Glow Effect:", error);
                 }
             }
         };
