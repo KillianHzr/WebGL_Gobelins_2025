@@ -389,6 +389,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         markerColor: markerColor,
         markerText: markerText,
         onInteract: handleMarkerInteraction,
+        viewportMargin: 100,
         positionOptions: {
             offset: markerOffset,
             preferredAxis: markerAxis
