@@ -363,7 +363,7 @@ La documentation (`documentation.md`) décrit quatre fonctionnalités principale
     * Utilisation de l'EventBus pour découpler les composants et synchroniser le chargement
 
 * Configuration des templates existants :
-    * TreeNaked, TrunkLarge, ThinTrunk, TreeStump et Bush actuellement supportés
+    * TreeNaked, TrunkLarge, TrunkThin, TreeStump et Bush actuellement supportés
     * Extension facile via le système de templates avec définition de priorité de chargement
 
 ### 11. Système de Marker Interactif Avancé

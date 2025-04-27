@@ -301,7 +301,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
             // Distance entre la caméra et l'objet
             const distanceToObject = camera.position.distanceTo(objectCenter);
 
-            // Créer un plan perpendiculaire à la direction de la caméra
+            // Créer un plant perpendiculaire à la direction de la caméra
             const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
             const viewDistance = distanceToObject * 0.8;
             const viewCenter = camera.position.clone().add(cameraDirection.multiplyScalar(viewDistance));

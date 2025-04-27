@@ -51,7 +51,7 @@ export default function ForestSceneWrapper() {
                     }
                 }
 
-                // Vérifier directement dans items comme plan de secours
+                // Vérifier directement dans items comme plant de secours
                 if (window.assetManager.items && window.assetManager.items[modelName]) {
                     return true;
                 }

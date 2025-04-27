@@ -39,7 +39,7 @@
                 "keyframes": [
                   {
                     "id": "9P3bbDFmk6",
-                    "position": 0.040000000000000036,
+                    "position": 0.033,
                     "connectedRight": true,
                     "handles": [
                       1,
@@ -48,7 +48,33 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": -2.197
+                    "value": -5.197
+                  },
+                  {
+                    "id": "3YvND7sb7i",
+                    "position": 0.433,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -2.4305201515037185
+                  },
+                  {
+                    "id": "KQLtpOKxuK",
+                    "position": 0.533,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -0.2188478971060785
                   },
                   {
                     "id": "xQa9F7fDD4",
@@ -285,7 +311,7 @@
                 "keyframes": [
                   {
                     "id": "m3dPnraPXV",
-                    "position": 0.040000000000000036,
+                    "position": 0.033,
                     "connectedRight": true,
                     "handles": [
                       1,
@@ -294,7 +320,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 6.737
+                    "value": 13.737
                   },
                   {
                     "id": "FOSEVDLln1",
@@ -1067,6 +1093,9 @@
   },
   "definitionVersion": "0.4.0",
   "revisionHistory": [
+    "DE8CHSjC1fQD_f_C",
+    "gfhTkLmV_uYP-2NZ",
+    "VZRLjc0VaZotRQFb",
     "7Nxxd31yiA3kGiu0",
     "T0F01su6Rg_5d9qR",
     "zPBxdQROfKtdZpXK",

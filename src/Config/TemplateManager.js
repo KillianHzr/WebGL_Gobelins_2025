@@ -20,7 +20,7 @@ class TemplateManager {
                 useTextures: true
             },
             'Retopo_TRONC_FIN': {
-                id: 'ThinTrunk',
+                id: 'TrunkThin',
                 path: '/models/forest/tree/ThinTrunk.gltf',
                 priority: 3,
                 useTextures: true
@@ -31,47 +31,108 @@ class TemplateManager {
                 priority: 4,
                 useTextures: true
             },
-            'BranchEucalyptus_1': {
+            'BranchEucalyptus004': {
                 id: 'BranchEucalyptus',
-                path: '/models/forest/plant/BranchEucalyptus.glb',
+                path: '/models/forest/branch/BranchEucalyptus.glb',
                 priority: 5,
                 useTextures: true
             },
-            'BUSHv2': {
+            'BUSH003': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
                 priority: 6,
                 useTextures: true
             },
-            'BranchFig_1': {
+            'BranchFig004': {
                 id: 'BranchFig',
-                path: '/models/forest/plant/BranchFig.glb',
+                path: '/models/forest/branch/BranchFig.glb',
                 priority: 7,
                 useTextures: true
             },
-            'BushBlueberry_1': {
+            'BushBlueberry002': {
                 id: 'BushBlueberry',
                 path: '/models/forest/bush/BushBlueberry.glb',
                 priority: 8,
                 useTextures: true
             },
-            'BushRaspberry_1': {
+            'BushRaspberry002': {
                 id: 'BushRaspberry',
                 path: '/models/forest/bush/BushRaspberry.glb',
                 priority: 9,
                 useTextures: true
-            }, 'BushTrunk_1': {
+            },
+            'BushTrunk002': {
                 id: 'BushTrunk',
                 path: '/models/forest/bush/BushTrunk.glb',
                 priority: 10,
                 useTextures: true
             },
-            'BushStrawberry': {
+            'Strawberry002': {
                 id: 'BushStrawberry',
                 path: '/models/forest/bush/BushStrawberry.glb',
                 priority: 11,
                 useTextures: true
-            }
+            },
+
+
+
+            // 'FlowerBell001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/flower/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            //
+            // 'Clover001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/flower/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            //
+            // 'MushwoomDuo001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/flower/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'MushwoomSolo001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/flower/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'PlanClematis001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/plant/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'PlantIvy002': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/plant/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'PlantMiscanthus001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/plant/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'PlantPuccinellia001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/plant/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+            // 'PlantReed001': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/plant/FlowerBell.gltf',
+            //     priority: 5,
+            //     useTextures: true
+            // },
+
 
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {

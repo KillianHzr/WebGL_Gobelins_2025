@@ -4,105 +4,124 @@ import {LinearEncoding, sRGBEncoding} from "@react-three/drei/helpers/deprecated
 class TextureManager {
     constructor() {
         // Textures disponibles avec leurs informations
-        this.textures = {
-            'TreeNaked': {
-                baseColor: '/textures/forest/tree/TreeNaked_BaseColor.png',
-                normal: '/textures/forest/tree/TreeNaked_Normal.png',
-                roughness: '/textures/forest/tree/TreeNaked_Roughness.png',
-                metalness: '/textures/forest/tree/TreeNaked_Metallic.png',
-                ao: '/textures/forest/tree/TreeNaked_Height.png', // Utiliser height comme AO
-            },
-            'TrunkLarge': {
-                baseColor: '/textures/forest/tree/TrunkLarge_BaseColor.png',
-                ao: '/textures/forest/tree/TrunkLarge_Height.png', // Utiliser height comme AO
-                normal: '/textures/forest/tree/TrunkLarge_Normal.png',
-                roughness: '/textures/forest/tree/TrunkLarge_Roughness.png',
-                metalness: '/textures/forest/tree/TrunkLarge_Metallic.png',
-            },
-            'ThinTrunk': {
-                baseColor: '/textures/forest/tree/TrunkThin_BaseColor.png',
-                normal: '/textures/forest/tree/TrunkThin_Normal.png',
-                roughness: '/textures/forest/tree/TrunkThin_Roughness.png',
-                metalness: '/textures/forest/tree/TrunkThin_Metallic.png',
-                ao: '/textures/forest/tree/TrunkThin_Height.png', // Utiliser height comme AO
-            },
-            'TreeStump': {
-                baseColor: '/textures/forest/tree/TreeStump_BaseColor.png',
-                normal: '/textures/forest/tree/TreeStump_Normal.png',
-                roughness: '/textures/forest/tree/TreeStump_Roughness.png',
-                metalness: '/textures/forest/tree/TreeStump_Metallic.png',
-                ao: '/textures/forest/tree/TreeStump_Height.png', // Utiliser height comme AO
-            },
+        this.textures = {};
 
-            'BranchEucalyptus': {
-                baseColor: '/textures/forest/plant/BranchEucalyptus_BaseColor.png',
-                // normal: '/textures/forest/plant/Bush_Normal.png',
-                // roughness: '/textures/forest/plant/BranchEucalyptus_Roughness.png',
-                // metalness: '/textures/forest/plant/BranchEucalyptus_Metallic.png',
-                // ao: '/textures/forest/plant/BranchEucalyptus_Height.png', // Utiliser height comme AO
-                alpha: '/textures/forest/plant/BranchEucalyptus_Alpha.png', // Conservation de l'alpha pour le Bush
-
-            },
-            'Bush': {
-                baseColor: '/textures/forest/bush/Bush_BaseColor.png',
-                // normal: '/textures/forest/bush/Bush_Normal.png',
-                // roughness: '/textures/forest/bush/Bush_Roughness.png',
-                // metalness: '/textures/forest/bush/Bush_Metallic.png',
-                // ao: '/textures/forest/bush/Bush_Height.png', // Utiliser height comme AO
-                alpha: '/textures/forest/bush/Bush_Alpha.png', // Conservation de l'alpha pour le Bush
-            },
-            'DirectionPanel': {
-                baseColor: '/textures/primary/DirectionPanel_BaseColor.png',
-                normal: '/textures/primary/DirectionPanel_Normal.png',
-                roughness: '/textures/primary/DirectionPanel_Roughness.png',
-                metalness: '/textures/primary/DirectionPanel_Metallic.png',
-                ao: '/textures/primary/DirectionPanel_Height.png', // Utiliser height comme AO
-            },
-
-            'BranchFig': {
-                baseColor: '/textures/forest/plant/BranchFig_BaseColor.png',
-                // normal: '/textures/forest/plant/BranchFig_Normal.png',
-                // roughness: '/textures/forest/plant/BranchFig_Roughness.png',
-                // metalness: '/textures/forest/plant/BranchFig_Metallic.png',
-                // ao: '/textures/forest/plant/BranchFig_Height.png',
-                alpha: '/textures/forest/plant/BranchFig_Alpha.png', // Conservation de l'alpha comme pour BranchEucalyptus
-            },
-            'BushBlueberry': {
-                baseColor: '/textures/forest/bush/BushBlueberry_BaseColor.png',
-                // normal: '/textures/forest/bush/BushBlueberry_Normal.png',
-                // roughness: '/textures/forest/bush/BushBlueberry_Roughness.png',
-                // metalness: '/textures/forest/bush/BushBlueberry_Metallic.png',
-                // ao: '/textures/forest/bush/BushBlueberry_Height.png',
-                alpha: '/textures/forest/bush/BushBlueberry_Alpha.png', // Conservation de l'alpha comme pour Bush
-            },
-            'BushRaspberry': {
-                baseColor: '/textures/forest/bush/BushRaspberry_BaseColor.png',
-                // normal: '/textures/forest/bush/BushRaspberry_Normal.png',
-                // roughness: '/textures/forest/bush/BushRaspberry_Roughness.png',
-                // metalness: '/textures/forest/bush/BushRaspberry_Metallic.png',
-                // ao: '/textures/forest/bush/BushRaspberry_Height.png',
-                alpha: '/textures/forest/bush/BushRaspberry_Alpha.png', // Conservation de l'alpha comme pour Bush
-            },
-            'BushTrunk': {
-                baseColor: '/textures/forest/bush/BushTrunk_BaseColor.png',
-                // normal: '/textures/forest/bush/BushTrunk_Normal.png',
-                // roughness: '/textures/forest/bush/BushTrunk_Roughness.png',
-                // metalness: '/textures/forest/bush/BushTrunk_Metallic.png',
-                // ao: '/textures/forest/bush/BushTrunk_Height.png', // Utiliser height comme AO
-                alpha: '/textures/forest/bush/BushTrunk_Alpha.png', // Conservation de l'alpha comme pour Bush
-            },
-            'BushStrawberry': {
-                baseColor: '/textures/forest/bush/BushStrawberry_BaseColor.png',
-                // normal: '/textures/forest/bush/BushStrawberry_Normal.png',
-                // roughness: '/textures/forest/bush/BushStrawberry_Roughness.png',
-                // metalness: '/textures/forest/bush/BushStrawberry_Metallic.png',
-                // ao: '/textures/forest/bush/BushStrawberry_Height.png',
-                alpha: '/textures/forest/bush/BushStrawberry_Alpha.png', // Conservation de l'alpha comme pour Bush
-            }
-        };
+        // Initialisation des catégories de modèles et leurs textures
+        this.initializeTextures();
 
         // Garde en mémoire les textures déjà chargées
         this.loadedTextures = {};
+    }
+
+    // Initialisation des textures basée sur la structure de fichiers
+    initializeTextures() {
+        // Arbres
+        this.addTextureMapping('TreeNaked', 'forest/tree');
+        this.addTextureMapping('TrunkLarge', 'forest/tree');
+        this.addTextureMapping('TrunkThin', 'forest/tree', 'TrunkThin'); // Correction de la différence de nommage
+        this.addTextureMapping('TreeStump', 'forest/tree');
+        this.addTextureMapping('TreeRoots', 'forest/tree');
+
+        // Branches et Buissons
+        this.addPlantTexture('BranchTree', 'forest/branch');
+        // this.addPlantTexture('BranchTreeLeaf1', 'forest/branch');
+        // this.addPlantTexture('BranchTreeLeaf2', 'forest/branch');
+        // this.addPlantTexture('BranchTreeLeaf3', 'forest/branch');
+        this.addPlantTexture('BranchEucalyptus', 'forest/branch');
+        this.addPlantTexture('BranchFig', 'forest/branch');
+
+        // Buissons
+        this.addPlantTexture('Bush', 'forest/bush');
+        this.addPlantTexture('BushBlueberry', 'forest/bush');
+        this.addPlantTexture('BushRaspberry', 'forest/bush');
+        this.addPlantTexture('BushStrawberry', 'forest/bush');
+        this.addPlantTexture('BushTrunk', 'forest/bush');
+
+        // Plantes
+        this.addPlantTexture('PlantPuccinellia', 'forest/plant');
+        this.addPlantTexture('PlantIvy', 'forest/plant');
+        this.addPlantTexture('PlantReed', 'forest/plant');
+        this.addPlantTexture('PlantMiscanthus', 'forest/plant');
+        this.addPlantTexture('PlantClematis', 'forest/plant');
+
+        // Fleurs
+        this.addPlantTexture('FlowerBell', 'forest/flower');
+        this.addPlantTexture('FlowerClover', 'forest/flower');
+        this.addPlantTexture('FlowerChicory', 'forest/flower');
+
+        // Champignons
+        this.addPlantTexture('MushroomSolo', 'forest/mushroom');
+        this.addPlantTexture('MushroomDuo', 'forest/mushroom');
+
+        // Rochers
+        this.addTextureMapping('BigRock', 'rock');
+
+        // Sol
+        this.addTextureMapping('ForestRoad', 'floor');
+        this.addTextureMapping('ForestGrass', 'floor');
+
+        // Éléments primaires
+        this.addTextureMapping('DirectionPanel', 'primary');
+        this.addPlantTexture('LeafErable', 'primary');
+        this.addPlantTexture('LeafOak', 'primary');
+        this.addPlantTexture('AnimalPaws', 'primary');
+        // this.addPlantTexture('MudPuddle', 'primary/AnimalPaws');
+    }
+
+    // Ajouter automatiquement les mappings de textures pour un modèle avec PBR complet
+    addTextureMapping(modelId, folder, filePrefix = null) {
+        // Si aucun préfixe spécifié, utiliser le modelId
+        const prefix = filePrefix || modelId;
+
+        this.textures[modelId] = {
+            baseColor: `/textures/${folder}/${prefix}_BaseColor.png`,
+            normal: `/textures/${folder}/${prefix}_Normal.png`,
+            normalOpenGL: `/textures/${folder}/${prefix}_NormalOpenGL.png`, // Optionnel
+            roughness: `/textures/${folder}/${prefix}_Roughness.png`,
+            metalness: `/textures/${folder}/${prefix}_Metallic.png`,
+            height: `/textures/${folder}/${prefix}_Height.png`
+        };
+
+        // Ajouter la texture alpha si disponible (pour les plantes, etc.)
+        if (this.isAlphaTextureAvailable(folder, prefix)) {
+            this.textures[modelId].alpha = `/textures/${folder}/${prefix}_Alpha.png`;
+        }
+
+        // Ajouter la texture opacity si disponible (pour les herbes, etc.)
+        if (this.isOpacityTextureAvailable(folder, prefix)) {
+            this.textures[modelId].opacity = `/textures/${folder}/${prefix}_Opacity.png`;
+        }
+    }
+
+    // Ajouter des textures pour les plantes (généralement BaseColor + Alpha)
+    addPlantTexture(modelId, folder) {
+        this.textures[modelId] = {
+            baseColor: `/textures/${folder}/${modelId}_BaseColor.png`
+        };
+
+        // Ajouter la texture alpha si disponible
+        if (this.isAlphaTextureAvailable(folder, modelId)) {
+            this.textures[modelId].alpha = `/textures/${folder}/${modelId}_Alpha.png`;
+        }
+    }
+
+    // Vérification anticipée de la disponibilité d'une texture alpha
+    isAlphaTextureAvailable(folder, prefix) {
+        // Vérification basée sur les données disponibles dans la liste des fichiers
+        // Nous supposons que si une texture est présente dans les dossiers, elle est disponible
+        // Cette méthode pourrait être améliorée avec une vérification de fichier réelle
+
+        const plantFolders = ['forest/bush', 'forest/branch', 'forest/plant',
+            'forest/flower', 'forest/mushroom', 'primary'];
+
+        // La plupart des plantes ont des textures alpha
+        return plantFolders.some(f => folder.includes(f));
+    }
+
+    // Vérification anticipée de la disponibilité d'une texture d'opacité
+    isOpacityTextureAvailable(folder, prefix) {
+        // Basée sur les fichiers observés
+        return folder === 'floor' && (prefix === 'ForestGrass' || prefix === 'ForestRoad');
     }
 
     // Obtenir toutes les textures pour un modèle spécifique
@@ -191,6 +210,7 @@ class TextureManager {
                 texture.encoding = sRGBEncoding;
                 break;
             case 'normal':
+            case 'normalOpenGL':
                 // Pour les cartes normales
                 texture.encoding = LinearEncoding;
                 break;
@@ -202,7 +222,8 @@ class TextureManager {
                 texture.encoding = LinearEncoding;
                 break;
             case 'alpha':
-                // Pour les cartes alpha
+            case 'opacity':
+                // Pour les cartes alpha/opacité
                 texture.encoding = LinearEncoding;
                 break;
         }
@@ -219,7 +240,7 @@ class TextureManager {
 
         // Configuration par défaut
         const config = {
-            aoIntensity: 0.0,     // Intensité AO par défaut
+            aoIntensity: 0.5,     // Intensité AO par défaut
             useDisplacement: false, // Désactiver le displacement par défaut
             displacementScale: 0.05,
             ...options
@@ -234,8 +255,11 @@ class TextureManager {
             this.configureTexture(material.map, 'diffuse');
         }
 
-        // Carte normale
-        if (textures.normal) {
+        // Carte normale (préférer NormalOpenGL si disponible pour Three.js)
+        if (textures.normalOpenGL) {
+            material.normalMap = textures.normalOpenGL;
+            this.configureTexture(material.normalMap, 'normalOpenGL');
+        } else if (textures.normal) {
             material.normalMap = textures.normal;
             this.configureTexture(material.normalMap, 'normal');
         }
@@ -256,26 +280,36 @@ class TextureManager {
             if (material.metalness === undefined) material.metalness = 0.0;
         }
 
-        // Carte d'occlusion ambiante (AO)
+        // Carte d'occlusion ambiante (AO ou Height si AO non disponible)
         if (textures.ao) {
             material.aoMap = textures.ao;
             this.configureTexture(material.aoMap, 'ao');
             material.aoMapIntensity = config.aoIntensity;
+        } else if (textures.height && !config.useDisplacement) {
+            // Utiliser height comme AO si pas de déplacement
+            material.aoMap = textures.height;
+            this.configureTexture(material.aoMap, 'height');
+            material.aoMapIntensity = config.aoIntensity * 0.5; // Intensité réduite pour height
         }
 
-        // Gestion de la height map - uniquement comme displacement si explicitement demandé
+        // Gestion de la height map comme displacement si explicitement demandé
         if (textures.height && config.useDisplacement) {
             material.displacementMap = textures.height;
             this.configureTexture(material.displacementMap, 'height');
             material.displacementScale = config.displacementScale;
         }
 
-        // Carte de transparence (Alpha)
+        // Carte de transparence (Alpha ou Opacity)
         if (textures.alpha) {
             material.alphaMap = textures.alpha;
             this.configureTexture(material.alphaMap, 'alpha');
             material.transparent = true;
             material.alphaTest = 0.5; // Seuil alpha pour éviter les artefacts
+        } else if (textures.opacity) {
+            material.alphaMap = textures.opacity;
+            this.configureTexture(material.alphaMap, 'opacity');
+            material.transparent = true;
+            material.alphaTest = 0.5;
         }
 
         // Mettre à jour le matériau
@@ -307,6 +341,21 @@ class TextureManager {
     async applyTexturesToModel(modelId, modelObject, options = {}) {
         if (!modelObject) return;
 
+        // Essayer de trouver des textures basées sur le nom du modèle si non définies
+        if (!this.hasTextures(modelId)) {
+            // Tenter d'extraire l'ID de base du modèle (sans préfixes/suffixes)
+            const baseModelId = this.extractBaseModelId(modelId);
+
+            // Si un ID de base est trouvé et qu'il a des textures, utiliser celles-ci
+            if (baseModelId && baseModelId !== modelId && this.hasTextures(baseModelId)) {
+                console.log(`Utilisation des textures de ${baseModelId} pour ${modelId}`);
+                modelId = baseModelId;
+            } else {
+                console.warn(`Aucune texture trouvée pour le modèle ${modelId} ou un modèle similaire`);
+                return;
+            }
+        }
+
         // Précharger les textures pour ce modèle
         const textures = await this.preloadTexturesForModel(modelId);
         if (!textures) return;
@@ -322,7 +371,10 @@ class TextureManager {
                     this.applyTexturesToMaterial(material, textures, options);
 
                     // Activer les UV2 pour l'aoMap si nécessaire
-                    if (material.aoMap && node.geometry && !node.geometry.attributes.uv2 && node.geometry.attributes.uv) {
+                    if ((material.aoMap || material.lightMap) &&
+                        node.geometry &&
+                        !node.geometry.attributes.uv2 &&
+                        node.geometry.attributes.uv) {
                         node.geometry.setAttribute('uv2', node.geometry.attributes.uv);
                     }
                 });
@@ -331,6 +383,73 @@ class TextureManager {
 
         console.log(`Textures appliquées au modèle ${modelId}:`,
             Object.keys(textures).join(', '));
+    }
+
+    // Extraire l'ID de base d'un modèle pour trouver des textures alternatives
+    extractBaseModelId(modelId) {
+        // Liste des préfixes et suffixes courants dans le projet
+        const prefixes = ['Obstacle', 'Interactive'];
+        const suffixes = ['Interactive', 'Instance'];
+
+        let baseId = modelId;
+
+        // Supprimer les préfixes communs
+        for (const prefix of prefixes) {
+            if (baseId.startsWith(prefix)) {
+                baseId = baseId.substring(prefix.length);
+            } else if (baseId.includes(prefix)) {
+                // Gérer les préfixes en milieu de nom (comme "ObstacleTree")
+                const regex = new RegExp(`${prefix}(\\w+)`, 'i');
+                const match = baseId.match(regex);
+                if (match && match[1]) {
+                    baseId = match[1];
+                }
+            }
+        }
+
+        // Supprimer les suffixes communs
+        for (const suffix of suffixes) {
+            if (baseId.endsWith(suffix)) {
+                baseId = baseId.substring(0, baseId.length - suffix.length);
+            }
+        }
+
+        // Mappings spécifiques pour certains modèles
+        const specialMappings = {
+            'ObstacleTree': 'TrunkLarge',
+            'Obstacle2Tree': 'TrunkThin',
+            'MultipleLeaf': 'LeafErable'
+        };
+
+        if (specialMappings[modelId]) {
+            return specialMappings[modelId];
+        }
+
+        // Si le résultat est différent de l'original et existe dans notre gestionnaire de textures
+        if (baseId !== modelId && this.hasTextures(baseId)) {
+            return baseId;
+        }
+
+        return null;
+    }
+
+    // Trouver l'ID de modèle à partir du chemin du fichier de modèle
+    getModelIdFromPath(modelPath) {
+        // Extraire le nom du fichier sans extension
+        const filename = modelPath.split('/').pop().split('.')[0];
+
+        // Vérifier si ce modèle a des textures directes
+        if (this.hasTextures(filename)) {
+            return filename;
+        }
+
+        // Sinon, essayer de trouver un ID de base
+        const baseId = this.extractBaseModelId(filename);
+        if (baseId) {
+            return baseId;
+        }
+
+        return null;
     }
 }
 

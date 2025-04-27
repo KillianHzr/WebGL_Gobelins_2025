@@ -126,7 +126,7 @@ const baseAssets = [
         url: ''
     },
     {
-        name: 'ThinTrunk',
+        name: 'TrunkThin',
         type: 'gltf',
         path: '/models/forest/tree/ThinTrunk.gltf',
         license: 'CC-BY',
@@ -210,7 +210,7 @@ const baseAssets = [
     {
         name: 'BranchEucalyptus',
         type: 'gltf',
-        path: '/models/forest/plant/BranchEucalyptus.glb',
+        path: '/models/forest/branch/BranchEucalyptus.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -218,7 +218,7 @@ const baseAssets = [
     {
         name: 'BranchFig',
         type: 'gltf',
-        path: '/models/forest/plant/BranchFig.glb',
+        path: '/models/forest/branch/BranchFig.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

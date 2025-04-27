@@ -36,7 +36,7 @@ class SceneObjectManager {
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
-                useTextures: false,
+                useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
 
@@ -46,7 +46,7 @@ class SceneObjectManager {
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -136,7 +136,7 @@ class SceneObjectManager {
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -157,7 +157,7 @@ class SceneObjectManager {
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -178,7 +178,7 @@ class SceneObjectManager {
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -199,7 +199,7 @@ class SceneObjectManager {
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -324,7 +324,7 @@ class SceneObjectManager {
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
@@ -334,7 +334,7 @@ class SceneObjectManager {
                     interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
-                    position: [-8.343, 0, 13.953],
+                    position: [-8.343 /4, 0, 13.953/4],
                     rotation: [0, 29.02, 0],
                     outlinePulse: false,
                     requiredStep: 'tenthStop'
