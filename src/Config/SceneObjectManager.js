@@ -40,16 +40,16 @@ class SceneObjectManager {
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
 
-            'WaterPlane': {
-                id: 'WaterPlane',
-                path: '/models/forest/river/River.glb',
-                scale: [1, 1, 1],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [
-                    {position: [0, 0, 0], rotation: [0, 0, 0]}
-                ]
-            },
+            // 'WaterPlane': {
+            //     id: 'WaterPlane',
+            //     path: '/models/forest/river/River.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: false,
+            //     useTextures: true,
+            //     defaultPlacements: [
+            //         {position: [0, 0, 0], rotation: [0, 0, 0]}
+            //     ]
+            // },
 
             // Scene 02 - Information Panel (First stop)
             'DirectionPanelStartInteractive': {
@@ -253,7 +253,7 @@ class SceneObjectManager {
             'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
-                scale: [1, 1, 1],
+                scale: [0.124, 0.124, 0.124],
                 interactive: false,
                 useTextures: true,
                 // animations: {
