@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import Forest from './Forest';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
+import WaterPlane from './WaterPlane';
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
@@ -43,11 +44,13 @@ export default function ForestScene() {
     // Utiliser useMemo pour éviter les re-rendus inutiles
     const mapComponent = useMemo(() => <MapWithInstances/>, []);
     const forestComponent = useMemo(() => <Forest/>, []);
+    const waterComponent = useMemo(() => <WaterPlane/>, []);
 
     return (
         <>
             {/*{mapComponent}*/}
             {forestComponent}
+            {waterComponent}
         </>
     );
 }
