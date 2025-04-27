@@ -7,7 +7,6 @@ import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
-import SubtitleComponent from './Utils/SubtitleComponent'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
@@ -65,7 +64,6 @@ export default function App() {
                 <Experience />
             </Canvas>
 
-            <SubtitleComponent />
         </EventEmitterProvider>
     )
 }
