@@ -48,9 +48,9 @@ export default function ForestScene() {
 
     return (
         <>
-            {/*{mapComponent}*/}
-            {forestComponent}
-            {waterComponent}
+            {mapComponent}
+            {/*{forestComponent}*/}
+            {/*{waterComponent}*/}
         </>
     );
 }

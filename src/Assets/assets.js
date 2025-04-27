@@ -1,8 +1,3 @@
-// assets.js
-// Fichier de configuration des assets de base à charger dans l'AssetManager
-// Les assets des templates seront ajoutés directement par AssetManager
-
-// Définition des assets de base à charger
 const baseAssets = [
     // Map
     {
@@ -222,6 +217,14 @@ const baseAssets = [
         author: 'Author',
         url: ''
     },
+    {
+        name: 'BranchTree',
+        type: 'gltf',
+        path: '/models/forest/branch/BranchTree.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
 
     // Rochers
     {
@@ -244,6 +247,80 @@ const baseAssets = [
         name: 'WaterPlane',
         type: 'gltf',
         path: '/models/forest/river/River.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+
+    // Modèles ajoutés depuis TemplateManager.js
+    {
+        name: 'FlowerBell',
+        type: 'gltf',
+        path: '/models/forest/flower/FlowerBell.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'FlowerClover',
+        type: 'gltf',
+        path: '/models/forest/flower/FlowerClover.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'MushroomDuo',
+        type: 'gltf',
+        path: '/models/forest/mushroom/MushroomDuo.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'MushroomSolo',
+        type: 'gltf',
+        path: '/models/forest/mushroom/MushroomSolo.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'PlanClematis',
+        type: 'gltf',
+        path: '/models/forest/plant/PlanClematis.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'PlantIvy',
+        type: 'gltf',
+        path: '/models/forest/plant/PlantIvy.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'PlantMiscanthus',
+        type: 'gltf',
+        path: '/models/forest/plant/PlantMiscanthus.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'PlantPuccinellia',
+        type: 'gltf',
+        path: '/models/forest/plant/PlantPuccinellia.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'PlantReed',
+        type: 'gltf',
+        path: '/models/forest/plant/PlantReed.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

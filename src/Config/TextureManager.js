@@ -24,9 +24,6 @@ class TextureManager {
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch');
-        // this.addPlantTexture('BranchTreeLeaf1', 'forest/branch');
-        // this.addPlantTexture('BranchTreeLeaf2', 'forest/branch');
-        // this.addPlantTexture('BranchTreeLeaf3', 'forest/branch');
         this.addPlantTexture('BranchEucalyptus', 'forest/branch');
         this.addPlantTexture('BranchFig', 'forest/branch');
 
@@ -55,6 +52,7 @@ class TextureManager {
 
         // Rochers
         this.addTextureMapping('BigRock', 'rock');
+        this.addTextureMapping('RockWater', 'rock');
 
         // Sol
         this.addTextureMapping('ForestRoad', 'floor');

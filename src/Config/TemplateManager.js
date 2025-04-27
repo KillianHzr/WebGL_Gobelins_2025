@@ -1,6 +1,3 @@
-// TemplateManager.js
-// Système centralisé pour la gestion des templates et des instances
-
 import {textureManager} from './TextureManager';
 
 class TemplateManager {
@@ -31,7 +28,7 @@ class TemplateManager {
                 priority: 4,
                 useTextures: true
             },
-            'BranchEucalyptus004': {
+            'BranchEucalyptus': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/branch/BranchEucalyptus.glb',
                 priority: 5,
@@ -43,19 +40,19 @@ class TemplateManager {
                 priority: 6,
                 useTextures: true
             },
-            'BranchFig004': {
+            'BranchFig': {
                 id: 'BranchFig',
                 path: '/models/forest/branch/BranchFig.glb',
                 priority: 7,
                 useTextures: true
             },
-            'BushBlueberry002': {
+            'BushBlueberry': {
                 id: 'BushBlueberry',
                 path: '/models/forest/bush/BushBlueberry.glb',
                 priority: 8,
                 useTextures: true
             },
-            'BushRaspberry002': {
+            'BushRaspberry': {
                 id: 'BushRaspberry',
                 path: '/models/forest/bush/BushRaspberry.glb',
                 priority: 9,
@@ -76,62 +73,68 @@ class TemplateManager {
 
 
 
-            // 'FlowerBell001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/flower/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            //
-            // 'Clover001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/flower/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            //
-            // 'MushwoomDuo001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/flower/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'MushwoomSolo001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/flower/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'PlanClematis001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/plant/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'PlantIvy002': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/plant/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'PlantMiscanthus001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/plant/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'PlantPuccinellia001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/plant/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
-            // 'PlantReed001': {
-            //     id: 'FlowerBell',
-            //     path: '/models/forest/plant/FlowerBell.gltf',
-            //     priority: 5,
-            //     useTextures: true
-            // },
+            'FlowerBell001': {
+                id: 'FlowerBell',
+                path: '/models/forest/flower/FlowerBell.glb',
+                priority: 12,
+                useTextures: true
+            },
+
+            'Clover': {
+                id: 'FlowerClover',
+                path: '/models/forest/flower/FlowerClover.glb',
+                priority: 13,
+                useTextures: true
+            },
+
+            'MushwoomDuo': {
+                id: 'MushroomDuo',
+                path: '/models/forest/mushroom/MushroomDuo.glb',
+                priority: 14,
+                useTextures: true
+            },
+            'MushwoomSolo': {
+                id: 'MushroomSolo',
+                path: '/models/forest/mushroom/MushroomSolo.glb',
+                priority: 15,
+                useTextures: true
+            },
+            'PlantClematis': {
+                id: 'PlantClematis',
+                path: '/models/forest/plant/PlanClematis.glb',
+                priority: 16,
+                useTextures: true
+            },
+            'PlantIvy002': {
+                id: 'PlantIvy',
+                path: '/models/forest/plant/PlantIvy.glb',
+                priority: 17,
+                useTextures: true
+            },
+            'PlantMiscanthus': {
+                id: 'PlantMiscanthus',
+                path: '/models/forest/plant/PlantMiscanthus.glb',
+                priority: 18,
+                useTextures: true
+            },
+            'PlantPuccinellia': {
+                id: 'PlantPuccinellia',
+                path: '/models/forest/plant/PlantPuccinellia.glb',
+                priority: 19,
+                useTextures: true
+            },
+            'PlantReed': {
+                id: 'PlantReed',
+                path: '/models/forest/plant/PlantReed.glb',
+                priority: 20,
+                useTextures: true
+            },
+            'BranchTree002': {
+                id: 'BranchTree',
+                path: '/models/forest/branch/BranchTree.glb',
+                priority: 20,
+                useTextures: true
+            },
 
 
             // Exemple d'ajout d'un nouveau template :

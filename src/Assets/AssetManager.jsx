@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
 import { EventBus } from "../Utils/EventEmitter.jsx";
 import baseAssets from "./assets";
 import templateManager from '../Config/TemplateManager';
@@ -9,6 +8,15 @@ import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {DRACOLoader} from "three/examples/jsm/loaders/DRACOLoader.js";
+import {
+    EquirectangularReflectionMapping,
+    LoadingManager,
+    Mesh,
+    PlaneGeometry,
+    ShaderMaterial, Texture,
+    TextureLoader,
+    Uniform
+} from "three";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_ASSET_MANAGER = false;
@@ -63,7 +71,7 @@ const AssetManager = React.forwardRef((props, ref) => {
         }
 
         // Pour les textures
-        if (asset instanceof THREE.Texture) {
+        if (asset instanceof Texture) {
             return true;
         }
 
@@ -86,7 +94,7 @@ const AssetManager = React.forwardRef((props, ref) => {
             if (!asset) continue;
 
             const isGltf = assetType.toLowerCase() === "gltf" && asset.scene;
-            const isTexture = assetType.toLowerCase() === "texture" && asset instanceof THREE.Texture;
+            const isTexture = assetType.toLowerCase() === "texture" && asset instanceof Texture;
 
             if (isGltf || isTexture) {
                 return asset;
@@ -265,7 +273,7 @@ const AssetManager = React.forwardRef((props, ref) => {
 
         // Configurer les loaders
         loadersRef.current = {};
-        loadersRef.current.texture = new THREE.TextureLoader(loadingManagerRef.current);
+        loadersRef.current.texture = new TextureLoader(loadingManagerRef.current);
         loadersRef.current.exr = new EXRLoader(loadingManagerRef.current);
         loadersRef.current.hdr = new RGBELoader(loadingManagerRef.current);
         loadersRef.current.fbx = new FBXLoader(loadingManagerRef.current);
@@ -308,8 +316,8 @@ const AssetManager = React.forwardRef((props, ref) => {
     // Initialiser la barre de progression et le gestionnaire de chargement
     const initProgressBar = () => {
         // Create loading overlay mesh
-        const overlayGeometry = new THREE.PlaneGeometry(2, 2, 1, 1);
-        const overlayMaterial = new THREE.ShaderMaterial({
+        const overlayGeometry = new PlaneGeometry(2, 2, 1, 1);
+        const overlayMaterial = new ShaderMaterial({
             transparent: true,
             vertexShader: `
                 void main() {
@@ -323,11 +331,11 @@ const AssetManager = React.forwardRef((props, ref) => {
                 }
             `,
             uniforms: {
-                uAlpha: new THREE.Uniform(0)
+                uAlpha: new Uniform(0)
             }
         });
 
-        const loadingOverlayMesh = new THREE.Mesh(overlayGeometry, overlayMaterial);
+        const loadingOverlayMesh = new Mesh(overlayGeometry, overlayMaterial);
         loadingOverlayMesh.name = 'LoadingOverlay';
         loadingOverlayMesh.material.uniforms.uAlpha.value = 1.0;
         loadingOverlayRef.current = loadingOverlayMesh;
@@ -339,7 +347,7 @@ const AssetManager = React.forwardRef((props, ref) => {
         }
 
         // Configurer le gestionnaire de chargement
-        loadingManagerRef.current = new THREE.LoadingManager(
+        loadingManagerRef.current = new LoadingManager(
             // Callback chargé
             () => {
                 console.log('AssetManager: All assets loaded successfully');
@@ -493,7 +501,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                 loadersRef.current.texture.load(asset.path,
                     (texture) => {
                         if (asset.envmap) {
-                            texture.mapping = THREE.EquirectangularReflectionMapping;
+                            texture.mapping = EquirectangularReflectionMapping;
                         }
                         loadComplete(asset, texture);
                         // Stocker pour une réutilisation future
@@ -506,7 +514,7 @@ const AssetManager = React.forwardRef((props, ref) => {
             else if (asset.type.toLowerCase() === "exr") {
                 loadersRef.current.exr.load(asset.path,
                     (texture) => {
-                        texture.mapping = THREE.EquirectangularReflectionMapping;
+                        texture.mapping = EquirectangularReflectionMapping;
                         loadComplete(asset, texture);
                         loadedAssets.set(asset.name, texture);
                     },
@@ -517,7 +525,7 @@ const AssetManager = React.forwardRef((props, ref) => {
             else if (asset.type.toLowerCase() === "hdr") {
                 loadersRef.current.hdr.load(asset.path,
                     (texture) => {
-                        texture.mapping = THREE.EquirectangularReflectionMapping;
+                        texture.mapping = EquirectangularReflectionMapping;
                         loadComplete(asset, texture);
                         loadedAssets.set(asset.name, texture);
                     },

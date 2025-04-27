@@ -164,7 +164,7 @@ class SceneObjectManager {
                 }
             },
             'JumpRock2': {
-                id: 'RockWater2',
+                id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
@@ -206,7 +206,7 @@ class SceneObjectManager {
                 }
             },
             'JumpRock4': {
-                id: 'RockWater2',
+                id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,

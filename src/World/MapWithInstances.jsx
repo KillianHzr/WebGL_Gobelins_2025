@@ -458,7 +458,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
     // Parcourir le modèle pour trouver les instances
     const processQueue = [mapModel];
-    const dummy = new THREE.Object3D(); // Objet temporaire réutilisable
+    const dummy = new Object3D(); // Objet temporaire réutilisable
 
     // Statistiques pour le rapport final
     const stats = {
