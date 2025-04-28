@@ -64,7 +64,7 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
+                    interfaceToShow: "none"
                 },
                 defaultPlacement: {
                     position: [-8.343, 0, 13.953],
@@ -342,7 +342,7 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
+                    interfaceToShow: "none"
                 },
                 defaultPlacement: {
                     position: [-8.343 /4, 0, 13.953/4],

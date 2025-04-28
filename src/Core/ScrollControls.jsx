@@ -387,6 +387,20 @@ function CameraController({children}) {
                 return;
             }
 
+            // NOUVEAU: Vérification spéciale pour AnimalPaws
+            if (interaction.objectKey === 'AnimalPaws') {
+                // Vérifier si LeafErable a été complété en cherchant dans les interactions complétées
+                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirdStop') || // Le requiredStep de LeafErable
+                    key.includes('LeafErable')   // L'objectKey
+                );
+
+                if (!leafErableCompleted) {
+                    console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
+                    return; // Ignorer cette interaction
+                }
+            }
+
             // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
             const dx = position.x - interaction.triggers.x;
             const dz = position.z - interaction.triggers.z;

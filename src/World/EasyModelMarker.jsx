@@ -308,14 +308,30 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Gérer le survol de l'objet
     const handlePointerEnter = useCallback(() => {
         console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
+
+        // Vérification spéciale pour AnimalPaws
+        if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
+            // Récupérer les interactions complétées du store
+            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+            // Vérifier si LeafErable a été complété
+            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                key.includes('thirdStop') ||
+                key.includes('LeafErable')
+            );
+
+            if (!leafErableCompleted) {
+                console.log('Survolage de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
+                return; // Ne pas mettre à jour l'état de hovering
+            }
+        }
+
         setHovered(true);
 
         // Émettre un événement personnalisé pour le survol du marker
         // Ceci sera utilisé par le NarrationTriggers pour déclencher les narrations
         EventBus.trigger('marker:pointer:enter', {
             id: markerId,
-            // Utiliser l'ID du marqueur comme seul identifiant
-            // et supprimer la référence à la variable "id" qui n'existe pas
             type: 'hover',
             text: markerText
         });
@@ -326,6 +342,22 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
         if (!showOutline) {
             return false;
+        }
+
+        // NOUVEAU: Vérification spéciale pour AnimalPaws
+        if (markerId.includes('AnimalPaws') || (requiredStep && requiredStep.includes('fifthStop'))) {
+            // Récupérer les interactions complétées du store
+            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+            // Vérifier si LeafErable a été complété
+            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                key.includes('thirdStop') ||
+                key.includes('LeafErable')
+            );
+
+            if (!leafErableCompleted) {
+                return false; // Ne pas afficher le contour
+            }
         }
 
         // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
@@ -351,7 +383,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         interaction?.waitingForInteraction,
         isWaitingForInteraction,
         alwaysVisible,
-        hovered
+        hovered,
+        markerId
     ]);
 
     // Handlers pour le survol du marqueur optimisés avec useCallback

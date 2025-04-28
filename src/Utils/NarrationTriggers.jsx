@@ -15,17 +15,21 @@ const NarrationTriggers = () => {
     // Référence pour assurer que les narrations ne sont jouées qu'une seule fois
     const triggeredNarrationsRef = useRef(new Set());
 
+    // Référence pour suivre si la partie 2 a été déclenchée avant la partie 3
+    const part2TriggeredRef = useRef(false);
+
     // Récupérer la fonction setNarrationTriggered du store pour persister l'état des narrations
     const setNarrationTriggered = useStore(state => state.setNarrationTriggered);
     const triggeredNarrations = useStore(state => state.triggeredNarrations || {});
 
     // Map pour associer les objets interactifs à leurs narrations
     const objectNarrationMap = {
+        'DirectionPanelEndInteractive': 'Scene02_PanneauInformation',
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
         'LeafErable': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
         'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
-        'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche'
+        'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
     };
 
     // Map entre les "requiredStep" et les objets correspondants
@@ -79,6 +83,12 @@ const NarrationTriggers = () => {
 
         // Jouer la narration
         narrationManager.playNarration(narrationId);
+
+        // Si c'est la partie 2 qui est déclenchée, marquer qu'elle a été déclenchée
+        if (narrationId === 'Scene04_RechercheDesIndices_part2') {
+            part2TriggeredRef.current = true;
+            console.log('Partie 2 déclenchée, prêt pour partie 3 au prochain scan complet');
+        }
     };
 
     useEffect(() => {
@@ -120,6 +130,26 @@ const NarrationTriggers = () => {
                     console.log(`Trouvé objectKey via requiredStep extraction: ${objectKey} pour ${requiredStep}`);
                 }
 
+                // 5. NOUVEAU: Vérification spécifique pour AnimalPaws
+                // Bloquer l'interaction avec AnimalPaws si LeafErable n'a pas encore été complété
+                if (objectKey === 'AnimalPaws') {
+                    // Récupérer les interactions complétées
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+                    // Vérifier si LeafErable a été complété
+                    const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                        key.includes('thirdStop') || // Vérifie par requiredStep
+                        key.includes('LeafErable') || // Vérifie par objectKey
+                        // Vous pouvez ajouter d'autres conditions si nécessaire
+                        completedInteractions[key] === true
+                    );
+
+                    if (!leafErableCompleted) {
+                        console.log('AnimalPaws interaction ignorée car LeafErable n\'a pas encore été complété');
+                        return; // Sortir sans déclencher d'interaction
+                    }
+                }
+
                 // Si on a trouvé un objectKey correspondant à une narration, la jouer
                 if (objectKey && objectNarrationMap[objectKey]) {
                     const narrationId = objectNarrationMap[objectKey];
@@ -151,9 +181,14 @@ const NarrationTriggers = () => {
             if (data && data.type === 'scanner') {
                 // Pour l'action "close" avec un résultat "complete"
                 if (data.action === 'close' && data.result === 'complete') {
-                    // Jouer la troisième partie de la scène 04
-                    playNarrationIfNotTriggered('Scene04_RechercheDesIndices_part3');
-                    console.log('Narration déclenchée: Scan complété');
+                    // Ne jouer la partie 3 que si la partie 2 a déjà été déclenchée
+                    if (part2TriggeredRef.current) {
+                        // Jouer la troisième partie de la scène 04
+                        playNarrationIfNotTriggered('Scene04_RechercheDesIndices_part3');
+                        console.log('Narration partie 3 déclenchée après scan complété qui suit la partie 2');
+                    } else {
+                        console.log('Scan complété mais partie 2 pas encore déclenchée, pas de narration partie 3');
+                    }
                 }
                 // Si le scan est annulé, pas de narration
                 else if (data.action === 'cancel') {

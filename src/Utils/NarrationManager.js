@@ -229,11 +229,6 @@ class NarrationManager {
     async playNarration(narrationId) {
         console.log(`Playing narration: ${narrationId}`);
 
-        // Arrêter la narration en cours s'il y en a une
-        if (this.currentNarration) {
-            this.stopNarration();
-        }
-
         // Charger les sous-titres d'abord
         const subtitles = await this.loadSubtitles(narrationId);
 
