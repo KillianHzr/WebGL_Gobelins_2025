@@ -6,10 +6,12 @@ export const createAudioSlice = (set, get) => ({
     // État audio
     audio: {
         ambientPlaying: false,
+        narrationPlaying: false,
+        currentNarrationId: null,
         volume: 1.0,
         muted: false,
 
-        // Méthodes pour contrôler l'audio
+        // Méthodes pour contrôler l'audio ambiant
         playAmbient: () => set(state => ({
             audio: {
                 ...state.audio,
@@ -41,6 +43,16 @@ export const createAudioSlice = (set, get) => ({
             }));
         },
 
+        // Méthodes pour contrôler la narration
+        playNarration: (narrationId) => set(state => ({
+            audio: {
+                ...state.audio,
+                narrationPlaying: true,
+                currentNarrationId: narrationId
+            }
+        })),
+
+        // Contrôle du volume
         setVolume: (volume) => set(state => ({
             audio: {
                 ...state.audio,

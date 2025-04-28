@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import useStore from '../Store/useStore';
+import { EventBus } from './EventEmitter';
 import { audioManager } from './AudioManager';
 
 export default function ScannerInterface() {
@@ -125,6 +126,13 @@ export default function ScannerInterface() {
         setScanProgress(0);
         setPulseSize(0);
         setProgressSize(0); // Réinitialiser la taille de progression
+
+        // Émettre un événement pour indiquer que le scan a été annulé
+        EventBus.trigger('interface-action', {
+            type: 'scanner',
+            action: 'cancel',
+            result: 'incomplete'
+        });
     };
 
     // Complete the scanning process successfully
@@ -154,6 +162,13 @@ export default function ScannerInterface() {
         }
 
         setShowNotification(true);
+
+        // Émettre un événement pour indiquer que l'interface a été fermée
+        EventBus.trigger('interface-action', {
+            type: 'scanner',
+            action: 'close',
+            result: 'complete'
+        });
 
         setTimeout(() => {
             setShowNotification(false);

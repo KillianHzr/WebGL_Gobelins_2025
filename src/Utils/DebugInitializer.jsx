@@ -4,6 +4,7 @@ import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
 import {audioManager} from './AudioManager';
+import {addNarrationControlsToDebug} from './NarrationDebugControls';
 import {EventBus} from './EventEmitter';
 
 /**
@@ -410,10 +411,10 @@ const DebugInitializer = () => {
                 interfacesFolder.close();
             }
 
-            // Ajouter un dossier pour l'audio
+// Ajouter un dossier pour l'audio
             const audioFolder = gui.addFolder('Audio');
 
-            // Contrôles pour le son ambiant
+// Contrôles pour le son ambiant
             const audioControls = {
                 playAmbient: () => {
                     const store = useStore.getState();
@@ -445,10 +446,13 @@ const DebugInitializer = () => {
                 volume: 1.0
             };
 
+            // Créer un sous-dossier pour l'ambiance
+            const ambientFolder = audioFolder.addFolder('Ambiance');
+
             // Ajouter les boutons
-            audioFolder.add(audioControls, 'playAmbient').name('Play Ambient');
-            audioFolder.add(audioControls, 'pauseAmbient').name('Pause Ambient');
-            audioFolder.add(audioControls, 'resumeAmbient').name('Resume Ambient');
+            ambientFolder.add(audioControls, 'playAmbient').name('Play Ambient');
+            ambientFolder.add(audioControls, 'pauseAmbient').name('Pause Ambient');
+            ambientFolder.add(audioControls, 'resumeAmbient').name('Resume Ambient');
 
             // Contrôle du volume
             const volumeControl = audioFolder.add(audioControls, 'volume', 0, 1, 0.01).name('Master Volume');
@@ -461,6 +465,10 @@ const DebugInitializer = () => {
                     audioManager.setMasterVolume(value);
                 }
             });
+
+            // Ajouter les contrôles de narration au dossier audio
+            addNarrationControlsToDebug(audioFolder)
+                .catch(error => console.error('Error adding narration controls:', error));
 
             // Fermer le dossier audio si configuré
             if (guiConfig.gui.closeFolders) {

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {Howl, Howler} from 'howler';
 import useStore from '../Store/useStore';
+import { narrationManager } from './NarrationManager';
 
 // Classe centrale pour gérer l'audio de l'application
 class AudioManager {
@@ -20,6 +21,9 @@ class AudioManager {
 
         // Charger les sons ici
         this.loadSounds();
+
+        // Initialiser le gestionnaire de narration
+        narrationManager.init();
 
         this.initialized = true;
         console.log('AudioManager initialized');
@@ -217,6 +221,12 @@ class AudioManager {
             // Fondu sonore pour augmenter le volume
             this.ambientSound.fade(0, 0.5, this.fadeTime);
         }
+    }
+
+    // Méthodes pour la narration
+    playNarration(narrationId) {
+        console.log(`Playing narration: ${narrationId}`);
+        return narrationManager.playNarration(narrationId);
     }
 
     // Contrôle global du volume

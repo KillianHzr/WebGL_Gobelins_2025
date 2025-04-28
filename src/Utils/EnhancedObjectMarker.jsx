@@ -102,6 +102,13 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Mettre à jour l'état interne du ModelMarker
         setIsMarkerHovered(true);
 
+        // Émission d'un événement pour le système de narration
+        EventBus.trigger(MARKER_EVENTS.MARKER_HOVER, {
+            id,
+            type: 'marker-hover',
+            objectKey: id.split('-')[0] // Essayer d'extraire l'identifiant de l'objet
+        });
+
         // Propager l'événement au callback externe si fourni
         if (typeof onPointerEnter === 'function') {
             onPointerEnter(e);

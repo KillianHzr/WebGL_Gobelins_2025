@@ -305,6 +305,22 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         postInteractionAnimation
     ]);
 
+    // Gérer le survol de l'objet
+    const handlePointerEnter = useCallback(() => {
+        console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
+        setHovered(true);
+
+        // Émettre un événement personnalisé pour le survol du marker
+        // Ceci sera utilisé par le NarrationTriggers pour déclencher les narrations
+        EventBus.trigger('marker:pointer:enter', {
+            id: markerId,
+            // Utiliser l'ID du marqueur comme seul identifiant
+            // et supprimer la référence à la variable "id" qui n'existe pas
+            type: 'hover',
+            text: markerText
+        });
+    }, [markerId, markerText]);
+
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {
         // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
