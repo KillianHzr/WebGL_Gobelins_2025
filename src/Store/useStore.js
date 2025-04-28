@@ -2,6 +2,7 @@ import {create} from 'zustand'
 import {createAudioSlice} from './AudioSlice'
 import {createInteractionSlice} from './InteractionSlice'
 import {createClickListenerSlice} from './clickListenerSlice'
+import {createNarrationSlice} from './NarrationSlice'
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -232,10 +233,11 @@ const useStore = create((set, get) => ({
     treePositions: null,
     setTreePositions: (positions) => set({ treePositions: positions }),
 
-    // Intégration de la tranche audio
+    // Intégration des tranches
     ...createClickListenerSlice(set, get),
     ...createInteractionSlice(set, get),
-    ...createAudioSlice(set, get)
+    ...createAudioSlice(set, get),
+    ...createNarrationSlice(set, get)
 }));
 
 // Listen for hash changes to toggle debug mode

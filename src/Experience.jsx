@@ -16,6 +16,7 @@ import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects, {StaticObject} from './World/SceneObjects';
+import NarrationTriggers from './Utils/NarrationTriggers';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EXPERIENCE = false;
@@ -173,6 +174,7 @@ export default function Experience() {
         <EventEmitterProvider>
             <DebugInitializer/>
             <AudioManagerComponent/>
+            <NarrationTriggers/>
 
             {debug?.active && debug?.showStats && <Stats/>}
             {debug?.active && debug?.showGui && <Debug/>}
