@@ -106,29 +106,29 @@ export default function Lights() {
     }, [directionalLightRef.current?.position, directionalLightRef.current?.rotation]);
 
     // Initialiser les lumières avec les valeurs par défaut du config au montage
-    useEffect(() => {
-        if (!debug?.active) {
-            // Appliquer les valeurs par défaut uniquement si le mode debug n'est pas actif
-            scene.traverse((object) => {
-                if (object.isLight) {
-                    const lightType = object.type.replace('Light', '');
-
-                    // Trouver l'index de cette lumière
-                    let index = 0;
-                    let count = 0;
-                    scene.traverse((obj) => {
-                        if (obj.isLight && obj.type === object.type) {
-                            if (obj === object) index = count;
-                            count++;
-                        }
-                    });
-
-                    // Initialiser avec les valeurs par défaut
-                    initializeLight(object, lightType, index);
-                }
-            });
-        }
-    }, [scene, debug]);
+    // useEffect(() => {
+    //     if (!debug?.active) {
+    //         // Appliquer les valeurs par défaut uniquement si le mode debug n'est pas actif
+    //         scene.traverse((object) => {
+    //             if (object.isLight) {
+    //                 const lightType = object.type.replace('Light', '');
+    //
+    //                 // Trouver l'index de cette lumière
+    //                 let index = 0;
+    //                 let count = 0;
+    //                 scene.traverse((obj) => {
+    //                     if (obj.isLight && obj.type === object.type) {
+    //                         if (obj === object) index = count;
+    //                         count++;
+    //                     }
+    //                 });
+    //
+    //                 // Initialiser avec les valeurs par défaut
+    //                 initializeLight(object, lightType, index);
+    //             }
+    //         });
+    //     }
+    // }, [scene, debug]);
 
     // Configuration du GUI de debug
     useEffect(() => {
@@ -685,12 +685,12 @@ export default function Lights() {
                     // Get saved pointlight values from defaults
                     const savedDecay = getDebugConfigValue(`lights.${lightType}.${index}.decay`,
                         getDefaultValue(`${pointPath}.decay`, light.decay));
-                    const savedDistance = getDebugConfigValue(`lights.${lightType}.${index}.distance`,
-                        getDefaultValue(`${pointPath}.distance`, light.distance));
+                    // const savedDistance = getDebugConfigValue(`lights.${lightType}.${index}.distance`,
+                    //     getDefaultValue(`${pointPath}.distance`, light.distance));
 
                     // Apply saved values
                     light.decay = savedDecay;
-                    light.distance = savedDistance;
+                    // light.distance = savedDistance;
 
                     // Add pointlight controls
                     const decayControl = lightFolder.add(
@@ -710,7 +710,7 @@ export default function Lights() {
                         'distance',
                         guiConfig.lights.pointLight.distance.min,
                         guiConfig.lights.pointLight.distance.max,
-                        guiConfig.lights.pointLight.distance.step
+                        guiConfig.lights.pointLight.distance.step,
                     ).name(guiConfig.lights.pointLight.distance.name);
 
                     distanceControl.onChange(value => {
@@ -768,17 +768,30 @@ export default function Lights() {
 
     return (
         <>
-            {/*<ambientLight intensity={0.3} /> /!* Lumière ambiante légère *!/*/}
-            <directionalLight
+            <ambientLight intensity={0.8} /> {/* Lumière ambiante légère */}
+            <pointLight
                 ref={directionalLightRef}
-                position={[-20, 30, 20]}
-                intensity={7.5}
-                color="#FFE9C1"
+                position={[53.764, 31.716, -56.134]}
+                intensity={54351.413065}
+                color="#FFEAC6"
+
                 castShadow
                 shadow-mapSize-width={2048}
                 shadow-mapSize-height={2048}
                 shadow-bias={-0.0005}
             />
+            {/*<pointLight*/}
+            {/*    ref={directionalLightRef}*/}
+            {/*    position={[171.443, 32.282, -81.040]}*/}
+            {/*    // intensity={20870.28}*/}
+            {/*    intensity={54351.413065*3}*/}
+
+            {/*    color="#B4B5FF"*/}
+            {/*    castShadow*/}
+            {/*    shadow-mapSize-width={2048}*/}
+            {/*    shadow-mapSize-height={2048}*/}
+            {/*    shadow-bias={-0.0005}*/}
+            {/*/>*/}
         </>
     );
 }

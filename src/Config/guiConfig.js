@@ -393,7 +393,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Distance",
-                default: 0
+                default: 150
             }
         },
         rectAreaLight: {

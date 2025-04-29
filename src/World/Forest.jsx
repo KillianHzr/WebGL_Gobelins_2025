@@ -423,27 +423,24 @@ export default function Forest() {
     };
 
     // Modifié: Création des instances LOD pour un chunk spécifique
+    /**
+     * Extrait optimisé de Forest.jsx qui concerne la création des instances et l'application des textures
+     * Cette version utilise le TextureManagerOptimized pour éviter les duplications de textures
+     */
+
+// Modifié: Création des instances LOD pour un chunk spécifique
     const createLodInstancedMeshesForChunk = async (objectId, model, positions, preloadedTextures, chunkCenter, chunkId) => {
         if (!positions || positions.length === 0) {
             return [];
         }
 
-        // Trouver la géométrie et créer le matériau
+        // Trouver la géométrie
         let geometry = null;
-        let material = null;
 
         // Extraire la géométrie du premier mesh
         model.scene.traverse((child) => {
             if (child.isMesh && child.geometry && !geometry) {
                 geometry = child.geometry.clone();
-
-                // Créer le matériau de base
-                material = new MeshStandardMaterial({
-                    name: `${objectId}_material`,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    alphaTest: 0.5,
-                });
             }
         });
 
@@ -452,58 +449,12 @@ export default function Forest() {
             return [];
         }
 
-        // Appliquer les textures au matériau (version originale)
-        const textures = preloadedTextures[objectId];
-        if (textures) {
-            // Base color texture
-            if (textures.baseColor) {
-                material.map = textures.baseColor;
-                material.map.encoding = sRGBEncoding;
-                material.map.flipY = false;
-            }
-
-            // Normal map
-            if (textures.normal) {
-                material.normalMap = textures.normal;
-                material.normalMap.flipY = false;
-            }
-
-            // Roughness map
-            if (textures.roughness) {
-                material.roughnessMap = textures.roughness;
-                material.roughness = 0.9;
-                material.roughnessMap.flipY = false;
-            }
-
-            // Metalness map
-            if (textures.metalness) {
-                material.metalnessMap = textures.metalness;
-                material.metalness = 0.2;
-                material.metalnessMap.flipY = false;
-            }
-
-            // Ambient occlusion map
-            if (textures.ao) {
-                material.aoMap = textures.ao;
-                material.aoMapIntensity = 0.7;
-                material.aoMap.flipY = false;
-
-                // Set up uv2 coordinates for aoMap if needed
-                if (!geometry.attributes.uv2 && geometry.attributes.uv) {
-                    geometry.setAttribute('uv2', geometry.attributes.uv.clone());
-                }
-            }
-
-            // Alpha map for transparency
-            if (textures.alpha) {
-                material.alphaMap = textures.alpha;
-                material.transparent = true;
-                material.opacity = 1.0;
-                material.alphaMap.flipY = false;
-            }
-
-            material.needsUpdate = true;
-        }
+        // OPTIMISATION: Au lieu de créer un nouveau matériau chaque fois,
+        // utiliser le gestionnaire de textures optimisé pour obtenir un matériau réutilisable
+        const material = textureManager.getMaterial(objectId, {
+            aoIntensity: 0.7,
+            alphaTest: 0.5
+        });
 
         // Créer les instances LOD
         const instances = [];
@@ -544,10 +495,11 @@ export default function Forest() {
 
             if (!levelGeometry) continue;
 
-            // Créer le mesh instancié pour ce chunk et ce niveau LOD
+            // OPTIMISATION: Utilisation du même matériau de référence partagé
+            // au lieu de créer une copie avec material.clone()
             const instancedMesh = new THREE.InstancedMesh(
                 levelGeometry,
-                material.clone(),
+                material,  // Réutilisation du même matériau - pas de clone()
                 positions.length
             );
 
