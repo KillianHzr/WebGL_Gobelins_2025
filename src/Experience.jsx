@@ -8,6 +8,7 @@ import Debug from "./Utils/Debug.jsx";
 import Camera from "./Core/Camera.jsx";
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
+import MaterialControls from "./Core/MaterialControls.jsx"; // Importation du nouveau composant
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
 import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
@@ -203,14 +204,13 @@ export default function Experience() {
             {debug?.active && debug?.showGui && <Debug/>}
             {debug?.active && debug?.showGui && <Camera/>}
             {debug?.active && debug?.showGui && <Controls/>}
-            {/*{debug?.active && debug?.showGui && <Lights/>}*/}
             <Lights/>
+            {debug?.active && debug?.showGui && <MaterialControls/>} {/* Ajout des contrôles de matériaux */}
             <ShadowMapping/>
             <ToneMapping/>
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
-                        {/* Lights */}
                         {/*<ambientLight intensity={5}/>*/}
                         {/*<directionalLight position={[-11.642, 8.748, 0]} intensity={6.83} color={"0xFFE9C1"}/>*/}
                         <color attach="background" args={['#1e1e2f']}/>

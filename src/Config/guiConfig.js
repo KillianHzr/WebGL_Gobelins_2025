@@ -275,6 +275,96 @@ const guiConfig = {
             default: 2.36
         }
     },
+    materials: {
+        folder: "Materials",
+        common: {
+            color: {
+                name: "Color",
+                default: "#ffffff"
+            },
+            roughness: {
+                min: 0,
+                max: 1,
+                step: 0.01,
+                name: "Roughness",
+                default: 0.5
+            },
+            metalness: {
+                min: 0,
+                max: 1,
+                step: 0.01,
+                name: "Metalness",
+                default: 0.1
+            },
+            emissive: {
+                name: "Emissive",
+                default: "#000000"
+            },
+            emissiveIntensity: {
+                min: 0,
+                max: 2,
+                step: 0.01,
+                name: "Emissive Intensity",
+                default: 0
+            },
+            transparent: {
+                name: "Transparent",
+                default: false
+            },
+            opacity: {
+                min: 0,
+                max: 1,
+                step: 0.01,
+                name: "Opacity",
+                default: 1.0
+            },
+            wireframe: {
+                name: "Wireframe",
+                default: false
+            }
+        },
+        // Les couleurs par défaut pour les différents groupes
+        defaults: {
+            Tree: {
+                color: "#4d8a53",
+                roughness: 0.8,
+                metalness: 0.1
+            },
+            Bush: {
+                color: "#3a7d3a",
+                roughness: 0.7,
+                metalness: 0.05
+            },
+            Flower: {
+                color: "#cc99ff",
+                roughness: 0.6,
+                metalness: 0.0,
+                emissiveIntensity: 0.1
+            },
+            Mushroom: {
+                color: "#d9c7b8",
+                roughness: 0.5,
+                metalness: 0.0
+            },
+            Rock: {
+                color: "#8a8a8a",
+                roughness: 0.9,
+                metalness: 0.2
+            },
+            Ground: {
+                color: "#6d5e45",
+                roughness: 0.9,
+                metalness: 0.05
+            },
+            Water: {
+                color: "#4d80b3",
+                roughness: 0.2,
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.8
+            }
+        }
+    },
     lights: {
         folder: "Lights",
         common: {
