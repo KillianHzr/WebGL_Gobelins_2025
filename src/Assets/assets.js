@@ -293,14 +293,14 @@ const baseAssets = [
         author: 'Author',
         url: ''
     },
-    {
-        name: 'PlantIvy',
-        type: 'gltf',
-        path: '/models/forest/plant/PlantIvy.glb',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
+    // {
+    //     name: 'PlantIvy',
+    //     type: 'gltf',
+    //     path: '/models/forest/plant/PlantIvy.glb',
+    //     license: 'CC-BY',
+    //     author: 'Author',
+    //     url: ''
+    // },
     {
         name: 'PlantMiscanthus',
         type: 'gltf',
