@@ -158,10 +158,10 @@ const AssetManager = React.forwardRef((props, ref) => {
                         }
 
                         // Vérifier si boundingSphere existe maintenant et appliquer la logique
-                        if (child.geometry.boundingSphere && child.geometry.boundingSphere.radius < 0.5) {
-                            child.castShadow = false;
-                            child.receiveShadow = false;
-                        }
+                        // if (child.geometry.boundingSphere && child.geometry.boundingSphere.radius < 0.5) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        // }
                     }
                 }
             });

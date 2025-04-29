@@ -6,6 +6,7 @@ import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
 import {textureManager} from '../Config/TextureManager';
 import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
+import {MeshStandardMaterial} from "three";
 
 // -------------------- CONFIGURABLE LOD PARAMETERS --------------------
 const LOD_CONFIG = {
@@ -437,11 +438,11 @@ export default function Forest() {
                 geometry = child.geometry.clone();
 
                 // Créer le matériau de base
-                material = new THREE.MeshStandardMaterial({
+                material = new MeshStandardMaterial({
                     name: `${objectId}_material`,
                     side: THREE.DoubleSide,
                     transparent: true,
-                    alphaTest: 0.5
+                    alphaTest: 0.5,
                 });
             }
         });

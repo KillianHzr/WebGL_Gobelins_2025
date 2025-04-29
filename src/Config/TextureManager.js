@@ -36,8 +36,8 @@ class TextureManager {
 
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant');
-        this.addPlantTexture('PlantIvy', 'forest/plant');
-        this.addPlantTexture('PlantReed', 'forest/plant');
+        // this.addPlantTexture('PlantIvy', 'forest/plant');
+        this.addPlantTexture('PlantReed', 'forest/plant'); 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant');
         this.addPlantTexture('PlantClematis', 'forest/plant');
 
@@ -55,8 +55,8 @@ class TextureManager {
         this.addTextureMapping('RockWater', 'rock');
 
         // Sol
-        this.addTextureMapping('ForestRoad', 'floor');
-        this.addTextureMapping('ForestGrass', 'floor');
+        // this.addTextureMapping('ForestRoad', 'floor');
+        // this.addTextureMapping('ForestGrass', 'ground');
 
         // Éléments primaires
         this.addTextureMapping('DirectionPanel', 'primary');
@@ -64,6 +64,8 @@ class TextureManager {
         this.addPlantTexture('LeafOak', 'primary');
         this.addPlantTexture('AnimalPaws', 'primary');
         // this.addPlantTexture('MudPuddle', 'primary/AnimalPaws');
+
+        this.addTextureMapping('Ground','ground', 'ForestGrass')
     }
 
     // Ajouter automatiquement les mappings de textures pour un modèle avec PBR complet
@@ -119,7 +121,7 @@ class TextureManager {
     // Vérification anticipée de la disponibilité d'une texture d'opacité
     isOpacityTextureAvailable(folder, prefix) {
         // Basée sur les fichiers observés
-        return folder === 'floor' && (prefix === 'ForestGrass' || prefix === 'ForestRoad');
+        return folder === 'ground' && (prefix === 'ForestGrass' || prefix === 'ForestRoad');
     }
 
     // Obtenir toutes les textures pour un modèle spécifique

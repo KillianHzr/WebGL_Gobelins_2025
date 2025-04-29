@@ -3,11 +3,107 @@ import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {getDefaultValue, initializeLight} from '../Utils/defaultValues';
+import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
 
 export default function Lights() {
     const {scene} = useThree();
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
+    const directionalLightRef = useRef();
+    const lightHelperRef = useRef();
+    const shadowCameraHelperRef = useRef();
+
+    // Ajouter la lumière directionnelle à la scène et ses helpers
+    useEffect(() => {
+        // Créer la lumière directionnelle (soleil) depuis le haut à gauche
+        if (!directionalLightRef.current) {
+            const directionalLight = scene.children.find(
+                (child) => child.isDirectionalLight && child.name === 'TopLeftLight'
+            );
+
+            if (!directionalLight) {
+                console.log("Adding directional light to the scene");
+                const newLight = new DirectionalLight('#FFE9C1', 7.5);
+                newLight.position.set(-20, 30, 20); // Position plus élevée et décalée
+                newLight.castShadow = true;
+                newLight.shadow.mapSize.width = 2048; // Augmenter la résolution
+                newLight.shadow.mapSize.height = 2048;
+                newLight.shadow.bias = -0.0005; // Ajuster le bias pour éviter les artefacts
+                newLight.shadow.camera.near = 0.1;
+                newLight.shadow.camera.far = 200; // Augmenter la distance
+
+// Étendre le frustum de la caméra d'ombre
+                newLight.shadow.camera.left = -50;
+                newLight.shadow.camera.right = 50;
+                newLight.shadow.camera.top = 50;
+                newLight.shadow.camera.bottom = -50;
+
+                newLight.name = 'TopLeftLight';
+                scene.add(newLight);
+                directionalLightRef.current = newLight;
+
+                // Créer les helpers pour le mode debug
+                if (debug?.active) {
+                    createHelpers(newLight);
+                }
+            } else {
+                directionalLightRef.current = directionalLight;
+
+                // Créer les helpers pour le mode debug
+                if (debug?.active) {
+                    createHelpers(directionalLight);
+                }
+            }
+        }
+
+        // Fonction pour créer et gérer les helpers
+        function createHelpers(light) {
+            // Supprimer les helpers existants si présents
+            if (lightHelperRef.current) {
+                scene.remove(lightHelperRef.current);
+            }
+
+            if (shadowCameraHelperRef.current) {
+                scene.remove(shadowCameraHelperRef.current);
+            }
+
+            // Créer un helper pour visualiser la direction de la lumière
+            const helper = new DirectionalLightHelper(light, 2);
+            helper.visible = debug?.showLightHelpers || false;
+            scene.add(helper);
+            lightHelperRef.current = helper;
+
+            // Créer un helper pour visualiser la zone de projection d'ombres
+            const shadowHelper = new CameraHelper(light.shadow.camera);
+            shadowHelper.visible = debug?.showLightHelpers || false;
+            scene.add(shadowHelper);
+            shadowCameraHelperRef.current = shadowHelper;
+        }
+
+        // Nettoyage lors du démontage
+        return () => {
+            if (lightHelperRef.current) {
+                scene.remove(lightHelperRef.current);
+                lightHelperRef.current = null;
+            }
+
+            if (shadowCameraHelperRef.current) {
+                scene.remove(shadowCameraHelperRef.current);
+                shadowCameraHelperRef.current = null;
+            }
+        };
+    }, [scene, debug]);
+
+    // Mise à jour des helpers lorsque la lumière change
+    useEffect(() => {
+        if (directionalLightRef.current && lightHelperRef.current) {
+            lightHelperRef.current.update();
+        }
+
+        if (directionalLightRef.current && shadowCameraHelperRef.current) {
+            shadowCameraHelperRef.current.update();
+        }
+    }, [directionalLightRef.current?.position, directionalLightRef.current?.rotation]);
 
     // Initialiser les lumières avec les valeurs par défaut du config au montage
     useEffect(() => {
@@ -46,6 +142,32 @@ export default function Lights() {
             if (guiConfig.gui.closeFolders) {
                 lightsFolder.close()
             }
+
+            // Ajouter un contrôle pour les helpers
+            const helpersParams = {
+                showHelpers: debug?.showLightHelpers || false
+            };
+
+            const helpersControl = lightsFolder.add(helpersParams, 'showHelpers')
+                .name('Show Light Helpers');
+
+            helpersControl.onChange(value => {
+                // Mettre à jour le state pour que d'autres composants puissent y accéder
+                const currentDebug = useStore.getState().debug;
+                useStore.getState().setDebug({
+                    ...currentDebug,
+                    showLightHelpers: value
+                });
+
+                // Mettre à jour la visibilité des helpers
+                if (lightHelperRef.current) {
+                    lightHelperRef.current.visible = value;
+                }
+
+                if (shadowCameraHelperRef.current) {
+                    shadowCameraHelperRef.current.visible = value;
+                }
+            });
 
             // Find all lights in the scene
             const lights = [];
@@ -88,6 +210,17 @@ export default function Lights() {
 
                 visibleControl.onChange(value => {
                     updateDebugConfig(`lights.${lightType}.${index}.visible`, value);
+
+                    // Mettre à jour la visibilité des helpers
+                    if (light === directionalLightRef.current) {
+                        if (lightHelperRef.current) {
+                            lightHelperRef.current.visible = value && (debug?.showLightHelpers || false);
+                        }
+
+                        if (shadowCameraHelperRef.current) {
+                            shadowCameraHelperRef.current.visible = value && (debug?.showLightHelpers || false);
+                        }
+                    }
                 });
 
                 const intensityControl = lightFolder.add(
@@ -100,6 +233,11 @@ export default function Lights() {
 
                 intensityControl.onChange(value => {
                     updateDebugConfig(`lights.${lightType}.${index}.intensity`, value);
+
+                    // Mettre à jour le helper si nécessaire
+                    if (light === directionalLightRef.current && lightHelperRef.current) {
+                        lightHelperRef.current.update();
+                    }
                 });
 
                 // Color control
@@ -113,6 +251,11 @@ export default function Lights() {
                 colorControl.onChange(value => {
                     light.color.set(value);
                     updateDebugConfig(`lights.${lightType}.${index}.color`, value);
+
+                    // Mettre à jour le helper si nécessaire
+                    if (light === directionalLightRef.current && lightHelperRef.current) {
+                        lightHelperRef.current.update();
+                    }
                 });
 
                 // Position control if the light has a position
@@ -141,6 +284,12 @@ export default function Lights() {
 
                     posXControl.onChange(value => {
                         updateDebugConfig(`lights.${lightType}.${index}.position.x`, value);
+
+                        // Mettre à jour les helpers si nécessaire
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
                     });
 
                     const posYControl = posFolder.add(
@@ -153,6 +302,12 @@ export default function Lights() {
 
                     posYControl.onChange(value => {
                         updateDebugConfig(`lights.${lightType}.${index}.position.y`, value);
+
+                        // Mettre à jour les helpers si nécessaire
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
                     });
 
                     const posZControl = posFolder.add(
@@ -165,6 +320,91 @@ export default function Lights() {
 
                     posZControl.onChange(value => {
                         updateDebugConfig(`lights.${lightType}.${index}.position.z`, value);
+
+                        // Mettre à jour les helpers si nécessaire
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
+                    });
+                }
+
+                // Ajout des contrôles de rotation pour les lumières directionnelles
+                if (light.isDirectionalLight) {
+                    const rotFolder = lightFolder.addFolder('Rotation');
+                    if (guiConfig.gui.closeFolders) rotFolder.close();
+
+                    // Obtenir ou initialiser les valeurs de rotation en degrés
+                    const savedRotX = getDebugConfigValue(`lights.${lightType}.${index}.rotation.x`,
+                        getDefaultValue(`${basePath}.rotation.x`, light.rotation.x * 180 / Math.PI));
+                    const savedRotY = getDebugConfigValue(`lights.${lightType}.${index}.rotation.y`,
+                        getDefaultValue(`${basePath}.rotation.y`, light.rotation.y * 180 / Math.PI));
+                    const savedRotZ = getDebugConfigValue(`lights.${lightType}.${index}.rotation.z`,
+                        getDefaultValue(`${basePath}.rotation.z`, light.rotation.z * 180 / Math.PI));
+
+                    // Créer un objet pour stocker les valeurs en degrés pour l'interface
+                    const rotationParams = {
+                        x: savedRotX,
+                        y: savedRotY,
+                        z: savedRotZ
+                    };
+
+                    // Ajouter les contrôles de rotation
+                    const rotXControl = rotFolder.add(
+                        rotationParams,
+                        'x',
+                        -180,
+                        180,
+                        1
+                    ).name('X (deg)');
+
+                    rotXControl.onChange(value => {
+                        light.rotation.x = value * Math.PI / 180;
+                        updateDebugConfig(`lights.${lightType}.${index}.rotation.x`, value);
+
+                        // Mettre à jour les helpers
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
+                    });
+
+                    const rotYControl = rotFolder.add(
+                        rotationParams,
+                        'y',
+                        -180,
+                        180,
+                        1
+                    ).name('Y (deg)');
+
+                    rotYControl.onChange(value => {
+                        light.rotation.y = value * Math.PI / 180;
+                        updateDebugConfig(`lights.${lightType}.${index}.rotation.y`, value);
+
+                        // Mettre à jour les helpers
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
+                    });
+
+                    const rotZControl = rotFolder.add(
+                        rotationParams,
+                        'z',
+                        -180,
+                        180,
+                        1
+                    ).name('Z (deg)');
+
+                    rotZControl.onChange(value => {
+                        light.rotation.z = value * Math.PI / 180;
+                        updateDebugConfig(`lights.${lightType}.${index}.rotation.z`, value);
+
+                        // Mettre à jour les helpers
+                        if (light === directionalLightRef.current) {
+                            if (lightHelperRef.current) lightHelperRef.current.update();
+                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                        }
                     });
                 }
 
@@ -188,6 +428,11 @@ export default function Lights() {
 
                     castShadowControl.onChange(value => {
                         updateDebugConfig(`lights.${lightType}.${index}.castShadow`, value);
+
+                        // Mettre à jour la visibilité du shadow camera helper
+                        if (light === directionalLightRef.current && shadowCameraHelperRef.current) {
+                            shadowCameraHelperRef.current.visible = value && (debug?.showLightHelpers || false);
+                        }
                     });
 
                     if (light.shadow) {
@@ -265,6 +510,119 @@ export default function Lights() {
                             light.shadow.needsUpdate = true;
                             updateDebugConfig(`lights.${lightType}.${index}.shadow.mapSize`, value);
                         });
+
+                        // Ajouter des contrôles pour les paramètres de la caméra d'ombre
+                        if (light.isDirectionalLight) {
+                            const cameraFolder = shadowFolder.addFolder('Shadow Camera');
+                            if (guiConfig.gui.closeFolders) cameraFolder.close();
+
+                            // Récupérer les paramètres sauvegardés pour la caméra
+                            const savedLeft = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.left`,
+                                getDefaultValue(`${shadowBasePath}.camera.left`, light.shadow.camera.left));
+                            const savedRight = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.right`,
+                                getDefaultValue(`${shadowBasePath}.camera.right`, light.shadow.camera.right));
+                            const savedTop = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.top`,
+                                getDefaultValue(`${shadowBasePath}.camera.top`, light.shadow.camera.top));
+                            const savedBottom = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.bottom`,
+                                getDefaultValue(`${shadowBasePath}.camera.bottom`, light.shadow.camera.bottom));
+                            const savedNear = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.near`,
+                                getDefaultValue(`${shadowBasePath}.camera.near`, light.shadow.camera.near));
+                            const savedFar = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.far`,
+                                getDefaultValue(`${shadowBasePath}.camera.far`, light.shadow.camera.far));
+
+                            // Appliquer les valeurs sauvegardées
+                            light.shadow.camera.left = savedLeft;
+                            light.shadow.camera.right = savedRight;
+                            light.shadow.camera.top = savedTop;
+                            light.shadow.camera.bottom = savedBottom;
+                            light.shadow.camera.near = savedNear;
+                            light.shadow.camera.far = savedFar;
+
+                            // Ajouter contrôles pour le frustum de la caméra
+                            const leftControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'left',
+                                -50,
+                                0,
+                                1
+                            ).name('Left');
+
+                            leftControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.left`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+
+                            const rightControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'right',
+                                0,
+                                50,
+                                1
+                            ).name('Right');
+
+                            rightControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.right`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+
+                            const topControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'top',
+                                0,
+                                50,
+                                1
+                            ).name('Top');
+
+                            topControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.top`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+
+                            const bottomControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'bottom',
+                                -50,
+                                0,
+                                1
+                            ).name('Bottom');
+
+                            bottomControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.bottom`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+
+                            const nearControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'near',
+                                0.1,
+                                10,
+                                0.1
+                            ).name('Near');
+
+                            nearControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.near`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+
+                            const farControl = cameraFolder.add(
+                                light.shadow.camera,
+                                'far',
+                                10,
+                                200,
+                                5
+                            ).name('Far');
+
+                            farControl.onChange(value => {
+                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.far`, value);
+                                light.shadow.camera.updateProjectionMatrix();
+                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
+                            });
+                        }
                     }
                 }
 
@@ -408,5 +766,19 @@ export default function Lights() {
         };
     }, [debug, gui, scene, updateDebugConfig, getDebugConfigValue]);
 
-    return null;
+    return (
+        <>
+            {/*<ambientLight intensity={0.3} /> /!* Lumière ambiante légère *!/*/}
+            <directionalLight
+                ref={directionalLightRef}
+                position={[-20, 30, 20]}
+                intensity={7.5}
+                color="#FFE9C1"
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-bias={-0.0005}
+            />
+        </>
+    );
 }

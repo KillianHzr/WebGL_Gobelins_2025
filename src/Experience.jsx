@@ -17,6 +17,7 @@ import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects, {StaticObject} from './World/SceneObjects';
 import NarrationTriggers from './Utils/NarrationTriggers';
+import {ACESFilmicToneMapping, CineonToneMapping, PCFSoftShadowMap} from "three";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EXPERIENCE = false;
@@ -166,6 +167,29 @@ export default function Experience() {
             isMountedRef.current = false;
         };
     }, []);
+    function ToneMapping() {
+        const { gl, scene } = useThree(({ gl, scene }) => ({ gl, scene }));
+        useEffect(() => {
+            gl.toneMapping = CineonToneMapping;
+            gl.toneMappingExposure = 1.5;
+
+            scene.traverse((object) => {
+                if (object.material) {
+                    object.material.needsUpdate = true;
+                }
+            });
+        }, [gl, scene]);
+        return <></>;
+    }
+    function ShadowMapping() {
+        const { gl } = useThree();
+        useEffect(() => {
+            console.log("Activating shadow mapping");
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = PCFSoftShadowMap;
+        }, [gl]);
+        return null;
+    }
 
     // Optimiser le rendu de la scène forestière avec useMemo
     const forestScene = useMemo(() => <ForestSceneWrapper/>, []);
@@ -174,20 +198,21 @@ export default function Experience() {
         <EventEmitterProvider>
             <DebugInitializer/>
             <AudioManagerComponent/>
-            <NarrationTriggers/>
 
             {debug?.active && debug?.showStats && <Stats/>}
             {debug?.active && debug?.showGui && <Debug/>}
             {debug?.active && debug?.showGui && <Camera/>}
             {debug?.active && debug?.showGui && <Controls/>}
-            {debug?.active && debug?.showGui && <Lights/>}
-
+            {/*{debug?.active && debug?.showGui && <Lights/>}*/}
+            <Lights/>
+            <ShadowMapping/>
+            <ToneMapping/>
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
                         {/* Lights */}
-                        <ambientLight intensity={5}/>
-                        <directionalLight position={[1, 2, 3]} intensity={1.5}/>
+                        {/*<ambientLight intensity={5}/>*/}
+                        {/*<directionalLight position={[-11.642, 8.748, 0]} intensity={6.83} color={"0xFFE9C1"}/>*/}
                         <color attach="background" args={['#1e1e2f']}/>
 
                         {/* Utiliser le composant principal qui affiche tous les objets de scène

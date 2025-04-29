@@ -37,7 +37,13 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
-                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+                receiveShadow: true, // S'assurer que cette propriété est à true
+                castShadow: false, // Le sol ne projette pas d'ombre
+                defaultPlacements: [{
+                    position: [0, 0, 0],
+                    rotation: [0, 0, 0],
+                    receiveShadow: true // Spécifier explicitement au niveau du placement
+                }]
             },
 
             // 'WaterPlane': {

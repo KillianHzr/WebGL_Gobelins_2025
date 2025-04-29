@@ -20,35 +20,79 @@ const debugLog = (message, ...args) => {
  * Composant pour afficher un objet statique individuel avec textures
  * Version optimisée pour éviter les problèmes de performance
  */
+/**
+ * Composant pour afficher un objet statique individuel avec textures
+ * Version optimisée pour éviter les problèmes de performance et améliorer les ombres
+ */
 export const StaticObject = React.memo(function StaticObject({
-                                                          path,
-                                                          position,
-                                                          rotation,
-                                                          quaternion, // Nouveau paramètre ajouté
-                                                          scale,
-                                                          castShadow = true,
-                                                          receiveShadow = true,
-                                                          visible = true,
-                                                          textureModelId = null,
-                                                          useTextures = true,
-                                                          // Nouvelles propriétés pour les animations
-                                                          playAnimation = false,
-                                                          animationName = null,
-                                                          animationLoop = true,
-                                                          animationClamp = false,
-                                                          animationTimeScale = 1.0,
-                                                          onAnimationComplete = null
-                                                      }) {
+                                                                 path,
+                                                                 position,
+                                                                 rotation,
+                                                                 quaternion,
+                                                                 scale,
+                                                                 castShadow = true,
+                                                                 receiveShadow = true,
+                                                                 visible = true,
+                                                                 textureModelId = null,
+                                                                 useTextures = true,
+                                                                 playAnimation = false,
+                                                                 animationName = null,
+                                                                 animationLoop = true,
+                                                                 animationClamp = false,
+                                                                 animationTimeScale = 1.0,
+                                                                 onAnimationComplete = null
+                                                             }) {
     const objectRef = useRef();
     const isComponentMounted = useRef(true);
     const animationRef = useRef(null);
     const currentAnimationRef = useRef(null);
+    const isGroundObjectRef = useRef(false);
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
     const {scene: modelScene, animations} = useGLTF(path);
 
     // Cloner le modèle une seule fois avec useMemo
-    const model = useMemo(() => modelScene.clone(), [modelScene]);
+    const model = useMemo(() => {
+        const clonedModel = modelScene.clone();
+
+        // Déterminer si c'est un objet de type sol en fonction du nom ou du chemin
+        const isGroundObject = path.toLowerCase().includes('ground') ||
+            textureModelId?.toLowerCase().includes('ground');
+        isGroundObjectRef.current = isGroundObject;
+
+        // Appliquer les propriétés d'ombre de manière appropriée
+        clonedModel.traverse((child) => {
+            if (child.isMesh) {
+                if (isGroundObject) {
+                    // Le sol reçoit des ombres mais n'en projette pas
+                    child.castShadow = false;
+                    child.receiveShadow = true;
+
+                    // Améliorer le matériau pour mieux recevoir les ombres
+                    if (child.material) {
+                        child.material.roughness = 0.8; // Plus rugueux pour mieux montrer les ombres
+                        child.material.metalness = 0.2; // Légèrement métallique
+
+                        // S'assurer que le matériau est configuré pour les ombres
+                        child.material.shadowSide = THREE.FrontSide;
+                        child.material.needsUpdate = true;
+                    }
+                } else {
+                    // Les autres objets peuvent projeter et recevoir des ombres
+                    child.castShadow = castShadow;
+                    child.receiveShadow = receiveShadow;
+
+                    // Améliorer les paramètres du matériau pour de meilleures ombres
+                    if (child.material) {
+                        // Assurez-vous que tous les matériaux sont configurés pour les ombres
+                        child.material.needsUpdate = true;
+                    }
+                }
+            }
+        });
+
+        return clonedModel;
+    }, [modelScene, path, textureModelId, castShadow, receiveShadow]);
 
     // Utiliser useAnimations pour gérer les animations
     const {actions, mixer} = useAnimations(animations, objectRef);
@@ -181,6 +225,7 @@ export const StaticObject = React.memo(function StaticObject({
             }
         }
     }, [animations, actions, path, playAnimation, animationName]);
+
     // Appliquer les textures au modèle après le montage - avec optimisations
     useEffect(() => {
         if (!objectRef.current || !useTextures || !textureModelId || !textureManager) return;
@@ -194,6 +239,31 @@ export const StaticObject = React.memo(function StaticObject({
                 // Vérifier si le composant est toujours monté avant de logger
                 if (isComponentMounted.current && isApplyingTextures) {
                     debugLog(`Textures appliquées à ${textureModelId}`);
+                }
+
+                // Après avoir appliqué les textures, vérifier si c'est un objet de sol
+                // et appliquer des optimisations spécifiques
+                if (isGroundObjectRef.current && objectRef.current) {
+                    objectRef.current.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            // Réappliquer les paramètres de matériau pour le sol
+                            child.castShadow = false;
+                            child.receiveShadow = true;
+
+                            // Optimiser le matériau pour une meilleure réception des ombres
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(mat => {
+                                    mat.roughness = 0.8;
+                                    mat.metalness = 0.2;
+                                    mat.needsUpdate = true;
+                                });
+                            } else {
+                                child.material.roughness = 0.8;
+                                child.material.metalness = 0.2;
+                                child.material.needsUpdate = true;
+                            }
+                        }
+                    });
                 }
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
@@ -234,8 +304,8 @@ export const StaticObject = React.memo(function StaticObject({
         const props = {
             position,
             scale,
-            castShadow,
-            receiveShadow,
+            castShadow: isGroundObjectRef.current ? false : castShadow,
+            receiveShadow: isGroundObjectRef.current ? true : receiveShadow,
             visible
         };
 
@@ -343,8 +413,8 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     rotation={placement.rotation}
                     quaternion={placement.quaternion} // Nouveau paramètre ajouté
                     scale={placement.scale}
-                    castShadow={placement.castShadow}
-                    receiveShadow={placement.receiveShadow}
+                    castShadow={placement.castShadow !== undefined ? placement.castShadow : true}
+                    receiveShadow={placement.receiveShadow !== undefined ? placement.receiveShadow : true}
                     visible={placement.visible}
                     textureModelId={textureModelId}
                     useTextures={useTextures}

@@ -105,12 +105,12 @@ class TemplateManager {
                 priority: 16,
                 useTextures: true
             },
-            'PlantIvy002': {
-                id: 'PlantIvy',
-                path: '/models/forest/plant/PlantIvy.glb',
-                priority: 17,
-                useTextures: true
-            },
+            // 'PlantIvy002': {
+            //     id: 'PlantIvy',
+            //     path: '/models/forest/plant/PlantIvy.glb',
+            //     priority: 17,
+            //     useTextures: true
+            // },
             'PlantMiscanthus': {
                 id: 'PlantMiscanthus',
                 path: '/models/forest/plant/PlantMiscanthus.glb',
