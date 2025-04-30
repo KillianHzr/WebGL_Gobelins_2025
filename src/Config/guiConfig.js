@@ -105,7 +105,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 50
+                default: 100
             }
         }
     },
@@ -367,6 +367,20 @@ const guiConfig = {
     },
     lights: {
         folder: "Lights",
+        nightMode: {
+            name: "Night Mode",
+            default: false
+        },
+        dayLight: {
+            position: [53.764, 31.716, -56.134],
+            intensity: 54351.413065,
+            color: "#FFEAC6"
+        },
+        nightLight: {
+            position: [171.443, 32.282, -81.040],
+            intensity: 20870.28,
+            color: "#B4B5FF"
+        },
         common: {
             visible: {
                 name: "Enabled",
@@ -374,7 +388,7 @@ const guiConfig = {
             },
             intensity: {
                 min: 0,
-                max: 10,
+                max: 100000,
                 step: 0.01,
                 name: "Intensity",
                 default: 2.0
@@ -387,22 +401,22 @@ const guiConfig = {
         position: {
             folder: "Position",
             x: {
-                min: -20,
-                max: 20,
+                min: -200,
+                max: 200,
                 step: 0.1,
                 name: "X",
                 default: 0
             },
             y: {
-                min: -20,
-                max: 20,
+                min: -200,
+                max: 200,
                 step: 0.1,
                 name: "Y",
                 default: 5
             },
             z: {
-                min: -20,
-                max: 20,
+                min: -200,
+                max: 200,
                 step: 0.1,
                 name: "Z",
                 default: 0
@@ -508,6 +522,43 @@ const guiConfig = {
                     intensity: 1.0,
                     color: "#ffffff",
                     visible: true
+                }
+            },
+            Directional: {
+                0: {
+                    intensity: 7.5,
+                    color: "#FFE9C1",
+                    visible: true,
+                    castShadow: true,
+                    position: {
+                        x: -20,
+                        y: 30,
+                        z: 20
+                    }
+                }
+            },
+            Point: {
+                0: { // Jour
+                    intensity: 54351.413065,
+                    color: "#FFEAC6",
+                    visible: true,
+                    castShadow: true,
+                    position: {
+                        x: 53.764,
+                        y: 31.716,
+                        z: -56.134
+                    }
+                },
+                1: { // Nuit
+                    intensity: 20870.28,
+                    color: "#B4B5FF",
+                    visible: false,
+                    castShadow: true,
+                    position: {
+                        x: 171.443,
+                        y: 32.282,
+                        z: -81.040
+                    }
                 }
             }
         }

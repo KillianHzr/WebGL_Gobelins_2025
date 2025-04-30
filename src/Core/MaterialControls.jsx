@@ -17,14 +17,29 @@ export default function MaterialControls() {
     const foldersRef = useRef({});
     const initialized = useRef(false);
     const originalMaterialStates = useRef({});
+    const originalMeshStates = useRef({});  // Pour stocker l'état original des meshes
     const [materialsReady, setMaterialsReady] = useState(false);
 
-    // Fonction pour collecter tous les matériaux de la scène
+    // Fonction pour collecter tous les matériaux et meshes de la scène
     const collectAllMaterials = () => {
         const materials = new Map();
+        const meshes = new Map();  // Stocker les références aux meshes
 
         scene.traverse((object) => {
             if (!object.isMesh || !object.material) return;
+
+            // Sauvegarder l'état original du mesh pour les propriétés de shadow
+            if (!originalMeshStates.current[object.uuid]) {
+                originalMeshStates.current[object.uuid] = {
+                    castShadow: object.castShadow,
+                    receiveShadow: object.receiveShadow
+                };
+            }
+
+            // Ajouter le mesh à la map
+            if (!meshes.has(object.uuid)) {
+                meshes.set(object.uuid, object);
+            }
 
             const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
 
@@ -54,13 +69,22 @@ export default function MaterialControls() {
                     material._objectName = modelId || 'Unknown';
                     material._objectType = object.type;
 
+                    // Associer le matériau avec le mesh
+                    material._meshRefs = material._meshRefs || [];
+                    if (!material._meshRefs.includes(object.uuid)) {
+                        material._meshRefs.push(object.uuid);
+                    }
+
                     materials.set(material.uuid, material);
                 }
             });
         });
 
-        debugLog(`Collected ${materials.size} unique materials from scene`);
-        return Array.from(materials.values());
+        debugLog(`Collected ${materials.size} unique materials and ${meshes.size} meshes from scene`);
+        return {
+            materials: Array.from(materials.values()),
+            meshes
+        };
     };
 
     // Fonction pour vérifier si la scène est prête
@@ -99,6 +123,22 @@ export default function MaterialControls() {
         }
     };
 
+    // Fonction pour réinitialiser les propriétés de shadow d'un mesh
+    const resetMeshShadowProperties = (meshUuid, meshesMap) => {
+        const mesh = meshesMap.get(meshUuid);
+        if (!mesh) return;
+
+        const originalState = originalMeshStates.current[meshUuid];
+        if (!originalState) return;
+
+        try {
+            if (originalState.castShadow !== undefined) mesh.castShadow = originalState.castShadow;
+            if (originalState.receiveShadow !== undefined) mesh.receiveShadow = originalState.receiveShadow;
+        } catch (error) {
+            console.warn(`Error resetting shadow properties for mesh ${mesh.name}:`, error);
+        }
+    };
+
     // Hook pour vérifier la disponibilité des matériaux
     useEffect(() => {
         const checkMaterialsReadyInterval = setInterval(() => {
@@ -130,8 +170,8 @@ export default function MaterialControls() {
             try {
                 console.log("Setting up individual material controls");
 
-                // Collecter tous les matériaux
-                const allMaterials = collectAllMaterials();
+                // Collecter tous les matériaux et meshes
+                const {materials: allMaterials, meshes: meshesMap} = collectAllMaterials();
                 if (allMaterials.length === 0) {
                     console.warn("No materials found in scene");
                     return;
@@ -144,7 +184,7 @@ export default function MaterialControls() {
                         gui.removeFolder(gui.__folders["Materials"]);
                     }
                     materialsFolder = gui.addFolder("Materials");
-                    materialsFolder.close()
+                    materialsFolder.close();
                 } catch (e) {
                     console.warn("Error creating Materials folder:", e);
                     try {
@@ -162,6 +202,7 @@ export default function MaterialControls() {
                     if (folderName !== "Unknown Material" && folderName !== "Unknown") {
                         const materialFolder = materialsFolder.addFolder(folderName);
                         foldersRef.current[material.uuid] = materialFolder;
+                        materialFolder.close();
 
                         // État du matériau
                         const materialControls = {
@@ -174,9 +215,24 @@ export default function MaterialControls() {
                             ...(material.metalness !== undefined ? {metalness: material.metalness} : {}),
                             ...(material.opacity !== undefined ? {opacity: material.opacity} : {}),
 
+                            // Propriétés de shadow pour les meshes associés
+                            castShadow: material._meshRefs && material._meshRefs.length > 0
+                                ? meshesMap.get(material._meshRefs[0])?.castShadow || false
+                                : false,
+                            receiveShadow: material._meshRefs && material._meshRefs.length > 0
+                                ? meshesMap.get(material._meshRefs[0])?.receiveShadow || false
+                                : false,
+
                             // Fonction de réinitialisation
                             reset: () => {
                                 resetMaterial(material);
+
+                                // Réinitialiser les propriétés de shadow pour tous les meshes associés
+                                if (material._meshRefs && material._meshRefs.length > 0) {
+                                    material._meshRefs.forEach(meshUuid => {
+                                        resetMeshShadowProperties(meshUuid, meshesMap);
+                                    });
+                                }
 
                                 // Mettre à jour les contrôleurs
                                 if (material.color) {
@@ -201,6 +257,17 @@ export default function MaterialControls() {
 
                                 materialControls.wireframe = material.wireframe || false;
                                 materialFolder.__controllers.find(c => c.property === 'wireframe')?.updateDisplay();
+
+                                // Mettre à jour les contrôleurs de shadow
+                                if (material._meshRefs && material._meshRefs.length > 0) {
+                                    const primaryMesh = meshesMap.get(material._meshRefs[0]);
+                                    if (primaryMesh) {
+                                        materialControls.castShadow = primaryMesh.castShadow;
+                                        materialControls.receiveShadow = primaryMesh.receiveShadow;
+                                        materialFolder.__controllers.find(c => c.property === 'castShadow')?.updateDisplay();
+                                        materialFolder.__controllers.find(c => c.property === 'receiveShadow')?.updateDisplay();
+                                    }
+                                }
 
                                 // Forcer un rendu
                                 if (gl && gl.render && scene) {
@@ -264,6 +331,40 @@ export default function MaterialControls() {
                                 console.warn(`Error updating wireframe for ${material._objectName}:`, error);
                             }
                         });
+
+                        // Ajouter les contrôleurs pour les propriétés de shadow
+                        if (material._meshRefs && material._meshRefs.length > 0) {
+                            materialFolder.add(materialControls, 'castShadow').name('Cast Shadow').onChange(value => {
+                                try {
+                                    // Appliquer à tous les meshes associés à ce matériau
+                                    material._meshRefs.forEach(meshUuid => {
+                                        const mesh = meshesMap.get(meshUuid);
+                                        if (mesh) {
+                                            mesh.castShadow = value;
+                                        }
+                                    });
+                                } catch (error) {
+                                    console.warn(`Error updating cast shadow for ${material._objectName}:`, error);
+                                }
+                            });
+
+                            materialFolder.add(materialControls, 'receiveShadow').name('Receive Shadow').onChange(value => {
+                                try {
+                                    // Appliquer à tous les meshes associés à ce matériau
+                                    material._meshRefs.forEach(meshUuid => {
+                                        const mesh = meshesMap.get(meshUuid);
+                                        if (mesh) {
+                                            mesh.receiveShadow = value;
+                                            if (mesh.material) {
+                                                mesh.material.needsUpdate = true;
+                                            }
+                                        }
+                                    });
+                                } catch (error) {
+                                    console.warn(`Error updating receive shadow for ${material._objectName}:`, error);
+                                }
+                            });
+                        }
 
                         // Ajouter un bouton de réinitialisation
                         materialFolder.add(materialControls, 'reset').name('Reset Material');
