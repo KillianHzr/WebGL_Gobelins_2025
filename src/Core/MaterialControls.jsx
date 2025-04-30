@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useThree } from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import * as THREE from 'three';
@@ -14,181 +14,72 @@ const debugLog = (message, ...args) => {
 export default function MaterialControls() {
     const { scene, gl } = useThree();
     const { debug, gui, updateDebugConfig } = useStore();
-    const folderRef = useRef(null);
+    const foldersRef = useRef({});
     const initialized = useRef(false);
-    const materialGroups = useRef({});
     const originalMaterialStates = useRef({});
+    const [materialsReady, setMaterialsReady] = useState(false);
 
-    // Helper pour extraire le nom du groupe à partir du nom de l'objet
-    const extractGroupName = (objectName) => {
-        if (!objectName) return 'Unknown';
+    // Fonction pour collecter tous les matériaux de la scène
+    const collectAllMaterials = () => {
+        const materials = new Map(); // Utiliser une Map pour stocker les matériaux uniques
 
-        const patterns = {
-            'Tree': ['Tree', 'Trunk', 'Branch'],
-            'Bush': ['Bush', 'Plant'],
-            'Flower': ['Flower', 'Clover', 'Bell'],
-            'Mushroom': ['Mushroom'],
-            'Rock': ['Rock', 'Stone'],
-            'Ground': ['Ground'],
-            'Water': ['Water', 'River']
-        };
+        scene.traverse((object) => {
+            if (!object.isMesh || !object.material) return;
 
-        for (const [group, keywords] of Object.entries(patterns)) {
-            if (keywords.some(keyword => objectName.includes(keyword))) {
-                return group;
-            }
-        }
+            const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
 
-        return 'Unknown';
+            meshMaterials.forEach(material => {
+                // Vérifier si c'est un matériau valide et s'il n'est pas déjà dans la Map
+                if (material && material.uuid && !materials.has(material.uuid)) {
+                    // Sauvegarder l'état original
+                    if (!originalMaterialStates.current[material.uuid]) {
+                        originalMaterialStates.current[material.uuid] = {
+                            color: material.color ? material.color.clone() : null,
+                            roughness: material.roughness,
+                            metalness: material.metalness,
+                            transparent: material.transparent,
+                            opacity: material.opacity,
+                            wireframe: material.wireframe
+                        };
+                    }
+
+                    // Ajouter des infos supplémentaires
+                    material._objectName = object.name || 'Unknown';
+                    material._objectType = object.type;
+
+                    // Ajouter à la Map
+                    materials.set(material.uuid, material);
+                }
+            });
+        });
+
+        debugLog(`Collected ${materials.size} unique materials from scene`);
+        return Array.from(materials.values());
     };
 
-    // Fonction pour sauvegarder l'état original d'un matériau
-    const saveOriginalMaterialState = (material) => {
+    // Fonction pour vérifier si la scène est prête
+    const isSceneReady = () => {
+        let materialCount = 0;
+
+        scene.traverse((object) => {
+            if (object.isMesh && object.material) {
+                materialCount++;
+            }
+        });
+
+        return materialCount > 0;
+    };
+
+    // Fonction pour réinitialiser un matériau à son état d'origine
+    const resetMaterial = (material) => {
         if (!material || !material.uuid) return;
 
-        // Éviter de sauvegarder plusieurs fois le même matériau
-        if (originalMaterialStates.current[material.uuid]) return;
+        const originalState = originalMaterialStates.current[material.uuid];
+        if (!originalState) return;
 
-        originalMaterialStates.current[material.uuid] = {
-            color: material.color ? material.color.clone() : null,
-            roughness: material.roughness,
-            metalness: material.metalness,
-            transparent: material.transparent,
-            opacity: material.opacity,
-            wireframe: material.wireframe
-        };
-    };
-
-    // Collecter tous les matériaux uniques dans la scène et les grouper
-    const collectMaterials = () => {
         try {
-            const groups = {};
-            const processedMaterials = new Set();
-
-            scene.traverse((object) => {
-                if (!object.isMesh || !object.material) return;
-
-                const materials = Array.isArray(object.material)
-                    ? object.material
-                    : [object.material];
-
-                materials.forEach(material => {
-                    // Éviter les doublons
-                    if (processedMaterials.has(material.uuid)) return;
-                    processedMaterials.add(material.uuid);
-
-                    // Sauvegarder l'état original du matériau
-                    saveOriginalMaterialState(material);
-
-                    // Extraire le groupe en fonction du nom de l'objet
-                    const groupName = extractGroupName(object.name || (object.parent ? object.parent.name : ''));
-
-                    if (!groups[groupName]) {
-                        groups[groupName] = [];
-                    }
-
-                    // Ajouter des informations supplémentaires
-                    material._objectName = object.name || (object.parent ? object.parent.name : 'Unknown');
-
-                    groups[groupName].push(material);
-                });
-            });
-
-            debugLog(`Collected materials by group:`, Object.keys(groups).map(key => `${key}: ${groups[key].length}`));
-            return groups;
-        } catch (error) {
-            console.error("Error collecting materials:", error);
-            return {};
-        }
-    };
-
-    // Fonction pour mettre à jour un paramètre pour tous les matériaux d'un groupe
-    const updateGroupParam = (groupName, paramName, value) => {
-        try {
-            const materials = materialGroups.current[groupName] || [];
-
-            debugLog(`Updating ${paramName} to ${value} for ${materials.length} materials in group ${groupName}`);
-
-            // Mettre à jour tous les matériaux du groupe
-            let updatedMaterials = 0;
-            materials.forEach(material => {
-                try {
-                    if (paramName === 'color') {
-                        material.color.set(value);
-                    } else if (material[paramName] !== undefined) {
-                        material[paramName] = value;
-                    }
-
-                    // Forcer la mise à jour du matériau
-                    material.needsUpdate = true;
-                    updatedMaterials++;
-                } catch (innerError) {
-                    console.warn(`Error updating material property ${paramName}:`, innerError);
-                }
-            });
-
-            // Mettre à jour directement tous les matériaux dans la scène qui correspondent au groupe
-            // C'est une double vérification pour s'assurer que tous les matériaux sont mis à jour
-            scene.traverse((object) => {
-                if (object.isMesh && object.material) {
-                    const objName = object.name || (object.parent ? object.parent.name : '');
-                    const materialGroupName = extractGroupName(objName);
-
-                    if (materialGroupName === groupName) {
-                        const materials = Array.isArray(object.material)
-                            ? object.material
-                            : [object.material];
-
-                        materials.forEach(mat => {
-                            try {
-                                if (paramName === 'color') {
-                                    mat.color.set(value);
-                                } else if (mat[paramName] !== undefined) {
-                                    mat[paramName] = value;
-                                }
-
-                                mat.needsUpdate = true;
-                                updatedMaterials++;
-                            } catch (err) {
-                                // Ignorer les erreurs individuelles
-                            }
-                        });
-                    }
-                }
-            });
-
-            // Force un rendu après les modifications
-            try {
-                if (gl && typeof gl.render === 'function') {
-                    const mainCamera = scene.children.find(c => c.isCamera);
-                    if (mainCamera) gl.render(scene, mainCamera);
-                }
-            } catch (e) {
-                // Ignorer les erreurs de rendu
-            }
-
-            // Sauvegarder la valeur dans le store pour persistance
-            if (updateDebugConfig) {
-                updateDebugConfig(`materials.${groupName}.${paramName}`, value);
-            }
-        } catch (error) {
-            console.error(`Error updating group parameter ${paramName} for ${groupName}:`, error);
-        }
-    };
-
-    // Fonction pour réinitialiser un matériau
-    const resetMaterial = (material) => {
-        try {
-            if (!material || !material.uuid) return;
-
-            const originalState = originalMaterialStates.current[material.uuid];
-            if (!originalState) {
-                console.warn(`No original state found for material: ${material._objectName}`);
-                return;
-            }
-
-            // Restaurer les propriétés
-            if (originalState.color) material.color.copy(originalState.color);
+            // Restaurer les propriétés si elles existent
+            if (originalState.color && material.color) material.color.copy(originalState.color);
 
             if (originalState.roughness !== undefined) material.roughness = originalState.roughness;
             if (originalState.metalness !== undefined) material.metalness = originalState.metalness;
@@ -198,173 +89,205 @@ export default function MaterialControls() {
 
             material.needsUpdate = true;
         } catch (error) {
-            console.error(`Error resetting material:`, error);
+            console.warn(`Error resetting material ${material._objectName}:`, error);
         }
     };
 
-    // Fonction pour forcer un rendu de la scène
-    const forceRender = () => {
-        try {
-            scene.traverse(obj => {
-                if (obj.isMesh && obj.material) {
-                    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-                    mats.forEach(m => { if (m) m.needsUpdate = true; });
-                }
-            });
-
-            if (gl && typeof gl.render === 'function') {
-                const mainCamera = scene.children.find(c => c.isCamera);
-                if (mainCamera) gl.render(scene, mainCamera);
+    // Hook pour vérifier la disponibilité des matériaux
+    useEffect(() => {
+        const checkMaterialsReadyInterval = setInterval(() => {
+            if (isSceneReady()) {
+                clearInterval(checkMaterialsReadyInterval);
+                setMaterialsReady(true);
             }
-        } catch (e) {
-            console.warn("Force render error:", e);
-        }
-    };
+        }, 500); // Vérifier toutes les 500ms
+
+        return () => clearInterval(checkMaterialsReadyInterval);
+    }, [scene]);
 
     // Initialisation des contrôles GUI pour les matériaux
     useEffect(() => {
         // Vérifier si le debug est activé et l'interface GUI disponible
-        if (!debug?.active || !debug?.showGui || !gui || typeof gui.addFolder !== 'function') {
+        // Et si les matériaux sont prêts
+        if (!materialsReady ||
+            !debug?.active ||
+            !debug?.showGui ||
+            !gui ||
+            typeof gui.addFolder !== 'function' ||
+            initialized.current
+        ) {
             return;
         }
 
-        // Éviter l'initialisation multiple
-        if (initialized.current) return;
-
-        // Utiliser un timeout pour s'assurer que le GUI est prêt
+        // Utiliser un timeout supplémentaire pour s'assurer que tout est chargé
         const initTimer = setTimeout(() => {
             try {
-                console.log("Setting up materials debug UI");
+                console.log("Setting up individual material controls");
 
-                // Collecter les matériaux d'abord
-                materialGroups.current = collectMaterials();
+                // Collecter tous les matériaux
+                const allMaterials = collectAllMaterials();
+                if (allMaterials.length === 0) {
+                    console.warn("No materials found in scene");
+                    return;
+                }
 
                 // Créer le dossier principal pour les matériaux
                 let materialsFolder;
                 try {
-                    // Essayer de supprimer un dossier existant
                     if (gui.__folders && gui.__folders["Materials"]) {
                         gui.removeFolder(gui.__folders["Materials"]);
                     }
                     materialsFolder = gui.addFolder("Materials");
-                } catch (err) {
-                    console.warn("Error handling Materials folder:", err);
+                } catch (e) {
+                    console.warn("Error creating Materials folder:", e);
                     try {
-                        materialsFolder = gui.addFolder("Materials_new");
-                    } catch (e) {
-                        console.error("Failed to create Materials folder:", e);
-                        return; // Abandonner si on ne peut pas créer le dossier
+                        materialsFolder = gui.addFolder("MaterialsControls");
+                    } catch (e2) {
+                        console.error("Failed to create folder:", e2);
+                        return;
                     }
                 }
 
-                folderRef.current = materialsFolder;
+                // Créer un sous-dossier pour chaque matériau unique
+                allMaterials.forEach((material, index) => {
+                    // Créer un nom unique pour le dossier
+                    const folderName = `Material ${index + 1} (${material._objectName || 'Unknown'})`;
+                    const materialFolder = materialsFolder.addFolder(folderName);
+                    foldersRef.current[material.uuid] = materialFolder;
 
-                // Ajouter un bouton de réinitialisation global
-                const globalControls = {
-                    resetAllMaterials: () => {
-                        try {
-                            Object.values(materialGroups.current).flat().forEach(resetMaterial);
-                            console.log("All materials have been reset to original state");
-                            forceRender();
-                        } catch (error) {
-                            console.error("Error resetting all materials:", error);
-                        }
-                    }
-                };
+                    // État du matériau
+                    const materialControls = {
+                        // Contrôles de base
+                        color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
+                        wireframe: material.wireframe || false,
 
-                materialsFolder.add(globalControls, 'resetAllMaterials').name('Reset All Materials');
+                        // Autres propriétés selon le type de matériau
+                        ...(material.roughness !== undefined ? { roughness: material.roughness } : {}),
+                        ...(material.metalness !== undefined ? { metalness: material.metalness } : {}),
+                        ...(material.opacity !== undefined ? { opacity: material.opacity } : {}),
 
-                // Créer un dossier pour chaque groupe de matériaux
-                Object.entries(materialGroups.current).forEach(([groupName, materials]) => {
-                    if (materials.length === 0) return;
+                        // Fonction de réinitialisation
+                        reset: () => {
+                            resetMaterial(material);
 
-                    try {
-                        const groupFolder = materialsFolder.addFolder(`${groupName} (${materials.length})`);
-
-                        // Si le groupe a des matériaux, utiliser les valeurs du premier comme valeurs par défaut
-                        if (materials.length === 0) return;
-                        const firstMaterial = materials[0];
-
-                        // Paramètres du groupe
-                        const groupParams = {
-                            color: '#' + firstMaterial.color.getHexString(),
-                            roughness: firstMaterial.roughness !== undefined ? firstMaterial.roughness : 0.5,
-                            metalness: firstMaterial.metalness !== undefined ? firstMaterial.metalness : 0.0,
-                            opacity: firstMaterial.opacity !== undefined ? firstMaterial.opacity : 1.0,
-                            wireframe: firstMaterial.wireframe !== undefined ? firstMaterial.wireframe : false,
-                            resetGroup: () => {
-                                try {
-                                    materials.forEach(resetMaterial);
-                                    console.log(`Reset all materials in group ${groupName}`);
-                                    forceRender();
-                                } catch (error) {
-                                    console.error(`Error resetting group ${groupName}:`, error);
-                                }
+                            // Mettre à jour les contrôleurs
+                            if (material.color) {
+                                materialControls.color = '#' + material.color.getHexString();
+                                materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
                             }
-                        };
 
-                        // Ajouter les contrôles pour les paramètres communs
-                        groupFolder.addColor(groupParams, 'color').name('Color').onChange(value => {
-                            updateGroupParam(groupName, 'color', value);
+                            if (material.roughness !== undefined) {
+                                materialControls.roughness = material.roughness;
+                                materialFolder.__controllers.find(c => c.property === 'roughness')?.updateDisplay();
+                            }
+
+                            if (material.metalness !== undefined) {
+                                materialControls.metalness = material.metalness;
+                                materialFolder.__controllers.find(c => c.property === 'metalness')?.updateDisplay();
+                            }
+
+                            if (material.opacity !== undefined) {
+                                materialControls.opacity = material.opacity;
+                                materialFolder.__controllers.find(c => c.property === 'opacity')?.updateDisplay();
+                            }
+
+                            materialControls.wireframe = material.wireframe || false;
+                            materialFolder.__controllers.find(c => c.property === 'wireframe')?.updateDisplay();
+
+                            // Forcer un rendu
+                            if (gl && gl.render && scene) {
+                                const camera = scene.getObjectByProperty('isCamera', true) ||
+                                    scene.children.find(child => child.isCamera);
+                                if (camera) gl.render(scene, camera);
+                            }
+                        }
+                    };
+
+                    // Ajouter les contrôleurs pour ce matériau
+                    materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
+                        try {
+                            material.color.set(value);
+                            material.needsUpdate = true;
+                        } catch (error) {
+                            console.warn(`Error updating color for ${material._objectName}:`, error);
+                        }
+                    });
+
+                    if (material.roughness !== undefined) {
+                        materialFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
+                            try {
+                                material.roughness = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating roughness for ${material._objectName}:`, error);
+                            }
                         });
-
-                        // Ajouter roughness et metalness seulement si le premier matériau les prend en charge
-                        if (firstMaterial.roughness !== undefined) {
-                            groupFolder.add(groupParams, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
-                                updateGroupParam(groupName, 'roughness', value);
-                            });
-                        }
-
-                        if (firstMaterial.metalness !== undefined) {
-                            groupFolder.add(groupParams, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
-                                updateGroupParam(groupName, 'metalness', value);
-                            });
-                        }
-
-                        if (firstMaterial.opacity !== undefined) {
-                            groupFolder.add(groupParams, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
-                                updateGroupParam(groupName, 'opacity', value);
-                                // Si l'opacité est inférieure à 1, forcer transparent à true
-                                if (value < 1) {
-                                    updateGroupParam(groupName, 'transparent', true);
-                                }
-                            });
-                        }
-
-                        groupFolder.add(groupParams, 'wireframe').name('Wireframe').onChange(value => {
-                            updateGroupParam(groupName, 'wireframe', value);
-                        });
-
-                        // Ajouter le bouton de réinitialisation du groupe
-                        groupFolder.add(groupParams, 'resetGroup').name('Reset Group');
-                    } catch (error) {
-                        console.error(`Error setting up GUI for group ${groupName}:`, error);
                     }
+
+                    if (material.metalness !== undefined) {
+                        materialFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
+                            try {
+                                material.metalness = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating metalness for ${material._objectName}:`, error);
+                            }
+                        });
+                    }
+
+                    if (material.opacity !== undefined) {
+                        materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
+                            try {
+                                // Activer la transparence si l'opacité est < 1
+                                material.transparent = value < 1;
+                                material.opacity = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                            }
+                        });
+                    }
+
+                    materialFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
+                        try {
+                            material.wireframe = value;
+                            material.needsUpdate = true;
+                        } catch (error) {
+                            console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                        }
+                    });
+
+                    // Ajouter un bouton de réinitialisation
+                    materialFolder.add(materialControls, 'reset').name('Reset Material');
                 });
 
+                materialsFolder.open();
                 initialized.current = true;
-                console.log("Material controls initialized successfully");
-
-                // Force la mise à jour complète de la scène une fois au démarrage
-                forceRender();
+                console.log("Individual material controls initialized successfully");
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 1000); // Délai d'une seconde pour s'assurer que tout est initialisé
+        }, 2000); // Augmenté à 2 secondes pour plus de fiabilité
 
         // Nettoyage
         return () => {
             clearTimeout(initTimer);
-            if (folderRef.current && gui) {
+            if (gui) {
                 try {
-                    gui.removeFolder(folderRef.current);
-                } catch (error) {
-                    console.warn("Error removing materials folder:", error);
+                    // Supprimer tous les dossiers de matériaux
+                    Object.values(foldersRef.current).forEach(folder => {
+                        try {
+                            gui.removeFolder(folder);
+                        } catch (e) {
+                            console.warn("Error removing material folder:", e);
+                        }
+                    });
+                } catch (e) {
+                    console.warn("Error during cleanup:", e);
                 }
             }
         };
-    }, [debug, gui, scene, updateDebugConfig, gl]);
+    }, [materialsReady, debug, gui, scene, gl]);
 
-    // Ce composant ne rend rien visuellement
-    return null;
+    return null; // Ce composant ne rend rien
 }
