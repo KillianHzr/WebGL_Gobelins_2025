@@ -178,7 +178,7 @@ export default function Lights() {
                 newLight.shadow.mapSize.height = 2048;
                 newLight.shadow.bias = -0.0005; // Ajuster le bias pour éviter les artefacts
                 newLight.shadow.camera.near = 0.1;
-                newLight.shadow.camera.far = 200; // Augmenter la distance
+                newLight.shadow.camera.far = 25; // Augmenter la distance
 
                 // Étendre le frustum de la caméra d'ombre
                 newLight.shadow.camera.left = -50;
