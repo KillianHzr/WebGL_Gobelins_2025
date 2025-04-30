@@ -70,7 +70,7 @@ const guiFolderConfig = {
             // Profil pour les artistes
             "Theatre.js": false,
             "Visualisation": false,
-            "Camera": true,
+            "Camera": false,
             "Controls": false,
             "Scene": false,
             "Renderer": false,

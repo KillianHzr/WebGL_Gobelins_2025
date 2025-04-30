@@ -304,13 +304,22 @@ class TextureManager {
         };
 
         try {
+            if (material.color) {
+                material.userData.originalDefineColor = material.defines?.USE_COLOR;
+                material.defines = material.defines || {};
+                material.defines.USE_COLOR = false;
+            }
             // Carte de couleur de base (BaseColor/Diffuse)
             if (textures.baseColor) {
                 material.map = textures.baseColor;
                 this.configureTexture(material.map, 'baseColor');
+                // Forcer la couleur à blanc pour ne pas influencer la texture baseColor
+                // material.color.set(0xFFFFFF);
             } else if (textures.diffuse) {
                 material.map = textures.diffuse;
                 this.configureTexture(material.map, 'diffuse');
+                // Forcer la couleur à blanc pour ne pas influencer la texture diffuse
+                // material.color.set(0xFFFFFF);
             }
 
             // Carte normale (préférer NormalOpenGL si disponible pour Three.js)

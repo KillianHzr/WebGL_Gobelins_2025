@@ -56,7 +56,7 @@ export default function MaterialControls() {
                     // Sauvegarder l'état original
                     if (!originalMaterialStates.current[material.uuid]) {
                         originalMaterialStates.current[material.uuid] = {
-                            color: material.color ? material.color.clone() : null,
+                            // color: material.color ? material.color.clone() : null,
                             roughness: material.roughness,
                             metalness: material.metalness,
                             transparent: material.transparent,
@@ -109,7 +109,7 @@ export default function MaterialControls() {
 
         try {
             // Restaurer les propriétés si elles existent
-            if (originalState.color && material.color) material.color.copy(originalState.color);
+            // if (originalState.color && material.color) material.color.copy(originalState.color);
 
             if (originalState.roughness !== undefined) material.roughness = originalState.roughness;
             if (originalState.metalness !== undefined) material.metalness = originalState.metalness;
@@ -207,7 +207,7 @@ export default function MaterialControls() {
                         // État du matériau
                         const materialControls = {
                             // Contrôles de base
-                            color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
+                            // color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
                             wireframe: material.wireframe || false,
 
                             // Autres propriétés selon le type de matériau
@@ -235,10 +235,10 @@ export default function MaterialControls() {
                                 }
 
                                 // Mettre à jour les contrôleurs
-                                if (material.color) {
-                                    materialControls.color = '#' + material.color.getHexString();
-                                    materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
-                                }
+                                // if (material.color) {
+                                //     materialControls.color = '#' + material.color.getHexString();
+                                //     materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
+                                // }
 
                                 if (material.roughness !== undefined) {
                                     materialControls.roughness = material.roughness;
@@ -279,14 +279,14 @@ export default function MaterialControls() {
                         };
 
                         // Ajouter les contrôleurs pour ce matériau
-                        materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
-                            try {
-                                material.color.set(value);
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating color for ${material._objectName}:`, error);
-                            }
-                        });
+                        // materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
+                        //     try {
+                        //         material.color.set(value);
+                        //         material.needsUpdate = true;
+                        //     } catch (error) {
+                        //         console.warn(`Error updating color for ${material._objectName}:`, error);
+                        //     }
+                        // });
 
                         if (material.roughness !== undefined) {
                             materialFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
