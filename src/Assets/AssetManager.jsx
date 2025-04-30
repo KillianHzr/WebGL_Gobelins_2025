@@ -591,7 +591,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                             loadersRef.current.texture.load(
                                 url,
                                 (texture) => {
-                                    texture.flipY = false;
+                                    texture.flipY = true;
                                     material[type][key] = texture;
                                     nTex--;
                                     if (nTex === 0) {
@@ -616,7 +616,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                         loadersRef.current.texture.load(
                             url,
                             (texture) => {
-                                texture.flipY = false;
+                                texture.flipY = true;
                                 material[type] = texture;
                                 nTex--;
                                 if (nTex === 0) {

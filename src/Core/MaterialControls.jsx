@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useThree } from '@react-three/fiber';
+import React, {useEffect, useRef, useState} from 'react';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import * as THREE from 'three';
 
@@ -12,8 +12,8 @@ const debugLog = (message, ...args) => {
 };
 
 export default function MaterialControls() {
-    const { scene, gl } = useThree();
-    const { debug, gui, updateDebugConfig } = useStore();
+    const {scene, gl} = useThree();
+    const {debug, gui, updateDebugConfig} = useStore();
     const foldersRef = useRef({});
     const initialized = useRef(false);
     const originalMaterialStates = useRef({});
@@ -159,113 +159,115 @@ export default function MaterialControls() {
                 allMaterials.forEach((material) => {
                     // Utiliser le nom de l'objet pour le dossier
                     const folderName = material._objectName || 'Unknown Material';
-                    const materialFolder = materialsFolder.addFolder(folderName);
-                    foldersRef.current[material.uuid] = materialFolder;
+                    if (folderName !== "Unknown Material" && folderName !== "Unknown") {
+                        const materialFolder = materialsFolder.addFolder(folderName);
+                        foldersRef.current[material.uuid] = materialFolder;
 
-                    // État du matériau
-                    const materialControls = {
-                        // Contrôles de base
-                        color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
-                        wireframe: material.wireframe || false,
+                        // État du matériau
+                        const materialControls = {
+                            // Contrôles de base
+                            color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
+                            wireframe: material.wireframe || false,
 
-                        // Autres propriétés selon le type de matériau
-                        ...(material.roughness !== undefined ? { roughness: material.roughness } : {}),
-                        ...(material.metalness !== undefined ? { metalness: material.metalness } : {}),
-                        ...(material.opacity !== undefined ? { opacity: material.opacity } : {}),
+                            // Autres propriétés selon le type de matériau
+                            ...(material.roughness !== undefined ? {roughness: material.roughness} : {}),
+                            ...(material.metalness !== undefined ? {metalness: material.metalness} : {}),
+                            ...(material.opacity !== undefined ? {opacity: material.opacity} : {}),
 
-                        // Fonction de réinitialisation
-                        reset: () => {
-                            resetMaterial(material);
+                            // Fonction de réinitialisation
+                            reset: () => {
+                                resetMaterial(material);
 
-                            // Mettre à jour les contrôleurs
-                            if (material.color) {
-                                materialControls.color = '#' + material.color.getHexString();
-                                materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
+                                // Mettre à jour les contrôleurs
+                                if (material.color) {
+                                    materialControls.color = '#' + material.color.getHexString();
+                                    materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
+                                }
+
+                                if (material.roughness !== undefined) {
+                                    materialControls.roughness = material.roughness;
+                                    materialFolder.__controllers.find(c => c.property === 'roughness')?.updateDisplay();
+                                }
+
+                                if (material.metalness !== undefined) {
+                                    materialControls.metalness = material.metalness;
+                                    materialFolder.__controllers.find(c => c.property === 'metalness')?.updateDisplay();
+                                }
+
+                                if (material.opacity !== undefined) {
+                                    materialControls.opacity = material.opacity;
+                                    materialFolder.__controllers.find(c => c.property === 'opacity')?.updateDisplay();
+                                }
+
+                                materialControls.wireframe = material.wireframe || false;
+                                materialFolder.__controllers.find(c => c.property === 'wireframe')?.updateDisplay();
+
+                                // Forcer un rendu
+                                if (gl && gl.render && scene) {
+                                    const camera = scene.getObjectByProperty('isCamera', true) ||
+                                        scene.children.find(child => child.isCamera);
+                                    if (camera) gl.render(scene, camera);
+                                }
                             }
+                        };
 
-                            if (material.roughness !== undefined) {
-                                materialControls.roughness = material.roughness;
-                                materialFolder.__controllers.find(c => c.property === 'roughness')?.updateDisplay();
-                            }
-
-                            if (material.metalness !== undefined) {
-                                materialControls.metalness = material.metalness;
-                                materialFolder.__controllers.find(c => c.property === 'metalness')?.updateDisplay();
-                            }
-
-                            if (material.opacity !== undefined) {
-                                materialControls.opacity = material.opacity;
-                                materialFolder.__controllers.find(c => c.property === 'opacity')?.updateDisplay();
-                            }
-
-                            materialControls.wireframe = material.wireframe || false;
-                            materialFolder.__controllers.find(c => c.property === 'wireframe')?.updateDisplay();
-
-                            // Forcer un rendu
-                            if (gl && gl.render && scene) {
-                                const camera = scene.getObjectByProperty('isCamera', true) ||
-                                    scene.children.find(child => child.isCamera);
-                                if (camera) gl.render(scene, camera);
-                            }
-                        }
-                    };
-
-                    // Ajouter les contrôleurs pour ce matériau
-                    materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
-                        try {
-                            material.color.set(value);
-                            material.needsUpdate = true;
-                        } catch (error) {
-                            console.warn(`Error updating color for ${material._objectName}:`, error);
-                        }
-                    });
-
-                    if (material.roughness !== undefined) {
-                        materialFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
+                        // Ajouter les contrôleurs pour ce matériau
+                        materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
                             try {
-                                material.roughness = value;
+                                material.color.set(value);
                                 material.needsUpdate = true;
                             } catch (error) {
-                                console.warn(`Error updating roughness for ${material._objectName}:`, error);
+                                console.warn(`Error updating color for ${material._objectName}:`, error);
                             }
                         });
-                    }
 
-                    if (material.metalness !== undefined) {
-                        materialFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
-                            try {
-                                material.metalness = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating metalness for ${material._objectName}:`, error);
-                            }
-                        });
-                    }
-
-                    if (material.opacity !== undefined) {
-                        materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
-                            try {
-                                // Activer la transparence si l'opacité est < 1
-                                material.transparent = value < 1;
-                                material.opacity = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating opacity for ${material._objectName}:`, error);
-                            }
-                        });
-                    }
-
-                    materialFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
-                        try {
-                            material.wireframe = value;
-                            material.needsUpdate = true;
-                        } catch (error) {
-                            console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                        if (material.roughness !== undefined) {
+                            materialFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
+                                try {
+                                    material.roughness = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating roughness for ${material._objectName}:`, error);
+                                }
+                            });
                         }
-                    });
 
-                    // Ajouter un bouton de réinitialisation
-                    materialFolder.add(materialControls, 'reset').name('Reset Material');
+                        if (material.metalness !== undefined) {
+                            materialFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
+                                try {
+                                    material.metalness = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating metalness for ${material._objectName}:`, error);
+                                }
+                            });
+                        }
+
+                        if (material.opacity !== undefined) {
+                            materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
+                                try {
+                                    // Activer la transparence si l'opacité est < 1
+                                    material.transparent = value < 1;
+                                    material.opacity = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                                }
+                            });
+                        }
+
+                        materialFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
+                            try {
+                                material.wireframe = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        // Ajouter un bouton de réinitialisation
+                        materialFolder.add(materialControls, 'reset').name('Reset Material');
+                    }
                 });
 
                 materialsFolder.close();

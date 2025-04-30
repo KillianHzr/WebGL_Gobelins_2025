@@ -1,6 +1,6 @@
-import React, {useRef, useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
-import {Group, Vector3, Quaternion, Matrix4, Box3, Euler, Object3D} from 'three';
+import {Euler, Group, Object3D} from 'three';
 import useStore from '../Store/useStore';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import templateManager from '../Config/TemplateManager';
@@ -161,16 +161,7 @@ export default function MapWithInstances() {
             if (!textureManager || !textureManager.hasTextures(objectId)) return;
 
             try {
-                // Garder une référence à l'état de visibilité d'origine
-                const wasVisible = node.visible;
 
-                // Appliquer les textures sans changer la visibilité
-                await textureManager.applyTexturesToModel(objectId, node, {
-                    invertAlpha: objectId === 'Bush' // Appliquer l'inversion d'alpha seulement pour les buissons
-                });
-
-                // Restaurer l'état de visibilité
-                node.visible = wasVisible;
 
                 console.log(`Textures applied to instance ${node.name} (${objectId})`);
             } catch (error) {

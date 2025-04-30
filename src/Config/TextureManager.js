@@ -93,7 +93,7 @@ class TextureManager {
     // Ajouter des textures pour les plantes (généralement BaseColor + Alpha)
     addPlantTexture(modelId, folder) {
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${modelId}_BaseColor.png`
+            baseColor: `/textures/${folder}/${modelId}_BaseColor.png`,
         };
 
         // Ajouter la texture alpha si disponible
@@ -162,6 +162,8 @@ class TextureManager {
                         texture.encoding = sRGBEncoding;
                         texture.wrapS = RepeatWrapping;
                         texture.wrapT = RepeatWrapping;
+
+                        texture.flipY = false;
 
                         // Stocker dans le cache global
                         this.loadedTextures[texturePath] = texture;
