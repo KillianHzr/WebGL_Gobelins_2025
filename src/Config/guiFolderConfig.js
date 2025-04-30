@@ -1,0 +1,128 @@
+/**
+ * Configuration pour contrôler la visibilité des dossiers dans l'interface GUI de debugging
+ * Ce fichier permet de définir quels dossiers sont affichés ou cachés dans l'interface
+ */
+
+const guiFolderConfig = {
+    // Configuration principale pour l'affichage des dossiers
+    foldersVisibility: {
+        // Dossiers principaux
+        "Theatre.js": true,       // Contrôles Theatre.js
+        "Visualisation": true,    // Contrôles de visualisation générale
+        "Camera": true,           // Contrôles de caméra
+        "Controls": true,         // Contrôles de navigation
+        "Scene": true,            // Contrôles de scène
+        "Renderer": true,         // Contrôles du renderer
+        "Materials": true,        // Contrôles des matériaux
+        "Lights": true,           // Contrôles des lumières
+        "Effects": true,          // Contrôles des effets
+        "Objects": true,          // Contrôles des objets
+        "Audio": true,            // Contrôles audio
+        "Interfaces": true,       // Contrôles des interfaces
+        "Utils": true,            // Utilitaires (import/export)
+
+        // Sous-dossiers (format "parent/enfant")
+        "Controls/Auto Rotation": true,
+        "Controls/Limits": true,
+        "Lights/Position": true,
+        "Lights/Shadows": true,
+        "Materials/Defaults": false,  // Cacher les paramètres par défaut des matériaux
+        "Objects/Cube": true,
+        "Objects/Cube/Material": true,
+        "Objects/Cube/Animation": true,
+        "Audio/Ambiance": true,
+        "Audio/Narration": true,
+        "Effects/Glow Effect": true
+    },
+
+    // Configuration des contraintes d'affichage (dépendances entre dossiers)
+    folderDependencies: {
+        // Si un dossier parent est caché, ses enfants le seront automatiquement
+        enforceParentDependency: true,
+
+        // Dépendances spécifiques (si dossierA est caché, alors dossierB sera aussi caché)
+        specific: {
+            "Scene": ["Scene/Fog"],              // Si Scene est caché, Scene/Fog le sera aussi
+            "Lights": ["Lights/Position", "Lights/Shadows"], // Si Lights est caché, ses sous-dossiers le seront aussi
+            "Effects": ["Effects/Glow Effect"]   // Si Effects est caché, Effects/Glow Effect le sera aussi
+        }
+    },
+
+    // Configuration des profils prédéfinis pour différents contextes d'utilisation
+    profiles: {
+        "minimal": {
+            // Profil minimal pour une interface épurée
+            "Theatre.js": true,
+            "Visualisation": true,
+            "Camera": false,
+            "Controls": false,
+            "Scene": false,
+            "Renderer": false,
+            "Materials": false,
+            "Lights": false,
+            "Effects": false,
+            "Objects": false,
+            "Audio": true,
+            "Interfaces": true,
+            "Utils": true
+        },
+        "artist": {
+            // Profil pour les artistes
+            "Theatre.js": false,
+            "Visualisation": false,
+            "Camera": true,
+            "Controls": false,
+            "Scene": false,
+            "Renderer": false,
+            "Materials": true,
+            "Lights": true,
+            "Effects": false,
+            "Objects": false,
+            "Audio": false,
+            "Interfaces": false,
+            "Utils": false
+        },
+        "developer": {
+            // Profil pour les développeurs
+            "Theatre.js": true,
+            "Visualisation": true,
+            "Camera": true,
+            "Controls": true,
+            "Scene": true,
+            "Renderer": true,
+            "Materials": true,
+            "Lights": true,
+            "Effects": true,
+            "Objects": true,
+            "Audio": true,
+            "Interfaces": true,
+            "Utils": true
+        },
+        "performance": {
+            // Profil pour tester les performances
+            "Theatre.js": false,
+            "Visualisation": true,
+            "Camera": false,
+            "Controls": false,
+            "Scene": true,
+            "Renderer": true,
+            "Materials": false,
+            "Lights": true,
+            "Effects": true,
+            "Objects": false,
+            "Audio": false,
+            "Interfaces": false,
+            "Utils": true
+        }
+    },
+
+    // Configuration de l'accès rapide (raccourcis pour afficher/cacher des groupes de dossiers)
+    quickAccess: {
+        "rendering": ["Scene", "Renderer", "Lights", "Effects"],
+        "interaction": ["Controls", "Interfaces"],
+        "content": ["Objects", "Materials"],
+        "audio": ["Audio"]
+    }
+};
+
+export default guiFolderConfig;

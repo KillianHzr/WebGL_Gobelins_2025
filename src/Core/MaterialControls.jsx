@@ -144,6 +144,7 @@ export default function MaterialControls() {
                         gui.removeFolder(gui.__folders["Materials"]);
                     }
                     materialsFolder = gui.addFolder("Materials");
+                    materialsFolder.close()
                 } catch (e) {
                     console.warn("Error creating Materials folder:", e);
                     try {
@@ -267,7 +268,7 @@ export default function MaterialControls() {
                     materialFolder.add(materialControls, 'reset').name('Reset Material');
                 });
 
-                materialsFolder.open();
+                materialsFolder.close();
                 initialized.current = true;
                 console.log("Individual material controls initialized successfully");
             } catch (error) {
