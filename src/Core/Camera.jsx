@@ -1,13 +1,30 @@
 import {useEffect, useRef} from 'react';
-import {useThree} from '@react-three/fiber';
+import {useThree, useFrame} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {getDefaultValue} from '../Utils/defaultValues';
 
 export default function Camera() {
-    const {camera, gl} = useThree();
+    const {camera, gl, scene} = useThree();
     const folderRef = useRef(null);
+    const renderSettingsRef = useRef({
+        toneMapping: undefined,
+        toneMappingExposure: undefined
+    });
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
+
+    // Cette fonction s'exécute à chaque frame pour s'assurer que les paramètres de rendu sont appliqués
+    useFrame(() => {
+        if (renderSettingsRef.current.toneMapping !== undefined &&
+            gl.toneMapping !== renderSettingsRef.current.toneMapping) {
+            gl.toneMapping = renderSettingsRef.current.toneMapping;
+        }
+
+        if (renderSettingsRef.current.toneMappingExposure !== undefined &&
+            gl.toneMappingExposure !== renderSettingsRef.current.toneMappingExposure) {
+            gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
+        }
+    });
 
     useEffect(() => {
         // Add debug controls if debug mode is active and GUI exists
@@ -31,42 +48,6 @@ export default function Camera() {
             // Apply saved position
             camera.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
 
-            // Position X control
-            const positionFolder = cameraFolder.addFolder('Position');
-            const posXControl = positionFolder.add(
-                camera.position,
-                'x',
-                guiConfig.camera.position.x.min,
-                guiConfig.camera.position.x.max,
-                guiConfig.camera.position.x.step
-            ).name(guiConfig.camera.position.x.name);
-            posXControl.onChange(value => {
-                updateDebugConfig('camera.position.x.value', value);
-            });
-
-            // Position Y control
-            const posYControl = positionFolder.add(
-                camera.position,
-                'y',
-                guiConfig.camera.position.y.min,
-                guiConfig.camera.position.y.max,
-                guiConfig.camera.position.y.step
-            ).name(guiConfig.camera.position.y.name);
-            posYControl.onChange(value => {
-                updateDebugConfig('camera.position.y.value', value);
-            });
-
-            // Position Z control
-            const posZControl = positionFolder.add(
-                camera.position,
-                'z',
-                guiConfig.camera.position.z.min,
-                guiConfig.camera.position.z.max,
-                guiConfig.camera.position.z.step
-            ).name(guiConfig.camera.position.z.name);
-            posZControl.onChange(value => {
-                updateDebugConfig('camera.position.z.value', value);
-            });
 
             // Camera rotation control
             const savedRotation = {
@@ -94,27 +75,6 @@ export default function Camera() {
                 updateDebugConfig('camera.rotation.x.value', value);
             });
 
-            const rotYControl = rotationFolder.add(
-                camera.rotation,
-                'y',
-                guiConfig.camera.rotation.y.min,
-                guiConfig.camera.rotation.y.max,
-                guiConfig.camera.rotation.y.step
-            ).name(guiConfig.camera.rotation.y.name);
-            rotYControl.onChange(value => {
-                updateDebugConfig('camera.rotation.y.value', value);
-            });
-
-            const rotZControl = rotationFolder.add(
-                camera.rotation,
-                'z',
-                guiConfig.camera.rotation.z.min,
-                guiConfig.camera.rotation.z.max,
-                guiConfig.camera.rotation.z.step
-            ).name(guiConfig.camera.rotation.z.name);
-            rotZControl.onChange(value => {
-                updateDebugConfig('camera.rotation.z.value', value);
-            });
 
             // Camera settings
             const savedSettings = {
@@ -126,59 +86,71 @@ export default function Camera() {
                     getDefaultValue('camera.settings.far', camera.far))
             };
 
-            // Apply saved settings
-            camera.fov = savedSettings.fov;
-            camera.near = savedSettings.near;
-            camera.far = savedSettings.far;
-            camera.updateProjectionMatrix();
+            // Render settings folder
+            const renderFolder = cameraFolder.addFolder('Render');
 
-            // Settings folder
-            const settingsFolder = cameraFolder.addFolder('Settings');
+            // Get saved renderer values
+            const savedRenderSettings = {
+                toneMapping: getDebugConfigValue('camera.render.toneMapping.value',
+                    getDefaultValue('camera.render.toneMapping', gl.toneMapping)),
+                toneMappingExposure: getDebugConfigValue('camera.render.toneMappingExposure.value',
+                    getDefaultValue('camera.render.toneMappingExposure', gl.toneMappingExposure))
+            };
 
-            // FOV control
-            const fovControl = settingsFolder.add(
-                camera,
-                'fov',
-                guiConfig.camera.settings.fov.min,
-                guiConfig.camera.settings.fov.max,
-                guiConfig.camera.settings.fov.step
-            ).name(guiConfig.camera.settings.fov.name);
-            fovControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.fov.value', value);
+            // Stocker les valeurs dans la référence pour les mises à jour de frame
+            renderSettingsRef.current = {
+                toneMapping: savedRenderSettings.toneMapping,
+                toneMappingExposure: savedRenderSettings.toneMappingExposure
+            };
+
+            // Apply saved values immediately
+            gl.toneMapping = savedRenderSettings.toneMapping;
+            gl.toneMappingExposure = savedRenderSettings.toneMappingExposure;
+
+            const renderSettings = {
+                toneMapping: savedRenderSettings.toneMapping,
+                toneMappingExposure: savedRenderSettings.toneMappingExposure
+            };
+
+            // Tone mapping control
+            const toneMappingControl = renderFolder.add(
+                renderSettings,
+                'toneMapping',
+                guiConfig.camera.render.toneMapping.options
+            ).name(guiConfig.camera.render.toneMapping.name);
+
+            toneMappingControl.onChange(value => {
+                // Mettre à jour la référence pour que useFrame puisse appliquer le changement
+                renderSettingsRef.current.toneMapping = Number(value);
+                gl.toneMapping = Number(value); // Appliquer également immédiatement
+                updateDebugConfig('camera.render.toneMapping.value', Number(value));
+
+                // Forcer le rendu pour voir les changements immédiatement
+                gl.render(scene, camera);
             });
 
-            // Near plane control
-            const nearControl = settingsFolder.add(
-                camera,
-                'near',
-                guiConfig.camera.settings.near.min,
-                guiConfig.camera.settings.near.max,
-                guiConfig.camera.settings.near.step
-            ).name(guiConfig.camera.settings.near.name);
-            nearControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.near.value', value);
-            });
+            // Exposure control
+            const exposureControl = renderFolder.add(
+                renderSettings,
+                'toneMappingExposure',
+                guiConfig.camera.render.toneMappingExposure.min,
+                guiConfig.camera.render.toneMappingExposure.max,
+                guiConfig.camera.render.toneMappingExposure.step
+            ).name(guiConfig.camera.render.toneMappingExposure.name);
 
-            // Far plane control
-            const farControl = settingsFolder.add(
-                camera,
-                'far',
-                guiConfig.camera.settings.far.min,
-                guiConfig.camera.settings.far.max,
-                guiConfig.camera.settings.far.step
-            ).name(guiConfig.camera.settings.far.name);
-            farControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.far.value', value);
+            exposureControl.onChange(value => {
+                // Mettre à jour la référence pour que useFrame puisse appliquer le changement
+                renderSettingsRef.current.toneMappingExposure = value;
+                gl.toneMappingExposure = value; // Appliquer également immédiatement
+                updateDebugConfig('camera.render.toneMappingExposure.value', value);
+
+                // Forcer le rendu pour voir les changements immédiatement
+                gl.render(scene, camera);
             });
 
             // Close folders if configured
             if (guiConfig.gui.closeFolders) {
-                positionFolder.close();
-                rotationFolder.close();
-                settingsFolder.close();
+                renderFolder.close();
                 cameraFolder.close();
             }
         }
@@ -186,12 +158,12 @@ export default function Camera() {
         // Cleanup function
         return () => {
             if (folderRef.current) {
-                // Simplement nettoyer la référence
+                // Simply clean the reference
                 folderRef.current = null;
                 console.log('Camera folder cleanup - reference cleared');
             }
         };
-    }, [camera, debug, gui, gl, updateDebugConfig, getDebugConfigValue]);
+    }, [camera, debug, gui, gl, scene, updateDebugConfig, getDebugConfigValue]);
 
     return null;
 }

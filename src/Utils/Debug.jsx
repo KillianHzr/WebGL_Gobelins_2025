@@ -91,25 +91,20 @@ const Debug = () => {
             updateDebugConfig('scene.fog.far.value', value);
         });
 
-        // Add renderer controls
+        // Add renderer controls (sans tone mapping qui est maintenant dans Camera.jsx)
         const rendererFolder = gui.addFolder(guiConfig.renderer.folder);
         if (guiConfig.gui.closeFolders) {
             rendererFolder.close();
-
         }
 
         // Get saved renderer values
         const savedShadowMap = getDebugConfigValue('renderer.shadowMap.value', true);
-        const savedToneMapping = getDebugConfigValue('renderer.toneMapping.value', guiConfig.renderer.toneMapping.default);
-        const savedExposure = getDebugConfigValue('renderer.toneMappingExposure.value', 1);
 
         // Apply saved values
         gl.shadowMap.enabled = savedShadowMap;
-        gl.toneMapping = savedToneMapping;
-        gl.toneMappingExposure = savedExposure;
 
         const rendererSettings = {
-            shadowMap: savedShadowMap, toneMapping: savedToneMapping, toneMappingExposure: savedExposure
+            shadowMap: savedShadowMap
         };
 
         // Shadow map control
@@ -122,21 +117,7 @@ const Debug = () => {
             updateDebugConfig('renderer.shadowMap.value', value);
         });
 
-        // Tone mapping control
-        const toneMappingControl = rendererFolder.add(rendererSettings, 'toneMapping', guiConfig.renderer.toneMapping.options).name(guiConfig.renderer.toneMapping.name);
-
-        toneMappingControl.onChange(value => {
-            gl.toneMapping = Number(value);
-            updateDebugConfig('renderer.toneMapping.value', Number(value));
-        });
-
-        // Exposure control
-        const exposureControl = rendererFolder.add(rendererSettings, 'toneMappingExposure', guiConfig.renderer.toneMappingExposure.min, guiConfig.renderer.toneMappingExposure.max, guiConfig.renderer.toneMappingExposure.step).name(guiConfig.renderer.toneMappingExposure.name);
-
-        exposureControl.onChange(value => {
-            gl.toneMappingExposure = value;
-            updateDebugConfig('renderer.toneMappingExposure.value', value);
-        });
+        // Remarque: les contrôles de tone mapping ont été déplacés dans le composant Camera.jsx
 
         // Store folders for cleanup
         foldersRef.current = [sceneFolder, rendererFolder];

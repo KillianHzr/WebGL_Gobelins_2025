@@ -107,6 +107,27 @@ const guiConfig = {
                 name: "Far",
                 default: 100
             }
+        },
+        // Nouvelle section pour les paramètres de rendu de la caméra
+        render: {
+            toneMapping: {
+                options: {
+                    None: 0,
+                    Linear: 1,
+                    Reinhard: 2,
+                    Cineon: 3,
+                    ACESFilmic: 4
+                },
+                default: 2,
+                name: "Tone Mapping"
+            },
+            toneMappingExposure: {
+                min: 0,
+                max: 5,
+                step: 0.01,
+                name: "Exposure",
+                default: 2.36
+            }
         }
     },
     controls: {
@@ -457,7 +478,7 @@ const guiConfig = {
                     2048: 2048,
                     4096: 4096
                 },
-                default: 1024,
+                default: 4096,
                 name: "Resolution"
             }
         },

@@ -24,6 +24,10 @@ const guiFolderConfig = {
         // Sous-dossiers (format "parent/enfant")
         "Controls/Auto Rotation": true,
         "Controls/Limits": true,
+        "Camera/Position": true,
+        "Camera/Rotation": true,
+        "Camera/Settings": true,
+        "Camera/Render": true,     // Nouveau sous-dossier pour les paramètres de rendu de la caméra
         "Lights/Position": true,
         "Lights/Shadows": true,
         "Materials/Defaults": false,  // Cacher les paramètres par défaut des matériaux
@@ -43,6 +47,7 @@ const guiFolderConfig = {
         // Dépendances spécifiques (si dossierA est caché, alors dossierB sera aussi caché)
         specific: {
             "Scene": ["Scene/Fog"],              // Si Scene est caché, Scene/Fog le sera aussi
+            "Camera": ["Camera/Position", "Camera/Rotation", "Camera/Settings", "Camera/Render"], // Si Camera est caché, ses sous-dossiers le seront aussi
             "Lights": ["Lights/Position", "Lights/Shadows"], // Si Lights est caché, ses sous-dossiers le seront aussi
             "Effects": ["Effects/Glow Effect"]   // Si Effects est caché, Effects/Glow Effect le sera aussi
         }
@@ -70,7 +75,7 @@ const guiFolderConfig = {
             // Profil pour les artistes
             "Theatre.js": false,
             "Visualisation": false,
-            "Camera": false,
+            "Camera": true,
             "Controls": false,
             "Scene": false,
             "Renderer": false,
@@ -118,7 +123,7 @@ const guiFolderConfig = {
 
     // Configuration de l'accès rapide (raccourcis pour afficher/cacher des groupes de dossiers)
     quickAccess: {
-        "rendering": ["Scene", "Renderer", "Lights", "Effects"],
+        "rendering": ["Scene", "Renderer", "Lights", "Effects", "Camera/Render"],
         "interaction": ["Controls", "Interfaces"],
         "content": ["Objects", "Materials"],
         "audio": ["Audio"]

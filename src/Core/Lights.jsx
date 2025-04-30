@@ -19,13 +19,13 @@ export default function Lights() {
     // Configuration des données pour l'éclairage jour/nuit
     const dayLightConfig = {
         position: [53.764, 31.716, -56.134],
-        intensity: 54351.413065,
+        intensity: 13000,
         color: "#FFEAC6"
     };
 
     const nightLightConfig = {
         position: [171.443, 32.282, -81.040],
-        intensity: 20870.28 * 4,
+        intensity: 20870.28 * 2,
         color: "#B4B5FF"
     };
 
@@ -275,47 +275,47 @@ export default function Lights() {
                 }
             });
 
-            daySettingsFolder.add(daySettings, 'posX', -200, 200).name('Position X').onChange(value => {
-                dayLightConfig.position[0] = value;
-                updateDebugConfig('lights.dayLight.position.x', value);
-
-                // Si nous sommes en mode jour, mettre à jour directement la lumière active
-                if (!isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.x = value;
-                }
-
-                if (!isNightMode) {
-                    lightValues.posX = value;
-                }
-            });
-
-            daySettingsFolder.add(daySettings, 'posY', -200, 200).name('Position Y').onChange(value => {
-                dayLightConfig.position[1] = value;
-                updateDebugConfig('lights.dayLight.position.y', value);
-
-                // Si nous sommes en mode jour, mettre à jour directement la lumière active
-                if (!isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.y = value;
-                }
-
-                if (!isNightMode) {
-                    lightValues.posY = value;
-                }
-            });
-
-            daySettingsFolder.add(daySettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
-                dayLightConfig.position[2] = value;
-                updateDebugConfig('lights.dayLight.position.z', value);
-
-                // Si nous sommes en mode jour, mettre à jour directement la lumière active
-                if (!isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.z = value;
-                }
-
-                if (!isNightMode) {
-                    lightValues.posZ = value;
-                }
-            });
+            // daySettingsFolder.add(daySettings, 'posX', -200, 200).name('Position X').onChange(value => {
+            //     dayLightConfig.position[0] = value;
+            //     updateDebugConfig('lights.dayLight.position.x', value);
+            //
+            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
+            //     if (!isNightMode && directionalLightRef.current) {
+            //         directionalLightRef.current.position.x = value;
+            //     }
+            //
+            //     if (!isNightMode) {
+            //         lightValues.posX = value;
+            //     }
+            // });
+            //
+            // daySettingsFolder.add(daySettings, 'posY', -200, 200).name('Position Y').onChange(value => {
+            //     dayLightConfig.position[1] = value;
+            //     updateDebugConfig('lights.dayLight.position.y', value);
+            //
+            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
+            //     if (!isNightMode && directionalLightRef.current) {
+            //         directionalLightRef.current.position.y = value;
+            //     }
+            //
+            //     if (!isNightMode) {
+            //         lightValues.posY = value;
+            //     }
+            // });
+            //
+            // daySettingsFolder.add(daySettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
+            //     dayLightConfig.position[2] = value;
+            //     updateDebugConfig('lights.dayLight.position.z', value);
+            //
+            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
+            //     if (!isNightMode && directionalLightRef.current) {
+            //         directionalLightRef.current.position.z = value;
+            //     }
+            //
+            //     if (!isNightMode) {
+            //         lightValues.posZ = value;
+            //     }
+            // });
 
             // Paramètres pour la lumière de nuit
             const nightSettingsFolder = dayNightSettingsFolder.addFolder('Night Light');
