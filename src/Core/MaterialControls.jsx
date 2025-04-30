@@ -21,7 +21,7 @@ export default function MaterialControls() {
 
     // Fonction pour collecter tous les matériaux de la scène
     const collectAllMaterials = () => {
-        const materials = new Map(); // Utiliser une Map pour stocker les matériaux uniques
+        const materials = new Map();
 
         scene.traverse((object) => {
             if (!object.isMesh || !object.material) return;
@@ -29,7 +29,14 @@ export default function MaterialControls() {
             const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
 
             meshMaterials.forEach(material => {
-                // Vérifier si c'est un matériau valide et s'il n'est pas déjà dans la Map
+                // Extraire le model ID à partir du nom de l'objet
+                const extractModelId = (objectName) => {
+                    const parts = objectName.split('_lod');
+                    return parts[0]; // Par exemple "TrunkThin" de "TrunkThin_lod0_chunkTrunkThin_-1_0"
+                };
+
+                const modelId = extractModelId(object.name);
+
                 if (material && material.uuid && !materials.has(material.uuid)) {
                     // Sauvegarder l'état original
                     if (!originalMaterialStates.current[material.uuid]) {
@@ -43,11 +50,10 @@ export default function MaterialControls() {
                         };
                     }
 
-                    // Ajouter des infos supplémentaires
-                    material._objectName = object.name || 'Unknown';
+                    // Utiliser le modelId extrait
+                    material._objectName = modelId || 'Unknown';
                     material._objectType = object.type;
 
-                    // Ajouter à la Map
                     materials.set(material.uuid, material);
                 }
             });
@@ -149,9 +155,9 @@ export default function MaterialControls() {
                 }
 
                 // Créer un sous-dossier pour chaque matériau unique
-                allMaterials.forEach((material, index) => {
-                    // Créer un nom unique pour le dossier
-                    const folderName = `Material ${index + 1} (${material._objectName || 'Unknown'})`;
+                allMaterials.forEach((material) => {
+                    // Utiliser le nom de l'objet pour le dossier
+                    const folderName = material._objectName || 'Unknown Material';
                     const materialFolder = materialsFolder.addFolder(folderName);
                     foldersRef.current[material.uuid] = materialFolder;
 
