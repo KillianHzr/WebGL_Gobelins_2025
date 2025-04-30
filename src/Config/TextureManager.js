@@ -263,7 +263,7 @@ class TextureManager {
             name: `${modelId}_material`,
             side: DoubleSide,
             transparent: true,
-            alphaTest: 0.5,
+            alphaTest: 1.0,
         });
 
         console.log(`Création d'un nouveau matériau pour ${modelId} avec options:`, options);
@@ -368,12 +368,12 @@ class TextureManager {
                 material.alphaMap = textures.alpha;
                 this.configureTexture(material.alphaMap, 'alpha');
                 material.transparent = true;
-                material.alphaTest = 0.5;
+                material.alphaTest = 1.0;
             } else if (textures.opacity) {
                 material.alphaMap = textures.opacity;
                 this.configureTexture(material.alphaMap, 'opacity');
                 material.transparent = true;
-                material.alphaTest = 0.5;
+                material.alphaTest = 1.0;
             }
 
             // Mettre à jour le matériau

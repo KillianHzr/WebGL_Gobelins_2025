@@ -5,6 +5,138 @@ import guiConfig from '../Config/guiConfig';
 import {getDefaultValue, initializeLight} from '../Utils/defaultValues';
 import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
 
+import * as THREE from 'three';
+
+// Configuration centralisée des lumières directement depuis Lights.jsx
+
+// Configuration centralisée et enrichie des lumières
+export const LightConfig = {
+    modes: {
+        day: {
+            ambientIntensity: 0.2,
+            ambientColor: "#FFFFFF",
+            mainLight: {
+                position: [53.764, 31.716, -56.134],
+                intensity: 13000,
+                color: "#FFEAC6",
+                shadowMapSize: 2048,
+                shadowBias: -0.0005
+            }
+        },
+        night: {
+            ambientIntensity: 0.1,
+            mainLight: {
+                position: [171.443, 32.282, -81.040],
+                intensity: 20870.28 * 2,
+                color: "#B4B5FF",
+                shadowMapSize: 2048,
+                shadowBias: -0.0005
+            }
+        }
+    },
+    renderer: {
+        toneMapping: {
+            type: THREE.CineonToneMapping,
+            exposure: 1.5,
+            options: guiConfig.camera.render.toneMapping.options
+        },
+        shadowMapping: {
+            enabled: true,
+            type: THREE.PCFSoftShadowMap,
+            types: guiConfig.renderer.shadowMap.type.options
+        }
+    },
+    defaults: {
+        directionalLight: {
+            intensity: 7.5,
+            color: "#FFE9C1",
+            position: [-20, 30, 20],
+            castShadow: true,
+            shadowConfig: {
+                mapSize: 2048,
+                bias: -0.0005,
+                camera: {
+                    near: 0.1,
+                    far: 200,
+                    left: -50,
+                    right: 50,
+                    top: 50,
+                    bottom: -50
+                }
+            }
+        }
+    }
+};
+
+// Fonction pour créer et configurer les lumières de la scène
+export function createSceneLights(scene, isNightMode = false) {
+    // Nettoyer les lumières existantes
+    const existingLights = [];
+    scene.traverse((child) => {
+        if (child.isLight) existingLights.push(child);
+    });
+    existingLights.forEach(light => scene.remove(light));
+
+    const mode = isNightMode ? LightConfig.modes.night : LightConfig.modes.day;
+
+    // Configuration de la lumière ambiante
+    const ambientLight = new THREE.AmbientLight(
+        '#FFFFFF',
+        mode.ambientIntensity
+    );
+    scene.add(ambientLight);
+
+    // Configuration de la lumière principale (point light)
+    const mainLight = new THREE.PointLight(
+        mode.mainLight.color,
+        mode.mainLight.intensity
+    );
+    mainLight.position.set(...mode.mainLight.position);
+    mainLight.castShadow = true;
+    mainLight.shadow.mapSize.width = mode.mainLight.shadowMapSize;
+    mainLight.shadow.mapSize.height = mode.mainLight.shadowMapSize;
+    mainLight.shadow.bias = mode.mainLight.shadowBias;
+    mainLight.shadow.radius = 1;
+    scene.add(mainLight);
+
+    return { ambientLight, mainLight };
+}
+
+// Fonction pour configurer le renderer
+export function configureRenderer(renderer) {
+    renderer.toneMapping = LightConfig.renderer.toneMapping.type;
+    renderer.toneMappingExposure = LightConfig.renderer.toneMapping.exposure;
+    renderer.shadowMap.enabled = LightConfig.renderer.shadowMapping.enabled;
+    renderer.shadowMap.type = LightConfig.renderer.shadowMapping.type;
+
+    // AJOUT : Force la mise à jour du renderer
+    renderer.shadowMap.needsUpdate = true;
+}
+
+// Fonction pour créer une lumière directionnelle avec configuration détaillée
+export function createDirectionalLight(config = {}) {
+    const lightConfig = { ...LightConfig.defaults.directionalLight, ...config };
+
+    const light = new THREE.DirectionalLight(
+        lightConfig.color,
+        lightConfig.intensity
+    );
+
+    light.position.set(...lightConfig.position);
+    light.castShadow = lightConfig.castShadow;
+
+    // Configuration des ombres
+    light.shadow.mapSize.width = lightConfig.shadowConfig.mapSize;
+    light.shadow.mapSize.height = lightConfig.shadowConfig.mapSize;
+    light.shadow.bias = lightConfig.shadowConfig.bias;
+
+    // Configuration de la caméra d'ombre
+    const shadowCamera = light.shadow.camera;
+    Object.assign(shadowCamera, lightConfig.shadowConfig.camera);
+    shadowCamera.updateProjectionMatrix();
+
+    return light;
+}
 export default function Lights() {
     const {scene} = useThree();
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();

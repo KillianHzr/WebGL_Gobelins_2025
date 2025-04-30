@@ -16,6 +16,7 @@ const DebugInitializer = () => {
     const {debug, setDebug, setGui, setDebugConfig} = useStore();
     const initializedRef = useRef(false);
     const foldersRef = useRef(new Map());
+    const warningShownRef = useRef(new Set()); // Pour éviter de répéter les avertissements
 
     // Définir le profil par défaut (à récupérer du localStorage ou d'une config)
     const DEFAULT_PROFILE = 'artist'; // Changer ici pour le profil par défaut souhaité
@@ -36,7 +37,7 @@ const DebugInitializer = () => {
         console.log(`Configuration initialisée avec le profil "${profileName}"`);
     };
 
-// Fonction pour définir la visibilité d'un dossier et ses dépendances
+    // Fonction pour définir la visibilité d'un dossier et ses dépendances
     const setFolderVisibility = (folderPath, isVisible, gui) => {
         // Récupérer le dossier depuis la map de référence
         const folder = foldersRef.current.get(folderPath);
@@ -51,20 +52,30 @@ const DebugInitializer = () => {
             // Si le dossier est caché et qu'il a des sous-dossiers, les cacher aussi
             if (!isVisible && folder.folders && guiFolderConfig.folderDependencies.enforceParentDependency) {
                 folder.folders.forEach(subFolder => {
-                    const subFolderName = subFolder.title || subFolder.name;
-                    const subFolderPath = `${folderPath}/${subFolderName}`;
-                    setFolderVisibility(subFolderPath, false, gui);
+                    if (subFolder) {
+                        const subFolderName = subFolder.title || subFolder.name;
+                        if (subFolderName) {
+                            const subFolderPath = `${folderPath}/${subFolderName}`;
+                            setFolderVisibility(subFolderPath, false, gui);
+                        }
+                    }
                 });
             }
 
             // Gérer les dépendances spécifiques
-            if (!isVisible && guiFolderConfig.folderDependencies.specific[folderPath]) {
+            if (!isVisible &&
+                guiFolderConfig.folderDependencies.specific &&
+                guiFolderConfig.folderDependencies.specific[folderPath]) {
                 guiFolderConfig.folderDependencies.specific[folderPath].forEach(depPath => {
                     setFolderVisibility(depPath, false, gui);
                 });
             }
         } else {
-            console.warn(`Dossier non trouvé pour le chemin: ${folderPath}`);
+            // N'afficher l'avertissement qu'une seule fois par chemin de dossier
+            if (!warningShownRef.current.has(folderPath)) {
+                // console.warn(`Dossier non trouvé pour le chemin: ${folderPath}`);
+                warningShownRef.current.add(folderPath);
+            }
         }
     };
 
@@ -95,6 +106,7 @@ const DebugInitializer = () => {
 
         console.log(`Profil "${profileName}" appliqué, tous les dossiers ont été mis à jour`);
     };
+
     const toggleTheatreUI = (show) => {
         if (window.__theatreStudio) {
             try {
@@ -166,7 +178,10 @@ const DebugInitializer = () => {
         }
 
         // Mettre à jour l'état dans le store
-        useStore.getState().visualization.cameraMode = mode;
+        const store = useStore.getState();
+        if (store.visualization) {
+            store.visualization.cameraMode = mode;
+        }
 
         // Émettre un événement pour informer d'autres composants
         EventBus.trigger('camera-mode-changed', {mode});
@@ -181,7 +196,7 @@ const DebugInitializer = () => {
                 // Gérer les matériaux multiples
                 if (Array.isArray(object.material)) {
                     object.material.forEach(material => {
-                        material.wireframe = enabled;
+                        if (material) material.wireframe = enabled;
                     });
                 } else {
                     object.material.wireframe = enabled;
@@ -190,7 +205,7 @@ const DebugInitializer = () => {
                 // S'assurer que le matériau est mis à jour
                 if (Array.isArray(object.material)) {
                     object.material.forEach(material => {
-                        material.needsUpdate = true;
+                        if (material) material.needsUpdate = true;
                     });
                 } else {
                     object.material.needsUpdate = true;
@@ -236,163 +251,258 @@ const DebugInitializer = () => {
         EventBus.trigger('objects-visibility-changed', settings);
     };
 
+    // Fonction protégée pour appliquer la configuration de visibilité des dossiers
+    const applyFolderVisibility = (folder) => {
+        if (!folder) return;
+
+        // Sécurité pour éviter les erreurs d'accès
+        const folderName = folder.title || folder.name || "";
+
+        // Vérifier si ce dossier doit être caché selon la configuration
+        const isVisible = guiFolderConfig.foldersVisibility[folderName] !== false; // Par défaut visible
+
+        // Appliquer la visibilité si le dossier a un DOM element
+        if (folder.domElement) {
+            folder.domElement.style.display = isVisible ? 'block' : 'none';
+        }
+
+        // Récursivement appliquer aux sous-dossiers si le parent est visible ou si on force la cascade
+        if (folder.folders && (isVisible || guiFolderConfig.folderDependencies.enforceParentDependency)) {
+            folder.folders.forEach(subFolder => {
+                if (subFolder) {
+                    const subFolderName = (folderName ? folderName + "/" : "") + (subFolder.title || subFolder.name || "");
+                    // Récursivement appliquer la visibilité
+                    applyFolderVisibility(subFolder);
+                }
+            });
+        }
+    };
+
     useEffect(() => {
         // Initialize GUI if debug mode is active
         if (debug?.active && debug?.showGui && !initializedRef.current) {
-            initializedRef.current = true;
+            try {
+                initializedRef.current = true;
 
-            // Appliquer le profil par défaut AVANT de créer les dossiers
-            initializeWithProfile(DEFAULT_PROFILE);
+                // Appliquer le profil par défaut AVANT de créer les dossiers
+                initializeWithProfile(DEFAULT_PROFILE);
 
-            // Create GUI only if it doesn't exist yet
-            const gui = new GUI({
-                width: guiConfig.gui.width || 300
-            });
-            gui.title(guiConfig.gui.title || 'Debug Controls');
+                // Create GUI only if it doesn't exist yet
+                const gui = new GUI({
+                    width: guiConfig.gui.width || 300
+                });
+                gui.title(guiConfig.gui.title || 'Debug Controls');
 
-            // Ferme tous les dossiers par défaut si configuré ainsi
-            if (guiConfig.gui.closeFolders) {
-                gui.open();
-            }
+                // Ferme tous les dossiers par défaut si configuré ainsi
+                if (guiConfig.gui.closeFolders) {
+                    gui.open();
+                }
 
-            // Remplacer la méthode addFolder pour suivre tous les dossiers créés
-            const originalAddFolder = gui.addFolder;
+                // Remplacer la méthode addFolder pour suivre tous les dossiers créés
+                const originalAddFolder = gui.addFolder;
 
-            gui.addFolder = function(name) {
-                const folder = originalAddFolder.call(this, name);
+                gui.addFolder = function(name) {
+                    try {
+                        const folder = originalAddFolder.call(this, name);
 
-                // Déterminer le chemin complet du dossier
-                let folderPath = name;
-                let parent = this;
+                        // Déterminer le chemin complet du dossier
+                        let folderPath = name;
+                        let parent = this;
 
-                // Si ce n'est pas le GUI principal mais un sous-dossier
-                if (parent !== gui) {
-                    // Trouver le chemin du parent
-                    for (const [path, storedFolder] of foldersRef.current.entries()) {
-                        if (storedFolder === parent) {
-                            folderPath = `${path}/${name}`;
-                            break;
+                        // Si ce n'est pas le GUI principal mais un sous-dossier
+                        if (parent !== gui) {
+                            // Trouver le chemin du parent
+                            for (const [path, storedFolder] of foldersRef.current.entries()) {
+                                if (storedFolder === parent) {
+                                    folderPath = `${path}/${name}`;
+                                    break;
+                                }
+                            }
                         }
+
+                        // Stocker la référence au dossier avec son chemin complet
+                        foldersRef.current.set(folderPath, folder);
+
+                        // Appliquer la visibilité initiale selon la configuration
+                        const isVisible = guiFolderConfig.foldersVisibility[folderPath];
+                        if (isVisible === false && folder.domElement) {
+                            folder.domElement.style.display = 'none';
+                        }
+
+                        // Remplacer également la méthode addFolder pour ce nouveau dossier
+                        const childOriginalAddFolder = folder.addFolder;
+                        folder.addFolder = function(childName) {
+                            try {
+                                const childFolder = childOriginalAddFolder.call(this, childName);
+                                const childPath = `${folderPath}/${childName}`;
+
+                                // Stocker la référence au sous-dossier
+                                foldersRef.current.set(childPath, childFolder);
+
+                                // Appliquer la visibilité initiale
+                                const isChildVisible = guiFolderConfig.foldersVisibility[childPath];
+                                if (isChildVisible === false && childFolder.domElement) {
+                                    childFolder.domElement.style.display = 'none';
+                                }
+
+                                return childFolder;
+                            } catch (error) {
+                                console.error(`Error creating subfolder '${childName}':`, error);
+                                return null;
+                            }
+                        };
+
+                        return folder;
+                    } catch (error) {
+                        console.error(`Error creating folder '${name}':`, error);
+                        return {
+                            add: () => ({ onChange: () => {} }),
+                            addColor: () => ({ onChange: () => {} }),
+                            addFolder: () => ({ add: () => ({ onChange: () => {} }) }),
+                            folders: [],
+                            domElement: null
+                        };
                     }
-                }
-
-                // Stocker la référence au dossier avec son chemin complet
-                foldersRef.current.set(folderPath, folder);
-
-                // Appliquer la visibilité initiale selon la configuration
-                const isVisible = guiFolderConfig.foldersVisibility[folderPath];
-                if (isVisible === false && folder.domElement) {
-                    folder.domElement.style.display = 'none';
-                }
-
-                // Remplacer également la méthode addFolder pour ce nouveau dossier
-                const childOriginalAddFolder = folder.addFolder;
-                folder.addFolder = function(childName) {
-                    const childFolder = childOriginalAddFolder.call(this, childName);
-                    const childPath = `${folderPath}/${childName}`;
-
-                    // Stocker la référence au sous-dossier
-                    foldersRef.current.set(childPath, childFolder);
-
-                    // Appliquer la visibilité initiale
-                    const isChildVisible = guiFolderConfig.foldersVisibility[childPath];
-                    if (isChildVisible === false && childFolder.domElement) {
-                        childFolder.domElement.style.display = 'none';
-                    }
-
-                    return childFolder;
                 };
 
-                return folder;
-            };
+                // Ajouter le dossier de configuration GUI
+                const guiConfigFolder = gui.addFolder('GUI Config');
 
-            // Ajouter le dossier de configuration GUI
-            const guiConfigFolder = gui.addFolder('GUI Config');
+                // Ajouter un sélecteur de profil
+                const profileOptions = {};
+                if (guiFolderConfig.profiles) {
+                    Object.keys(guiFolderConfig.profiles).forEach(key => {
+                        profileOptions[key] = key;
+                    });
+                }
 
-            // Ajouter un sélecteur de profil
-            const profileOptions = Object.keys(guiFolderConfig.profiles).reduce((obj, key) => {
-                obj[key] = key;
-                return obj;
-            }, {});
+                const profileSettings = { profile: DEFAULT_PROFILE };
 
-            const profileSettings = { profile: DEFAULT_PROFILE };
+                const profileControl = guiConfigFolder.add(profileSettings, 'profile', profileOptions)
+                    .name('Profil');
 
-            guiConfigFolder.add(profileSettings, 'profile', profileOptions)
-                .name('Profil')
-                .onChange(value => {
-                    applyProfile(value, gui);
+                if (profileControl && profileControl.onChange) {
+                    profileControl.onChange(value => {
+                        applyProfile(value, gui);
+                    });
+                }
+
+                // Configurer les contrôles de visualisation
+                const visualizationFolder = gui.addFolder('Visualisation');
+
+                // Configurer les paramètres de visualisation
+                const visualizationSettings = {
+                    wireframe: false,
+                    showInstances: true,
+                    showInteractive: true,
+                    showStatic: true,
+                    cameraMode: 'theatre' // 'theatre' ou 'free'
+                };
+
+                // Obtenir les valeurs sauvegardées si disponibles
+                if (useStore.getState().getDebugConfigValue) {
+                    visualizationSettings.wireframe = useStore.getState().getDebugConfigValue(
+                        'visualization.wireframe.value',
+                        false
+                    );
+                    visualizationSettings.showInstances = useStore.getState().getDebugConfigValue(
+                        'visualization.showInstances.value',
+                        true
+                    );
+                    visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue(
+                        'visualization.showInteractive.value',
+                        true
+                    );
+                    visualizationSettings.showStatic = useStore.getState().getDebugConfigValue(
+                        'visualization.showStatic.value',
+                        true
+                    );
+                    visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue(
+                        'visualization.cameraMode.value',
+                        'theatre'
+                    );
+                }
+
+                // Initialiser l'état dans le store
+                if (!useStore.getState().visualization) {
+                    useStore.getState().visualization = {...visualizationSettings};
+                }
+
+                // Wireframe control
+                const wireframeControl = visualizationFolder.add(visualizationSettings, 'wireframe')
+                    .name(guiConfig.visualization.wireframe.name);
+
+                wireframeControl.onChange(value => {
+                    applyWireframeToScene(value);
+                    updateDebugConfig('visualization.wireframe.value', value);
                 });
 
+                // Show instances control
+                const showInstancesControl = visualizationFolder.add(visualizationSettings, 'showInstances')
+                    .name(guiConfig.visualization.showInstances.name);
 
-
-            // Fermer les dossiers de configuration par défaut
-            guiConfigFolder.open();
-
-            const visualizationFolder = gui.addFolder('Visualisation');
-
-            // Configurer les paramètres de visualisation
-            const visualizationSettings = {
-                wireframe: false,
-                showInstances: true,
-                showInteractive: true,
-                showStatic: true,
-                cameraMode: 'theatre' // 'theatre' ou 'free'
-            };
-
-            // Obtenir les valeurs sauvegardées si disponibles
-            if (useStore.getState().getDebugConfigValue) {
-                visualizationSettings.wireframe = useStore.getState().getDebugConfigValue(
-                    'visualization.wireframe.value',
-                    false
-                );
-                visualizationSettings.showInstances = useStore.getState().getDebugConfigValue(
-                    'visualization.showInstances.value',
-                    true
-                );
-                visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue(
-                    'visualization.showInteractive.value',
-                    true
-                );
-                visualizationSettings.showStatic = useStore.getState().getDebugConfigValue(
-                    'visualization.showStatic.value',
-                    true
-                );
-                visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue(
-                    'visualization.cameraMode.value',
-                    'theatre'
-                );
-            }
-
-            // Initialiser l'état dans le store
-            if (!useStore.getState().visualization) {
-                useStore.getState().visualization = {...visualizationSettings};
-            }
-
-            // Continue avec le reste de ton code d'initialisation existant
-            // ...
-
-            setTimeout(() => {
-                // Appliquer la configuration de visibilité à tous les dossiers racine
-                gui.folders.forEach(folder => {
-                    this.applyFolderVisibility(folder);
+                showInstancesControl.onChange(value => {
+                    updateObjectsVisibility(visualizationSettings);
+                    updateDebugConfig('visualization.showInstances.value', value);
                 });
 
-                console.log('Configuration de visibilité des dossiers appliquée');
-            }, 500); // Petit délai pour s'assurer que tous les dossiers sont créés
+                // Show interactive control
+                const showInteractiveControl = visualizationFolder.add(visualizationSettings, 'showInteractive')
+                    .name(guiConfig.visualization.showInteractive.name);
 
+                showInteractiveControl.onChange(value => {
+                    updateObjectsVisibility(visualizationSettings);
+                    updateDebugConfig('visualization.showInteractive.value', value);
+                });
 
-            setGui(gui);
-            console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
+                // Show static control
+                const showStaticControl = visualizationFolder.add(visualizationSettings, 'showStatic')
+                    .name(guiConfig.visualization.showStatic.name);
+
+                showStaticControl.onChange(value => {
+                    updateObjectsVisibility(visualizationSettings);
+                    updateDebugConfig('visualization.showStatic.value', value);
+                });
+
+                // Camera mode control
+                const cameraModeOptions = { theatre: 'Theatre.js', free: 'Free Camera' };
+                const cameraModeControl = visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
+                    .name('Camera Mode');
+
+                cameraModeControl.onChange(value => {
+                    toggleCameraMode(value);
+                    updateDebugConfig('visualization.cameraMode.value', value);
+                });
+
+                // Fermer les dossiers
+                if (guiConfig.gui.closeFolders) {
+                    guiConfigFolder.close();
+                    visualizationFolder.close();
+                }
+
+                // Stocker l'interface GUI
+                setGui(gui);
+                console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
+
+            } catch (error) {
+                console.error('Error initializing debug GUI:', error);
+                initializedRef.current = false;
+            }
         }
 
         // Cleanup function - destroy GUI on unmount
         return () => {
-            const {gui} = useStore.getState();
-            if (gui) {
-                gui.destroy();
-                setGui(null);
-                initializedRef.current = false;
-                foldersRef.current.clear(); // Nettoyer la référence aux dossiers
+            try {
+                const {gui} = useStore.getState();
+                if (gui) {
+                    gui.destroy();
+                    setGui(null);
+                    initializedRef.current = false;
+                    foldersRef.current.clear(); // Nettoyer la référence aux dossiers
+                    warningShownRef.current.clear(); // Nettoyer la liste des avertissements
+                }
+            } catch (error) {
+                console.error('Error cleaning up debug GUI:', error);
             }
         };
     }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);

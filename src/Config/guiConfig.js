@@ -2,6 +2,7 @@
  * Configuration centralisée pour l'interface GUI de debugging
  * Ce fichier contient toutes les configurations pour les contrôles du GUI
  */
+import {BasicShadowMap, PCFShadowMap, PCFSoftShadowMap, VSMShadowMap} from "three";
 
 const guiConfig = {
     gui: {
@@ -274,8 +275,47 @@ const guiConfig = {
     renderer: {
         folder: "Renderer",
         shadowMap: {
-            name: "Shadow Map",
-            default: true
+            enabled: {
+                name: "Enable Shadows",
+                default: true
+            },
+            type: {
+                options: {
+                    Basic: BasicShadowMap,
+                    PCF: PCFShadowMap,
+                    PCFSoft: PCFSoftShadowMap,
+                    VSM: VSMShadowMap
+                },
+                default: PCFShadowMap,
+                name: "Shadow Type"
+            },
+            mapSize: {
+                name: "Shadow Quality",
+                options: {
+                    '256x256': 256,
+                    '512x512': 512,
+                    '1024x1024': 1024,
+                    '2048x2048': 2048,
+                    '4096x4096': 4096,
+                    '8192x8192': 8192,
+                    '16384x16384': 16384
+                },
+                default: 4096
+            },
+            bias: {
+                name: "Shadow Bias",
+                min: -0.1,
+                max: 0.1,
+                step: 0.0001,
+                default: 0
+            },
+            normalBias: {
+                name: "Normal Bias",
+                min: -1.0,
+                max: 1.0,
+                step: 0.001,
+                default: 0.1
+            }
         },
         toneMapping: {
             options: {
@@ -478,7 +518,7 @@ const guiConfig = {
                     2048: 2048,
                     4096: 4096
                 },
-                default: 4096,
+                default: 1024,
                 name: "Resolution"
             }
         },

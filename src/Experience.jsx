@@ -8,7 +8,7 @@ import Debug from "./Utils/Debug.jsx";
 import Camera from "./Core/Camera.jsx";
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
-import MaterialControls from "./Core/MaterialControls.jsx"; // Importation du nouveau composant
+import MaterialControls from "./Core/MaterialControls.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
 import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
@@ -16,9 +16,7 @@ import ForestSceneWrapper from './World/ForestSceneWrapper';
 import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
-import SceneObjects, {StaticObject} from './World/SceneObjects';
-import NarrationTriggers from './Utils/NarrationTriggers';
-import {ACESFilmicToneMapping, CineonToneMapping, PCFSoftShadowMap} from "three";
+import SceneObjects from './World/SceneObjects';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EXPERIENCE = false;
@@ -31,13 +29,7 @@ const debugLog = (message, ...args) => {
 export default function Experience() {
     const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
     const {scene, camera} = useThree()
-    const ambientLightRef = useRef()
-    const directionalLightRef = useRef()
-
-    // Références pour gérer les écouteurs d'événements
     const eventListenersRef = useRef([]);
-
-    // État pour suivre si le composant est monté
     const isMountedRef = useRef(true);
 
     // Gestion optimisée des événements des marqueurs
@@ -168,29 +160,6 @@ export default function Experience() {
             isMountedRef.current = false;
         };
     }, []);
-    function ToneMapping() {
-        const { gl, scene } = useThree(({ gl, scene }) => ({ gl, scene }));
-        useEffect(() => {
-            gl.toneMapping = CineonToneMapping;
-            gl.toneMappingExposure = 1.5;
-
-            scene.traverse((object) => {
-                if (object.material) {
-                    object.material.needsUpdate = true;
-                }
-            });
-        }, [gl, scene]);
-        return <></>;
-    }
-    function ShadowMapping() {
-        const { gl } = useThree();
-        useEffect(() => {
-            console.log("Activating shadow mapping");
-            gl.shadowMap.enabled = true;
-            gl.shadowMap.type = PCFSoftShadowMap;
-        }, [gl]);
-        return null;
-    }
 
     // Optimiser le rendu de la scène forestière avec useMemo
     const forestScene = useMemo(() => <ForestSceneWrapper/>, []);
@@ -205,14 +174,11 @@ export default function Experience() {
             {debug?.active && debug?.showGui && <Camera/>}
             {debug?.active && debug?.showGui && <Controls/>}
             <Lights/>
-            {debug?.active && debug?.showGui && <MaterialControls/>} {/* Ajout des contrôles de matériaux */}
-            <ShadowMapping/>
-            <ToneMapping/>
+            {debug?.active && debug?.showGui && <MaterialControls/>}
+
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
-                        {/*<ambientLight intensity={5}/>*/}
-                        {/*<directionalLight position={[-11.642, 8.748, 0]} intensity={6.83} color={"0xFFE9C1"}/>*/}
                         <color attach="background" args={['#1e1e2f']}/>
 
                         {/* Utiliser le composant principal qui affiche tous les objets de scène

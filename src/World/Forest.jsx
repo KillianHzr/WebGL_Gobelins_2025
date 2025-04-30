@@ -453,7 +453,7 @@ export default function Forest() {
         // utiliser le gestionnaire de textures optimisé pour obtenir un matériau réutilisable
         const material = textureManager.getMaterial(objectId, {
             aoIntensity: 0.7,
-            alphaTest: 0.5
+            alphaTest: 1.0
         });
 
         // Créer les instances LOD

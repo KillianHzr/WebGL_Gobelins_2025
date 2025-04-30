@@ -27,7 +27,8 @@ const guiFolderConfig = {
         "Camera/Position": true,
         "Camera/Rotation": true,
         "Camera/Settings": true,
-        "Camera/Render": true,     // Nouveau sous-dossier pour les paramètres de rendu de la caméra
+        "Camera/Render": true,     // Sous-dossier pour les paramètres de rendu de la caméra
+        "Renderer/Shadow Map": true, // Nouveau sous-dossier pour les paramètres de shadow map
         "Lights/Position": true,
         "Lights/Shadows": true,
         "Materials/Defaults": false,  // Cacher les paramètres par défaut des matériaux
@@ -48,6 +49,7 @@ const guiFolderConfig = {
         specific: {
             "Scene": ["Scene/Fog"],              // Si Scene est caché, Scene/Fog le sera aussi
             "Camera": ["Camera/Position", "Camera/Rotation", "Camera/Settings", "Camera/Render"], // Si Camera est caché, ses sous-dossiers le seront aussi
+            "Renderer": ["Renderer/Shadow Map"], // Si Renderer est caché, Renderer/Shadow Map le sera aussi
             "Lights": ["Lights/Position", "Lights/Shadows"], // Si Lights est caché, ses sous-dossiers le seront aussi
             "Effects": ["Effects/Glow Effect"]   // Si Effects est caché, Effects/Glow Effect le sera aussi
         }
@@ -78,7 +80,7 @@ const guiFolderConfig = {
             "Camera": true,
             "Controls": false,
             "Scene": false,
-            "Renderer": false,
+            "Renderer": true,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
             "Materials": true,
             "Lights": true,
             "Effects": false,
@@ -123,7 +125,7 @@ const guiFolderConfig = {
 
     // Configuration de l'accès rapide (raccourcis pour afficher/cacher des groupes de dossiers)
     quickAccess: {
-        "rendering": ["Scene", "Renderer", "Lights", "Effects", "Camera/Render"],
+        "rendering": ["Scene", "Renderer", "Lights", "Effects", "Camera/Render", "Renderer/Shadow Map"],
         "interaction": ["Controls", "Interfaces"],
         "content": ["Objects", "Materials"],
         "audio": ["Audio"]
