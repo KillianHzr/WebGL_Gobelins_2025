@@ -5,6 +5,9 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { GrainShader } from '../World/Shaders/GrainShader';
 import useStore from '../Store/useStore';
+import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
+import {ACESFilmicToneMapping} from "three";
+import guiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {
     const { scene, camera, gl } = useThree();
@@ -13,55 +16,54 @@ export default function PostProcessing() {
     const grainPassRef = useRef(null);
     const grainSettingsRef = useRef({
         enabled: true,
-        intensity: 0.1,
-        fps: 24
+        intensity: 0.01,
+        fps: 10
     });
 
     useEffect(() => {
         // Ne pas initialiser si le mode debug n'est pas actif
-        if (!debug?.active || !debug?.showGui) return;
+        // if (!debug?.active || !debug?.showGui) return;
+        gl.autoClear = false;
 
         // Créer le compositeur
         const composer = new EffectComposer(gl);
+
+        // Ajouter le render pass initial
         const renderPass = new RenderPass(scene, camera);
         composer.addPass(renderPass);
 
-        // Créer le pass de grain
-        const grainPass = new ShaderPass(GrainShader);
+        // Ajouter le pass de grain seulement s'il est activé
+        if (grainSettingsRef.current.enabled) {
+            const grainPass = new ShaderPass(GrainShader);
 
-        // Configurer avec les valeurs par défaut
-        grainPass.uniforms.grainIntensity.value = grainSettingsRef.current.intensity;
-        grainPass.uniforms.grainFPS.value = grainSettingsRef.current.fps;
-        grainPass.uniforms.enabled.value = grainSettingsRef.current.enabled;
-        grainPass.uniforms.resolution.value = {
-            x: window.innerWidth * window.devicePixelRatio,
-            y: window.innerHeight * window.devicePixelRatio
-        };
+            // Configurer les uniformes
+            grainPass.uniforms.grainIntensity.value = grainSettingsRef.current.intensity;
+            grainPass.uniforms.grainFPS.value = grainSettingsRef.current.fps;
+            grainPass.uniforms.enabled.value = true;
+            grainPass.uniforms.resolution.value = {
+                x: window.innerWidth * window.devicePixelRatio,
+                y: window.innerHeight * window.devicePixelRatio
+            };
 
-        composer.addPass(grainPass);
+            // S'assurer que le grain est le dernier pass
+            grainPass.renderToScreen = true;
+            composer.addPass(grainPass);
+
+            grainPassRef.current = grainPass;
+        }
 
         // Stocker les références
         composerRef.current = composer;
-        grainPassRef.current = grainPass;
 
         // Ajouter les contrôles GUI si disponibles
         if (gui) {
-            const postProcessingFolder = gui.addFolder('Post Processing');
-            const grainFolder = postProcessingFolder.addFolder('Grain');
-
-            // Contrôle de l'activation du grain
-            grainFolder.add(grainSettingsRef.current, 'enabled')
-                .name('Enabled')
-                .onChange(value => {
-                    if (grainPassRef.current) {
-                        grainPassRef.current.uniforms.enabled.value = value;
-                    }
-                });
+            const grainFolder = gui.addFolder('Film Grain');
 
             // Contrôle de l'intensité du grain
-            grainFolder.add(grainSettingsRef.current, 'intensity', 0, 1, 0.01)
+            const intensityController = grainFolder.add(grainSettingsRef.current, 'intensity', 0, 0.15, 0.001)
                 .name('Intensity')
                 .onChange(value => {
+                    // Si le grain est déjà activé, mettre à jour
                     if (grainPassRef.current) {
                         grainPassRef.current.uniforms.grainIntensity.value = value;
                     }
@@ -69,8 +71,9 @@ export default function PostProcessing() {
 
             // Contrôle des FPS du grain
             grainFolder.add(grainSettingsRef.current, 'fps', 1, 60, 1)
-                .name('FPS')
+                .name('Grain Update FPS')
                 .onChange(value => {
+                    // Si le grain est déjà activé, mettre à jour
                     if (grainPassRef.current) {
                         grainPassRef.current.uniforms.grainFPS.value = value;
                     }
@@ -90,19 +93,19 @@ export default function PostProcessing() {
                 grainPassRef.current = null;
             }
         };
-    }, [debug, scene, camera, gl, gui]);
+    }, [debug, scene, camera, gl, gui, grainSettingsRef.current.enabled]);
 
     // Mettre à jour le temps du shader
     useEffect(() => {
         const animate = () => {
-            if (composerRef.current && grainPassRef.current && debug?.active) {
+            if (composerRef.current && grainPassRef.current) {
                 grainPassRef.current.uniforms.time.value = performance.now() / 1000;
                 composerRef.current.render();
             }
         };
 
         let animationFrameId;
-        if (debug?.active) {
+        if (grainSettingsRef.current.enabled) {
             animationFrameId = requestAnimationFrame(function update() {
                 animate();
                 animationFrameId = requestAnimationFrame(update);
@@ -114,7 +117,7 @@ export default function PostProcessing() {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [debug]);
+    }, [debug, grainSettingsRef.current.enabled]);
 
     return null;
 }

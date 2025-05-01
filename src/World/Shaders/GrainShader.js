@@ -50,7 +50,6 @@ export const GrainShader = {
 
         void main() {
             vec4 color = texture2D(tDiffuse, vUv);
-            
             if (enabled) {
                 // Coordonnées en pixels
                 vec2 texCoord = vUv * resolution;
@@ -61,7 +60,7 @@ export const GrainShader = {
                 // Application du grain
                 color.rgb += vec3(grain);
             }
-            
+            color.rgb = pow(color.rgb, vec3(1.0 / 2.5));
             gl_FragColor = color;
         }
     `

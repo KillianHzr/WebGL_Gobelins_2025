@@ -372,7 +372,7 @@ export default function MaterialControls() {
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 2000); // Augmenté à 2 secondes pour plus de fiabilité
+        }, 10000); // Augmenté à 2 secondes pour plus de fiabilité
 
         // Nettoyage
         return () => {

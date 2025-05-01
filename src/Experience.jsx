@@ -176,7 +176,7 @@ export default function Experience() {
             {debug?.active && debug?.showGui && <Controls/>}
             <Lights/>
             {debug?.active && debug?.showGui && <MaterialControls/>}
-            {debug?.active && <PostProcessing/>}
+            <PostProcessing/>
 
             <RayCaster>
                 <InteractiveMarkersProvider>
