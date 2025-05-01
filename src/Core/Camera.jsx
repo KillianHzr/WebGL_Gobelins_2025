@@ -13,23 +13,14 @@ export default function Camera() {
 
     // Initialiser renderSettingsRef avec des valeurs persistantes
     const renderSettingsRef = useRef({
-        toneMapping: Number(localStorage.getItem('renderSettings.toneMapping') || guiConfig.camera.render.toneMapping.default),
-        toneMappingExposure: Number(localStorage.getItem('renderSettings.toneMappingExposure') || guiConfig.camera.render.toneMappingExposure.default),
-        shadowMapType: Number(localStorage.getItem('renderSettings.shadowMapType') || guiConfig.renderer.shadowMap.type.default),
-        shadowMapEnabled: localStorage.getItem('renderSettings.shadowMapEnabled') === null
-            ? guiConfig.renderer.shadowMap.enabled.default
-            : localStorage.getItem('renderSettings.shadowMapEnabled') === 'true',
-        shadowMapSize: Number(localStorage.getItem('renderSettings.shadowMapSize') || guiConfig.renderer.shadowMap.mapSize.default),
-        shadowBias: Number(localStorage.getItem('renderSettings.shadowBias') || guiConfig.renderer.shadowMap.bias.default),
-        shadowNormalBias: Number(localStorage.getItem('renderSettings.shadowNormalBias') || guiConfig.renderer.shadowMap.normalBias.default)
+        toneMapping: Number( guiConfig.camera.render.toneMapping.default),
+        toneMappingExposure: Number( guiConfig.camera.render.toneMappingExposure.default),
+        shadowMapType: Number( guiConfig.renderer.shadowMap.type.default),
+        shadowMapEnabled: guiConfig.renderer.shadowMap.enabled.default,
+        shadowMapSize: Number(guiConfig.renderer.shadowMap.mapSize.default),
+        shadowBias: Number(guiConfig.renderer.shadowMap.bias.default),
+        shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
-
-    // Fonction utilitaire pour sauvegarder les paramètres
-    const saveRenderSettings = () => {
-        Object.entries(renderSettingsRef.current).forEach(([key, value]) => {
-            localStorage.setItem(`renderSettings.${key}`, String(value));
-        });
-    };
 
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
@@ -188,7 +179,7 @@ export default function Camera() {
 
             shadowEnabledControl.onChange(value => {
                 renderSettingsRef.current.shadowMapEnabled = value;
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle du type de shadow mapping
@@ -205,7 +196,7 @@ export default function Camera() {
 
             shadowTypeControl.onChange(value => {
                 renderSettingsRef.current.shadowMapType = Number(value);
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle de la qualité des ombres
@@ -225,7 +216,7 @@ export default function Camera() {
 
             shadowQualityControl.onChange(value => {
                 renderSettingsRef.current.shadowMapSize = Number(value);
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle du shadow bias
@@ -239,7 +230,7 @@ export default function Camera() {
 
             shadowBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowBias = value;
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle du shadow normal bias
@@ -253,7 +244,7 @@ export default function Camera() {
 
             shadowNormalBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowNormalBias = value;
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle du tone mapping
@@ -271,7 +262,7 @@ export default function Camera() {
 
             toneMappingControl.onChange(value => {
                 renderSettingsRef.current.toneMapping = Number(value);
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Contrôle de l'exposition
@@ -285,7 +276,7 @@ export default function Camera() {
 
             exposureControl.onChange(value => {
                 renderSettingsRef.current.toneMappingExposure = value;
-                saveRenderSettings();
+                // saveRenderSettings();
             });
 
             // Fermer les dossiers si configuré

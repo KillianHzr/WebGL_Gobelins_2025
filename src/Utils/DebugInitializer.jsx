@@ -18,7 +18,6 @@ const DebugInitializer = () => {
     const foldersRef = useRef(new Map());
     const warningShownRef = useRef(new Set()); // Pour éviter de répéter les avertissements
 
-    // Définir le profil par défaut (à récupérer du localStorage ou d'une config)
     const DEFAULT_PROFILE = 'artist'; // Changer ici pour le profil par défaut souhaité
 
     // Fonction pour appliquer un profil à la configuration avant création des dossiers

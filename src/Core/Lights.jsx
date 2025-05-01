@@ -349,9 +349,6 @@ export default function Lights() {
         lightSettingsRef.current.isNightMode = isNightMode;
         lightSettingsRef.current.needsUpdate = true;
 
-        // Sauvegarder le paramètre
-        // localStorage.setItem('lightSettings.isNightMode', String(isNightMode));
-
         if (debugLightValuesRef.current && debugLightValuesRef.current.controllers) {
             const currentConfig = isNightMode ? nightLightConfig : dayLightConfig;
 
@@ -480,9 +477,6 @@ export default function Lights() {
                 lightSettingsRef.current.day.intensity = value;
                 lightSettingsRef.current.needsUpdate = true;
 
-                // Sauvegarder le paramètre
-                localStorage.setItem('lightSettings.day.intensity', String(value));
-
                 // Mettre à jour les valeurs d'affichage
                 if (!isNightMode) {
                     lightValues.intensity = value;
@@ -497,9 +491,6 @@ export default function Lights() {
                 lightSettingsRef.current.day.color = value;
                 lightSettingsRef.current.needsUpdate = true;
 
-                // Sauvegarder le paramètre
-                localStorage.setItem('lightSettings.day.color', value);
-
                 // Mettre à jour les valeurs d'affichage
                 if (!isNightMode) {
                     lightValues.color = value;
@@ -509,56 +500,6 @@ export default function Lights() {
                 updateDebugConfig('lights.dayLight.color', value);
             });
 
-            // daySettingsFolder.add(daySettings, 'posX', -200, 200).name('Position X').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.day.position[0] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (!isNightMode) {
-            //         lightValues.posX = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.dayLight.position.x', value);
-            // });
-            //
-            // daySettingsFolder.add(daySettings, 'posY', -200, 200).name('Position Y').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.day.position[1] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (!isNightMode) {
-            //         lightValues.posY = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.dayLight.position.y', value);
-            // });
-            //
-            // daySettingsFolder.add(daySettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.day.position[2] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (!isNightMode) {
-            //         lightValues.posZ = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.dayLight.position.z', value);
-            // });
 
             // Paramètres pour la lumière de nuit
             const nightSettingsFolder = dayNightSettingsFolder.addFolder('Night Light');
@@ -578,9 +519,6 @@ export default function Lights() {
                 lightSettingsRef.current.night.intensity = value;
                 lightSettingsRef.current.needsUpdate = true;
 
-                // Sauvegarder le paramètre
-                // localStorage.setItem('lightSettings.night.intensity', String(value));
-
                 // Mettre à jour les valeurs d'affichage
                 if (isNightMode) {
                     lightValues.intensity = value;
@@ -595,9 +533,6 @@ export default function Lights() {
                 lightSettingsRef.current.night.color = value;
                 lightSettingsRef.current.needsUpdate = true;
 
-                // Sauvegarder le paramètre
-                // localStorage.setItem('lightSettings.night.color', value);
-
                 // Mettre à jour les valeurs d'affichage
                 if (isNightMode) {
                     lightValues.color = value;
@@ -607,56 +542,6 @@ export default function Lights() {
                 updateDebugConfig('lights.nightLight.color', value);
             });
 
-            // nightSettingsFolder.add(nightSettings, 'posX', -200, 200).name('Position X').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.night.position[0] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (isNightMode) {
-            //         lightValues.posX = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.nightLight.position.x', value);
-            // });
-            //
-            // nightSettingsFolder.add(nightSettings, 'posY', -200, 200).name('Position Y').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.night.position[1] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (isNightMode) {
-            //         lightValues.posY = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.nightLight.position.y', value);
-            // });
-            //
-            // nightSettingsFolder.add(nightSettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
-            //     // Mettre à jour la configuration
-            //     lightSettingsRef.current.night.position[2] = value;
-            //     lightSettingsRef.current.needsUpdate = true;
-            //
-            //     // Sauvegarder le paramètre
-            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
-            //
-            //     // Mettre à jour les valeurs d'affichage
-            //     if (isNightMode) {
-            //         lightValues.posZ = value;
-            //     }
-            //
-            //     // Mettre à jour la configuration de debug aussi
-            //     updateDebugConfig('lights.nightLight.position.z', value);
-            // });
 
             // Pour le reste des éléments GUI courants, trouver les lumières dans la scène
             const lights = [];
