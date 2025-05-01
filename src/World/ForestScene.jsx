@@ -17,7 +17,7 @@ export default function ForestScene() {
         configureRenderer(gl);
 
         // Créer les lumières de la scène
-        const { ambientLight, mainLight } = createSceneLights(scene);
+        // const { ambientLight, mainLight } = createSceneLights(scene);
 
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {

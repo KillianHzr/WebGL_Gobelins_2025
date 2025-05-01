@@ -449,7 +449,7 @@ const guiConfig = {
             },
             intensity: {
                 min: 0,
-                max: 100000,
+                max: 10,
                 step: 0.01,
                 name: "Intensity",
                 default: 2.0

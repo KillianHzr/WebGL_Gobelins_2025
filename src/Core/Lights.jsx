@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {useThree} from '@react-three/fiber';
+import {useThree, useFrame} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {getDefaultValue, initializeLight} from '../Utils/defaultValues';
@@ -137,8 +137,9 @@ export function createDirectionalLight(config = {}) {
 
     return light;
 }
+
 export default function Lights() {
-    const {scene} = useThree();
+    const {scene, gl, camera} = useThree();
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
     const debugLightValuesRef = useRef(null);
@@ -148,18 +149,88 @@ export default function Lights() {
     const guiInitializedRef = useRef(false);
     const [isNightMode, setIsNightMode] = useState(false);
 
-    // Configuration des données pour l'éclairage jour/nuit
-    const dayLightConfig = {
-        position: [53.764, 31.716, -56.134],
-        intensity: 13000,
-        color: "#FFEAC6"
-    };
+    // Référence aux paramètres d'éclairage actuels - NOUVEAU
+    const lightSettingsRef = useRef({
+        day: {
+            position: [53.764, 31.716, -56.134],
+            intensity: 13000,
+            color: "#FFEAC6"
+        },
+        night: {
+            position: [171.443, 32.282, -81.040],
+            intensity: 20870.28 * 2,
+            color: "#B4B5FF"
+        },
+        isNightMode: false,
+        needsUpdate: false,
+        // Paramètres pour les ombres, pour une cohérence avec renderSettingsRef dans Camera.jsx
+        shadowMapSize: Number( guiConfig.renderer.shadowMap.mapSize.default),
+        shadowBias: Number(guiConfig.renderer.shadowMap.bias.default),
+        shadowNormalBias: Number( guiConfig.renderer.shadowMap.normalBias.default)
+    });
 
-    const nightLightConfig = {
-        position: [171.443, 32.282, -81.040],
-        intensity: 20870.28 * 2,
-        color: "#B4B5FF"
-    };
+
+    // Utilisation de useFrame pour appliquer les changements d'éclairage en temps réel - NOUVEAU
+    useFrame(() => {
+        // Si des mises à jour sont nécessaires
+        if (lightSettingsRef.current.needsUpdate) {
+            lightSettingsRef.current.needsUpdate = false;
+
+            // Si la lumière directionnelle existe
+            if (directionalLightRef.current) {
+                // Obtenir la configuration active selon le mode
+                const currentConfig = lightSettingsRef.current.isNightMode
+                    ? lightSettingsRef.current.night
+                    : lightSettingsRef.current.day;
+
+                // Appliquer les changements à la lumière
+                directionalLightRef.current.intensity = currentConfig.intensity;
+                directionalLightRef.current.color.set(currentConfig.color);
+
+                // Mettre à jour la position si nécessaire
+                if (Array.isArray(currentConfig.position) && currentConfig.position.length === 3) {
+                    directionalLightRef.current.position.set(
+                        currentConfig.position[0],
+                        currentConfig.position[1],
+                        currentConfig.position[2]
+                    );
+                }
+
+                // Mettre à jour les ombres si nécessaire
+                if (directionalLightRef.current.shadow) {
+                    if (directionalLightRef.current.shadow.mapSize) {
+                        directionalLightRef.current.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
+                        directionalLightRef.current.shadow.mapSize.height = lightSettingsRef.current.shadowMapSize;
+                    }
+
+                    directionalLightRef.current.shadow.bias = lightSettingsRef.current.shadowBias;
+                    directionalLightRef.current.shadow.normalBias = lightSettingsRef.current.shadowNormalBias;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+
+                    if (directionalLightRef.current.shadow.map) {
+                        directionalLightRef.current.shadow.map.dispose();
+                        directionalLightRef.current.shadow.map = null;
+                    }
+                }
+
+                // Forcer le rendu de la scène pour voir les changements immédiatement
+                gl.render(scene, camera);
+
+                // Mettre à jour les helpers si nécessaire
+                if (lightHelperRef.current) {
+                    lightHelperRef.current.update();
+                }
+
+                if (shadowCameraHelperRef.current) {
+                    shadowCameraHelperRef.current.update();
+                }
+            }
+        }
+    });
+
+    // Configuration des données pour l'éclairage jour/nuit - MODIFIÉ pour utiliser lightSettingsRef
+    const dayLightConfig = lightSettingsRef.current.day;
+    const nightLightConfig = lightSettingsRef.current.night;
 
     // Ajouter la lumière directionnelle à la scène et ses helpers
     useEffect(() => {
@@ -172,13 +243,22 @@ export default function Lights() {
             if (!directionalLight) {
                 console.log("Adding directional light to the scene");
                 const newLight = new DirectionalLight('#FFE9C1', 7.5);
-                newLight.position.set(-20, 30, 20); // Position plus élevée et décalée
+
+                // Utiliser les valeurs du lightSettingsRef
+                const currentConfig = lightSettingsRef.current.isNightMode
+                    ? lightSettingsRef.current.night
+                    : lightSettingsRef.current.day;
+
+                newLight.color.set(currentConfig.color);
+                newLight.intensity = currentConfig.intensity;
+                newLight.position.set(...currentConfig.position);
+
                 newLight.castShadow = true;
-                newLight.shadow.mapSize.width = 2048; // Augmenter la résolution
-                newLight.shadow.mapSize.height = 2048;
-                newLight.shadow.bias = -0.0005; // Ajuster le bias pour éviter les artefacts
+                newLight.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
+                newLight.shadow.mapSize.height = lightSettingsRef.current.shadowMapSize;
+                newLight.shadow.bias = lightSettingsRef.current.shadowBias;
                 newLight.shadow.camera.near = 0.1;
-                newLight.shadow.camera.far = 25; // Augmenter la distance
+                newLight.shadow.camera.far = 25;
 
                 // Étendre le frustum de la caméra d'ombre
                 newLight.shadow.camera.left = -50;
@@ -257,10 +337,21 @@ export default function Lights() {
     useEffect(() => {
         const savedNightMode = getDebugConfigValue('lights.nightMode.value', false);
         setIsNightMode(savedNightMode);
+
+        // Mettre à jour également la référence
+        lightSettingsRef.current.isNightMode = savedNightMode;
+        lightSettingsRef.current.needsUpdate = true;
     }, [getDebugConfigValue]);
 
     // Mettre à jour les valeurs de debug lorsque le mode jour/nuit change
     useEffect(() => {
+        // Mettre à jour la référence aux paramètres d'éclairage
+        lightSettingsRef.current.isNightMode = isNightMode;
+        lightSettingsRef.current.needsUpdate = true;
+
+        // Sauvegarder le paramètre
+        // localStorage.setItem('lightSettings.isNightMode', String(isNightMode));
+
         if (debugLightValuesRef.current && debugLightValuesRef.current.controllers) {
             const currentConfig = isNightMode ? nightLightConfig : dayLightConfig;
 
@@ -337,6 +428,11 @@ export default function Lights() {
             nightModeControl.onChange(value => {
                 setIsNightMode(value);
                 updateDebugConfig('lights.nightMode.value', value);
+
+                // Mettre à jour la référence pour appliquer les changements immédiatement
+                lightSettingsRef.current.isNightMode = value;
+                lightSettingsRef.current.needsUpdate = true;
+                // saveLightSettings();
             });
 
             // Dossier pour afficher les valeurs actuelles
@@ -380,73 +476,88 @@ export default function Lights() {
             // Ajouter les contrôleurs
             // Modifier les contrôleurs pour le mode jour pour qu'ils mettent également à jour la lumière active
             daySettingsFolder.add(daySettings, 'intensity', 0, 100000).name('Intensity').onChange(value => {
-                dayLightConfig.intensity = value;
-                updateDebugConfig('lights.dayLight.intensity', value);
+                // Mettre à jour la configuration
+                lightSettingsRef.current.day.intensity = value;
+                lightSettingsRef.current.needsUpdate = true;
 
-                // Si nous sommes en mode jour, mettre à jour directement la lumière active
-                if (!isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.intensity = value;
-                }
+                // Sauvegarder le paramètre
+                localStorage.setItem('lightSettings.day.intensity', String(value));
 
+                // Mettre à jour les valeurs d'affichage
                 if (!isNightMode) {
                     lightValues.intensity = value;
                 }
+
+                // Mettre à jour la configuration de debug aussi
+                updateDebugConfig('lights.dayLight.intensity', value);
             });
 
             daySettingsFolder.addColor(daySettings, 'color').name('Color').onChange(value => {
-                dayLightConfig.color = value;
-                updateDebugConfig('lights.dayLight.color', value);
+                // Mettre à jour la configuration
+                lightSettingsRef.current.day.color = value;
+                lightSettingsRef.current.needsUpdate = true;
 
-                // Si nous sommes en mode jour, mettre à jour directement la lumière active
-                if (!isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.color.set(value);
-                }
+                // Sauvegarder le paramètre
+                localStorage.setItem('lightSettings.day.color', value);
 
+                // Mettre à jour les valeurs d'affichage
                 if (!isNightMode) {
                     lightValues.color = value;
                 }
+
+                // Mettre à jour la configuration de debug aussi
+                updateDebugConfig('lights.dayLight.color', value);
             });
 
             // daySettingsFolder.add(daySettings, 'posX', -200, 200).name('Position X').onChange(value => {
-            //     dayLightConfig.position[0] = value;
-            //     updateDebugConfig('lights.dayLight.position.x', value);
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.day.position[0] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
             //
-            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
-            //     if (!isNightMode && directionalLightRef.current) {
-            //         directionalLightRef.current.position.x = value;
-            //     }
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
             //
+            //     // Mettre à jour les valeurs d'affichage
             //     if (!isNightMode) {
             //         lightValues.posX = value;
             //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.dayLight.position.x', value);
             // });
             //
             // daySettingsFolder.add(daySettings, 'posY', -200, 200).name('Position Y').onChange(value => {
-            //     dayLightConfig.position[1] = value;
-            //     updateDebugConfig('lights.dayLight.position.y', value);
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.day.position[1] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
             //
-            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
-            //     if (!isNightMode && directionalLightRef.current) {
-            //         directionalLightRef.current.position.y = value;
-            //     }
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
             //
+            //     // Mettre à jour les valeurs d'affichage
             //     if (!isNightMode) {
             //         lightValues.posY = value;
             //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.dayLight.position.y', value);
             // });
             //
             // daySettingsFolder.add(daySettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
-            //     dayLightConfig.position[2] = value;
-            //     updateDebugConfig('lights.dayLight.position.z', value);
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.day.position[2] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
             //
-            //     // Si nous sommes en mode jour, mettre à jour directement la lumière active
-            //     if (!isNightMode && directionalLightRef.current) {
-            //         directionalLightRef.current.position.z = value;
-            //     }
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.day.position', JSON.stringify(lightSettingsRef.current.day.position));
             //
+            //     // Mettre à jour les valeurs d'affichage
             //     if (!isNightMode) {
             //         lightValues.posZ = value;
             //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.dayLight.position.z', value);
             // });
 
             // Paramètres pour la lumière de nuit
@@ -461,79 +572,92 @@ export default function Lights() {
                 posZ: nightLightConfig.position[2]
             };
 
-            // Ajouter les contrôleurs
-
-
-// Modifier les contrôleurs pour le mode nuit de la même façon
+            // Ajouter les contrôleurs pour le mode nuit de la même façon
             nightSettingsFolder.add(nightSettings, 'intensity', 0, 100000).name('Intensity').onChange(value => {
-                nightLightConfig.intensity = value;
-                updateDebugConfig('lights.nightLight.intensity', value);
+                // Mettre à jour la configuration
+                lightSettingsRef.current.night.intensity = value;
+                lightSettingsRef.current.needsUpdate = true;
 
-                // Si nous sommes en mode nuit, mettre à jour directement la lumière active
-                if (isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.intensity = value;
-                }
+                // Sauvegarder le paramètre
+                // localStorage.setItem('lightSettings.night.intensity', String(value));
 
+                // Mettre à jour les valeurs d'affichage
                 if (isNightMode) {
                     lightValues.intensity = value;
                 }
+
+                // Mettre à jour la configuration de debug aussi
+                updateDebugConfig('lights.nightLight.intensity', value);
             });
 
             nightSettingsFolder.addColor(nightSettings, 'color').name('Color').onChange(value => {
-                nightLightConfig.color = value;
-                updateDebugConfig('lights.nightLight.color', value);
+                // Mettre à jour la configuration
+                lightSettingsRef.current.night.color = value;
+                lightSettingsRef.current.needsUpdate = true;
 
-                // Si nous sommes en mode nuit, mettre à jour directement la lumière active
-                if (isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.color.set(value);
-                }
+                // Sauvegarder le paramètre
+                // localStorage.setItem('lightSettings.night.color', value);
 
+                // Mettre à jour les valeurs d'affichage
                 if (isNightMode) {
                     lightValues.color = value;
                 }
+
+                // Mettre à jour la configuration de debug aussi
+                updateDebugConfig('lights.nightLight.color', value);
             });
 
-            nightSettingsFolder.add(nightSettings, 'posX', -200, 200).name('Position X').onChange(value => {
-                nightLightConfig.position[0] = value;
-                updateDebugConfig('lights.nightLight.position.x', value);
+            // nightSettingsFolder.add(nightSettings, 'posX', -200, 200).name('Position X').onChange(value => {
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.night.position[0] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
+            //
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
+            //
+            //     // Mettre à jour les valeurs d'affichage
+            //     if (isNightMode) {
+            //         lightValues.posX = value;
+            //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.nightLight.position.x', value);
+            // });
+            //
+            // nightSettingsFolder.add(nightSettings, 'posY', -200, 200).name('Position Y').onChange(value => {
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.night.position[1] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
+            //
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
+            //
+            //     // Mettre à jour les valeurs d'affichage
+            //     if (isNightMode) {
+            //         lightValues.posY = value;
+            //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.nightLight.position.y', value);
+            // });
+            //
+            // nightSettingsFolder.add(nightSettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
+            //     // Mettre à jour la configuration
+            //     lightSettingsRef.current.night.position[2] = value;
+            //     lightSettingsRef.current.needsUpdate = true;
+            //
+            //     // Sauvegarder le paramètre
+            //     localStorage.setItem('lightSettings.night.position', JSON.stringify(lightSettingsRef.current.night.position));
+            //
+            //     // Mettre à jour les valeurs d'affichage
+            //     if (isNightMode) {
+            //         lightValues.posZ = value;
+            //     }
+            //
+            //     // Mettre à jour la configuration de debug aussi
+            //     updateDebugConfig('lights.nightLight.position.z', value);
+            // });
 
-                // Si nous sommes en mode nuit, mettre à jour directement la lumière active
-                if (isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.x = value;
-                }
-
-                if (isNightMode) {
-                    lightValues.posX = value;
-                }
-            });
-
-            nightSettingsFolder.add(nightSettings, 'posY', -200, 200).name('Position Y').onChange(value => {
-                nightLightConfig.position[1] = value;
-                updateDebugConfig('lights.nightLight.position.y', value);
-
-                // Si nous sommes en mode nuit, mettre à jour directement la lumière active
-                if (isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.y = value;
-                }
-
-                if (isNightMode) {
-                    lightValues.posY = value;
-                }
-            });
-
-            nightSettingsFolder.add(nightSettings, 'posZ', -200, 200).name('Position Z').onChange(value => {
-                nightLightConfig.position[2] = value;
-                updateDebugConfig('lights.nightLight.position.z', value);
-
-                // Si nous sommes en mode nuit, mettre à jour directement la lumière active
-                if (isNightMode && directionalLightRef.current) {
-                    directionalLightRef.current.position.z = value;
-                }
-
-                if (isNightMode) {
-                    lightValues.posZ = value;
-                }
-            });
             // Pour le reste des éléments GUI courants, trouver les lumières dans la scène
             const lights = [];
             scene.traverse((object) => {
@@ -545,10 +669,21 @@ export default function Lights() {
             console.log("Found lights:", lights);
 
             // Create a subfolder for each light
-            lights.forEach((light, index) => {
-                const lightType = light.type.replace('Light', '');
+            const ambientLights = [];
+            scene.traverse((object) => {
+                if (object.isAmbientLight) {
+                    ambientLights.push(object);
+                }
+            });
+
+            console.log("Found ambient lights:", ambientLights);
+
+// Create a subfolder only for ambient lights
+            ambientLights.forEach((light, index) => {
+                const lightType = "Ambient"; // Force le type à "Ambient"
                 const lightFolder = lightsFolder.addFolder(`${lightType} ${index + 1}`);
 
+                // Le reste du code reste identique mais n'affiche que les contrôles pertinents pour les lumières ambiantes
                 if (guiConfig.gui.closeFolders) {
                     lightFolder.close();
                 }
@@ -575,17 +710,7 @@ export default function Lights() {
 
                 visibleControl.onChange(value => {
                     updateDebugConfig(`lights.${lightType}.${index}.visible`, value);
-
-                    // Mettre à jour la visibilité des helpers
-                    if (light === directionalLightRef.current) {
-                        if (lightHelperRef.current) {
-                            lightHelperRef.current.visible = value && (debug?.showLightHelpers || false);
-                        }
-
-                        if (shadowCameraHelperRef.current) {
-                            shadowCameraHelperRef.current.visible = value && (debug?.showLightHelpers || false);
-                        }
-                    }
+                    gl.render(scene, camera);
                 });
 
                 const intensityControl = lightFolder.add(
@@ -598,11 +723,7 @@ export default function Lights() {
 
                 intensityControl.onChange(value => {
                     updateDebugConfig(`lights.${lightType}.${index}.intensity`, value);
-
-                    // Mettre à jour le helper si nécessaire
-                    if (light === directionalLightRef.current && lightHelperRef.current) {
-                        lightHelperRef.current.update();
-                    }
+                    gl.render(scene, camera);
                 });
 
                 // Color control
@@ -616,512 +737,9 @@ export default function Lights() {
                 colorControl.onChange(value => {
                     light.color.set(value);
                     updateDebugConfig(`lights.${lightType}.${index}.color`, value);
-
-                    // Mettre à jour le helper si nécessaire
-                    if (light === directionalLightRef.current && lightHelperRef.current) {
-                        lightHelperRef.current.update();
-                    }
+                    gl.render(scene, camera);
                 });
-
-                // Position control if the light has a position
-                if (light.position) {
-                    // Get saved position values from defaults or current position
-                    const savedPosX = getDebugConfigValue(`lights.${lightType}.${index}.position.x`,
-                        getDefaultValue(`${basePath}.position.x`, light.position.x));
-                    const savedPosY = getDebugConfigValue(`lights.${lightType}.${index}.position.y`,
-                        getDefaultValue(`${basePath}.position.y`, light.position.y));
-                    const savedPosZ = getDebugConfigValue(`lights.${lightType}.${index}.position.z`,
-                        getDefaultValue(`${basePath}.position.z`, light.position.z));
-
-                    // Apply saved position
-                    light.position.set(savedPosX, savedPosY, savedPosZ);
-
-                    const posFolder = lightFolder.addFolder(guiConfig.lights.position.folder);
-                    if (guiConfig.gui.closeFolders) posFolder.close();
-
-                    const posXControl = posFolder.add(
-                        light.position,
-                        'x',
-                        guiConfig.lights.position.x.min,
-                        guiConfig.lights.position.x.max,
-                        guiConfig.lights.position.x.step
-                    ).name(guiConfig.lights.position.x.name);
-
-                    posXControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.position.x`, value);
-
-                        // Mettre à jour les helpers si nécessaire
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-
-                    const posYControl = posFolder.add(
-                        light.position,
-                        'y',
-                        guiConfig.lights.position.y.min,
-                        guiConfig.lights.position.y.max,
-                        guiConfig.lights.position.y.step
-                    ).name(guiConfig.lights.position.y.name);
-
-                    posYControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.position.y`, value);
-
-                        // Mettre à jour les helpers si nécessaire
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-
-                    const posZControl = posFolder.add(
-                        light.position,
-                        'z',
-                        guiConfig.lights.position.z.min,
-                        guiConfig.lights.position.z.max,
-                        guiConfig.lights.position.z.step
-                    ).name(guiConfig.lights.position.z.name);
-
-                    posZControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.position.z`, value);
-
-                        // Mettre à jour les helpers si nécessaire
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-                }
-
-                // Ajout des contrôles de rotation pour les lumières directionnelles
-                if (light.isDirectionalLight) {
-                    const rotFolder = lightFolder.addFolder('Rotation');
-                    if (guiConfig.gui.closeFolders) rotFolder.close();
-
-                    // Obtenir ou initialiser les valeurs de rotation en degrés
-                    const savedRotX = getDebugConfigValue(`lights.${lightType}.${index}.rotation.x`,
-                        getDefaultValue(`${basePath}.rotation.x`, light.rotation.x * 180 / Math.PI));
-                    const savedRotY = getDebugConfigValue(`lights.${lightType}.${index}.rotation.y`,
-                        getDefaultValue(`${basePath}.rotation.y`, light.rotation.y * 180 / Math.PI));
-                    const savedRotZ = getDebugConfigValue(`lights.${lightType}.${index}.rotation.z`,
-                        getDefaultValue(`${basePath}.rotation.z`, light.rotation.z * 180 / Math.PI));
-
-                    // Créer un objet pour stocker les valeurs en degrés pour l'interface
-                    const rotationParams = {
-                        x: savedRotX,
-                        y: savedRotY,
-                        z: savedRotZ
-                    };
-
-                    // Ajouter les contrôles de rotation
-                    const rotXControl = rotFolder.add(
-                        rotationParams,
-                        'x',
-                        -180,
-                        180,
-                        1
-                    ).name('X (deg)');
-
-                    rotXControl.onChange(value => {
-                        light.rotation.x = value * Math.PI / 180;
-                        updateDebugConfig(`lights.${lightType}.${index}.rotation.x`, value);
-
-                        // Mettre à jour les helpers
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-
-                    const rotYControl = rotFolder.add(
-                        rotationParams,
-                        'y',
-                        -180,
-                        180,
-                        1
-                    ).name('Y (deg)');
-
-                    rotYControl.onChange(value => {
-                        light.rotation.y = value * Math.PI / 180;
-                        updateDebugConfig(`lights.${lightType}.${index}.rotation.y`, value);
-
-                        // Mettre à jour les helpers
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-
-                    const rotZControl = rotFolder.add(
-                        rotationParams,
-                        'z',
-                        -180,
-                        180,
-                        1
-                    ).name('Z (deg)');
-
-                    rotZControl.onChange(value => {
-                        light.rotation.z = value * Math.PI / 180;
-                        updateDebugConfig(`lights.${lightType}.${index}.rotation.z`, value);
-
-                        // Mettre à jour les helpers
-                        if (light === directionalLightRef.current) {
-                            if (lightHelperRef.current) lightHelperRef.current.update();
-                            if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                        }
-                    });
-                }
-
-                // Specific controls based on light type
-                if (light.isDirectionalLight || light.isSpotLight) {
-                    // Get saved shadow values from defaults
-                    const savedCastShadow = getDebugConfigValue(`lights.${lightType}.${index}.castShadow`,
-                        getDefaultValue(`${basePath}.castShadow`, light.castShadow));
-
-                    // Apply saved shadow setting
-                    light.castShadow = savedCastShadow;
-
-                    // Add shadow controls
-                    const shadowFolder = lightFolder.addFolder(guiConfig.lights.shadows.folder);
-                    if (guiConfig.gui.closeFolders) shadowFolder.close();
-
-                    const castShadowControl = shadowFolder.add(
-                        light,
-                        'castShadow'
-                    ).name(guiConfig.lights.shadows.castShadow.name);
-
-                    castShadowControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.castShadow`, value);
-
-                        // Mettre à jour la visibilité du shadow camera helper
-                        if (light === directionalLightRef.current && shadowCameraHelperRef.current) {
-                            shadowCameraHelperRef.current.visible = value && (debug?.showLightHelpers || false);
-                        }
-                    });
-
-                    if (light.shadow) {
-                        // Get saved shadow details from defaults
-                        const shadowBasePath = `${basePath}.shadow`;
-                        const savedBias = getDebugConfigValue(`lights.${lightType}.${index}.shadow.bias`,
-                            getDefaultValue(`${shadowBasePath}.bias`, light.shadow.bias));
-                        const savedNormalBias = getDebugConfigValue(`lights.${lightType}.${index}.shadow.normalBias`,
-                            getDefaultValue(`${shadowBasePath}.normalBias`, light.shadow.normalBias));
-                        const savedRadius = getDebugConfigValue(`lights.${lightType}.${index}.shadow.radius`,
-                            getDefaultValue(`${shadowBasePath}.radius`, light.shadow.radius));
-                        const savedMapSize = getDebugConfigValue(`lights.${lightType}.${index}.shadow.mapSize`,
-                            getDefaultValue(`${shadowBasePath}.mapSize`, light.shadow.mapSize.width));
-
-                        // Apply saved shadow settings
-                        light.shadow.bias = savedBias;
-                        light.shadow.normalBias = savedNormalBias;
-                        light.shadow.radius = savedRadius;
-                        light.shadow.mapSize.set(savedMapSize, savedMapSize);
-
-                        // Add shadow detail controls
-                        const biasControl = shadowFolder.add(
-                            light.shadow,
-                            'bias',
-                            guiConfig.lights.shadows.bias.min,
-                            guiConfig.lights.shadows.bias.max,
-                            guiConfig.lights.shadows.bias.step
-                        ).name(guiConfig.lights.shadows.bias.name);
-
-                        biasControl.onChange(value => {
-                            updateDebugConfig(`lights.${lightType}.${index}.shadow.bias`, value);
-                        });
-
-                        const normalBiasControl = shadowFolder.add(
-                            light.shadow,
-                            'normalBias',
-                            guiConfig.lights.shadows.normalBias.min,
-                            guiConfig.lights.shadows.normalBias.max,
-                            guiConfig.lights.shadows.normalBias.step
-                        ).name(guiConfig.lights.shadows.normalBias.name);
-
-                        normalBiasControl.onChange(value => {
-                            updateDebugConfig(`lights.${lightType}.${index}.shadow.normalBias`, value);
-                        });
-
-                        const radiusControl = shadowFolder.add(
-                            light.shadow,
-                            'radius',
-                            guiConfig.lights.shadows.radius.min,
-                            guiConfig.lights.shadows.radius.max,
-                            guiConfig.lights.shadows.radius.step
-                        ).name(guiConfig.lights.shadows.radius.name);
-
-                        radiusControl.onChange(value => {
-                            updateDebugConfig(`lights.${lightType}.${index}.shadow.radius`, value);
-                        });
-
-                        // Shadow map size as a dropdown
-                        const shadowParams = {
-                            mapSize: savedMapSize
-                        };
-
-                        const mapSizeControl = shadowFolder.add(
-                            shadowParams,
-                            'mapSize',
-                            guiConfig.lights.shadows.mapSizes.options
-                        ).name(guiConfig.lights.shadows.mapSizes.name);
-
-                        mapSizeControl.onChange(value => {
-                            light.shadow.mapSize.set(value, value);
-                            // Need to update the shadow map
-                            light.shadow.map?.dispose();
-                            light.shadow.map = null;
-                            light.shadow.camera.updateProjectionMatrix();
-                            light.shadow.needsUpdate = true;
-                            updateDebugConfig(`lights.${lightType}.${index}.shadow.mapSize`, value);
-                        });
-
-                        // Ajouter des contrôles pour les paramètres de la caméra d'ombre
-                        if (light.isDirectionalLight) {
-                            const cameraFolder = shadowFolder.addFolder('Shadow Camera');
-                            if (guiConfig.gui.closeFolders) cameraFolder.close();
-
-                            // Récupérer les paramètres sauvegardés pour la caméra
-                            const savedLeft = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.left`,
-                                getDefaultValue(`${shadowBasePath}.camera.left`, light.shadow.camera.left));
-                            const savedRight = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.right`,
-                                getDefaultValue(`${shadowBasePath}.camera.right`, light.shadow.camera.right));
-                            const savedTop = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.top`,
-                                getDefaultValue(`${shadowBasePath}.camera.top`, light.shadow.camera.top));
-                            const savedBottom = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.bottom`,
-                                getDefaultValue(`${shadowBasePath}.camera.bottom`, light.shadow.camera.bottom));
-                            const savedNear = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.near`,
-                                getDefaultValue(`${shadowBasePath}.camera.near`, light.shadow.camera.near));
-                            const savedFar = getDebugConfigValue(`lights.${lightType}.${index}.shadow.camera.far`,
-                                getDefaultValue(`${shadowBasePath}.camera.far`, light.shadow.camera.far));
-
-                            // Appliquer les valeurs sauvegardées
-                            light.shadow.camera.left = savedLeft;
-                            light.shadow.camera.right = savedRight;
-                            light.shadow.camera.top = savedTop;
-                            light.shadow.camera.bottom = savedBottom;
-                            light.shadow.camera.near = savedNear;
-                            light.shadow.camera.far = savedFar;
-
-                            // Ajouter contrôles pour le frustum de la caméra
-                            const leftControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'left',
-                                -50,
-                                0,
-                                1
-                            ).name('Left');
-
-                            leftControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.left`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-
-                            const rightControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'right',
-                                0,
-                                50,
-                                1
-                            ).name('Right');
-
-                            rightControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.right`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-
-                            const topControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'top',
-                                0,
-                                50,
-                                1
-                            ).name('Top');
-
-                            topControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.top`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-
-                            const bottomControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'bottom',
-                                -50,
-                                0,
-                                1
-                            ).name('Bottom');
-
-                            bottomControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.bottom`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-
-                            const nearControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'near',
-                                0.1,
-                                10,
-                                0.1
-                            ).name('Near');
-
-                            nearControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.near`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-
-                            const farControl = cameraFolder.add(
-                                light.shadow.camera,
-                                'far',
-                                10,
-                                200,
-                                5
-                            ).name('Far');
-
-                            farControl.onChange(value => {
-                                updateDebugConfig(`lights.${lightType}.${index}.shadow.camera.far`, value);
-                                light.shadow.camera.updateProjectionMatrix();
-                                if (shadowCameraHelperRef.current) shadowCameraHelperRef.current.update();
-                            });
-                        }
-                    }
-                }
-
-                // Specific controls for different light types
-                if (light.isSpotLight) {
-                    const spotPath = `${basePath}`;
-                    // Get saved spotlight values from defaults
-                    const savedAngle = getDebugConfigValue(`lights.${lightType}.${index}.angle`,
-                        getDefaultValue(`${spotPath}.angle`, light.angle));
-                    const savedPenumbra = getDebugConfigValue(`lights.${lightType}.${index}.penumbra`,
-                        getDefaultValue(`${spotPath}.penumbra`, light.penumbra));
-                    const savedDecay = getDebugConfigValue(`lights.${lightType}.${index}.decay`,
-                        getDefaultValue(`${spotPath}.decay`, light.decay));
-
-                    // Apply saved values
-                    light.angle = savedAngle;
-                    light.penumbra = savedPenumbra;
-                    light.decay = savedDecay;
-
-                    // Add spotlight controls
-                    const angleControl = lightFolder.add(
-                        light,
-                        'angle',
-                        guiConfig.lights.spotLight.angle.min,
-                        guiConfig.lights.spotLight.angle.max,
-                        guiConfig.lights.spotLight.angle.step
-                    ).name(guiConfig.lights.spotLight.angle.name);
-
-                    angleControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.angle`, value);
-                    });
-
-                    const penumbraControl = lightFolder.add(
-                        light,
-                        'penumbra',
-                        guiConfig.lights.spotLight.penumbra.min,
-                        guiConfig.lights.spotLight.penumbra.max,
-                        guiConfig.lights.spotLight.penumbra.step
-                    ).name(guiConfig.lights.spotLight.penumbra.name);
-
-                    penumbraControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.penumbra`, value);
-                    });
-
-                    const decayControl = lightFolder.add(
-                        light,
-                        'decay',
-                        guiConfig.lights.spotLight.decay.min,
-                        guiConfig.lights.spotLight.decay.max,
-                        guiConfig.lights.spotLight.decay.step
-                    ).name(guiConfig.lights.spotLight.decay.name);
-
-                    decayControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.decay`, value);
-                    });
-                }
-
-                if (light.isPointLight) {
-                    const pointPath = `${basePath}`;
-                    // Get saved pointlight values from defaults
-                    const savedDecay = getDebugConfigValue(`lights.${lightType}.${index}.decay`,
-                        getDefaultValue(`${pointPath}.decay`, light.decay));
-                    // const savedDistance = getDebugConfigValue(`lights.${lightType}.${index}.distance`,
-                    //     getDefaultValue(`${pointPath}.distance`, light.distance));
-
-                    // Apply saved values
-                    light.decay = savedDecay;
-                    // light.distance = savedDistance;
-
-                    // Add pointlight controls
-                    const decayControl = lightFolder.add(
-                        light,
-                        'decay',
-                        guiConfig.lights.pointLight.decay.min,
-                        guiConfig.lights.pointLight.decay.max,
-                        guiConfig.lights.pointLight.decay.step
-                    ).name(guiConfig.lights.pointLight.decay.name);
-
-                    decayControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.decay`, value);
-                    });
-
-                    const distanceControl = lightFolder.add(
-                        light,
-                        'distance',
-                        guiConfig.lights.pointLight.distance.min,
-                        guiConfig.lights.pointLight.distance.max,
-                        guiConfig.lights.pointLight.distance.step
-                    ).name(guiConfig.lights.pointLight.distance.name);
-
-                    distanceControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.distance`, value);
-                    });
-                }
-
-                if (light.isRectAreaLight) {
-                    const rectPath = `${basePath}`;
-                    // Get saved rectarealight values from defaults
-                    const savedWidth = getDebugConfigValue(`lights.${lightType}.${index}.width`,
-                        getDefaultValue(`${rectPath}.width`, light.width));
-                    const savedHeight = getDebugConfigValue(`lights.${lightType}.${index}.height`,
-                        getDefaultValue(`${rectPath}.height`, light.height));
-
-                    // Apply saved values
-                    light.width = savedWidth;
-                    light.height = savedHeight;
-
-                    // Add rectarealight controls
-                    const widthControl = lightFolder.add(
-                        light,
-                        'width',
-                        guiConfig.lights.rectAreaLight.width.min,
-                        guiConfig.lights.rectAreaLight.width.max,
-                        guiConfig.lights.rectAreaLight.width.step
-                    ).name(guiConfig.lights.rectAreaLight.width.name);
-
-                    widthControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.width`, value);
-                    });
-
-                    const heightControl = lightFolder.add(
-                        light,
-                        'height',
-                        guiConfig.lights.rectAreaLight.height.min,
-                        guiConfig.lights.rectAreaLight.height.max,
-                        guiConfig.lights.rectAreaLight.height.step
-                    ).name(guiConfig.lights.rectAreaLight.height.name);
-
-                    heightControl.onChange(value => {
-                        updateDebugConfig(`lights.${lightType}.${index}.height`, value);
-                    });
-                }
             });
-
         }
         return () => {
             if (folderRef.current && gui) {
@@ -1131,7 +749,8 @@ export default function Lights() {
                 debugLightValuesRef.current = null;
             }
         };
-    }, [debug?.active, debug?.showGui, gui]);
+    }, [debug?.active, debug?.showGui, gui, scene, isNightMode, gl, camera]);
+
     // Mettre à jour l'état du contrôleur de mode nuit quand isNightMode change
     useEffect(() => {
         if (gui && folderRef.current) {
