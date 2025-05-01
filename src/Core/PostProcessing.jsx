@@ -5,11 +5,9 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { GrainShader } from '../World/Shaders/GrainShader';
 import useStore from '../Store/useStore';
-import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
-import {ACESFilmicToneMapping} from "three";
-import guiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {
+
     const { scene, camera, gl } = useThree();
     const { debug, gui } = useStore();
     const composerRef = useRef(null);
