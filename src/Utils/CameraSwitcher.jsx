@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -28,9 +28,6 @@ const CameraSwitcher = () => {
     // Track whether we've made the initial switch from TheatreJS to free camera
     const hasInitiatedFirstSwitch = useRef(false);
 
-    // Store the visualization settings before switching to free mode
-    const previousVisualizationSettings = useRef(null);
-
     // Keyboard state for ZQSD movement
     const keysPressed = useRef({});
     // Movement speed
@@ -45,11 +42,10 @@ const CameraSwitcher = () => {
     const forestGroupsRef = useRef({
         forest: [],  // Main Forest group
         instances: [], // Instance meshes
-        mapInstance: [], // Map instances
-        lodInstances: [] // Added category for LOD instances
+        mapInstance: [] // Map instances
     });
 
-    // Find and store all forest-related objects with improved detection
+    // Find and store all forest-related objects
     const findAndStoreForestObjects = () => {
         if (!scene) return;
 
@@ -57,104 +53,47 @@ const CameraSwitcher = () => {
         forestGroupsRef.current = {
             forest: [],
             instances: [],
-            mapInstance: [],
-            lodInstances: []
+            mapInstance: []
         };
 
-        // Enhanced traversal to find all forest-related objects
+        // Find all forest-related objects
         scene.traverse((object) => {
-            // Check for Forest group
             if (object.name === 'Forest') {
                 forestGroupsRef.current.forest.push(object);
-                // Also track all children recursively
-                object.traverse((child) => {
-                    if (child !== object) { // Avoid adding the Forest object twice
-                        if (child.isMesh || child.isGroup) {
-                            forestGroupsRef.current.instances.push(child);
-                        }
-                    }
-                });
             }
-            // Check for instances by name
-            else if (object.name?.includes('instances') ||
-                object.name?.includes('forest') ||
-                object.name?.includes('tree') ||
-                object.name?.includes('lod')) {
+            else if (object.name?.includes('instances')) {
                 forestGroupsRef.current.instances.push(object);
             }
-            // Check for map instances
             else if (object.name?.includes('MapInstance')) {
                 forestGroupsRef.current.mapInstance.push(object);
             }
             // Also include child objects of Forest
-            else if (object.parent?.name === 'Forest' ||
-                (object.parent && (object.parent.name?.includes('forest') ||
-                    object.parent.name?.includes('instances')))) {
+            else if (object.parent?.name === 'Forest') {
                 forestGroupsRef.current.instances.push(object);
-            }
-            // Check if it's an InstancedMesh (likely part of the forest)
-            else if (object.isInstancedMesh) {
-                forestGroupsRef.current.lodInstances.push(object);
-            }
-            // Check for objects that have LOD in their userData
-            else if (object.isMesh && object.userData &&
-                (object.userData.lodLevel !== undefined ||
-                    object.userData.chunkCenter !== undefined)) {
-                forestGroupsRef.current.lodInstances.push(object);
             }
         });
 
-        // Get total counts for logging
         const totalObjects =
             forestGroupsRef.current.forest.length +
             forestGroupsRef.current.instances.length +
-            forestGroupsRef.current.mapInstance.length +
-            forestGroupsRef.current.lodInstances.length;
+            forestGroupsRef.current.mapInstance.length;
 
         console.log(`Found ${totalObjects} forest-related objects:`, {
             forest: forestGroupsRef.current.forest.length,
             instances: forestGroupsRef.current.instances.length,
-            mapInstance: forestGroupsRef.current.mapInstance.length,
-            lodInstances: forestGroupsRef.current.lodInstances.length
+            mapInstance: forestGroupsRef.current.mapInstance.length
         });
     };
 
-    // Function to ensure all forest objects are visible with enhanced checks
+    // Function to ensure all forest objects are visible
     const enforceForestVisibility = (visible = true) => {
-        console.log(`Enforcing forest visibility: ${visible}`);
-
-        // Apply to all categorized forest objects
         Object.values(forestGroupsRef.current).forEach(group => {
             group.forEach(object => {
                 if (object.visible !== visible) {
-                    console.log(`Setting ${object.name || 'unnamed object'} visibility to ${visible}`);
+                    console.log(`Setting ${object.name} visibility to ${visible}`);
                     object.visible = visible;
-
-                    // Also set visibility for all children
-                    if (object.children && object.children.length > 0) {
-                        object.children.forEach(child => {
-                            child.visible = visible;
-                        });
-                    }
                 }
             });
-        });
-
-        // Also do a broad pass through the scene to catch any missed objects
-        scene.traverse((object) => {
-            if (object.isInstancedMesh ||
-                (object.isMesh && object.userData && object.userData.lodLevel !== undefined) ||
-                (object.name && (
-                    object.name.includes('forest') ||
-                    object.name.includes('tree') ||
-                    object.name.includes('lod') ||
-                    object.name.includes('instances')
-                ))) {
-                if (object.visible !== visible) {
-                    console.log(`Additional pass: Setting ${object.name || 'unnamed object'} visibility to ${visible}`);
-                    object.visible = visible;
-                }
-            }
         });
 
         // Force scene update
@@ -175,15 +114,8 @@ const CameraSwitcher = () => {
         // Subscribe to relevant events
         const forestReadyUnsubscribe = EventBus.on('forest-ready', forestReadyHandler);
 
-        // Additional subscription for forest scene ready
-        const forestSceneReadyUnsubscribe = EventBus.on('forest-scene-ready', () => {
-            console.log("Forest scene ready event received, refreshing forest object list");
-            setTimeout(findAndStoreForestObjects, 500); // Slight delay to ensure all objects are created
-        });
-
         return () => {
             forestReadyUnsubscribe();
-            forestSceneReadyUnsubscribe();
         };
     }, [scene]);
 
@@ -234,12 +166,6 @@ const CameraSwitcher = () => {
         if (cameraMode === 'free') {
             // Switch to the free camera
             console.log('Switching to free camera mode');
-
-            // Store the current visualization settings before switching
-            previousVisualizationSettings.current = {
-                ...useStore.getState().visualization
-            };
-            console.log('Saved visualization settings:', previousVisualizationSettings.current);
 
             // Copy all camera parameters exactly to ensure identical rendering behavior
             copyAllCameraParameters(mainCamera, freeCameraRef.current);
@@ -292,31 +218,8 @@ const CameraSwitcher = () => {
                 window.__theatreStudio.ui.restore();
             }
 
-            // Only restore settings after first switching to free camera mode
+            // Only force visibility after first switching to free camera mode
             if (hasInitiatedFirstSwitch.current) {
-                // Restore previous visualization settings if available
-                if (previousVisualizationSettings.current) {
-                    console.log('Restoring visualization settings:', previousVisualizationSettings.current);
-                    const store = useStore.getState();
-
-                    // Make sure the visualization object exists in the store
-                    if (!store.visualization) {
-                        store.visualization = {};
-                    }
-
-                    // Restore each setting
-                    Object.keys(previousVisualizationSettings.current).forEach(key => {
-                        store.visualization[key] = previousVisualizationSettings.current[key];
-                    });
-
-                    // Update debug config if needed
-                    if (typeof updateDebugConfig === 'function') {
-                        Object.keys(previousVisualizationSettings.current).forEach(key => {
-                            updateDebugConfig(`visualization.${key}.value`, previousVisualizationSettings.current[key]);
-                        });
-                    }
-                }
-
                 // Force visibility of all forest objects
                 console.log("Enforcing forest visibility after switching back to TheatreJS mode");
                 enforceForestVisibility(true);
@@ -325,23 +228,14 @@ const CameraSwitcher = () => {
                 console.log("Emitting forest-visibility-restore event");
                 EventBus.trigger('forest-visibility-restore');
 
-                // Force multiple render updates to ensure visibility changes apply
-                const forceMultipleUpdates = () => {
-                    enforceForestVisibility(true);
+                // Request a frame update
+                requestAnimationFrame(() => {
                     scene.updateMatrixWorld(true);
-                };
-
-                // Apply immediate update
-                forceMultipleUpdates();
-
-                // Then schedule a few more updates to ensure it sticks
-                requestAnimationFrame(forceMultipleUpdates);
-                setTimeout(forceMultipleUpdates, 100);
-                setTimeout(forceMultipleUpdates, 500);
+                });
             }
         }
 
-    }, [cameraMode, mainCamera, set, scene, updateDebugConfig]);
+    }, [cameraMode, mainCamera, set, scene]);
 
     // Register key event handlers - IMPORTANT: This is outside the cameraMode condition
     // so the event listeners are always active
