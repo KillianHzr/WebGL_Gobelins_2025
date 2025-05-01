@@ -9,6 +9,7 @@ import Camera from "./Core/Camera.jsx";
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import MaterialControls from "./Core/MaterialControls.jsx";
+import PostProcessing from "./Core/PostProcessing.jsx";
 import Stats from "./Utils/Stats.jsx";
 import RayCaster from "./Utils/RayCaster.jsx";
 import {EventBus, EventEmitterProvider} from './Utils/EventEmitter';
@@ -175,6 +176,7 @@ export default function Experience() {
             {debug?.active && debug?.showGui && <Controls/>}
             <Lights/>
             {debug?.active && debug?.showGui && <MaterialControls/>}
+            {debug?.active && <PostProcessing/>}
 
             <RayCaster>
                 <InteractiveMarkersProvider>
