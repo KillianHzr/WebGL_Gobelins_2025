@@ -300,6 +300,8 @@ class TextureManager {
             aoIntensity: 0.5,
             useDisplacement: false,
             displacementScale: 0.05,
+            useEnvMap: true, // Nouveau paramètre pour activer l'envMap
+            envMapIntensity: 0.5, // Intensité de l'envMap
             ...options
         };
 
@@ -313,13 +315,9 @@ class TextureManager {
             if (textures.baseColor) {
                 material.map = textures.baseColor;
                 this.configureTexture(material.map, 'baseColor');
-                // Forcer la couleur à blanc pour ne pas influencer la texture baseColor
-                // material.color.set(0xFFFFFF);
             } else if (textures.diffuse) {
                 material.map = textures.diffuse;
                 this.configureTexture(material.map, 'diffuse');
-                // Forcer la couleur à blanc pour ne pas influencer la texture diffuse
-                // material.color.set(0xFFFFFF);
             }
 
             // Carte normale (préférer NormalOpenGL si disponible pour Three.js)
@@ -374,6 +372,21 @@ class TextureManager {
                 this.configureTexture(material.alphaMap, 'opacity');
                 material.transparent = true;
                 material.alphaTest = 1.0;
+            }
+
+            // Ajout de l'environnement mapping
+            if (config.useEnvMap) {
+                // Vérifier si un fichier HDR/EXR pour l'envMap est disponible
+                const envMapTexture = window.assetManager?.getItem('EnvironmentMap');
+                if (envMapTexture) {
+                    material.envMap = envMapTexture;
+                    material.envMapIntensity = config.envMapIntensity;
+                    material.needsUpdate = true;
+
+                    console.log(`EnvMap appliquée avec une intensité de ${config.envMapIntensity}`);
+                } else {
+                    console.warn('Aucune texture de carte d\'environnement trouvée');
+                }
             }
 
             // Mettre à jour le matériau

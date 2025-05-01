@@ -215,6 +215,11 @@ export default function MaterialControls() {
                             ...(material.metalness !== undefined ? {metalness: material.metalness} : {}),
                             ...(material.opacity !== undefined ? {opacity: material.opacity} : {}),
 
+                            // Contrôle de l'environment mapping
+                            ...(material.envMapIntensity !== undefined ? {
+                                envMapIntensity: material.envMapIntensity
+                            } : {}),
+
                             // Propriétés de shadow pour les meshes associés
                             castShadow: material._meshRefs && material._meshRefs.length > 0
                                 ? meshesMap.get(material._meshRefs[0])?.castShadow || false
@@ -235,37 +240,14 @@ export default function MaterialControls() {
                                 }
 
                                 // Mettre à jour les contrôleurs
-                                // if (material.color) {
-                                //     materialControls.color = '#' + material.color.getHexString();
-                                //     materialFolder.__controllers.find(c => c.property === 'color')?.updateDisplay();
-                                // }
+                                // Mise à jour des contrôleurs existants...
 
-                                if (material.roughness !== undefined) {
-                                    materialControls.roughness = material.roughness;
-                                    materialFolder.__controllers.find(c => c.property === 'roughness')?.updateDisplay();
-                                }
-
-                                if (material.metalness !== undefined) {
-                                    materialControls.metalness = material.metalness;
-                                    materialFolder.__controllers.find(c => c.property === 'metalness')?.updateDisplay();
-                                }
-
-                                if (material.opacity !== undefined) {
-                                    materialControls.opacity = material.opacity;
-                                    materialFolder.__controllers.find(c => c.property === 'opacity')?.updateDisplay();
-                                }
-
-                                materialControls.wireframe = material.wireframe || false;
-                                materialFolder.__controllers.find(c => c.property === 'wireframe')?.updateDisplay();
-
-                                // Mettre à jour les contrôleurs de shadow
-                                if (material._meshRefs && material._meshRefs.length > 0) {
-                                    const primaryMesh = meshesMap.get(material._meshRefs[0]);
-                                    if (primaryMesh) {
-                                        materialControls.castShadow = primaryMesh.castShadow;
-                                        materialControls.receiveShadow = primaryMesh.receiveShadow;
-                                        materialFolder.__controllers.find(c => c.property === 'castShadow')?.updateDisplay();
-                                        materialFolder.__controllers.find(c => c.property === 'receiveShadow')?.updateDisplay();
+                                // Mise à jour du contrôleur d'environment mapping
+                                if (material.envMapIntensity !== undefined) {
+                                    materialControls.envMapIntensity = material.envMapIntensity;
+                                    const envMapController = materialFolder.__controllers.find(c => c.property === 'envMapIntensity');
+                                    if (envMapController) {
+                                        envMapController.updateDisplay();
                                     }
                                 }
 
@@ -309,19 +291,32 @@ export default function MaterialControls() {
                                 }
                             });
                         }
-
-                        if (material.opacity !== undefined) {
-                            materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
-                                try {
-                                    // Activer la transparence si l'opacité est < 1
-                                    material.transparent = value < 1;
-                                    material.opacity = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating opacity for ${material._objectName}:`, error);
-                                }
-                            });
+                        // Ajouter le contrôleur pour l'environment mapping
+                        if (material.envMapIntensity !== undefined) {
+                            materialFolder.add(materialControls, 'envMapIntensity', 0, 2, 0.01)
+                                .name('EnvMap Intensity')
+                                .onChange(value => {
+                                    try {
+                                        material.envMapIntensity = value;
+                                        material.needsUpdate = true;
+                                        debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
+                                    } catch (error) {
+                                        console.warn(`Error updating envMapIntensity for ${material._objectName}:`, error);
+                                    }
+                                });
                         }
+                        // if (material.opacity !== undefined) {
+                        //     materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
+                        //         try {
+                        //             // Activer la transparence si l'opacité est < 1
+                        //             material.transparent = value < 1;
+                        //             material.opacity = value;
+                        //             material.needsUpdate = true;
+                        //         } catch (error) {
+                        //             console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                        //         }
+                        //     });
+                        // }
 
                         materialFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
                             try {

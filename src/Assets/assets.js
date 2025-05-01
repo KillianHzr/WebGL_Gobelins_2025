@@ -324,6 +324,14 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },
+    {
+        name: 'EnvironmentMap',
+        type: 'hdr', // ou 'exr'
+        path: '/textures/environmentMap/environment_map.hdr',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     }
 ];
 
