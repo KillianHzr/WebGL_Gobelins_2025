@@ -6,6 +6,7 @@ import {initializeLight} from "./Utils/defaultValues.js";
 import DebugInitializer from "./Utils/DebugInitializer.jsx";
 import Debug from "./Utils/Debug.jsx";
 import Camera from "./Core/Camera.jsx";
+import CameraSwitcher from './Utils/CameraSwitcher.jsx';
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import Stats from "./Utils/Stats.jsx";
@@ -175,6 +176,7 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
             <NarrationTriggers/>
+            <CameraSwitcher/>
 
             {debug?.active && debug?.showStats && <Stats/>}
             {debug?.active && debug?.showGui && <Debug/>}

@@ -86,18 +86,39 @@ function CameraController({children}) {
         // Ajouter le contrôle de la caméra via Theatre.js
         if (camera && sheet) {
             // Créer un objet pour stocker les paramètres de la caméra
-            const obj = sheet.object('Camera', {
-                position: {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z
-                },
-                rotation: {
-                    x: camera.rotation.x,
-                    y: camera.rotation.y,
-                    z: camera.rotation.z
-                }
-            });
+            let obj;
+            try {
+                obj = sheet.object('Camera');
+
+                obj.set({
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                }, { reconfigure: true });
+
+                console.log('Updated existing Theatre.js camera object');
+            } catch (error) {
+                obj = sheet.object('Camera', {
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                });
+                console.log('Created new Theatre.js camera object');
+            }
 
             // Écouter les modifications de Theatre.js et les appliquer à la caméra
             const unsubscribe = obj.onValuesChange((values) => {

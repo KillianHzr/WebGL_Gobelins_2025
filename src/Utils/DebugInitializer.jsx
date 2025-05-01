@@ -6,6 +6,9 @@ import guiConfig from '../Config/guiConfig';
 import {audioManager} from './AudioManager';
 import {addNarrationControlsToDebug} from './NarrationDebugControls';
 import {EventBus} from './EventEmitter';
+import * as THREE from 'three';
+import { getProject } from '@theatre/core';
+import sceneObjectManager from '../Config/SceneObjectManager';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -48,51 +51,19 @@ const DebugInitializer = () => {
         }
     };
 
-    // Fonction pour basculer entre les modes de caméra
+    // Amélioration de la fonction toggleCameraMode existante
     const toggleCameraMode = (mode) => {
-        if (!controls) return;
-
-        if (mode === 'free') {
-            // Activer la caméra libre (OrbitControls)
-            if (controls.enabled !== undefined) {
-                controls.enabled = true;
-            }
-
-            // Désactiver les contrôles TheatreJS s'ils existent
-            if (window.__theatreStudio) {
-                // Masquer l'UI Theatre si on passe en mode libre
-                if (window.__theatreStudio.ui) {
-                    const studioUI = window.__theatreStudio.ui;
-                    // Stocker l'état actuel de l'UI pour pouvoir le restaurer
-                    const wasVisible = studioUI.isHidden ? false : true;
-                    if (wasVisible) {
-                        studioUI.hide();
-                    }
-                    // Stocker cette info pour la restaurer plus tard
-                    window.__wasTheatreUIVisible = wasVisible;
-                }
-                console.log('Passing to free camera mode, disabling TheatreJS camera');
-            }
-        } else if (mode === 'theatre') {
-            // Désactiver la caméra libre
-            if (controls.enabled !== undefined) {
-                controls.enabled = false;
-            }
-
-            // Activer les contrôles TheatreJS s'ils existent
-            if (window.__theatreStudio) {
-                // Restaurer l'état de l'UI si nécessaire
-                if (window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
-                    window.__theatreStudio.ui.restore();
-                }
-                console.log('Passing to TheatreJS camera mode');
-            }
-        }
-
-        // Mettre à jour l'état dans le store
+        // Update the visualization state in the store
         useStore.getState().visualization.cameraMode = mode;
 
-        // Émettre un événement pour informer d'autres composants
+        // Store the setting in debug config
+        if (useStore.getState().updateDebugConfig) {
+            useStore.getState().updateDebugConfig('visualization.cameraMode.value', mode);
+        }
+
+        console.log(`Camera mode switched to: ${mode}`);
+
+        // Emit an event for other components
         EventBus.trigger('camera-mode-changed', { mode });
     };
 
@@ -277,18 +248,151 @@ const DebugInitializer = () => {
 
             visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
                 .name('Mode Caméra')
-                .onChange(value => {
-                    toggleCameraMode(value);
-
-                    // Mettre à jour la configuration enregistrée
-                    if (useStore.getState().updateDebugConfig) {
-                        useStore.getState().updateDebugConfig('visualization.cameraMode.value', value);
-                    }
-                });
+                .onChange(toggleCameraMode);
 
             // Si configuré ainsi, fermer le dossier
             if (guiConfig.gui.closeFolders) {
                 visualizationFolder.close();
+            }
+
+            const interactionPointsFolder = gui.addFolder('Points d\'interaction');
+
+            // Récupérer les emplacements d'interaction depuis sceneObjectManager
+            const interactivePlacements = sceneObjectManager.getInteractivePlacements();
+
+            // Fonction pour téléporter la caméra à un emplacement spécifique
+            const teleportCamera = (interactionPoint) => {
+                if (!camera) {
+                    console.warn("Camera not available for teleportation");
+                    return;
+                }
+
+                try {
+                    // Extraire la position du point d'interaction
+                    const posX = interactionPoint.position[0] || 0;
+                    const posY = interactionPoint.position[1] || 0;
+                    const posZ = interactionPoint.position[2] || 0;
+
+                    const interactionPos = new THREE.Vector3(posX, posY, posZ);
+
+                    // Position de la caméra légèrement en arrière et au-dessus du point d'interaction
+                    const cameraOffset = new THREE.Vector3(0, 2, 5);
+
+                    // Position finale de la caméra
+                    const cameraPos = interactionPos.clone().add(cameraOffset);
+
+                    console.log(`Teleporting camera to: ${cameraPos.x}, ${cameraPos.y}, ${cameraPos.z}`);
+
+                    // Téléporter la caméra à la position calculée
+                    camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+
+                    // Faire la caméra regarder vers le point d'interaction
+                    camera.lookAt(interactionPos);
+
+                    // Mettre à jour la matrice de projection de la caméra
+                    camera.updateProjectionMatrix();
+
+                    // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
+                    if (window.__theatreStudio && useStore.getState().visualization?.cameraMode === 'theatre') {
+                        console.log("Updating Theatre.js camera position");
+
+                        try {
+                            // Accéder à la feuille actuelle
+                            const project = getProject('WebGL_Gobelins');
+                            if (project) {
+                                const sheet = project.sheet('Scene');
+
+                                if (sheet) {
+                                    // Mise à jour de l'objet caméra dans Theatre.js
+                                    const obj = sheet.object('Camera');
+
+                                    if (obj) {
+                                        obj.set({
+                                            position: {
+                                                x: cameraPos.x,
+                                                y: cameraPos.y,
+                                                z: cameraPos.z
+                                            }
+                                        });
+
+                                        console.log("Theatre.js camera position updated successfully");
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.warn("Failed to update Theatre.js camera:", error);
+                        }
+                    }
+
+                    // Mettre à jour la configuration de débogage
+                    if (typeof useStore.getState().updateDebugConfig === 'function') {
+                        useStore.getState().updateDebugConfig('camera.position.x.value', cameraPos.x);
+                        useStore.getState().updateDebugConfig('camera.position.y.value', cameraPos.y);
+                        useStore.getState().updateDebugConfig('camera.position.z.value', cameraPos.z);
+                    }
+
+                    // Émettre un événement pour informer d'autres composants
+                    EventBus.trigger('camera-teleported', { position: cameraPos, target: interactionPos });
+
+                    return true;
+                } catch (error) {
+                    console.error("Error teleporting camera:", error);
+                    return false;
+                }
+            };
+
+            // Créer un objet pour stocker les fonctions de téléportation
+            const teleportFunctions = {};
+
+            // Ajouter des boutons pour se téléporter à chaque point d'interaction
+            interactivePlacements.forEach((placement, index) => {
+                // Générer un nom unique pour ce point d'interaction
+                const pointName = placement.markerText ||
+                    placement.requiredStep ||
+                    placement.markerId ||
+                    `${placement.objectKey}_${index}`;
+
+                // Créer une propriété unique pour cette fonction de téléportation
+                const functionName = `teleportTo_${index}`;
+
+                // Ajouter la fonction de téléportation à l'objet
+                teleportFunctions[functionName] = () => {
+                    teleportCamera(placement);
+                };
+
+                // Ajouter un bouton pour cette fonction
+                interactionPointsFolder.add(teleportFunctions, functionName).name(`TP: ${pointName}`);
+            });
+
+            // Ajouter une fonction pour désactiver le mouvement automatique de la caméra
+            teleportFunctions.disableAutoMove = () => {
+                const state = useStore.getState();
+
+                // Si l'interaction a une méthode pour désactiver le défilement automatique
+                if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                    state.interaction.setAllowScroll(false);
+                    console.log("Auto-scrolling disabled");
+                }
+            };
+
+            // Ajouter une fonction pour activer le mouvement automatique de la caméra
+            teleportFunctions.enableAutoMove = () => {
+                const state = useStore.getState();
+
+                // Si l'interaction a une méthode pour activer le défilement automatique
+                if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                    state.interaction.setAllowScroll(true);
+                    console.log("Auto-scrolling enabled");
+                }
+            };
+
+            // Ajouter ces boutons
+            interactionPointsFolder.add(teleportFunctions, 'disableAutoMove').name("Désactiver AutoMove");
+            interactionPointsFolder.add(teleportFunctions, 'enableAutoMove').name("Activer AutoMove");
+
+            // Fermer le dossier si configuré ainsi
+            if (guiConfig.gui.closeFolders) {
+                interactionPointsFolder.close();
             }
 
             // Appliquer les paramètres de visualisation initiaux
