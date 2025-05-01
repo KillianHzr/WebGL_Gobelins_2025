@@ -10,6 +10,7 @@ const guiFolderConfig = {
         "Theatre.js": true,       // Contrôles Theatre.js
         "Visualisation": true,    // Contrôles de visualisation générale
         "Camera": true,           // Contrôles de caméra
+        "Render": true,           // Nouveaux contrôles de rendu
         "Controls": true,         // Contrôles de navigation
         "Scene": true,            // Contrôles de scène
         "Renderer": true,         // Contrôles du renderer
@@ -28,6 +29,8 @@ const guiFolderConfig = {
         "Camera/Rotation": true,
         "Camera/Settings": true,
         "Camera/Render": true,     // Sous-dossier pour les paramètres de rendu de la caméra
+        "Render/Tone Mapping": true, // Nouveau sous-dossier pour le tone mapping
+        "Render/Shadows": true,    // Nouveau sous-dossier pour les ombres
         "Renderer/Shadow Map": true, // Nouveau sous-dossier pour les paramètres de shadow map
         "Lights/Position": true,
         "Lights/Shadows": true,
@@ -49,6 +52,7 @@ const guiFolderConfig = {
         specific: {
             "Scene": ["Scene/Fog"],              // Si Scene est caché, Scene/Fog le sera aussi
             "Camera": ["Camera/Position", "Camera/Rotation", "Camera/Settings", "Camera/Render"], // Si Camera est caché, ses sous-dossiers le seront aussi
+            "Render": ["Render/Tone Mapping", "Render/Shadows"], // Si Render est caché, ses sous-dossiers le seront aussi
             "Renderer": ["Renderer/Shadow Map"], // Si Renderer est caché, Renderer/Shadow Map le sera aussi
             "Lights": ["Lights/Position", "Lights/Shadows"], // Si Lights est caché, ses sous-dossiers le seront aussi
             "Effects": ["Effects/Glow Effect"]   // Si Effects est caché, Effects/Glow Effect le sera aussi
@@ -62,6 +66,7 @@ const guiFolderConfig = {
             "Theatre.js": true,
             "Visualisation": true,
             "Camera": false,
+            "Render": false,
             "Controls": false,
             "Scene": false,
             "Renderer": false,
@@ -78,6 +83,7 @@ const guiFolderConfig = {
             "Theatre.js": false,
             "Visualisation": false,
             "Camera": true,
+            "Render": true,
             "Controls": false,
             "Scene": false,
             "Renderer": true,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
@@ -94,6 +100,7 @@ const guiFolderConfig = {
             "Theatre.js": true,
             "Visualisation": true,
             "Camera": true,
+            "Render": true,
             "Controls": true,
             "Scene": true,
             "Renderer": true,
@@ -110,6 +117,7 @@ const guiFolderConfig = {
             "Theatre.js": false,
             "Visualisation": true,
             "Camera": false,
+            "Render": true,
             "Controls": false,
             "Scene": true,
             "Renderer": true,
@@ -125,7 +133,7 @@ const guiFolderConfig = {
 
     // Configuration de l'accès rapide (raccourcis pour afficher/cacher des groupes de dossiers)
     quickAccess: {
-        "rendering": ["Scene", "Renderer", "Lights", "Effects", "Camera/Render", "Renderer/Shadow Map"],
+        "rendering": ["Scene", "Renderer", "Lights", "Effects", "Render", "Camera/Render", "Renderer/Shadow Map", "Render/Tone Mapping", "Render/Shadows"],
         "interaction": ["Controls", "Interfaces"],
         "content": ["Objects", "Materials"],
         "audio": ["Audio"]

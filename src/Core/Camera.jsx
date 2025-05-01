@@ -11,21 +11,60 @@ export default function Camera() {
     const folderRef = useRef(null);
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
 
-    // Initialiser renderSettingsRef correctement comme un objet avec les valeurs par défaut
+    // Initialiser renderSettingsRef avec des valeurs persistantes
     const renderSettingsRef = useRef({
-        toneMapping: guiConfig.camera.render.toneMapping.default,
-        toneMappingExposure: guiConfig.camera.render.toneMappingExposure.default,
-        shadowMapType: guiConfig.renderer.shadowMap.type.default,
-        shadowMapEnabled: guiConfig.renderer.shadowMap.enabled.default,
-        shadowMapSize: guiConfig.renderer.shadowMap.mapSize.default,
-        shadowBias: guiConfig.renderer.shadowMap.bias.default,
-        shadowNormalBias: guiConfig.renderer.shadowMap.normalBias.default
+        toneMapping: Number(localStorage.getItem('renderSettings.toneMapping') || guiConfig.camera.render.toneMapping.default),
+        toneMappingExposure: Number(localStorage.getItem('renderSettings.toneMappingExposure') || guiConfig.camera.render.toneMappingExposure.default),
+        shadowMapType: Number(localStorage.getItem('renderSettings.shadowMapType') || guiConfig.renderer.shadowMap.type.default),
+        shadowMapEnabled: localStorage.getItem('renderSettings.shadowMapEnabled') === null
+            ? guiConfig.renderer.shadowMap.enabled.default
+            : localStorage.getItem('renderSettings.shadowMapEnabled') === 'true',
+        shadowMapSize: Number(localStorage.getItem('renderSettings.shadowMapSize') || guiConfig.renderer.shadowMap.mapSize.default),
+        shadowBias: Number(localStorage.getItem('renderSettings.shadowBias') || guiConfig.renderer.shadowMap.bias.default),
+        shadowNormalBias: Number(localStorage.getItem('renderSettings.shadowNormalBias') || guiConfig.renderer.shadowMap.normalBias.default)
     });
+
+    // Fonction utilitaire pour sauvegarder les paramètres
+    const saveRenderSettings = () => {
+        Object.entries(renderSettingsRef.current).forEach(([key, value]) => {
+            localStorage.setItem(`renderSettings.${key}`, String(value));
+        });
+    };
 
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
         configureRenderer(gl);
-    }, [gl]);
+
+        // Appliquer les paramètres sauvegardés
+        gl.toneMapping = renderSettingsRef.current.toneMapping;
+        gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
+
+        if (gl.shadowMap) {
+            gl.shadowMap.enabled = renderSettingsRef.current.shadowMapEnabled;
+            gl.shadowMap.type = renderSettingsRef.current.shadowMapType;
+        }
+
+        // Mettre à jour les lumières avec les paramètres des ombres
+        scene.traverse((object) => {
+            if (object.isLight && object.shadow) {
+                try {
+                    object.shadow.type = renderSettingsRef.current.shadowMapType;
+
+                    if (object.shadow.mapSize) {
+                        object.shadow.mapSize.width = renderSettingsRef.current.shadowMapSize;
+                        object.shadow.mapSize.height = renderSettingsRef.current.shadowMapSize;
+                    }
+
+                    object.shadow.bias = renderSettingsRef.current.shadowBias;
+                    object.shadow.normalBias = renderSettingsRef.current.shadowNormalBias;
+                    object.shadow.needsUpdate = true;
+                } catch (error) {
+                    console.error('Erreur lors de la configuration initiale des ombres:', error);
+                }
+            }
+        });
+
+    }, [gl, scene]);
 
     // S'exécute à chaque frame pour s'assurer que les paramètres de rendu sont appliqués
     useFrame(() => {
@@ -53,137 +92,107 @@ export default function Camera() {
         }
 
         // Vérifier et mettre à jour les paramètres des ombres
-        const currentShadowConfig = {
-            enabled: gl.shadowMap?.enabled || false,
-            type: gl.shadowMap?.type || THREE.PCFShadowMap,
-            mapSize: {
-                width: 1024,  // Valeur par défaut si non disponible
-                height: 1024  // Valeur par défaut si non disponible
-            },
-            bias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.bias || 0,
-            normalBias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.normalBias || 0
-        };
+        if (gl.shadowMap) {
+            const currentShadowConfig = {
+                enabled: gl.shadowMap.enabled,
+                type: gl.shadowMap.type,
+                mapSize: gl.shadowMap.size?.width || 1024,
+                bias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.bias || 0,
+                normalBias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.normalBias || 0
+            };
 
-        const targetShadowConfig = {
-            enabled: renderSettingsRef.current.shadowMapEnabled ?? true,
-            type: renderSettingsRef.current.shadowMapType ?? THREE.PCFShadowMap,
-            mapSize: renderSettingsRef.current.shadowMapSize ?? 1024,
-            bias: renderSettingsRef.current.shadowBias ?? 0,
-            normalBias: renderSettingsRef.current.shadowNormalBias ?? 0
-        };
+            const targetShadowConfig = renderSettingsRef.current;
 
-        if (gl.shadowMap && (
-            currentShadowConfig.enabled !== targetShadowConfig.enabled ||
-            currentShadowConfig.type !== targetShadowConfig.type ||
-            currentShadowConfig.mapSize.width !== targetShadowConfig.mapSize ||
-            currentShadowConfig.bias !== targetShadowConfig.bias ||
-            currentShadowConfig.normalBias !== targetShadowConfig.normalBias)) {
+            if (currentShadowConfig.enabled !== targetShadowConfig.shadowMapEnabled ||
+                currentShadowConfig.type !== targetShadowConfig.shadowMapType ||
+                currentShadowConfig.mapSize !== targetShadowConfig.shadowMapSize ||
+                currentShadowConfig.bias !== targetShadowConfig.shadowBias ||
+                currentShadowConfig.normalBias !== targetShadowConfig.shadowNormalBias) {
 
-            // Vérifier et mettre à jour le renderer
-            if (gl.shadowMap) {
-                gl.shadowMap.enabled = targetShadowConfig.enabled;
-                gl.shadowMap.type = targetShadowConfig.type;
-            }
+                gl.shadowMap.enabled = targetShadowConfig.shadowMapEnabled;
+                gl.shadowMap.type = targetShadowConfig.shadowMapType;
 
-            // Parcourir et mettre à jour toutes les lumières avec des ombres
-            scene.traverse((object) => {
-                if (object.isLight && object.shadow) {
-                    try {
-                        object.shadow.type = targetShadowConfig.type;
+                scene.traverse((object) => {
+                    if (object.isLight && object.shadow) {
+                        try {
+                            object.shadow.type = targetShadowConfig.shadowMapType;
 
-                        // S'assurer que mapSize existe et est un objet avec width/height
-                        if (object.shadow.mapSize) {
-                            object.shadow.mapSize.width = targetShadowConfig.mapSize;
-                            object.shadow.mapSize.height = targetShadowConfig.mapSize;
+                            if (object.shadow.mapSize) {
+                                object.shadow.mapSize.width = targetShadowConfig.shadowMapSize;
+                                object.shadow.mapSize.height = targetShadowConfig.shadowMapSize;
+                            }
+
+                            object.shadow.bias = targetShadowConfig.shadowBias;
+                            object.shadow.normalBias = targetShadowConfig.shadowNormalBias;
+                            object.shadow.needsUpdate = true;
+
+                            if (object.shadow.map) {
+                                object.shadow.map.dispose();
+                                object.shadow.map = null;
+                            }
+                        } catch (error) {
+                            console.error('Erreur lors de la mise à jour des ombres:', error);
                         }
-
-                        object.shadow.bias = targetShadowConfig.bias;
-                        object.shadow.normalBias = targetShadowConfig.normalBias;
-                        object.shadow.needsUpdate = true;
-
-                        // Nettoyer la map d'ombre précédente
-                        if (object.shadow.map) {
-                            object.shadow.map.dispose();
-                            object.shadow.map = null;
-                        }
-                    } catch (error) {
-                        console.error('Erreur lors de la mise à jour des ombres:', error);
                     }
-                }
-            });
+                });
 
-            // Marquer les ombres comme devant être mises à jour
-            if (gl.shadowMap) {
                 gl.shadowMap.needsUpdate = true;
+                gl.render(scene, camera);
             }
-
-            // Forcer un rendu pour appliquer les changements
-            gl.render(scene, camera);
         }
     });
 
     useEffect(() => {
+        // Sauvegarder les paramètres initiaux
+        const initialPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
+        };
+
+        const initialRotation = {
+            x: camera.rotation.x,
+            y: camera.rotation.y,
+            z: camera.rotation.z
+        };
+
         // Ajouter des contrôles de débogage si le mode débogage est actif
         if (debug?.active && debug?.showGui && gui && camera) {
             console.log("Configurant les contrôles de caméra de débogage", camera);
 
-            // Ajouter des dossiers de contrôle de caméra à l'interface existante
-            const cameraFolder = gui.addFolder(guiConfig.camera.folder);
-            folderRef.current = cameraFolder;
-
-            // Récupérer les paramètres de position sauvegardés
-            const savedPosition = {
-                x: getDebugConfigValue('camera.position.x.value',
-                    getDefaultValue('camera.position.x', camera.position.x)),
-                y: getDebugConfigValue('camera.position.y.value',
-                    getDefaultValue('camera.position.y', camera.position.y)),
-                z: getDebugConfigValue('camera.position.z.value',
-                    getDefaultValue('camera.position.z', camera.position.z))
-            };
-
-            // Appliquer la position sauvegardée
-            camera.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
-
-            // Récupérer les paramètres de rotation sauvegardés
-            const savedRotation = {
-                x: getDebugConfigValue('camera.rotation.x.value',
-                    getDefaultValue('camera.rotation.x', camera.rotation.x)),
-                y: getDebugConfigValue('camera.rotation.y.value',
-                    getDefaultValue('camera.rotation.y', camera.rotation.y)),
-                z: getDebugConfigValue('camera.rotation.z.value',
-                    getDefaultValue('camera.rotation.z', camera.rotation.z))
-            };
-
-            // Appliquer la rotation sauvegardée
-            camera.rotation.set(savedRotation.x, savedRotation.y, savedRotation.z);
-
             // Dossier des paramètres de rendu
-            const renderFolder = gui.addFolder('Render');
+            const renderFolder = gui.addFolder(guiConfig.renderer.folder);
 
-            // Contrôles pour le tone mapping
+            // Dossier pour le Tone Mapping
+            const toneFolder = renderFolder.addFolder('Tone Mapping');
+
+            // Dossier pour les Shadows
+            const shadowFolder = renderFolder.addFolder('Shadows');
+
+            // Contrôles pour le tone mapping et les ombres
             const renderSettings = {
                 toneMapping: renderSettingsRef.current.toneMapping,
                 toneMappingExposure: renderSettingsRef.current.toneMappingExposure,
+                shadowEnabled: renderSettingsRef.current.shadowMapEnabled,
                 shadowType: renderSettingsRef.current.shadowMapType,
                 shadowQuality: renderSettingsRef.current.shadowMapSize,
-                shadowEnabled: renderSettingsRef.current.shadowMapEnabled,
                 shadowBias: renderSettingsRef.current.shadowBias,
                 shadowNormalBias: renderSettingsRef.current.shadowNormalBias
             };
 
             // Contrôle de l'activation des ombres
-            const shadowEnabledControl = renderFolder.add(
+            const shadowEnabledControl = shadowFolder.add(
                 renderSettings,
                 'shadowEnabled'
-            ).name('Shadow Enabled');
+            ).name('Enable Shadows');
 
             shadowEnabledControl.onChange(value => {
                 renderSettingsRef.current.shadowMapEnabled = value;
-                updateDebugConfig('renderer.shadowMap.enabled.value', value);
+                saveRenderSettings();
             });
 
             // Contrôle du type de shadow mapping
-            const shadowTypeControl = renderFolder.add(
+            const shadowTypeControl = shadowFolder.add(
                 renderSettings,
                 'shadowType',
                 {
@@ -196,11 +205,11 @@ export default function Camera() {
 
             shadowTypeControl.onChange(value => {
                 renderSettingsRef.current.shadowMapType = Number(value);
-                updateDebugConfig('renderer.shadowMap.type.value', Number(value));
+                saveRenderSettings();
             });
 
             // Contrôle de la qualité des ombres
-            const shadowQualityControl = renderFolder.add(
+            const shadowQualityControl = shadowFolder.add(
                 renderSettings,
                 'shadowQuality',
                 {
@@ -216,11 +225,11 @@ export default function Camera() {
 
             shadowQualityControl.onChange(value => {
                 renderSettingsRef.current.shadowMapSize = Number(value);
-                updateDebugConfig('renderer.shadowMap.mapSize.value', Number(value));
+                saveRenderSettings();
             });
 
             // Contrôle du shadow bias
-            const shadowBiasControl = renderFolder.add(
+            const shadowBiasControl = shadowFolder.add(
                 renderSettings,
                 'shadowBias',
                 guiConfig.renderer.shadowMap.bias.min,
@@ -230,11 +239,11 @@ export default function Camera() {
 
             shadowBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowBias = value;
-                updateDebugConfig('renderer.shadowMap.bias.value', value);
+                saveRenderSettings();
             });
 
             // Contrôle du shadow normal bias
-            const shadowNormalBiasControl = renderFolder.add(
+            const shadowNormalBiasControl = shadowFolder.add(
                 renderSettings,
                 'shadowNormalBias',
                 guiConfig.renderer.shadowMap.normalBias.min,
@@ -244,11 +253,11 @@ export default function Camera() {
 
             shadowNormalBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowNormalBias = value;
-                updateDebugConfig('renderer.shadowMap.normalBias.value', value);
+                saveRenderSettings();
             });
 
             // Contrôle du tone mapping
-            const toneMappingControl = renderFolder.add(
+            const toneMappingControl = toneFolder.add(
                 renderSettings,
                 'toneMapping',
                 {
@@ -262,18 +271,11 @@ export default function Camera() {
 
             toneMappingControl.onChange(value => {
                 renderSettingsRef.current.toneMapping = Number(value);
-                gl.toneMapping = Number(value);
-                updateDebugConfig('camera.render.toneMapping.value', Number(value));
-                scene.traverse((object) => {
-                    if (object.isMesh && object.material) {
-                        object.material.needsUpdate = true;
-                    }
-                });
-                gl.render(scene, camera);
+                saveRenderSettings();
             });
 
             // Contrôle de l'exposition
-            const exposureControl = renderFolder.add(
+            const exposureControl = toneFolder.add(
                 renderSettings,
                 'toneMappingExposure',
                 guiConfig.camera.render.toneMappingExposure.min,
@@ -283,20 +285,14 @@ export default function Camera() {
 
             exposureControl.onChange(value => {
                 renderSettingsRef.current.toneMappingExposure = value;
-                gl.toneMappingExposure = value;
-                updateDebugConfig('camera.render.toneMappingExposure.value', value);
-                scene.traverse((object) => {
-                    if (object.isMesh && object.material) {
-                        object.material.needsUpdate = true;
-                    }
-                });
-                gl.render(scene, camera);
+                saveRenderSettings();
             });
 
             // Fermer les dossiers si configuré
             if (guiConfig.gui.closeFolders) {
                 renderFolder.close();
-                cameraFolder.close();
+                toneFolder.close();
+                shadowFolder.close();
             }
         }
 
@@ -307,7 +303,7 @@ export default function Camera() {
                 console.log('Nettoyage du dossier de caméra - référence effacée');
             }
         };
-    }, [camera, debug, gui, gl, scene, updateDebugConfig, getDebugConfigValue]);
+    }, [camera, debug, gui, gl, scene]);
 
     return null;
 }

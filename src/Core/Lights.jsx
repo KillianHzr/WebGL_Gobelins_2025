@@ -36,7 +36,7 @@ export const LightConfig = {
     },
     renderer: {
         toneMapping: {
-            type: THREE.CineonToneMapping,
+            type: THREE.LinearToneMapping,
             exposure: 1.5,
             options: guiConfig.camera.render.toneMapping.options
         },
