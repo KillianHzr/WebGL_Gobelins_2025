@@ -3,7 +3,7 @@ import {useThree, useFrame} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {getDefaultValue} from '../Utils/defaultValues';
-import {LightConfig, configureRenderer} from './Lights.jsx';
+import {LightConfig} from './Lights.jsx';
 import * as THREE from 'three';
 
 export default function Camera() {
@@ -24,7 +24,7 @@ export default function Camera() {
 
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
-        configureRenderer(gl);
+        // configureRenderer(gl);
 
         // Appliquer les paramètres sauvegardés
         gl.toneMapping = renderSettingsRef.current.toneMapping;

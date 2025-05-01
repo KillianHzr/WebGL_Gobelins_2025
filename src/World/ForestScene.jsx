@@ -4,7 +4,6 @@ import Forest from './Forest';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
 import WaterPlane from './WaterPlane';
-import {createSceneLights, configureRenderer} from '../Core/Lights.jsx'; // Modification ici
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
@@ -14,10 +13,8 @@ export default function ForestScene() {
 
     useEffect(() => {
         // Configurer le renderer
-        configureRenderer(gl);
+        // configureRenderer(gl);
 
-        // Créer les lumières de la scène
-        // const { ambientLight, mainLight } = createSceneLights(scene);
 
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {

@@ -51,6 +51,14 @@ const useStore = create((set, get) => ({
     debugConfig: null,
     setDebugConfig: (config) => set({debugConfig: config}),
 
+    // NOUVELLES PROPRIÉTÉS POUR LA TRANSITION JOUR/NUIT
+    timelinePosition: 0,
+    sequenceLength: 1,
+
+    // NOUVELLES ACTIONS POUR LA TRANSITION JOUR/NUIT
+    setTimelinePosition: (position) => set({ timelinePosition: position }),
+    setSequenceLength: (length) => set({ sequenceLength: length }),
+
     // Update specific part of debug config
     updateDebugConfig: (path, value) => {
         const config = {...get().debugConfig};

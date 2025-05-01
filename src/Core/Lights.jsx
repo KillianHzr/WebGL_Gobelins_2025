@@ -8,8 +8,6 @@ import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
 import * as THREE from 'three';
 
 // Configuration centralisée des lumières directement depuis Lights.jsx
-
-// Configuration centralisée et enrichie des lumières
 export const LightConfig = {
     modes: {
         day: {
@@ -25,6 +23,7 @@ export const LightConfig = {
         },
         night: {
             ambientIntensity: 0.1,
+            ambientColor: "#333366", // Couleur ambiante bleue pour la nuit
             mainLight: {
                 position: [171.443, 32.282, -81.040],
                 intensity: 20870.28 * 2,
@@ -68,88 +67,25 @@ export const LightConfig = {
     }
 };
 
-// Fonction pour créer et configurer les lumières de la scène
-export function createSceneLights(scene, isNightMode = false) {
-    // Nettoyer les lumières existantes
-    const existingLights = [];
-    scene.traverse((child) => {
-        if (child.isLight) existingLights.push(child);
-    });
-    existingLights.forEach(light => scene.remove(light));
-
-    const mode = isNightMode ? LightConfig.modes.night : LightConfig.modes.day;
-
-    // Configuration de la lumière ambiante
-    const ambientLight = new THREE.AmbientLight(
-        '#FFFFFF',
-        mode.ambientIntensity
-    );
-    scene.add(ambientLight);
-
-    // Configuration de la lumière principale (point light)
-    const mainLight = new THREE.PointLight(
-        mode.mainLight.color,
-        mode.mainLight.intensity
-    );
-    mainLight.position.set(...mode.mainLight.position);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = mode.mainLight.shadowMapSize;
-    mainLight.shadow.mapSize.height = mode.mainLight.shadowMapSize;
-    mainLight.shadow.bias = mode.mainLight.shadowBias;
-    mainLight.shadow.radius = 1;
-    scene.add(mainLight);
-
-    return { ambientLight, mainLight };
-}
-
-// Fonction pour configurer le renderer
-export function configureRenderer(renderer) {
-    renderer.toneMapping = LightConfig.renderer.toneMapping.type;
-    renderer.toneMappingExposure = LightConfig.renderer.toneMapping.exposure;
-    renderer.shadowMap.enabled = LightConfig.renderer.shadowMapping.enabled;
-    renderer.shadowMap.type = LightConfig.renderer.shadowMapping.type;
-
-    // AJOUT : Force la mise à jour du renderer
-    renderer.shadowMap.needsUpdate = true;
-}
-
-// Fonction pour créer une lumière directionnelle avec configuration détaillée
-export function createDirectionalLight(config = {}) {
-    const lightConfig = { ...LightConfig.defaults.directionalLight, ...config };
-
-    const light = new THREE.DirectionalLight(
-        lightConfig.color,
-        lightConfig.intensity
-    );
-
-    light.position.set(...lightConfig.position);
-    light.castShadow = lightConfig.castShadow;
-
-    // Configuration des ombres
-    light.shadow.mapSize.width = lightConfig.shadowConfig.mapSize;
-    light.shadow.mapSize.height = lightConfig.shadowConfig.mapSize;
-    light.shadow.bias = lightConfig.shadowConfig.bias;
-
-    // Configuration de la caméra d'ombre
-    const shadowCamera = light.shadow.camera;
-    Object.assign(shadowCamera, lightConfig.shadowConfig.camera);
-    shadowCamera.updateProjectionMatrix();
-
-    return light;
-}
-
 export default function Lights() {
     const {scene, gl, camera} = useThree();
     const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
     const folderRef = useRef(null);
     const debugLightValuesRef = useRef(null);
     const directionalLightRef = useRef();
+    const ambientLightRef = useRef();
     const lightHelperRef = useRef();
     const shadowCameraHelperRef = useRef();
     const guiInitializedRef = useRef(false);
-    const [isNightMode, setIsNightMode] = useState(false);
 
-    // Référence aux paramètres d'éclairage actuels - NOUVEAU
+    // Récupérer la position de défilement et la longueur totale depuis le store
+    const timelinePosition = useStore(state => state.timelinePosition);
+    const sequenceLength = useStore(state => state.sequenceLength);
+
+    // Calculer le facteur de transition (0 = jour, 1 = nuit)
+    const [transitionFactor, setTransitionFactor] = useState(0);
+
+    // Référence aux paramètres d'éclairage actuels - avec l'ajout du mode interpolé
     const lightSettingsRef = useRef({
         day: {
             position: [53.764, 31.716, -56.134],
@@ -161,42 +97,130 @@ export default function Lights() {
             intensity: 20870.28 * 2,
             color: "#B4B5FF"
         },
-        isNightMode: false,
-        needsUpdate: false,
-        // Paramètres pour les ombres, pour une cohérence avec renderSettingsRef dans Camera.jsx
-        shadowMapSize: Number( guiConfig.renderer.shadowMap.mapSize.default),
+        // Nouvel objet pour stocker les valeurs d'interpolation courantes
+        current: {
+            position: [53.764, 31.716, -56.134], // Valeur initiale en mode jour
+            intensity: 13000,                     // Valeur initiale en mode jour
+            color: "#FFEAC6",                     // Valeur initiale en mode jour
+            ambientIntensity: 0.2,                // Valeur initiale en mode jour
+            ambientColor: "#FFFFFF"               // Valeur initiale en mode jour
+        },
+        needsUpdate: true,
+        // Paramètres pour les ombres
+        shadowMapSize: Number(guiConfig.renderer.shadowMap.mapSize.default),
         shadowBias: Number(guiConfig.renderer.shadowMap.bias.default),
-        shadowNormalBias: Number( guiConfig.renderer.shadowMap.normalBias.default)
+        shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
+    // Mise à jour du facteur de transition en fonction de la position du scroll
+    useEffect(() => {
+        if (sequenceLength > 0) {
+            const startTransition = sequenceLength * 0.3;
+            const endTransition = sequenceLength * 0.7;
 
-    // Utilisation de useFrame pour appliquer les changements d'éclairage en temps réel - NOUVEAU
+            if (timelinePosition < startTransition) {
+                setTransitionFactor(0); // Jour complet
+            } else if (timelinePosition > endTransition) {
+                setTransitionFactor(1); // Nuit complète
+            } else {
+                // Interpolation linéaire entre jour et nuit
+                const normalizedPosition = (timelinePosition - startTransition) / (endTransition - startTransition);
+                setTransitionFactor(normalizedPosition);
+            }
+
+            // Forcer une mise à jour des lumières
+            lightSettingsRef.current.needsUpdate = true;
+        }
+    }, [timelinePosition, sequenceLength]);
+
+    // Mise à jour des valeurs d'éclairage en fonction du facteur de transition
+    useEffect(() => {
+        const dayConfig = LightConfig.modes.day;
+        const nightConfig = LightConfig.modes.night;
+
+        // Fonction pour interpoler linéairement entre deux valeurs
+        const lerp = (start, end, factor) => start + (end - start) * factor;
+
+        // Fonction pour interpoler entre deux couleurs
+        const lerpColor = (startColor, endColor, factor) => {
+            const startColor3 = new THREE.Color(startColor);
+            const endColor3 = new THREE.Color(endColor);
+            const resultColor = new THREE.Color();
+
+            resultColor.r = lerp(startColor3.r, endColor3.r, factor);
+            resultColor.g = lerp(startColor3.g, endColor3.g, factor);
+            resultColor.b = lerp(startColor3.b, endColor3.b, factor);
+
+            return '#' + resultColor.getHexString();
+        };
+
+        // Fonction pour interpoler entre deux positions
+        const lerpPosition = (startPos, endPos, factor) => {
+            return [
+                lerp(startPos[0], endPos[0], factor),
+                lerp(startPos[1], endPos[1], factor),
+                lerp(startPos[2], endPos[2], factor)
+            ];
+        };
+
+        // Mise à jour des valeurs interpolées
+        lightSettingsRef.current.current = {
+            position: lerpPosition(
+                dayConfig.mainLight.position,
+                nightConfig.mainLight.position,
+                transitionFactor
+            ),
+            intensity: lerp(
+                dayConfig.mainLight.intensity,
+                nightConfig.mainLight.intensity,
+                transitionFactor
+            ),
+            color: lerpColor(
+                dayConfig.mainLight.color,
+                nightConfig.mainLight.color,
+                transitionFactor
+            ),
+            ambientIntensity: lerp(
+                dayConfig.ambientIntensity,
+                nightConfig.ambientIntensity,
+                transitionFactor
+            ),
+            ambientColor: lerpColor(
+                dayConfig.ambientColor || "#FFFFFF",
+                nightConfig.ambientColor || "#333366",
+                transitionFactor
+            )
+        };
+
+        // Marquer que les lumières doivent être mises à jour
+        lightSettingsRef.current.needsUpdate = true;
+
+        console.log(`Transition jour/nuit: ${transitionFactor.toFixed(2)}`);
+
+    }, [transitionFactor]);
+
+    // useFrame pour appliquer les mises à jour d'éclairage en temps réel
     useFrame(() => {
         // Si des mises à jour sont nécessaires
         if (lightSettingsRef.current.needsUpdate) {
             lightSettingsRef.current.needsUpdate = false;
 
-            // Si la lumière directionnelle existe
+            // Appliquer les changements à la lumière directionnelle
             if (directionalLightRef.current) {
-                // Obtenir la configuration active selon le mode
-                const currentConfig = lightSettingsRef.current.isNightMode
-                    ? lightSettingsRef.current.night
-                    : lightSettingsRef.current.day;
+                const current = lightSettingsRef.current.current;
 
-                // Appliquer les changements à la lumière
-                directionalLightRef.current.intensity = currentConfig.intensity;
-                directionalLightRef.current.color.set(currentConfig.color);
+                // Mettre à jour l'intensité et la couleur
+                directionalLightRef.current.intensity = current.intensity;
+                directionalLightRef.current.color.set(current.color);
 
-                // Mettre à jour la position si nécessaire
-                if (Array.isArray(currentConfig.position) && currentConfig.position.length === 3) {
-                    directionalLightRef.current.position.set(
-                        currentConfig.position[0],
-                        currentConfig.position[1],
-                        currentConfig.position[2]
-                    );
-                }
+                // Mettre à jour la position
+                directionalLightRef.current.position.set(
+                    current.position[0],
+                    current.position[1],
+                    current.position[2]
+                );
 
-                // Mettre à jour les ombres si nécessaire
+                // Mettre à jour les ombres
                 if (directionalLightRef.current.shadow) {
                     if (directionalLightRef.current.shadow.mapSize) {
                         directionalLightRef.current.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
@@ -211,6 +235,12 @@ export default function Lights() {
                         directionalLightRef.current.shadow.map.dispose();
                         directionalLightRef.current.shadow.map = null;
                     }
+                }
+
+                // Mettre à jour la lumière ambiante si elle existe
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.intensity = current.ambientIntensity;
+                    ambientLightRef.current.color.set(current.ambientColor);
                 }
 
                 // Forcer le rendu de la scène pour voir les changements immédiatement
@@ -228,13 +258,9 @@ export default function Lights() {
         }
     });
 
-    // Configuration des données pour l'éclairage jour/nuit - MODIFIÉ pour utiliser lightSettingsRef
-    const dayLightConfig = lightSettingsRef.current.day;
-    const nightLightConfig = lightSettingsRef.current.night;
-
     // Ajouter la lumière directionnelle à la scène et ses helpers
     useEffect(() => {
-        // Créer la lumière directionnelle (soleil) depuis le haut à gauche
+        // Créer la lumière directionnelle (soleil)
         if (!directionalLightRef.current) {
             const directionalLight = scene.children.find(
                 (child) => child.isDirectionalLight && child.name === 'TopLeftLight'
@@ -244,14 +270,12 @@ export default function Lights() {
                 console.log("Adding directional light to the scene");
                 const newLight = new DirectionalLight('#FFE9C1', 7.5);
 
-                // Utiliser les valeurs du lightSettingsRef
-                const currentConfig = lightSettingsRef.current.isNightMode
-                    ? lightSettingsRef.current.night
-                    : lightSettingsRef.current.day;
+                // Utiliser les valeurs interpolées actuelles
+                const current = lightSettingsRef.current.current;
 
-                newLight.color.set(currentConfig.color);
-                newLight.intensity = currentConfig.intensity;
-                newLight.position.set(...currentConfig.position);
+                newLight.color.set(current.color);
+                newLight.intensity = current.intensity;
+                newLight.position.set(...current.position);
 
                 newLight.castShadow = true;
                 newLight.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
@@ -333,48 +357,7 @@ export default function Lights() {
         }
     }, [directionalLightRef.current?.position, directionalLightRef.current?.rotation]);
 
-    // Récupérer l'état du mode nuit sauvegardé lors de l'initialisation du composant
-    useEffect(() => {
-        const savedNightMode = getDebugConfigValue('lights.nightMode.value', false);
-        setIsNightMode(savedNightMode);
-
-        // Mettre à jour également la référence
-        lightSettingsRef.current.isNightMode = savedNightMode;
-        lightSettingsRef.current.needsUpdate = true;
-    }, [getDebugConfigValue]);
-
-    // Mettre à jour les valeurs de debug lorsque le mode jour/nuit change
-    useEffect(() => {
-        // Mettre à jour la référence aux paramètres d'éclairage
-        lightSettingsRef.current.isNightMode = isNightMode;
-        lightSettingsRef.current.needsUpdate = true;
-
-        if (debugLightValuesRef.current && debugLightValuesRef.current.controllers) {
-            const currentConfig = isNightMode ? nightLightConfig : dayLightConfig;
-
-            // Mettre à jour chaque contrôleur individuellement
-            debugLightValuesRef.current.controllers.forEach(controller => {
-                if (controller.property === 'activeMode') {
-                    controller.object.activeMode = isNightMode ? "Night" : "Day";
-                } else if (controller.property === 'posX') {
-                    controller.object.posX = currentConfig.position[0];
-                } else if (controller.property === 'posY') {
-                    controller.object.posY = currentConfig.position[1];
-                } else if (controller.property === 'posZ') {
-                    controller.object.posZ = currentConfig.position[2];
-                } else if (controller.property === 'intensity') {
-                    controller.object.intensity = currentConfig.intensity;
-                } else if (controller.property === 'color') {
-                    controller.object.color = currentConfig.color;
-                }
-
-                // Mettre à jour l'affichage du contrôleur
-                controller.updateDisplay();
-            });
-        }
-    }, [isNightMode]);
-
-    // Configuration du GUI de debug - IMPORTANT: n'initialiser qu'une seule fois
+    // Configuration du GUI de debug - Ajout du contrôle du facteur de transition
     useEffect(() => {
         // Add debug controls if debug mode is active and GUI exists and not already initialized
         if (debug?.active && debug?.showGui && gui && !guiInitializedRef.current) {
@@ -414,218 +397,55 @@ export default function Lights() {
                 }
             });
 
-            // Ajouter un contrôle pour basculer entre jour et nuit
-            const nightModeParams = {
-                nightMode: isNightMode
-            };
-
-            const nightModeControl = lightsFolder.add(nightModeParams, 'nightMode')
-                .name('Night Mode');
-
-            nightModeControl.onChange(value => {
-                setIsNightMode(value);
-                updateDebugConfig('lights.nightMode.value', value);
-
-                // Mettre à jour la référence pour appliquer les changements immédiatement
-                lightSettingsRef.current.isNightMode = value;
-                lightSettingsRef.current.needsUpdate = true;
-                // saveLightSettings();
-            });
-
             // Dossier pour afficher les valeurs actuelles
-            const currentValuesFolder = lightsFolder.addFolder('Active Light Values');
+            const currentValuesFolder = lightsFolder.addFolder('Day/Night Transition');
 
-            // Objet pour afficher les valeurs de lumière de jour et de nuit
-            const lightValues = {
-                activeMode: isNightMode ? "Night" : "Day",
-                posX: isNightMode ? nightLightConfig.position[0] : dayLightConfig.position[0],
-                posY: isNightMode ? nightLightConfig.position[1] : dayLightConfig.position[1],
-                posZ: isNightMode ? nightLightConfig.position[2] : dayLightConfig.position[2],
-                intensity: isNightMode ? nightLightConfig.intensity : dayLightConfig.intensity,
-                color: isNightMode ? nightLightConfig.color : dayLightConfig.color,
+            // Objet pour afficher les valeurs interpolées
+            const transitionValues = {
+                factor: transitionFactor
             };
 
-            // Ajouter les contrôles en lecture seule
-            currentValuesFolder.add(lightValues, 'activeMode').name('Active Mode').listen();
-            currentValuesFolder.add(lightValues, 'posX').name('Position X').listen();
-            currentValuesFolder.add(lightValues, 'posY').name('Position Y').listen();
-            currentValuesFolder.add(lightValues, 'posZ').name('Position Z').listen();
-            currentValuesFolder.add(lightValues, 'intensity').name('Intensity').listen();
-            currentValuesFolder.addColor(lightValues, 'color').name('Color').listen();
+            // Objets séparés pour chaque propriété à suivre
+            const posXObj = { posX: lightSettingsRef.current.current.position[0] };
+            const posYObj = { posY: lightSettingsRef.current.current.position[1] };
+            const posZObj = { posZ: lightSettingsRef.current.current.position[2] };
+            const intensityObj = { intensity: lightSettingsRef.current.current.intensity };
+            const colorObj = { color: lightSettingsRef.current.current.color };
+            const ambientIntensityObj = { ambientIntensity: lightSettingsRef.current.current.ambientIntensity };
+            const ambientColorObj = { ambientColor: lightSettingsRef.current.current.ambientColor };
 
-            debugLightValuesRef.current = currentValuesFolder;
+            // Ajouter les contrôles
+            currentValuesFolder.add(transitionValues, 'factor', 0, 1)
+                .name('Jour (0) → Nuit (1)')
+                .listen()
+                .onChange(value => {
+                    // Permettre de manipuler manuellement la transition en mode debug
+                    setTransitionFactor(value);
+                });
 
-            // Dossier pour modifier les valeurs de jour/nuit
-            const dayNightSettingsFolder = lightsFolder.addFolder('Day/Night Settings');
+            currentValuesFolder.add(posXObj, 'posX').name('Position X').listen();
+            currentValuesFolder.add(posYObj, 'posY').name('Position Y').listen();
+            currentValuesFolder.add(posZObj, 'posZ').name('Position Z').listen();
+            currentValuesFolder.add(intensityObj, 'intensity').name('Intensity').listen();
+            currentValuesFolder.addColor(colorObj, 'color').name('Color').listen();
+            currentValuesFolder.add(ambientIntensityObj, 'ambientIntensity').name('Ambient Intensity').listen();
+            currentValuesFolder.addColor(ambientColorObj, 'ambientColor').name('Ambient Color').listen();
 
-            // Paramètres pour la lumière de jour
-            const daySettingsFolder = dayNightSettingsFolder.addFolder('Day Light');
-
-            // Créer un objet avec les valeurs de la configuration jour
-            const daySettings = {
-                intensity: dayLightConfig.intensity,
-                color: dayLightConfig.color,
-                posX: dayLightConfig.position[0],
-                posY: dayLightConfig.position[1],
-                posZ: dayLightConfig.position[2]
+            debugLightValuesRef.current = {
+                folder: currentValuesFolder,
+                objects: {
+                    transitionValues,
+                    posXObj,
+                    posYObj,
+                    posZObj,
+                    intensityObj,
+                    colorObj,
+                    ambientIntensityObj,
+                    ambientColorObj
+                }
             };
-
-            // Ajouter les contrôleurs
-            // Modifier les contrôleurs pour le mode jour pour qu'ils mettent également à jour la lumière active
-            daySettingsFolder.add(daySettings, 'intensity', 0, 100000).name('Intensity').onChange(value => {
-                // Mettre à jour la configuration
-                lightSettingsRef.current.day.intensity = value;
-                lightSettingsRef.current.needsUpdate = true;
-
-                // Mettre à jour les valeurs d'affichage
-                if (!isNightMode) {
-                    lightValues.intensity = value;
-                }
-
-                // Mettre à jour la configuration de debug aussi
-                updateDebugConfig('lights.dayLight.intensity', value);
-            });
-
-            daySettingsFolder.addColor(daySettings, 'color').name('Color').onChange(value => {
-                // Mettre à jour la configuration
-                lightSettingsRef.current.day.color = value;
-                lightSettingsRef.current.needsUpdate = true;
-
-                // Mettre à jour les valeurs d'affichage
-                if (!isNightMode) {
-                    lightValues.color = value;
-                }
-
-                // Mettre à jour la configuration de debug aussi
-                updateDebugConfig('lights.dayLight.color', value);
-            });
-
-
-            // Paramètres pour la lumière de nuit
-            const nightSettingsFolder = dayNightSettingsFolder.addFolder('Night Light');
-
-            // Créer un objet avec les valeurs de la configuration nuit
-            const nightSettings = {
-                intensity: nightLightConfig.intensity,
-                color: nightLightConfig.color,
-                posX: nightLightConfig.position[0],
-                posY: nightLightConfig.position[1],
-                posZ: nightLightConfig.position[2]
-            };
-
-            // Ajouter les contrôleurs pour le mode nuit de la même façon
-            nightSettingsFolder.add(nightSettings, 'intensity', 0, 100000).name('Intensity').onChange(value => {
-                // Mettre à jour la configuration
-                lightSettingsRef.current.night.intensity = value;
-                lightSettingsRef.current.needsUpdate = true;
-
-                // Mettre à jour les valeurs d'affichage
-                if (isNightMode) {
-                    lightValues.intensity = value;
-                }
-
-                // Mettre à jour la configuration de debug aussi
-                updateDebugConfig('lights.nightLight.intensity', value);
-            });
-
-            nightSettingsFolder.addColor(nightSettings, 'color').name('Color').onChange(value => {
-                // Mettre à jour la configuration
-                lightSettingsRef.current.night.color = value;
-                lightSettingsRef.current.needsUpdate = true;
-
-                // Mettre à jour les valeurs d'affichage
-                if (isNightMode) {
-                    lightValues.color = value;
-                }
-
-                // Mettre à jour la configuration de debug aussi
-                updateDebugConfig('lights.nightLight.color', value);
-            });
-
-
-            // Pour le reste des éléments GUI courants, trouver les lumières dans la scène
-            const lights = [];
-            scene.traverse((object) => {
-                if (object.isLight) {
-                    lights.push(object);
-                }
-            });
-
-            console.log("Found lights:", lights);
-
-            // Create a subfolder for each light
-            const ambientLights = [];
-            scene.traverse((object) => {
-                if (object.isAmbientLight) {
-                    ambientLights.push(object);
-                }
-            });
-
-            console.log("Found ambient lights:", ambientLights);
-
-// Create a subfolder only for ambient lights
-            ambientLights.forEach((light, index) => {
-                const lightType = "Ambient"; // Force le type à "Ambient"
-                const lightFolder = lightsFolder.addFolder(`${lightType} ${index + 1}`);
-
-                // Le reste du code reste identique mais n'affiche que les contrôles pertinents pour les lumières ambiantes
-                if (guiConfig.gui.closeFolders) {
-                    lightFolder.close();
-                }
-
-                // Chemin de base pour les valeurs par défaut
-                const basePath = `lights.defaults.${lightType}.${index}`;
-
-                // Get saved light values or use defaults from config
-                const savedVisible = getDebugConfigValue(`lights.${lightType}.${index}.visible`,
-                    getDefaultValue(`${basePath}.visible`, light.visible));
-                const savedIntensity = getDebugConfigValue(`lights.${lightType}.${index}.intensity`,
-                    getDefaultValue(`${basePath}.intensity`, light.intensity));
-                const savedColor = getDebugConfigValue(`lights.${lightType}.${index}.color`,
-                    getDefaultValue(`${basePath}.color`, '#' + light.color.getHexString()));
-
-                // Apply saved values
-                light.visible = savedVisible;
-                light.intensity = savedIntensity;
-                light.color.set(savedColor);
-
-                // Common light properties
-                const visibleControl = lightFolder.add(light, 'visible')
-                    .name(guiConfig.lights.common.visible.name);
-
-                visibleControl.onChange(value => {
-                    updateDebugConfig(`lights.${lightType}.${index}.visible`, value);
-                    gl.render(scene, camera);
-                });
-
-                const intensityControl = lightFolder.add(
-                    light,
-                    'intensity',
-                    guiConfig.lights.common.intensity.min,
-                    guiConfig.lights.common.intensity.max,
-                    guiConfig.lights.common.intensity.step
-                ).name(guiConfig.lights.common.intensity.name);
-
-                intensityControl.onChange(value => {
-                    updateDebugConfig(`lights.${lightType}.${index}.intensity`, value);
-                    gl.render(scene, camera);
-                });
-
-                // Color control
-                const lightParams = {
-                    color: savedColor
-                };
-
-                const colorControl = lightFolder.addColor(lightParams, 'color')
-                    .name(guiConfig.lights.common.color.name);
-
-                colorControl.onChange(value => {
-                    light.color.set(value);
-                    updateDebugConfig(`lights.${lightType}.${index}.color`, value);
-                    gl.render(scene, camera);
-                });
-            });
         }
+
         return () => {
             if (folderRef.current && gui) {
                 folderRef.current = null;
@@ -634,80 +454,47 @@ export default function Lights() {
                 debugLightValuesRef.current = null;
             }
         };
-    }, [debug?.active, debug?.showGui, gui, scene, isNightMode, gl, camera]);
+    }, [debug?.active, debug?.showGui, gui, scene]);
 
-    // Mettre à jour l'état du contrôleur de mode nuit quand isNightMode change
+    // Effet séparé pour mettre à jour l'interface de debug
     useEffect(() => {
-        if (gui && folderRef.current) {
-            // Chercher le contrôleur nightMode dans les contrôleurs du dossier
-            const nightModeController = folderRef.current.controllers.find(
-                controller => controller.property === 'nightMode'
-            );
+        // Mettre à jour l'interface de debug quand le facteur de transition change
+        if (debugLightValuesRef.current && debugLightValuesRef.current.objects) {
+            const current = lightSettingsRef.current.current;
+            const objects = debugLightValuesRef.current.objects;
 
-            // Si on trouve le contrôleur et que sa valeur ne correspond pas à l'état actuel
-            if (nightModeController && nightModeController.object.nightMode !== isNightMode) {
-                // Mettre à jour l'objet du contrôleur silencieusement (sans déclencher onChange)
-                nightModeController.object.nightMode = isNightMode;
-                // Forcer la mise à jour de l'affichage du contrôleur
-                nightModeController.updateDisplay();
-            }
-
-            // Mettre à jour les valeurs actuelles dans le dossier d'affichage
-            if (debugLightValuesRef.current) {
-                const config = isNightMode ? nightLightConfig : dayLightConfig;
-                const controllers = debugLightValuesRef.current.controllers;
-
-                // Mettre à jour chaque contrôleur
-                controllers.forEach(controller => {
-                    if (controller.property === 'activeMode') {
-                        controller.object.activeMode = isNightMode ? "Night" : "Day";
-                    } else if (controller.property === 'posX') {
-                        controller.object.posX = config.position[0];
-                    } else if (controller.property === 'posY') {
-                        controller.object.posY = config.position[1];
-                    } else if (controller.property === 'posZ') {
-                        controller.object.posZ = config.position[2];
-                    } else if (controller.property === 'intensity') {
-                        controller.object.intensity = config.intensity;
-                    } else if (controller.property === 'color') {
-                        controller.object.color = config.color;
-                    }
-                    controller.updateDisplay();
-                });
-            }
+            // Mettre à jour chaque valeur
+            objects.transitionValues.factor = transitionFactor;
+            objects.posXObj.posX = current.position[0];
+            objects.posYObj.posY = current.position[1];
+            objects.posZObj.posZ = current.position[2];
+            objects.intensityObj.intensity = current.intensity;
+            objects.colorObj.color = current.color;
+            objects.ambientIntensityObj.ambientIntensity = current.ambientIntensity;
+            objects.ambientColorObj.ambientColor = current.ambientColor;
         }
-    }, [isNightMode, gui]);
+    }, [transitionFactor]);
 
     return (
         <>
-            <ambientLight intensity={isNightMode ? 0.1 : 0.2} /> {/* Lumière ambiante plus faible la nuit */}
+            {/* Lumière ambiante qui s'adapte au facteur jour/nuit */}
+            <ambientLight
+                ref={ambientLightRef}
+                intensity={lightSettingsRef.current.current.ambientIntensity}
+                color={lightSettingsRef.current.current.ambientColor}
+            />
 
-            {/* Lumière conditionnelle basée sur le mode jour/nuit */}
-            {!isNightMode ? (
-                // Lumière de jour
-                <pointLight
-                    ref={directionalLightRef}
-                    position={dayLightConfig.position}
-                    intensity={dayLightConfig.intensity}
-                    color={dayLightConfig.color}
-                    castShadow
-                    shadow-mapSize-width={2048}
-                    shadow-mapSize-height={2048}
-                    shadow-bias={-0.0005}
-                />
-            ) : (
-                // Lumière de nuit
-                <pointLight
-                    ref={directionalLightRef}
-                    position={nightLightConfig.position}
-                    intensity={nightLightConfig.intensity}
-                    color={nightLightConfig.color}
-                    castShadow
-                    shadow-mapSize-width={2048}
-                    shadow-mapSize-height={2048}
-                    shadow-bias={-0.0005}
-                />
-            )}
+            {/* Lumière directionnelle qui s'adapte au facteur jour/nuit */}
+            <pointLight
+                ref={directionalLightRef}
+                position={lightSettingsRef.current.current.position}
+                intensity={lightSettingsRef.current.current.intensity}
+                color={lightSettingsRef.current.current.color}
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-bias={-0.0005}
+            />
         </>
     );
 }
