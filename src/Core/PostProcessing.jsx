@@ -16,8 +16,8 @@ export default function PostProcessing() {
     const grainPassRef = useRef(null);
     const grainSettingsRef = useRef({
         enabled: true,
-        intensity: 0.01,
-        fps: 10
+        intensity: 0.005,
+        fps: 40
     });
 
     useEffect(() => {
