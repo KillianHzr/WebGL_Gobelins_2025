@@ -112,9 +112,9 @@ class TextureManager {
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch', {
-            roughness: 0.8,
+            roughness: 1.0,
             metalness: 0.0,
-            envMapIntensity: 0.4
+            envMapIntensity: 0.15
         });
 
         this.addPlantTexture('BranchEucalyptus', 'forest/branch', {
