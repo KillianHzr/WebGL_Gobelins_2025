@@ -22,30 +22,28 @@ export default function Camera() {
 
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
-        // configureRenderer(gl);
-
-        // Appliquer les paramètres sauvegardés
-        gl.toneMapping = renderSettingsRef.current.toneMapping;
-        gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
+        // Appliquer les valeurs par défaut indépendamment du mode debug
+        gl.toneMapping = guiConfig.camera.render.toneMapping.default;
+        gl.toneMappingExposure = guiConfig.camera.render.toneMappingExposure.default;
 
         if (gl.shadowMap) {
-            gl.shadowMap.enabled = renderSettingsRef.current.shadowMapEnabled;
-            gl.shadowMap.type = renderSettingsRef.current.shadowMapType;
+            gl.shadowMap.enabled = guiConfig.renderer.shadowMap.enabled.default;
+            gl.shadowMap.type = guiConfig.renderer.shadowMap.type.default;
         }
 
         // Mettre à jour les lumières avec les paramètres des ombres
         scene.traverse((object) => {
             if (object.isLight && object.shadow) {
                 try {
-                    object.shadow.type = renderSettingsRef.current.shadowMapType;
+                    object.shadow.type = guiConfig.renderer.shadowMap.type.default;
 
                     if (object.shadow.mapSize) {
-                        object.shadow.mapSize.width = renderSettingsRef.current.shadowMapSize;
-                        object.shadow.mapSize.height = renderSettingsRef.current.shadowMapSize;
+                        object.shadow.mapSize.width = guiConfig.renderer.shadowMap.mapSize.default;
+                        object.shadow.mapSize.height = guiConfig.renderer.shadowMap.mapSize.default;
                     }
 
-                    object.shadow.bias = renderSettingsRef.current.shadowBias;
-                    object.shadow.normalBias = renderSettingsRef.current.shadowNormalBias;
+                    object.shadow.bias = guiConfig.renderer.shadowMap.bias.default;
+                    object.shadow.normalBias = guiConfig.renderer.shadowMap.normalBias.default;
                     object.shadow.needsUpdate = true;
                 } catch (error) {
                     console.error('Erreur lors de la configuration initiale des ombres:', error);

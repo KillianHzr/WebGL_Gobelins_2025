@@ -452,7 +452,7 @@ export default function Forest() {
         // OPTIMISATION: Au lieu de créer un nouveau matériau chaque fois,
         // utiliser le gestionnaire de textures optimisé pour obtenir un matériau réutilisable
         const material = textureManager.getMaterial(objectId, {
-            aoIntensity: 0.7,
+            aoIntensity: 0.0,
             alphaTest: 1.0
         });
 

@@ -18,20 +18,35 @@ import AudioManagerComponent from './Utils/AudioManager';
 import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects from './World/SceneObjects';
+import guiConfig from "./Config/guiConfig.js";
 
-// Activer ou désactiver les logs pour le débogage
-const DEBUG_EXPERIENCE = false;
+
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
-    if (DEBUG_EXPERIENCE) console.log(`[Experience] ${message}`, ...args);
+    console.log(`[Experience] ${message}`, ...args);
 };
 
 export default function Experience() {
     const {loaded, debug, setCamera, setCameraInitialZoom} = useStore()
-    const {scene, camera} = useThree()
+    const {scene, camera, gl} = useThree()  // Récupérer gl à partir de useThree
     const eventListenersRef = useRef([]);
     const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        if (!gl) return;
+
+        // Appliquer les mêmes paramètres que ceux utilisés en mode debug
+        const debugConfig = guiConfig.renderer;
+
+        gl.shadowMap.enabled = debugConfig.shadowMap.enabled.default;
+        gl.shadowMap.type = debugConfig.shadowMap.type.default;
+        gl.toneMapping = debugConfig.toneMapping.default;
+        gl.toneMappingExposure = debugConfig.toneMappingExposure.default;
+
+        debugLog('Renderer initialized with consistent settings');
+    }, [gl]);
+
 
     // Gestion optimisée des événements des marqueurs
     useEffect(() => {
@@ -121,29 +136,9 @@ export default function Experience() {
             }
 
             // Parcourir la scène une seule fois pour initialiser les lumières
-            scene.traverse((object) => {
-                if (object.isLight) {
-                    const lightType = object.type.replace('Light', '');
 
-                    // Trouver l'index de cette lumière parmi les autres du même type
-                    let index = 0;
-                    let foundLights = 0;
-
-                    // Utiliser une approche plus efficace pour trouver l'index
-                    const lights = [];
-                    scene.traverse((obj) => {
-                        if (obj.isLight && obj.type === object.type) {
-                            lights.push(obj);
-                        }
-                    });
-
-                    index = lights.indexOf(object);
-
-                    // Initialiser avec les valeurs par défaut
-                    initializeLight(object, lightType, index);
-                }
-            });
         }
+
 
         // Nettoyage lors du démontage
         return () => {
@@ -171,13 +166,12 @@ export default function Experience() {
             <AudioManagerComponent/>
 
             <Stats/>
-            {debug?.active && debug?.showGui && <Debug/>}
-            {debug?.active && debug?.showGui && <Camera/>}
-            {debug?.active && debug?.showGui && <Controls/>}
+            <Debug/>
+            <Camera/>
+            <Controls/>
             <Lights/>
-            {debug?.active && debug?.showGui && <MaterialControls/>}
+            <MaterialControls/>
             <PostProcessing/>
-
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
