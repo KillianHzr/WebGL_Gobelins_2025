@@ -231,12 +231,23 @@ class TextureManager {
             envMapIntensity: 0.5
         });
 
-        // Sol
         this.addTextureMapping('Ground', 'ground', 'ForestGrass', {
             roughness: 1.0,
             metalness: 0.0,
             envMapIntensity: 0.0
         });
+        // Sol
+        this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
+            roughness: 1.0,
+            metalness: 0.0,
+            envMapIntensity: 0.0
+        });
+        // this.addTextureForModel('Ground', 'alpha', '/textures/ground/ForestRoad_Alpha.png');
+        // this.addTextureForModel('Ground', 'alpha', '/textures/ground/ForestRoad_Diff_road.png');
+        // this.addTextureForModel('Ground', 'alpha', '/textures/ground/ForestRoad_Diff_grass.png');
+        // this.addTextureForModel('Ground', 'opacity', '/textures/ground/ForestRoad_Alpha.png');
+        // this.addTextureForModel('Ground', 'opacity', '/textures/ground/ForestRoad_Diff_road.png');
+        // this.addTextureForModel('Ground', 'opacity', '/textures/ground/ForestRoad_Diff_grass.png');
 
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
