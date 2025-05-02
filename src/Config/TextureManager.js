@@ -109,6 +109,11 @@ class TextureManager {
             metalness: 0.0,
             envMapIntensity: 0.4
         });
+        this.addPlantTexture('TreeRoof', 'forest/tree', {
+            roughness: 1.0,
+            metalness: 0.0,
+            envMapIntensity: 0.15
+        });
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch', {
@@ -183,6 +188,11 @@ class TextureManager {
             roughness: 0.8,
             metalness: 0.3,
             envMapIntensity: 0.5
+        });
+        this.addPlantTexture('Grass', 'forest/plant', {
+            roughness: 0.8,
+                metalness: 0.3,
+                envMapIntensity: 0.5
         });
 
         // Fleurs

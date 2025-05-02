@@ -135,6 +135,18 @@ class TemplateManager {
                 priority: 20,
                 useTextures: true
             },
+            'TreeRoof': {
+                id: 'TreeRoof',
+                path: '/models/forest/tree/TreeRoof.glb',
+                priority: 21,
+                useTextures: true
+            },
+            'Grass_1': {
+                id: 'Grass',
+                path: '/models/forest/plant/Grass.glb',
+                priority: 22,
+                useTextures: true
+            },
 
 
             // Exemple d'ajout d'un nouveau template :
