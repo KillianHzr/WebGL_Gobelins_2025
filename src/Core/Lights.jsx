@@ -245,63 +245,63 @@ export default function Lights() {
     }, [transitionFactor, nightMode]);
 
     // useFrame pour appliquer les mises à jour d'éclairage en temps réel
-    useFrame(() => {
-        // Si des mises à jour sont nécessaires
-        if (lightSettingsRef.current.needsUpdate) {
-            lightSettingsRef.current.needsUpdate = false;
-
-            // Appliquer les changements à la lumière directionnelle
-            if (directionalLightRef.current) {
-                const current = lightSettingsRef.current.current;
-
-                // Mettre à jour l'intensité et la couleur
-                directionalLightRef.current.intensity = current.intensity;
-                directionalLightRef.current.color.set(current.color);
-
-                // Mettre à jour la position
-                directionalLightRef.current.position.set(
-                    current.position[0],
-                    current.position[1],
-                    current.position[2]
-                );
-
-                // Mettre à jour les ombres
-                if (directionalLightRef.current.shadow) {
-                    if (directionalLightRef.current.shadow.mapSize) {
-                        directionalLightRef.current.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
-                        directionalLightRef.current.shadow.mapSize.height = lightSettingsRef.current.shadowMapSize;
-                    }
-
-                    directionalLightRef.current.shadow.bias = lightSettingsRef.current.shadowBias;
-                    directionalLightRef.current.shadow.normalBias = lightSettingsRef.current.shadowNormalBias;
-                    directionalLightRef.current.shadow.needsUpdate = true;
-
-                    if (directionalLightRef.current.shadow.map) {
-                        directionalLightRef.current.shadow.map.dispose();
-                        directionalLightRef.current.shadow.map = null;
-                    }
-                }
-
-                // Mettre à jour la lumière ambiante si elle existe
-                if (ambientLightRef.current) {
-                    ambientLightRef.current.intensity = current.ambientIntensity;
-                    ambientLightRef.current.color.set(current.ambientColor);
-                }
-
-                // Forcer le rendu de la scène pour voir les changements immédiatement
-                gl.render(scene, camera);
-
-                // Mettre à jour les helpers si nécessaire
-                if (lightHelperRef.current) {
-                    lightHelperRef.current.update();
-                }
-
-                if (shadowCameraHelperRef.current) {
-                    shadowCameraHelperRef.current.update();
-                }
-            }
-        }
-    });
+    // useFrame(() => {
+    //     // Si des mises à jour sont nécessaires
+    //     if (lightSettingsRef.current.needsUpdate) {
+    //         lightSettingsRef.current.needsUpdate = false;
+    //
+    //         // Appliquer les changements à la lumière directionnelle
+    //         if (directionalLightRef.current) {
+    //             const current = lightSettingsRef.current.current;
+    //
+    //             // Mettre à jour l'intensité et la couleur
+    //             directionalLightRef.current.intensity = current.intensity;
+    //             directionalLightRef.current.color.set(current.color);
+    //
+    //             // Mettre à jour la position
+    //             directionalLightRef.current.position.set(
+    //                 current.position[0],
+    //                 current.position[1],
+    //                 current.position[2]
+    //             );
+    //
+    //             // Mettre à jour les ombres
+    //             if (directionalLightRef.current.shadow) {
+    //                 if (directionalLightRef.current.shadow.mapSize) {
+    //                     directionalLightRef.current.shadow.mapSize.width = lightSettingsRef.current.shadowMapSize;
+    //                     directionalLightRef.current.shadow.mapSize.height = lightSettingsRef.current.shadowMapSize;
+    //                 }
+    //
+    //                 directionalLightRef.current.shadow.bias = lightSettingsRef.current.shadowBias;
+    //                 directionalLightRef.current.shadow.normalBias = lightSettingsRef.current.shadowNormalBias;
+    //                 directionalLightRef.current.shadow.needsUpdate = true;
+    //
+    //                 if (directionalLightRef.current.shadow.map) {
+    //                     directionalLightRef.current.shadow.map.dispose();
+    //                     directionalLightRef.current.shadow.map = null;
+    //                 }
+    //             }
+    //
+    //             // Mettre à jour la lumière ambiante si elle existe
+    //             if (ambientLightRef.current) {
+    //                 ambientLightRef.current.intensity = current.ambientIntensity;
+    //                 ambientLightRef.current.color.set(current.ambientColor);
+    //             }
+    //
+    //             // Forcer le rendu de la scène pour voir les changements immédiatement
+    //             gl.render(scene, camera);
+    //
+    //             // Mettre à jour les helpers si nécessaire
+    //             if (lightHelperRef.current) {
+    //                 lightHelperRef.current.update();
+    //             }
+    //
+    //             if (shadowCameraHelperRef.current) {
+    //                 shadowCameraHelperRef.current.update();
+    //             }
+    //         }
+    //     }
+    // });
 
     // Effets et setup du directional light et des helpers (inchangés)...
 

@@ -307,14 +307,14 @@ const guiConfig = {
                 min: -0.1,
                 max: 0.1,
                 step: 0.0001,
-                default: 0
+                default: 0.0025
             },
             normalBias: {
                 name: "Normal Bias",
                 min: -1.0,
                 max: 1.0,
                 step: 0.001,
-                default: 0.1
+                default: 0.0812
             }
         },
         toneMapping: {

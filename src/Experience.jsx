@@ -170,7 +170,7 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
 
-            {debug?.active && debug?.showStats && <Stats/>}
+            <Stats/>
             {debug?.active && debug?.showGui && <Debug/>}
             {debug?.active && debug?.showGui && <Camera/>}
             {debug?.active && debug?.showGui && <Controls/>}

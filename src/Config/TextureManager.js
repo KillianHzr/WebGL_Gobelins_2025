@@ -99,27 +99,27 @@ class TextureManager {
         });
 
         this.addTextureMapping('TreeStump', 'forest/tree', null, {
-            roughness: 0.8,
-            metalness: 0.0,
-            envMapIntensity: 0.4
+            roughness: 0.81,
+            metalness: 0.7,
+            envMapIntensity: 0.08
         });
 
         this.addTextureMapping('TreeRoots', 'forest/tree', null, {
-            roughness: 0.8,
-            metalness: 0.0,
-            envMapIntensity: 0.4
+            roughness: 0.81,
+            metalness: 0.7,
+            envMapIntensity: 0.08
         });
         this.addPlantTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0,
             metalness: 0.0,
-            envMapIntensity: 0.15
+            envMapIntensity: 0.05
         });
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch', {
             roughness: 1.0,
             metalness: 0.0,
-            envMapIntensity: 0.15
+            envMapIntensity: 0.015
         });
 
         this.addPlantTexture('BranchEucalyptus', 'forest/branch', {
@@ -131,7 +131,7 @@ class TextureManager {
         this.addPlantTexture('BranchFig', 'forest/branch', {
             roughness: 1.0,
             metalness: 0.75,
-            envMapIntensity: 0.21
+            envMapIntensity: 0.021
         });
 
         // Buissons
@@ -144,74 +144,74 @@ class TextureManager {
         this.addPlantTexture('BushBlueberry', 'forest/bush', {
             roughness: 1.0,
             metalness: 0.07,
-            envMapIntensity: 0.29
+            envMapIntensity: 0.029
         });
 
         this.addPlantTexture('BushRaspberry', 'forest/bush', {
             roughness: 1.0,
             metalness: 0.69,
-            envMapIntensity: 0.56
+            envMapIntensity: 0.056
         });
 
         this.addPlantTexture('BushStrawberry', 'forest/bush', {
             roughness: 1.0,
             metalness: 0.77,
-            envMapIntensity: 0.46
+            envMapIntensity: 0.046
         });
 
         this.addPlantTexture('BushTrunk', 'forest/bush', {
             roughness: 1.0,
             metalness: 0.75,
-            envMapIntensity: 0.58
+            envMapIntensity: 0.24
         });
 
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant', {
             roughness: 0.9,
             metalness: 0.1,
-            envMapIntensity: 0.5
+            envMapIntensity: 0.05
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
             roughness: 0.9,
             metalness: 0.2,
-            envMapIntensity: 0.4
+            envMapIntensity: 0.04
         });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
             roughness: 0.85,
             metalness: 0.15,
-            envMapIntensity: 0.45
+            envMapIntensity: 0.045
         });
 
         this.addPlantTexture('PlantClematis', 'forest/plant', {
             roughness: 0.8,
             metalness: 0.3,
-            envMapIntensity: 0.5
+            envMapIntensity: 0.05
         });
         this.addPlantTexture('Grass', 'forest/plant', {
-            roughness: 0.8,
-                metalness: 0.3,
-                envMapIntensity: 0.5
+            roughness: 0.1,
+                metalness: 0.0,
+                envMapIntensity: 0.05
         });
 
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
             roughness: 0.7,
             metalness: 0.2,
-            envMapIntensity: 0.6
+            envMapIntensity: 0.06
         });
 
         this.addPlantTexture('FlowerClover', 'forest/flower', {
             roughness: 0.8,
             metalness: 0.15,
-            envMapIntensity: 0.5
+            envMapIntensity: 0.05
         });
 
         this.addPlantTexture('FlowerChicory', 'forest/flower', {
             roughness: 0.75,
             metalness: 0.25,
-            envMapIntensity: 0.55
+            envMapIntensity: 0.055
         });
 
         // Champignons

@@ -1,9 +1,7 @@
 import {useEffect, useRef} from 'react';
-import {useThree, useFrame} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import {getDefaultValue} from '../Utils/defaultValues';
-import {LightConfig} from './Lights.jsx';
 import * as THREE from 'three';
 
 export default function Camera() {
@@ -13,9 +11,9 @@ export default function Camera() {
 
     // Initialiser renderSettingsRef avec des valeurs persistantes
     const renderSettingsRef = useRef({
-        toneMapping: Number( guiConfig.camera.render.toneMapping.default),
-        toneMappingExposure: Number( guiConfig.camera.render.toneMappingExposure.default),
-        shadowMapType: Number( guiConfig.renderer.shadowMap.type.default),
+        toneMapping: Number(guiConfig.camera.render.toneMapping.default),
+        toneMappingExposure: Number(guiConfig.camera.render.toneMappingExposure.default),
+        shadowMapType: Number(guiConfig.renderer.shadowMap.type.default),
         shadowMapEnabled: guiConfig.renderer.shadowMap.enabled.default,
         shadowMapSize: Number(guiConfig.renderer.shadowMap.mapSize.default),
         shadowBias: Number(guiConfig.renderer.shadowMap.bias.default),
@@ -55,83 +53,88 @@ export default function Camera() {
             }
         });
 
+        if (camera.far !== guiConfig.camera.settings.far.default) {
+            camera.far = guiConfig.camera.settings.far.default;
+            camera.updateProjectionMatrix();
+        }
+
     }, [gl, scene]);
 
     // S'exécute à chaque frame pour s'assurer que les paramètres de rendu sont appliqués
-    useFrame(() => {
-        // Vérifier et mettre à jour le tone mapping
-        if (renderSettingsRef.current.toneMapping !== undefined &&
-            gl.toneMapping !== renderSettingsRef.current.toneMapping) {
-            gl.toneMapping = renderSettingsRef.current.toneMapping;
-            scene.traverse((object) => {
-                if (object.isMesh && object.material) {
-                    object.material.needsUpdate = true;
-                }
-            });
-            gl.render(scene, camera);
-        }
-
-        if (renderSettingsRef.current.toneMappingExposure !== undefined &&
-            gl.toneMappingExposure !== renderSettingsRef.current.toneMappingExposure) {
-            gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
-            scene.traverse((object) => {
-                if (object.isMesh && object.material) {
-                    object.material.needsUpdate = true;
-                }
-            });
-            gl.render(scene, camera);
-        }
-
-        // Vérifier et mettre à jour les paramètres des ombres
-        if (gl.shadowMap) {
-            const currentShadowConfig = {
-                enabled: gl.shadowMap.enabled,
-                type: gl.shadowMap.type,
-                mapSize: gl.shadowMap.size?.width || 1024,
-                bias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.bias || 0,
-                normalBias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.normalBias || 0
-            };
-
-            const targetShadowConfig = renderSettingsRef.current;
-
-            if (currentShadowConfig.enabled !== targetShadowConfig.shadowMapEnabled ||
-                currentShadowConfig.type !== targetShadowConfig.shadowMapType ||
-                currentShadowConfig.mapSize !== targetShadowConfig.shadowMapSize ||
-                currentShadowConfig.bias !== targetShadowConfig.shadowBias ||
-                currentShadowConfig.normalBias !== targetShadowConfig.shadowNormalBias) {
-
-                gl.shadowMap.enabled = targetShadowConfig.shadowMapEnabled;
-                gl.shadowMap.type = targetShadowConfig.shadowMapType;
-
-                scene.traverse((object) => {
-                    if (object.isLight && object.shadow) {
-                        try {
-                            object.shadow.type = targetShadowConfig.shadowMapType;
-
-                            if (object.shadow.mapSize) {
-                                object.shadow.mapSize.width = targetShadowConfig.shadowMapSize;
-                                object.shadow.mapSize.height = targetShadowConfig.shadowMapSize;
-                            }
-
-                            object.shadow.bias = targetShadowConfig.shadowBias;
-                            object.shadow.normalBias = targetShadowConfig.shadowNormalBias;
-                            object.shadow.needsUpdate = true;
-
-                            if (object.shadow.map) {
-                                object.shadow.map.dispose();
-                                object.shadow.map = null;
-                            }
-                        } catch (error) {
-                            console.error('Erreur lors de la mise à jour des ombres:', error);
-                        }
-                    }
-                });
-
-                gl.shadowMap.needsUpdate = true;
-                gl.render(scene, camera);
-            }
-        }
-    });
+    // useFrame(() => {
+    //     // Vérifier et mettre à jour le tone mapping
+    //     if (renderSettingsRef.current.toneMapping !== undefined &&
+    //         gl.toneMapping !== renderSettingsRef.current.toneMapping) {
+    //         gl.toneMapping = renderSettingsRef.current.toneMapping;
+    //         scene.traverse((object) => {
+    //             if (object.isMesh && object.material) {
+    //                 object.material.needsUpdate = true;
+    //             }
+    //         });
+    //         gl.render(scene, camera);
+    //     }
+    //
+    //     if (renderSettingsRef.current.toneMappingExposure !== undefined &&
+    //         gl.toneMappingExposure !== renderSettingsRef.current.toneMappingExposure) {
+    //         gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
+    //         scene.traverse((object) => {
+    //             if (object.isMesh && object.material) {
+    //                 object.material.needsUpdate = true;
+    //             }
+    //         });
+    //         gl.render(scene, camera);
+    //     }
+    //
+    //     // Vérifier et mettre à jour les paramètres des ombres
+    //     if (gl.shadowMap) {
+    //         const currentShadowConfig = {
+    //             enabled: gl.shadowMap.enabled,
+    //             type: gl.shadowMap.type,
+    //             mapSize: gl.shadowMap.size?.width || 1024,
+    //             bias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.bias || 0,
+    //             normalBias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.normalBias || 0
+    //         };
+    //
+    //         const targetShadowConfig = renderSettingsRef.current;
+    //
+    //         if (currentShadowConfig.enabled !== targetShadowConfig.shadowMapEnabled ||
+    //             currentShadowConfig.type !== targetShadowConfig.shadowMapType ||
+    //             currentShadowConfig.mapSize !== targetShadowConfig.shadowMapSize ||
+    //             currentShadowConfig.bias !== targetShadowConfig.shadowBias ||
+    //             currentShadowConfig.normalBias !== targetShadowConfig.shadowNormalBias) {
+    //
+    //             gl.shadowMap.enabled = targetShadowConfig.shadowMapEnabled;
+    //             gl.shadowMap.type = targetShadowConfig.shadowMapType;
+    //
+    //             scene.traverse((object) => {
+    //                 if (object.isLight && object.shadow) {
+    //                     try {
+    //                         object.shadow.type = targetShadowConfig.shadowMapType;
+    //
+    //                         if (object.shadow.mapSize) {
+    //                             object.shadow.mapSize.width = targetShadowConfig.shadowMapSize;
+    //                             object.shadow.mapSize.height = targetShadowConfig.shadowMapSize;
+    //                         }
+    //
+    //                         object.shadow.bias = targetShadowConfig.shadowBias;
+    //                         object.shadow.normalBias = targetShadowConfig.shadowNormalBias;
+    //                         object.shadow.needsUpdate = true;
+    //
+    //                         if (object.shadow.map) {
+    //                             object.shadow.map.dispose();
+    //                             object.shadow.map = null;
+    //                         }
+    //                     } catch (error) {
+    //                         console.error('Erreur lors de la mise à jour des ombres:', error);
+    //                     }
+    //                 }
+    //             });
+    //
+    //             gl.shadowMap.needsUpdate = true;
+    //             gl.render(scene, camera);
+    //         }
+    //     }
+    // });
 
     useEffect(() => {
         // Sauvegarder les paramètres initiaux
