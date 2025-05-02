@@ -14,13 +14,11 @@ export default function PostProcessing() {
     const grainPassRef = useRef(null);
     const grainSettingsRef = useRef({
         enabled: true,
-        intensity: 0.01,
-        fps: 10
+        intensity: 0.005,
+        fps: 40
     });
 
     useEffect(() => {
-        // Ne pas initialiser si le mode debug n'est pas actif
-        // if (!debug?.active || !debug?.showGui) return;
         gl.autoClear = false;
 
         // Créer le compositeur
@@ -42,6 +40,10 @@ export default function PostProcessing() {
                 x: window.innerWidth * window.devicePixelRatio,
                 y: window.innerHeight * window.devicePixelRatio
             };
+
+            // Synchroniser les paramètres de tone mapping avec le renderer
+            grainPass.uniforms.toneMappingType.value = gl.toneMapping;
+            grainPass.uniforms.toneMappingExp.value = gl.toneMappingExposure;
 
             // S'assurer que le grain est le dernier pass
             grainPass.renderToScreen = true;
@@ -93,11 +95,22 @@ export default function PostProcessing() {
         };
     }, [debug, scene, camera, gl, gui, grainSettingsRef.current.enabled]);
 
-    // Mettre à jour le temps du shader
+    // Mettre à jour le temps du shader et les paramètres de tone mapping
     useEffect(() => {
         const animate = () => {
             if (composerRef.current && grainPassRef.current) {
+                // Mettre à jour le temps pour l'animation du grain
                 grainPassRef.current.uniforms.time.value = performance.now() / 1000;
+
+                // Synchroniser le tone mapping avec le renderer à chaque frame
+                if (grainPassRef.current.uniforms.toneMappingType) {
+                    grainPassRef.current.uniforms.toneMappingType.value = gl.toneMapping;
+                }
+
+                if (grainPassRef.current.uniforms.toneMappingExp) {
+                    grainPassRef.current.uniforms.toneMappingExp.value = gl.toneMappingExposure;
+                }
+
                 composerRef.current.render();
             }
         };
@@ -115,7 +128,7 @@ export default function PostProcessing() {
                 cancelAnimationFrame(animationFrameId);
             }
         };
-    }, [debug, grainSettingsRef.current.enabled]);
+    }, [debug, gl, grainSettingsRef.current.enabled]);
 
     return null;
 }

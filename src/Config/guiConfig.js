@@ -434,12 +434,12 @@ const guiConfig = {
         },
         dayLight: {
             position: [53.764, 31.716, -56.134],
-            intensity: 54351.413065,
-            color: "#FFEAC6"
+            intensity: 13000,
+            color: "#9A8579"
         },
         nightLight: {
             position: [171.443, 32.282, -81.040],
-            intensity: 20870.28,
+            intensity: 41740,
             color: "#B4B5FF"
         },
         common: {

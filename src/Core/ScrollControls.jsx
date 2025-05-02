@@ -6,6 +6,7 @@ import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
 
+
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.0001;
@@ -48,6 +49,10 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
+    // NOUVEAU: Ajouter des états pour partager la position de la timeline et la longueur de la séquence
+    const setTimelinePosition = useStore(state => state.setTimelinePosition) || (pos => {});
+    const setSequenceLength = useStore(state => state.setSequenceLength) || (length => {});
+
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
@@ -81,6 +86,15 @@ function CameraController({children}) {
         setInteractions(interactionPoints);
         console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
+
+    // Au chargement initial, mettre à jour la longueur de la séquence dans le store
+    useEffect(() => {
+        sequenceLengthRef.current = val(sheet.sequence.pointer.length);
+        // NOUVEAU: Partager la longueur de la séquence avec le store
+        if (typeof setSequenceLength === 'function') {
+            setSequenceLength(sequenceLengthRef.current);
+        }
+    }, [sheet, setSequenceLength]);
 
     useEffect(() => {
         // Ajouter le contrôle de la caméra via Theatre.js
@@ -513,6 +527,11 @@ function CameraController({children}) {
             timelinePositionRef.current += scrollVelocity.current;
             timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
             sheet.sequence.position = timelinePositionRef.current;
+
+            // NOUVEAU: Partager la position de la timeline avec le store
+            if (typeof setTimelinePosition === 'function') {
+                setTimelinePosition(timelinePositionRef.current);
+            }
 
             scrollVelocity.current *= DECELERATION;
         }
