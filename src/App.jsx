@@ -1,21 +1,37 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
 import Experience from './Experience'
 import useStore from './Store/useStore'
 import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
+import ResponsiveLanding from './Utils/ResponsiveLanding'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
     const assetManagerRef = useRef(null)
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
+    const [isDesktopView, setIsDesktopView] = useState(false)
 
-    // Handle asset loading
+    // Check viewport width on mount and resize
     useEffect(() => {
+        const checkViewport = () => {
+            setIsDesktopView(window.innerWidth >= 992);
+        };
+
+        checkViewport();
+
+        window.addEventListener('resize', checkViewport);
+
+        return () => window.removeEventListener('resize', checkViewport);
+    }, []);
+
+    // Only initialize asset manager when in desktop view
+    useEffect(() => {
+        if (!isDesktopView) return;
+
         // Créer une référence globale à l'AssetManager
         if (assetManagerRef.current && !isAssetManagerInitialized) {
             window.assetManager = assetManagerRef.current;
@@ -36,7 +52,7 @@ export default function App() {
         return () => {
             forestSceneReadyUnsubscribe();
         };
-    }, [isAssetManagerInitialized, setLoaded]); // Dépendances stables
+    }, [isAssetManagerInitialized, setLoaded, isDesktopView]);
 
     const onAssetsReady = () => {
         // Callback passé au AssetManager
@@ -46,6 +62,10 @@ export default function App() {
         console.log("Assets ready callback triggered");
         setAssetsLoaded(true);
     };
+
+    if (!isDesktopView) {
+        return <ResponsiveLanding />;
+    }
 
     return (
         <EventEmitterProvider>
@@ -66,7 +86,6 @@ export default function App() {
             >
                 <Experience />
             </Canvas>
-
         </EventEmitterProvider>
     )
 }
