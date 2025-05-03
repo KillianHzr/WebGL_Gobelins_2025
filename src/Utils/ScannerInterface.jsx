@@ -274,7 +274,7 @@ export default function ScannerInterface() {
                                 onTouchEnd={handleScanButtonUp}
                             >
                                 <div className="scanner-interface-scan-button-inner-text">
-                                    Scan les traces
+                                    Scanx
                                 </div>
                                 <div
                                     className="scanner-interface-scan-button-inner-progress"
