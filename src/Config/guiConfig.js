@@ -305,16 +305,16 @@ const guiConfig = {
                 default: true
             },
             color: {
-                color: "#1e356b",
+                color: "#c7c7c7",
                 name: "Fog Color",
-                default: "#1e356b"
+                default: "#1E6B31"
             },
             near: {
                 min: 0,
                 max: 10,
                 step: 0.1,
                 name: "Fog Near",
-                default: 0
+                default: 10
             },
             far: {
                 min: 0,

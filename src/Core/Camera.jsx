@@ -49,7 +49,7 @@ export default function Camera() {
 
 
                     // Ajouter le mesh de fond à la scène
-                    scene.background = texture;
+                    // scene.background = texture;
                 },
                 // Progression du chargement
                 (xhr) => {
