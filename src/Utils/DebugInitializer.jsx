@@ -3,6 +3,8 @@ import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import guiConfig from '../Config/guiConfig';
+import {audioManager} from './AudioManager';
+import {addNarrationControlsToDebug} from './NarrationDebugControls';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
 
@@ -62,9 +64,7 @@ const DebugInitializer = () => {
             }
 
             // Gérer les dépendances spécifiques
-            if (!isVisible &&
-                guiFolderConfig.folderDependencies.specific &&
-                guiFolderConfig.folderDependencies.specific[folderPath]) {
+            if (!isVisible && guiFolderConfig.folderDependencies.specific && guiFolderConfig.folderDependencies.specific[folderPath]) {
                 guiFolderConfig.folderDependencies.specific[folderPath].forEach(depPath => {
                     setFolderVisibility(depPath, false, gui);
                 });
@@ -135,53 +135,23 @@ const DebugInitializer = () => {
         }
     };
 
-    // Fonction pour basculer entre les modes de caméra
+    // Amélioration de la fonction toggleCameraMode existante
     const toggleCameraMode = (mode) => {
-        if (!controls) return;
+        // Update the visualization state in the store
+        useStore.getState().visualization.cameraMode = mode;
 
-        if (mode === 'free') {
-            // Activer la caméra libre (OrbitControls)
-            if (controls.enabled !== undefined) {
-                controls.enabled = true;
-            }
-
-            // Désactiver les contrôles TheatreJS s'ils existent
-            if (window.__theatreStudio) {
-                // Masquer l'UI Theatre si on passe en mode libre
-                if (window.__theatreStudio.ui) {
-                    const studioUI = window.__theatreStudio.ui;
-                    // Stocker l'état actuel de l'UI pour pouvoir le restaurer
-                    const wasVisible = studioUI.isHidden ? false : true;
-                    if (wasVisible) {
-                        studioUI.hide();
-                    }
-                    // Stocker cette info pour la restaurer plus tard
-                    window.__wasTheatreUIVisible = wasVisible;
-                }
-                console.log('Passing to free camera mode, disabling TheatreJS camera');
-            }
-        } else if (mode === 'theatre') {
-            // Désactiver la caméra libre
-            if (controls.enabled !== undefined) {
-                controls.enabled = false;
-            }
-
-            // Activer les contrôles TheatreJS s'ils existent
-            if (window.__theatreStudio) {
-                // Restaurer l'état de l'UI si nécessaire
-                if (window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
-                    window.__theatreStudio.ui.restore();
-                }
-                console.log('Passing to TheatreJS camera mode');
-            }
+        // Store the setting in debug config
+        if (useStore.getState().updateDebugConfig) {
+            useStore.getState().updateDebugConfig('visualization.cameraMode.value', mode);
         }
 
-        // Mettre à jour l'état dans le store
+        console.log(`Camera mode switched to: ${mode}`);
+
+        // Emit an event for other components
         const store = useStore.getState();
         if (store.visualization) {
             store.visualization.cameraMode = mode;
         }
-
         // Émettre un événement pour informer d'autres composants
         EventBus.trigger('camera-mode-changed', {mode});
     };
@@ -300,7 +270,7 @@ const DebugInitializer = () => {
                 // Remplacer la méthode addFolder pour suivre tous les dossiers créés
                 const originalAddFolder = gui.addFolder;
 
-                gui.addFolder = function(name) {
+                gui.addFolder = function (name) {
                     try {
                         const folder = originalAddFolder.call(this, name);
 
@@ -330,7 +300,7 @@ const DebugInitializer = () => {
 
                         // Remplacer également la méthode addFolder pour ce nouveau dossier
                         const childOriginalAddFolder = folder.addFolder;
-                        folder.addFolder = function(childName) {
+                        folder.addFolder = function (childName) {
                             try {
                                 const childFolder = childOriginalAddFolder.call(this, childName);
                                 const childPath = `${folderPath}/${childName}`;
@@ -355,11 +325,18 @@ const DebugInitializer = () => {
                     } catch (error) {
                         console.error(`Error creating folder '${name}':`, error);
                         return {
-                            add: () => ({ onChange: () => {} }),
-                            addColor: () => ({ onChange: () => {} }),
-                            addFolder: () => ({ add: () => ({ onChange: () => {} }) }),
-                            folders: [],
-                            domElement: null
+                            add: () => ({
+                                onChange: () => {
+                                }
+                            }), addColor: () => ({
+                                onChange: () => {
+                                }
+                            }), addFolder: () => ({
+                                add: () => ({
+                                    onChange: () => {
+                                    }
+                                })
+                            }), folders: [], domElement: null
                         };
                     }
                 };
@@ -375,7 +352,7 @@ const DebugInitializer = () => {
                     });
                 }
 
-                const profileSettings = { profile: DEFAULT_PROFILE };
+                const profileSettings = {profile: DEFAULT_PROFILE};
 
                 const profileControl = guiConfigFolder.add(profileSettings, 'profile', profileOptions)
                     .name('Profil');
@@ -400,26 +377,11 @@ const DebugInitializer = () => {
 
                 // Obtenir les valeurs sauvegardées si disponibles
                 if (useStore.getState().getDebugConfigValue) {
-                    visualizationSettings.wireframe = useStore.getState().getDebugConfigValue(
-                        'visualization.wireframe.value',
-                        false
-                    );
-                    visualizationSettings.showInstances = useStore.getState().getDebugConfigValue(
-                        'visualization.showInstances.value',
-                        true
-                    );
-                    visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue(
-                        'visualization.showInteractive.value',
-                        true
-                    );
-                    visualizationSettings.showStatic = useStore.getState().getDebugConfigValue(
-                        'visualization.showStatic.value',
-                        true
-                    );
-                    visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue(
-                        'visualization.cameraMode.value',
-                        'theatre'
-                    );
+                    visualizationSettings.wireframe = useStore.getState().getDebugConfigValue('visualization.wireframe.value', false);
+                    visualizationSettings.showInstances = useStore.getState().getDebugConfigValue('visualization.showInstances.value', true);
+                    visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue('visualization.showInteractive.value', true);
+                    visualizationSettings.showStatic = useStore.getState().getDebugConfigValue('visualization.showStatic.value', true);
+                    visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue('visualization.cameraMode.value', 'theatre');
                 }
 
                 // Initialiser l'état dans le store
@@ -464,21 +426,154 @@ const DebugInitializer = () => {
                 });
 
                 // Camera mode control
-                const cameraModeOptions = { theatre: 'Theatre.js', free: 'Free Camera' };
+                const cameraModeOptions = {theatre: 'Theatre.js', free: 'Free Camera'};
                 const cameraModeControl = visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
                     .name('Camera Mode');
 
-                cameraModeControl.onChange(value => {
-                    toggleCameraMode(value);
-                    updateDebugConfig('visualization.cameraMode.value', value);
-                });
+                visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
+                    .name('Mode Caméra')
+                    .onChange(toggleCameraMode);
 
-                // Fermer les dossiers
+                // Si configuré ainsi, fermer le dossier
                 if (guiConfig.gui.closeFolders) {
-                    guiConfigFolder.close();
                     visualizationFolder.close();
                 }
 
+
+                const interactionPointsFolder = gui.addFolder('Points d\'interaction');
+
+                // Récupérer les emplacements d'interaction depuis sceneObjectManager
+                const interactivePlacements = sceneObjectManager.getInteractivePlacements();
+
+                // Fonction pour téléporter la caméra à un emplacement spécifique
+                const teleportCamera = (interactionPoint) => {
+                    if (!camera) {
+                        console.warn("Camera not available for teleportation");
+                        return;
+                    }
+
+                    try {
+                        // Extraire la position du point d'interaction
+                        const posX = interactionPoint.position[0] || 0;
+                        const posY = interactionPoint.position[1] || 0;
+                        const posZ = interactionPoint.position[2] || 0;
+
+                        const interactionPos = new THREE.Vector3(posX, posY, posZ);
+
+                        // Position de la caméra légèrement en arrière et au-dessus du point d'interaction
+                        const cameraOffset = new THREE.Vector3(0, 2, 5);
+
+                        // Position finale de la caméra
+                        const cameraPos = interactionPos.clone().add(cameraOffset);
+
+                        console.log(`Teleporting camera to: ${cameraPos.x}, ${cameraPos.y}, ${cameraPos.z}`);
+
+                        // Téléporter la caméra à la position calculée
+                        camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+
+                        // Faire la caméra regarder vers le point d'interaction
+                        camera.lookAt(interactionPos);
+
+                        // Mettre à jour la matrice de projection de la caméra
+                        camera.updateProjectionMatrix();
+
+                        // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
+                        if (window.__theatreStudio && useStore.getState().visualization?.cameraMode === 'theatre') {
+                            console.log("Updating Theatre.js camera position");
+
+                            try {
+                                // Accéder à la feuille actuelle
+                                const project = getProject('WebGL_Gobelins');
+                                if (project) {
+                                    const sheet = project.sheet('Scene');
+
+                                    if (sheet) {
+                                        // Mise à jour de l'objet caméra dans Theatre.js
+                                        const obj = sheet.object('Camera');
+
+                                        if (obj) {
+                                            obj.set({
+                                                position: {
+                                                    x: cameraPos.x, y: cameraPos.y, z: cameraPos.z
+                                                }
+                                            });
+
+                                            console.log("Theatre.js camera position updated successfully");
+                                        }
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn("Failed to update Theatre.js camera:", error);
+                            }
+                        }
+
+                        // Mettre à jour la configuration de débogage
+                        if (typeof useStore.getState().updateDebugConfig === 'function') {
+                            useStore.getState().updateDebugConfig('camera.position.x.value', cameraPos.x);
+                            useStore.getState().updateDebugConfig('camera.position.y.value', cameraPos.y);
+                            useStore.getState().updateDebugConfig('camera.position.z.value', cameraPos.z);
+                        }
+
+                        // Émettre un événement pour informer d'autres composants
+                        EventBus.trigger('camera-teleported', {position: cameraPos, target: interactionPos});
+
+                        return true;
+                    } catch (error) {
+                        console.error("Error teleporting camera:", error);
+                        return false;
+                    }
+                };
+
+                // Créer un objet pour stocker les fonctions de téléportation
+                const teleportFunctions = {};
+
+                // Ajouter des boutons pour se téléporter à chaque point d'interaction
+                interactivePlacements.forEach((placement, index) => {
+                    // Générer un nom unique pour ce point d'interaction
+                    const pointName = placement.markerText || placement.requiredStep || placement.markerId || `${placement.objectKey}_${index}`;
+
+                    // Créer une propriété unique pour cette fonction de téléportation
+                    const functionName = `teleportTo_${index}`;
+
+                    // Ajouter la fonction de téléportation à l'objet
+                    teleportFunctions[functionName] = () => {
+                        teleportCamera(placement);
+                    };
+
+                    // Ajouter un bouton pour cette fonction
+                    interactionPointsFolder.add(teleportFunctions, functionName).name(`TP: ${pointName}`);
+                });
+
+                // Ajouter une fonction pour désactiver le mouvement automatique de la caméra
+                teleportFunctions.disableAutoMove = () => {
+                    const state = useStore.getState();
+
+                    // Si l'interaction a une méthode pour désactiver le défilement automatique
+                    if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                        state.interaction.setAllowScroll(false);
+                        console.log("Auto-scrolling disabled");
+                    }
+                };
+
+                // Ajouter une fonction pour activer le mouvement automatique de la caméra
+                teleportFunctions.enableAutoMove = () => {
+                    const state = useStore.getState();
+
+                    // Si l'interaction a une méthode pour activer le défilement automatique
+                    if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                        state.interaction.setAllowScroll(true);
+                        console.log("Auto-scrolling enabled");
+                    }
+                };
+
+                // Ajouter ces boutons
+                interactionPointsFolder.add(teleportFunctions, 'disableAutoMove').name("Désactiver AutoMove");
+                interactionPointsFolder.add(teleportFunctions, 'enableAutoMove').name("Activer AutoMove");
+
+                // Fermer le dossier si configuré ainsi
+                if (guiConfig.gui.closeFolders) {
+                    interactionPointsFolder.close();
+                }
                 // Stocker l'interface GUI
                 setGui(gui);
                 console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
@@ -486,28 +581,32 @@ const DebugInitializer = () => {
             } catch (error) {
                 console.error('Error initializing debug GUI:', error);
                 initializedRef.current = false;
-            }
-        }
-
-        // Cleanup function - destroy GUI on unmount
-        return () => {
-            try {
-                const {gui} = useStore.getState();
-                if (gui) {
-                    gui.destroy();
-                    setGui(null);
-                    initializedRef.current = false;
-                    foldersRef.current.clear(); // Nettoyer la référence aux dossiers
-                    warningShownRef.current.clear(); // Nettoyer la liste des avertissements
                 }
-            } catch (error) {
-                console.error('Error cleaning up debug GUI:', error);
             }
-        };
-    }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);
 
-    // This component doesn't render anything
-    return null;
-};
+            // Cleanup function - destroy GUI on unmount
+            return () => {
+                try {
+                    const {gui} = useStore.getState();
+                    if (gui) {
+                        gui.destroy();
+                        setGui(null);
+                        initializedRef.current = false;
+                        foldersRef.current.clear(); // Nettoyer la référence aux dossiers
+                        warningShownRef.current.clear(); // Nettoyer la liste des avertissements
+                    }
+                } catch (error) {
+                    console.error('Error cleaning up debug GUI:', error);
+                }
+            };
+        }
+    ,
+        [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]
+    )
+        ;
 
-export default DebugInitializer;
+        // This component doesn't render anything
+        return null;
+    };
+
+    export default DebugInitializer;
