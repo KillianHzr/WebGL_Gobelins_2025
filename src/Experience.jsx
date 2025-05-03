@@ -2,7 +2,6 @@ import React, {useEffect, useMemo, useRef} from 'react'
 import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
-import {initializeLight} from "./Utils/defaultValues.js";
 import DebugInitializer from "./Utils/DebugInitializer.jsx";
 import Debug from "./Utils/Debug.jsx";
 import Camera from "./Core/Camera.jsx";
@@ -20,7 +19,7 @@ import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects from './World/SceneObjects';
 import guiConfig from "./Config/guiConfig.js";
 import Flashlight from "./World/Flashlight.jsx";
-import {Color, Fog} from "three";
+import BackgroundWithFog from './Core/BackgroundWithFog'; // Importer notre nouveau composant intégré
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -141,33 +140,6 @@ export default function Experience() {
         };
     }, [scene, debug]);
 
-    useEffect(() => {
-        if (!scene || !isMountedRef.current) return;
-
-        // Create fog with color, near and far parameters
-        // You can adjust these values to your needs
-        const fogColor = new Color(guiConfig.scene.fog.color.color);  // Light blue fog color
-        const fogNear = guiConfig.scene.fog.near.default;  // Distance at which the fog begins
-        const fogFar = guiConfig.scene.fog.far.default;  // Distance at which the fog is fully opaque
-
-        // Create linear fog (you can also use THREE.FogExp2 for exponential fog)
-        scene.fog = new Fog(fogColor, fogNear, fogFar);
-
-        // Match the scene background color to the fog color for a smooth transition
-        // Only set this if you want the background to match the fog
-        // If you want to keep your current background texture, don't set this
-        // scene.background = fogColor;
-
-        debugLog('Fog initialized');
-
-        // Cleanup function to remove fog when component unmounts
-        return () => {
-            if (scene) {
-                scene.fog = null;
-                debugLog('Fog removed');
-            }
-        };
-    }, [scene]);
     // Marquer le composant comme démonté lors du nettoyage
     useEffect(() => {
         // Initialiser
@@ -187,6 +159,9 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
 
+            {/* Ajouter notre nouveau composant qui gère à la fois l'image de fond et le brouillard */}
+            <BackgroundWithFog />
+
             <Stats/>
             <Debug/>
             <Camera/>
@@ -197,9 +172,7 @@ export default function Experience() {
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
-                        <color attach="background" args={[guiConfig.scene.fog.color.color]} />
-                        {/* Utiliser le composant principal qui affiche tous les objets de scène
-                            avec les placements par défaut du SceneObjectManager */}
+                        {/* Le composant SceneObjects contient tous les objets statiques de la scène */}
                         <SceneObjects/>
 
                         {/* La forêt avec ses instances nombreuses (instanced meshes) */}
