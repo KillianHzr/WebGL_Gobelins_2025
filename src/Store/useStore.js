@@ -31,7 +31,10 @@ const useStore = create((set, get) => ({
         debug: {...state.debug, ...debugSettings}
     })),
     flashlight: {
-        active: false
+        active: false,
+        autoActivate: true,
+        manuallyToggled: false,
+        preloadState: 'pending'
     },
     // Camera state for zoom functionality
     camera: null,
@@ -60,10 +63,10 @@ const useStore = create((set, get) => ({
     // NOUVELLES ACTIONS POUR LA TRANSITION JOUR/NUIT
     setTimelinePosition: (position) => set({ timelinePosition: position }),
     setSequenceLength: (length) => set({ sequenceLength: length }),
-    updateFlashlightState: (state) => set((prevState) => ({
+    updateFlashlightState: (newState) => set((state) => ({
         flashlight: {
-            ...prevState.flashlight,
-            ...state
+            ...state.flashlight,
+            ...newState
         }
     })),
     // Update specific part of debug config

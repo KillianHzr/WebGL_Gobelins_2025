@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
@@ -6,363 +6,224 @@ import guiConfig from '../Config/guiConfig';
 
 /**
  * Flashlight Component - World/Flashlight.jsx
- *
- * A spotlight that follows the camera and acts as a flashlight.
- * Features:
- * - Toggle on/off with 'F' key
- * - Dynamic positioning relative to camera
- * - Customizable parameters via GUI config
- * - State management via Zustand store
- * - Auto activation at 70% of timeline scroll
+ * Version optimisée: crée la lumière avec intensité 0 au démarrage,
+ * puis l'active à la bonne intensité au point de timeline requis
  */
 export default function Flashlight() {
-    const { camera, scene } = useThree();
+    const { camera, scene, gl } = useThree();
     const flashlightRef = useRef();
     const flashlightTargetRef = useRef(new THREE.Object3D());
     const configRef = useRef(guiConfig.flashlight);
 
-    // Refs for tracking initialization state
+    // Référence pour les états d'initialisation
+    const initializedRef = useRef(false);
     const guiInitializedRef = useRef(false);
-    const componentInitializedRef = useRef(false);
 
-    // Access flashlight state from the store
+    // État pour stocker l'intensité normale (pour pouvoir y revenir)
+    const [normalIntensity] = useState(configRef.current.intensity.default);
+
+    // Accéder aux états depuis le store
     const flashlightState = useStore(state => state.flashlight);
     const updateFlashlightState = useStore(state => state.updateFlashlightState);
     const debug = useStore(state => state.debug);
     const gui = useStore(state => state.gui);
 
-    // Get timeline position and sequence length for auto-activation
+    // Accéder à la position de défilement et la longueur totale
     const timelinePosition = useStore(state => state.timelinePosition);
     const sequenceLength = useStore(state => state.sequenceLength);
 
-    // Initialize the flashlight GUI controls - only once
+    // INITIALISATION - création de la cible
     useEffect(() => {
-        // Only set up GUI if debug mode is active, GUI is available, and it hasn't been initialized yet
-        if (debug?.active && gui && !guiInitializedRef.current) {
-            // Check if flashlight folder already exists
-            let flashlightFolder = gui.folders?.find(folder => folder.name === 'Flashlight');
+        if (!initializedRef.current) {
 
-            if (!flashlightFolder) {
-                console.log("Creating flashlight GUI folder");
-                flashlightFolder = gui.addFolder('Flashlight');
+            // Ajouter la cible à la scène
+            scene.add(flashlightTargetRef.current);
+            flashlightTargetRef.current.name = "flashlightTarget";
 
-                // Create a proxy object for the active state to avoid recreating controllers
-                const activeProxy = {
-                    active: flashlightState.active,
-                    autoActivate: flashlightState.autoActivate || true // Add auto-activate option
-                };
+            // Positionner la cible initialement
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyQuaternion(camera.quaternion);
+            const targetPosition = camera.position.clone().add(direction.multiplyScalar(10));
+            flashlightTargetRef.current.position.copy(targetPosition);
 
-                // Add controls for flashlight parameters
-                const activeController = flashlightFolder.add(activeProxy, 'active')
-                    .name('Enable Flashlight')
-                    .onChange(value => {
-                        updateFlashlightState({ active: value });
-                    });
-
-                // Add auto-activation toggle control
-                const autoActivateController = flashlightFolder.add(activeProxy, 'autoActivate')
-                    .name('Auto-activate at 70%')
-                    .onChange(value => {
-                        updateFlashlightState({ autoActivate: value });
-                    });
-
-                // Add intensity control
-                flashlightFolder.add(
-                    configRef.current.intensity,
-                    'default',
-                    configRef.current.intensity.min,
-                    configRef.current.intensity.max,
-                    configRef.current.intensity.step
-                )
-                    .name('Intensity')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.intensity = value;
-                        }
-                    });
-
-                // Add color control
-                flashlightFolder.addColor(configRef.current.color, 'default')
-                    .name('Color')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.color.set(value);
-                        }
-                    });
-
-                // Add angle control
-                flashlightFolder.add(
-                    configRef.current.angle,
-                    'default',
-                    configRef.current.angle.min,
-                    configRef.current.angle.max,
-                    configRef.current.angle.step
-                )
-                    .name('Angle')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.angle = value;
-                        }
-                    });
-
-                // Add penumbra control
-                flashlightFolder.add(
-                    configRef.current.penumbra,
-                    'default',
-                    configRef.current.penumbra.min,
-                    configRef.current.penumbra.max,
-                    configRef.current.penumbra.step
-                )
-                    .name('Penumbra')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.penumbra = value;
-                        }
-                    });
-
-                // Add distance control
-                flashlightFolder.add(
-                    configRef.current.distance,
-                    'default',
-                    configRef.current.distance.min,
-                    configRef.current.distance.max,
-                    configRef.current.distance.step
-                )
-                    .name('Distance')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.distance = value;
-                        }
-                    });
-
-                // Add decay control
-                flashlightFolder.add(
-                    configRef.current.decay,
-                    'default',
-                    configRef.current.decay.min,
-                    configRef.current.decay.max,
-                    configRef.current.decay.step
-                )
-                    .name('Decay')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.decay = value;
-                        }
-                    });
-
-                // Add shadows folder
-                const shadowsFolder = flashlightFolder.addFolder('Shadows');
-
-                shadowsFolder.add(configRef.current.shadows.enabled, 'default')
-                    .name('Enable Shadows')
-                    .onChange(value => {
-                        if (flashlightRef.current) {
-                            flashlightRef.current.castShadow = value;
-                        }
-                    });
-
-                // Add shadow map size control
-                shadowsFolder.add(
-                    { value: configRef.current.shadows.mapSize.default },
-                    'value',
-                    configRef.current.shadows.mapSize.options
-                )
-                    .name('Shadow Resolution')
-                    .onChange(value => {
-                        if (flashlightRef.current && flashlightRef.current.shadow) {
-                            flashlightRef.current.shadow.mapSize.width = value;
-                            flashlightRef.current.shadow.mapSize.height = value;
-                            // Need to update the shadow map
-                            flashlightRef.current.shadow.needsUpdate = true;
-                        }
-                    });
-
-                // Add shadow bias control
-                shadowsFolder.add(
-                    configRef.current.shadows.bias,
-                    'default',
-                    configRef.current.shadows.bias.min,
-                    configRef.current.shadows.bias.max,
-                    configRef.current.shadows.bias.step
-                )
-                    .name('Shadow Bias')
-                    .onChange(value => {
-                        if (flashlightRef.current && flashlightRef.current.shadow) {
-                            flashlightRef.current.shadow.bias = value;
-                        }
-                    });
-
-                // Add shadow normal bias control
-                shadowsFolder.add(
-                    configRef.current.shadows.normalBias,
-                    'default',
-                    configRef.current.shadows.normalBias.min,
-                    configRef.current.shadows.normalBias.max,
-                    configRef.current.shadows.normalBias.step
-                )
-                    .name('Normal Bias')
-                    .onChange(value => {
-                        if (flashlightRef.current && flashlightRef.current.shadow) {
-                            flashlightRef.current.shadow.normalBias = value;
-                        }
-                    });
-
-                // Update the activeController when flashlightState changes
-                // This will keep the GUI in sync with the state
-                if (activeController && flashlightState) {
-                    const updateGUIFromState = () => {
-                        activeProxy.active = flashlightState.active;
-                        activeProxy.autoActivate = flashlightState.autoActivate !== undefined ? flashlightState.autoActivate : true;
-                        activeController.updateDisplay();
-                        autoActivateController.updateDisplay();
-                    };
-
-                    // Create a reference to the update function
-                    if (flashlightRef.current) {
-                        flashlightRef.current.userData = flashlightRef.current.userData || {};
-                        flashlightRef.current.userData.updateGUIFromState = updateGUIFromState;
-                    }
-                }
-
-                // Mark as initialized
-                guiInitializedRef.current = true;
-            }
-        }
-
-        // Update GUI controls when flashlight state changes
-        if (flashlightRef.current &&
-            flashlightRef.current.userData &&
-            flashlightRef.current.userData.updateGUIFromState) {
-            flashlightRef.current.userData.updateGUIFromState();
-        }
-
-    }, [debug, gui, flashlightState, updateFlashlightState]);
-
-    // Initialize the flashlight and target - only once
-    useEffect(() => {
-        // Only initialize once
-        if (componentInitializedRef.current) return;
-        componentInitializedRef.current = true;
-
-        console.log("Initializing flashlight world component - one time setup");
-
-        // Add the target to the scene
-        scene.add(flashlightTargetRef.current);
-        flashlightTargetRef.current.name = "flashlightTarget";
-
-        // Position the target initially
-        const direction = new THREE.Vector3(0, 0, -1);
-        direction.applyQuaternion(camera.quaternion);
-        const targetPosition = camera.position.clone().add(direction.multiplyScalar(10));
-        flashlightTargetRef.current.position.copy(targetPosition);
-
-        // Apply initial configuration to flashlight
-        if (flashlightRef.current) {
-            const config = configRef.current;
-            const flashlight = flashlightRef.current;
-
-            // Apply settings from config
-            flashlight.intensity = config.intensity.default;
-            flashlight.angle = config.angle.default;
-            flashlight.penumbra = config.penumbra.default;
-            flashlight.distance = config.distance.default;
-            flashlight.decay = config.decay.default;
-            flashlight.color.set(config.color.default);
-
-            // Shadow settings
-            flashlight.castShadow = config.shadows.enabled.default;
-            if (flashlight.shadow) {
-                flashlight.shadow.mapSize.width = config.shadows.mapSize.default;
-                flashlight.shadow.mapSize.height = config.shadows.mapSize.default;
-                flashlight.shadow.bias = config.shadows.bias.default;
-                flashlight.shadow.normalBias = config.shadows.normalBias.default;
-            }
-
-            // Set the target
-            flashlight.target = flashlightTargetRef.current;
-        }
-
-        // Initialize autoActivate if not yet set
-        if (flashlightState.autoActivate === undefined) {
+            // Initialiser l'état dans le store
             updateFlashlightState({
-                autoActivate: true
+                autoActivate: true,
+                active: true, // La lumière est toujours active mais à intensité zéro
+                intensity: 0,  // Intensité initiale: zéro
+                normalIntensity: normalIntensity, // Sauvegarder l'intensité normale
+                preloadState: 'initialized'
             });
+
+            initializedRef.current = true;
         }
 
-        // Clean up on unmount
+        // Nettoyage
         return () => {
             if (flashlightTargetRef.current) {
                 scene.remove(flashlightTargetRef.current);
             }
         };
-    }, [camera, scene, flashlightState.autoActivate, updateFlashlightState]);
+    }, [scene, camera, updateFlashlightState, normalIntensity]);
 
-
-    // Auto-activate flashlight based on timeline position
+    // Configuration de la flashlight une fois créée
     useEffect(() => {
-        // Skip if auto-activate is disabled or sequence length is invalid
-        if (!flashlightState.autoActivate || sequenceLength <= 0) return;
+        if (!flashlightRef.current) return;
 
-        // Skip if user has manually toggled the flashlight
-        if (flashlightState.manuallyToggled) return;
 
-        // Calculate threshold position (70% of sequence)
+        // Configuration des paramètres
+        const config = configRef.current;
+        const flashlight = flashlightRef.current;
+
+        // Paramètres principaux - AVEC INTENSITÉ ZÉRO
+        flashlight.intensity = 0; // Commencer avec intensité zéro
+        flashlight.angle = config.angle.default;
+        flashlight.penumbra = config.penumbra.default;
+        flashlight.distance = config.distance.default;
+        flashlight.decay = config.decay.default;
+        flashlight.color.set(config.color.default);
+
+        // Configuration des ombres
+        flashlight.castShadow = config.shadows.enabled.default;
+
+        if (flashlight.shadow) {
+            flashlight.shadow.mapSize.width = config.shadows.mapSize.default;
+            flashlight.shadow.mapSize.height = config.shadows.mapSize.default;
+            flashlight.shadow.bias = config.shadows.bias.default;
+            flashlight.shadow.normalBias = config.shadows.normalBias.default;
+
+            // Forcer la mise à jour des ombres pour précharger
+            flashlight.shadow.needsUpdate = true;
+        }
+
+        // Définir la cible
+        flashlight.target = flashlightTargetRef.current;
+
+        // S'assurer que la lumière est visible (mais avec intensité 0)
+        flashlight.visible = true;
+
+        // Forcer un rendu pour précharger les ressources
+        gl.render(scene, camera);
+
+        // Confirmer que tout est prêt
+        updateFlashlightState({
+            preloadState: 'ready'
+        });
+
+
+    }, [flashlightRef.current, scene, camera, gl, updateFlashlightState]);
+
+    // Initialiser les contrôles GUI une seule fois
+    useEffect(() => {
+        if (debug?.active && gui && !guiInitializedRef.current) {
+            let flashlightFolder = gui.folders?.find(folder => folder.name === 'Flashlight');
+
+            if (!flashlightFolder) {
+                flashlightFolder = gui.addFolder('Flashlight');
+
+                // Créer un objet proxy pour l'état actif
+                const activeProxy = {
+                    active: flashlightState.active,
+                    autoActivate: flashlightState.autoActivate || true,
+                    intensity: flashlightState.intensity || 0,
+                    preloadState: flashlightState.preloadState || 'pending'
+                };
+                // Ajouter un contrôle d'intensité
+                const intensityController = flashlightFolder.add(
+                    activeProxy,
+                    'intensity',
+                    0,
+                    configRef.current.intensity.max
+                )
+                    .name('Intensité actuelle')
+                    .onChange(value => {
+                        if (flashlightRef.current) {
+                            flashlightRef.current.intensity = value;
+                            updateFlashlightState({ intensity: value });
+                        }
+                    });
+
+
+
+                guiInitializedRef.current = true;
+            }
+        }
+
+
+    }, [debug, gui, flashlightState, updateFlashlightState]);
+
+    // ACTIVATION AUTOMATIQUE DE L'INTENSITÉ en fonction de la timeline
+    useEffect(() => {
+        // Vérifier si on doit activer/désactiver
+        if (!flashlightState.autoActivate || sequenceLength <= 0 || flashlightState.manuallyToggled) return;
+
+        // Calculer le seuil d'activation (70% de la séquence)
         const activationThreshold = sequenceLength * 0.7;
 
-        // Auto-activate at 70% of timeline
-        if (timelinePosition >= activationThreshold && !flashlightState.active) {
-            updateFlashlightState({
-                active: true,
-                manuallyToggled: false // This was automatic activation
-            });
-            console.log("Flashlight auto-activated at 70% of timeline");
-        }
-        // Auto-deactivate when going back below threshold
-        else if (timelinePosition < activationThreshold && flashlightState.active) {
-            updateFlashlightState({
-                active: false,
-                manuallyToggled: false // This was automatic deactivation
-            });
-            console.log("Flashlight auto-deactivated below 70% of timeline");
-        }
-    }, [timelinePosition, sequenceLength, flashlightState, updateFlashlightState]);
+        // Activer l'intensité à 70% de la timeline
+        if (timelinePosition >= activationThreshold &&
+            flashlightRef.current &&
+            flashlightRef.current.intensity === 0) {
 
-    // Update the flashlight position and target every frame
+            // Utiliser requestAnimationFrame pour synchroniser avec le cycle de rendu
+            requestAnimationFrame(() => {
+                const targetIntensity = flashlightState.normalIntensity || normalIntensity;
+
+                // Mettre à jour l'intensité réelle
+                if (flashlightRef.current) {
+                    flashlightRef.current.intensity = targetIntensity;
+                }
+
+                // Mettre à jour l'état
+                updateFlashlightState({
+                    intensity: targetIntensity,
+                    manuallyToggled: false
+                });
+
+            });
+        }
+        // Désactiver l'intensité en revenant sous le seuil
+        else if (timelinePosition < activationThreshold &&
+            flashlightRef.current &&
+            flashlightRef.current.intensity > 0) {
+
+            requestAnimationFrame(() => {
+                // Remettre l'intensité à zéro
+                if (flashlightRef.current) {
+                    flashlightRef.current.intensity = 0;
+                }
+
+                // Mettre à jour l'état
+                updateFlashlightState({
+                    intensity: 0,
+                    manuallyToggled: false
+                });
+            });
+        }
+    }, [timelinePosition, sequenceLength, flashlightState, updateFlashlightState, normalIntensity, flashlightRef]);
+
+    // Mettre à jour la position et la rotation à chaque frame
     useFrame(() => {
         if (flashlightRef.current && flashlightTargetRef.current) {
-            // Position the flashlight relative to the camera
-            // This positions it like holding a flashlight in your hand
+            // Position de la lampe par rapport à la caméra
             const offsetPosition = new THREE.Vector3(0.0, 0.0, 0.0);
-
-            // Apply camera's rotation to the offset
             offsetPosition.applyQuaternion(camera.quaternion);
-
-            // Set the flashlight position relative to the camera
             flashlightRef.current.position.copy(camera.position).add(offsetPosition);
 
-            // Create a direction that points slightly downward
-            // The y component (-0.7) creates a downward tilt
+            // Direction légèrement vers le bas
             const direction = new THREE.Vector3(0, -0.75, -1);
-            direction.normalize(); // Normalize to ensure consistent length
+            direction.normalize();
             direction.applyQuaternion(camera.quaternion);
 
-            // Set the target position
+            // Position de la cible
             const targetPosition = camera.position.clone().add(direction.multiplyScalar(10));
             flashlightTargetRef.current.position.copy(targetPosition);
-
-            // Ensure target's matrix is updated for proper shadow calculation
             flashlightTargetRef.current.updateMatrixWorld();
-
-            // Make sure the visibility always matches the state
-            if (flashlightRef.current.visible !== flashlightState.active) {
-                flashlightRef.current.visible = flashlightState.active;
-            }
         }
     });
 
-    // Define constants from config
+    // Définir les constantes de configuration
     const {
-        intensity,
         angle,
         penumbra,
         distance,
@@ -371,22 +232,25 @@ export default function Flashlight() {
         shadows
     } = configRef.current;
 
+    // Utiliser une résolution plus faible pour les shadow maps pour améliorer les performances
+    const optimizedShadowMapSize = Math.min(shadows.mapSize.default, 1024);
+
     return (
         <spotLight
             ref={flashlightRef}
-            position={[0, 0, 0]} // Will be updated in useFrame
-            intensity={intensity.default}
+            position={[0, 0, 0]} // Sera mise à jour dans useFrame
+            intensity={0} // Commencer avec une intensité de zéro
             angle={angle.default}
             penumbra={penumbra.default}
             distance={distance.default}
             decay={decay.default}
             color={color.default}
             castShadow={shadows.enabled.default}
-            shadow-mapSize-width={shadows.mapSize.default}
-            shadow-mapSize-height={shadows.mapSize.default}
+            shadow-mapSize-width={optimizedShadowMapSize}
+            shadow-mapSize-height={optimizedShadowMapSize}
             shadow-bias={shadows.bias.default}
             shadow-normalBias={shadows.normalBias.default}
-            visible={flashlightState.active}
+            visible={true} // Toujours visible, mais avec intensité zéro
         />
     );
 }
