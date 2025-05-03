@@ -13,6 +13,7 @@ import guiConfig from '../Config/guiConfig';
  * - Dynamic positioning relative to camera
  * - Customizable parameters via GUI config
  * - State management via Zustand store
+ * - Auto activation at 70% of timeline scroll
  */
 export default function Flashlight() {
     const { camera, scene } = useThree();
@@ -30,6 +31,10 @@ export default function Flashlight() {
     const debug = useStore(state => state.debug);
     const gui = useStore(state => state.gui);
 
+    // Get timeline position and sequence length for auto-activation
+    const timelinePosition = useStore(state => state.timelinePosition);
+    const sequenceLength = useStore(state => state.sequenceLength);
+
     // Initialize the flashlight GUI controls - only once
     useEffect(() => {
         // Only set up GUI if debug mode is active, GUI is available, and it hasn't been initialized yet
@@ -42,13 +47,23 @@ export default function Flashlight() {
                 flashlightFolder = gui.addFolder('Flashlight');
 
                 // Create a proxy object for the active state to avoid recreating controllers
-                const activeProxy = { active: flashlightState.active };
+                const activeProxy = {
+                    active: flashlightState.active,
+                    autoActivate: flashlightState.autoActivate || true // Add auto-activate option
+                };
 
                 // Add controls for flashlight parameters
                 const activeController = flashlightFolder.add(activeProxy, 'active')
                     .name('Enable Flashlight')
                     .onChange(value => {
                         updateFlashlightState({ active: value });
+                    });
+
+                // Add auto-activation toggle control
+                const autoActivateController = flashlightFolder.add(activeProxy, 'autoActivate')
+                    .name('Auto-activate at 70%')
+                    .onChange(value => {
+                        updateFlashlightState({ autoActivate: value });
                     });
 
                 // Add intensity control
@@ -197,7 +212,9 @@ export default function Flashlight() {
                 if (activeController && flashlightState) {
                     const updateGUIFromState = () => {
                         activeProxy.active = flashlightState.active;
+                        activeProxy.autoActivate = flashlightState.autoActivate !== undefined ? flashlightState.autoActivate : true;
                         activeController.updateDisplay();
+                        autoActivateController.updateDisplay();
                     };
 
                     // Create a reference to the update function
@@ -265,97 +282,57 @@ export default function Flashlight() {
             flashlight.target = flashlightTargetRef.current;
         }
 
+        // Initialize autoActivate if not yet set
+        if (flashlightState.autoActivate === undefined) {
+            updateFlashlightState({
+                autoActivate: true
+            });
+        }
+
         // Clean up on unmount
         return () => {
             if (flashlightTargetRef.current) {
                 scene.remove(flashlightTargetRef.current);
             }
         };
-    }, [camera, scene]); // Only depend on camera and scene, not on state that changes frequently
+    }, [camera, scene, flashlightState.autoActivate, updateFlashlightState]);
 
-    // Handle keyboard events in a separate effect
+
+    // Auto-activate flashlight based on timeline position
     useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (event.key === 'f' || event.key === 'F') {
-                updateFlashlightState({
-                    active: !flashlightState.active
-                });
-                // Only log in development or with debug flag
-                if (process.env.NODE_ENV === 'development' || debug?.active) {
-                    console.log("Flashlight toggled:", !flashlightState.active);
-                }
-            }
-        };
+        // Skip if auto-activate is disabled or sequence length is invalid
+        if (!flashlightState.autoActivate || sequenceLength <= 0) return;
 
-        window.addEventListener('keydown', handleKeyDown);
+        // Skip if user has manually toggled the flashlight
+        if (flashlightState.manuallyToggled) return;
 
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [updateFlashlightState, flashlightState.active, debug]);
+        // Calculate threshold position (70% of sequence)
+        const activationThreshold = sequenceLength * 0.7;
 
-    // Create UI button for mobile/touch users
-    useEffect(() => {
-        // Only create button if we're in a browser environment and it doesn't exist
-        if (typeof window !== 'undefined' && !document.getElementById('flashlight-button')) {
-            const button = document.createElement('button');
-            button.id = 'flashlight-button';
-            button.textContent = flashlightState.active ? 'Flashlight ON' : 'Flashlight OFF';
-            button.style.position = 'fixed';
-            button.style.bottom = '20px';
-            button.style.left = '20px';
-            button.style.padding = '10px';
-            button.style.backgroundColor = flashlightState.active ? 'rgba(255, 165, 0, 0.7)' : 'rgba(0, 0, 0, 0.7)';
-            button.style.color = 'white';
-            button.style.border = 'none';
-            button.style.borderRadius = '5px';
-            button.style.cursor = 'pointer';
-            button.style.zIndex = '1000';
-            button.style.fontFamily = 'Arial, sans-serif';
-            button.style.fontSize = '14px';
-            button.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
-
-            button.addEventListener('click', () => {
-                updateFlashlightState({
-                    active: !flashlightState.active
-                });
+        // Auto-activate at 70% of timeline
+        if (timelinePosition >= activationThreshold && !flashlightState.active) {
+            updateFlashlightState({
+                active: true,
+                manuallyToggled: false // This was automatic activation
             });
-
-            document.body.appendChild(button);
+            console.log("Flashlight auto-activated at 70% of timeline");
         }
-
-        return () => {
-            if (typeof window !== 'undefined') {
-                const button = document.getElementById('flashlight-button');
-                if (button) {
-                    button.remove();
-                }
-            }
-        };
-    }, []);
-
-    // Update button appearance when flashlight state changes
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const button = document.getElementById('flashlight-button');
-            if (button) {
-                button.textContent = flashlightState.active ? 'Flashlight ON' : 'Flashlight OFF';
-                button.style.backgroundColor = flashlightState.active ? 'rgba(255, 165, 0, 0.7)' : 'rgba(0, 0, 0, 0.7)';
-            }
-
-            // Also update the flashlight visibility
-            if (flashlightRef.current) {
-                flashlightRef.current.visible = flashlightState.active;
-            }
+        // Auto-deactivate when going back below threshold
+        else if (timelinePosition < activationThreshold && flashlightState.active) {
+            updateFlashlightState({
+                active: false,
+                manuallyToggled: false // This was automatic deactivation
+            });
+            console.log("Flashlight auto-deactivated below 70% of timeline");
         }
-    }, [flashlightState.active]);
+    }, [timelinePosition, sequenceLength, flashlightState, updateFlashlightState]);
 
     // Update the flashlight position and target every frame
     useFrame(() => {
         if (flashlightRef.current && flashlightTargetRef.current) {
             // Position the flashlight relative to the camera
             // This positions it like holding a flashlight in your hand
-            const offsetPosition = new THREE.Vector3(0.0, -0.5, 0.0);
+            const offsetPosition = new THREE.Vector3(0.0, 0.0, 0.0);
 
             // Apply camera's rotation to the offset
             offsetPosition.applyQuaternion(camera.quaternion);
@@ -365,7 +342,7 @@ export default function Flashlight() {
 
             // Create a direction that points slightly downward
             // The y component (-0.7) creates a downward tilt
-            const direction = new THREE.Vector3(0, -0.7, -1);
+            const direction = new THREE.Vector3(0, -0.75, -1);
             direction.normalize(); // Normalize to ensure consistent length
             direction.applyQuaternion(camera.quaternion);
 

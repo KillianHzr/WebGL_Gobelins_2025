@@ -40,6 +40,9 @@ export default function App() {
 
     const onAssetsReady = () => {
         // Callback passé au AssetManager
+        if (assetsLoaded) {
+            return;
+        }
         console.log("Assets ready callback triggered");
         setAssetsLoaded(true);
     };
