@@ -34,7 +34,7 @@ class TemplateManager {
                 priority: 5,
                 useTextures: true
             },
-            'BUSH003': {
+            'BUSHv2': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
                 priority: 6,
@@ -58,13 +58,13 @@ class TemplateManager {
                 priority: 9,
                 useTextures: true
             },
-            'BushTrunk002': {
+            'BushTrunk': {
                 id: 'BushTrunk',
                 path: '/models/forest/bush/BushTrunk.glb',
                 priority: 10,
                 useTextures: true
             },
-            'Strawberry002': {
+            'Strawberry006': {
                 id: 'BushStrawberry',
                 path: '/models/forest/bush/BushStrawberry.glb',
                 priority: 11,
@@ -73,7 +73,7 @@ class TemplateManager {
 
 
 
-            'FlowerBell001': {
+            'FlowerBell005': {
                 id: 'FlowerBell',
                 path: '/models/forest/flower/FlowerBell.glb',
                 priority: 12,
@@ -99,7 +99,7 @@ class TemplateManager {
                 priority: 15,
                 useTextures: true
             },
-            'PlantClematis': {
+            'PlanClematis005': {
                 id: 'PlantClematis',
                 path: '/models/forest/plant/PlanClematis.glb',
                 priority: 16,
@@ -148,6 +148,155 @@ class TemplateManager {
                 useTextures: true
             },
 
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            //
+            'Retopo_TRONC001_1': {
+                id: 'TreeNakedEnd',
+                path: '/models/forest/tree/TreeNaked.gltf',
+                priority: 1,
+                useTextures: true
+            },
+            'Retopo_GROS_TRONC001_2': {
+                id: 'TrunkLargeEnd',
+                path: '/models/forest/tree/TrunkLarge.gltf',
+                priority: 2,
+                useTextures: true
+            },
+            'Retopo_TRONC_FIN_1': {
+                id: 'TrunkThinEnd',
+                path: '/models/forest/tree/ThinTrunk.gltf',
+                priority: 3,
+                useTextures: true
+            },
+            'BranchEucalyptus_1': {
+                id: 'BranchEucalyptusEnd',
+                path: '/models/forest/branch/BranchEucalyptus.glb',
+                priority: 5,
+                useTextures: true
+            },
+            'BUSH003': {
+                id: 'BushEnd',
+                path: '/models/forest/bush/Bush.glb',
+                priority: 6,
+                useTextures: true
+            },
+            'BranchFig_1': {
+                id: 'BranchFigEnd',
+                path: '/models/forest/branch/BranchFig.glb',
+                priority: 7,
+                useTextures: true
+            },
+            'BushBlueberry_1': {
+                id: 'BushBlueberryEnd',
+                path: '/models/forest/bush/BushBlueberry.glb',
+                priority: 8,
+                useTextures: true
+            },
+            'BushRaspberry_1': {
+                id: 'BushRaspberryEnd',
+                path: '/models/forest/bush/BushRaspberry.glb',
+                priority: 9,
+                useTextures: true
+            },
+            'BushTrunk002_1': {
+                id: 'BushTrunkEnd',
+                path: '/models/forest/bush/BushTrunk.glb',
+                priority: 10,
+                useTextures: true
+            },
+            'Strawberry002_1': {
+                id: 'BushStrawberryEnd',
+                path: '/models/forest/bush/BushStrawberry.glb',
+                priority: 11,
+                useTextures: true
+            },
+
+
+
+            'FlowerBell001_1': {
+                id: 'FlowerBellEnd',
+                path: '/models/forest/flower/FlowerBell.glb',
+                priority: 12,
+                useTextures: true
+            },
+
+            'Clover_1': {
+                id: 'FlowerCloverEnd',
+                path: '/models/forest/flower/FlowerClover.glb',
+                priority: 13,
+                useTextures: true
+            },
+
+            'MushwoomDuo_1': {
+                id: 'MushroomDuoEnd',
+                path: '/models/forest/mushroom/MushroomDuo.glb',
+                priority: 14,
+                useTextures: true
+            },
+            'MushwoomSolo_1': {
+                id: 'MushroomSoloEnd',
+                path: '/models/forest/mushroom/MushroomSolo.glb',
+                priority: 15,
+                useTextures: true
+            },
+            'PlantClematis_1': {
+                id: 'PlantClematisEnd',
+                path: '/models/forest/plant/PlanClematis.glb',
+                priority: 16,
+                useTextures: true
+            },
+            'PlantIvy002_1': {
+                id: 'PlantIvyEnd',
+                path: '/models/forest/plant/PlantIvy.glb',
+                priority: 17,
+                useTextures: true
+            },
+            'PlantMiscanthus_1': {
+                id: 'PlantMiscanthusEnd',
+                path: '/models/forest/plant/PlantMiscanthus.glb',
+                priority: 18,
+                useTextures: true
+            },
+            'PlantPuccinellia_1': {
+                id: 'PlantPuccinelliaEnd',
+                path: '/models/forest/plant/PlantPuccinellia.glb',
+                priority: 19,
+                useTextures: true
+            },
+            'PlantReed_1': {
+                id: 'PlantReedEnd',
+                path: '/models/forest/plant/PlantReed.glb',
+                priority: 20,
+                useTextures: true
+            },
+            'BranchTree002_1': {
+                id: 'BranchTreeEnd',
+                path: '/models/forest/branch/BranchTree.glb',
+                priority: 20,
+                useTextures: true
+            },
+            'OLD_2': {
+                id: 'ScreenOld',
+                path: '/models/digital/screen/ScreenOld.glb',
+                priority: 21,
+                useTextures: true
+            },
+            'Screen_4': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                priority: 22,
+                useTextures: true
+            },
 
             // Exemple d'ajout d'un nouveau template :
             // 'NouveauTemplate': {

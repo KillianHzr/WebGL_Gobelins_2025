@@ -6,7 +6,6 @@ import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
 
-
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.0001;
@@ -49,10 +48,6 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
-    // NOUVEAU: Ajouter des états pour partager la position de la timeline et la longueur de la séquence
-    const setTimelinePosition = useStore(state => state.setTimelinePosition) || (pos => {});
-    const setSequenceLength = useStore(state => state.setSequenceLength) || (length => {});
-
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
@@ -87,31 +82,44 @@ function CameraController({children}) {
         console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
 
-    // Au chargement initial, mettre à jour la longueur de la séquence dans le store
-    useEffect(() => {
-        sequenceLengthRef.current = val(sheet.sequence.pointer.length);
-        // NOUVEAU: Partager la longueur de la séquence avec le store
-        if (typeof setSequenceLength === 'function') {
-            setSequenceLength(sequenceLengthRef.current);
-        }
-    }, [sheet, setSequenceLength]);
-
     useEffect(() => {
         // Ajouter le contrôle de la caméra via Theatre.js
         if (camera && sheet) {
             // Créer un objet pour stocker les paramètres de la caméra
-            const obj = sheet.object('Camera', {
-                position: {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z
-                },
-                rotation: {
-                    x: camera.rotation.x,
-                    y: camera.rotation.y,
-                    z: camera.rotation.z
-                }
-            });
+            let obj;
+            try {
+                obj = sheet.object('Camera');
+
+                obj.set({
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                });
+
+                console.log('Updated existing Theatre.js camera object');
+            } catch (error) {
+                // Si l'objet n'existe pas, le créer avec une configuration de base
+                obj = sheet.object('Camera', {
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                }, { reconfigure: true }); // Ajout de l'option reconfigure ici
+                console.log('Created new Theatre.js camera object with reconfigure option');
+            }
 
             // Écouter les modifications de Theatre.js et les appliquer à la caméra
             const unsubscribe = obj.onValuesChange((values) => {
@@ -410,7 +418,7 @@ function CameraController({children}) {
                 );
 
                 if (!leafErableCompleted) {
-                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
+                    console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
                     return; // Ignorer cette interaction
                 }
             }
@@ -527,11 +535,6 @@ function CameraController({children}) {
             timelinePositionRef.current += scrollVelocity.current;
             timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
             sheet.sequence.position = timelinePositionRef.current;
-
-            // NOUVEAU: Partager la position de la timeline avec le store
-            if (typeof setTimelinePosition === 'function') {
-                setTimelinePosition(timelinePositionRef.current);
-            }
 
             scrollVelocity.current *= DECELERATION;
         }

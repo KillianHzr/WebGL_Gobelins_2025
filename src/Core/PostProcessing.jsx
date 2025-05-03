@@ -5,8 +5,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { GrainShader } from '../World/Shaders/GrainShader';
 import useStore from '../Store/useStore';
-import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
-import {ACESFilmicToneMapping} from "three";
+import {ACESFilmicToneMapping, TextureLoader} from "three";
 import guiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {

@@ -2,10 +2,10 @@ import React, {useEffect, useMemo, useRef} from 'react'
 import {useThree} from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
-import {initializeLight} from "./Utils/defaultValues.js";
 import DebugInitializer from "./Utils/DebugInitializer.jsx";
 import Debug from "./Utils/Debug.jsx";
 import Camera from "./Core/Camera.jsx";
+import CameraSwitcher from './Utils/CameraSwitcher.jsx';
 import Controls from "./Core/Controls.jsx";
 import Lights from "./Core/Lights.jsx";
 import MaterialControls from "./Core/MaterialControls.jsx";
@@ -20,6 +20,8 @@ import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects from './World/SceneObjects';
 import guiConfig from "./Config/guiConfig.js";
 import Flashlight from "./World/Flashlight.jsx";
+import BackgroundWithFog from './Core/BackgroundWithFog'; // Importer notre nouveau composant intégré
+import NarrationTriggers from './Utils/NarrationTriggers';
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -158,6 +160,12 @@ export default function Experience() {
         <EventEmitterProvider>
             <DebugInitializer/>
             <AudioManagerComponent/>
+            <NarrationTriggers/>
+            <CameraSwitcher/>
+            {/*<CameraModeSync/>*/}
+
+            {/* Ajouter notre nouveau composant qui gère à la fois l'image de fond et le brouillard */}
+            <BackgroundWithFog />
 
             <Stats/>
             <Debug/>
@@ -169,10 +177,7 @@ export default function Experience() {
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
-                        <color attach="background" args={['#1e1e2f']}/>
-
-                        {/* Utiliser le composant principal qui affiche tous les objets de scène
-                            avec les placements par défaut du SceneObjectManager */}
+                        {/* Le composant SceneObjects contient tous les objets statiques de la scène */}
                         <SceneObjects/>
 
                         {/* La forêt avec ses instances nombreuses (instanced meshes) */}

@@ -298,34 +298,61 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-        background: {
-            color: "#000000",
-            name: "Background",
-            default: "#000000"
-        },
+
         fog: {
             enabled: {
                 name: "Fog",
                 default: true
             },
             color: {
-                color: "#1e356b",
+                color: "#ffffff",
                 name: "Fog Color",
-                default: "#1e356b"
+                default: "#1E6B31"
             },
             near: {
                 min: 0,
-                max: 10,
+                max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 0
+                default: 7.5
             },
             far: {
                 min: 0,
-                max: 50,
+                max: 100,
                 step: 0.1,
                 name: "Fog Far",
-                default: 20
+                default: 15
+            },
+            transition: {
+                folder: "Fog Transition",
+                startPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "Start Point",
+                    default: 0.0
+                },
+                endPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "End Point",
+                    default: 0.5
+                },
+                initialNear: {
+                    min: 20,
+                    max: 200,
+                    step: 1,
+                    name: "Initial Near",
+                    default: 7.5
+                },
+                initialFar: {
+                    min: 30,
+                    max: 250,
+                    step: 1,
+                    name: "Initial Far",
+                    default: 25
+                }
             }
         }
     },

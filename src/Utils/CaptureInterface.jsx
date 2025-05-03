@@ -159,7 +159,7 @@ export default function CaptureInterface() {
                                 <div
                                     className="camera-interface-capture-button-inner-text"
                                 >
-                                    Prend la photo
+                                    Capture
                                 </div>
                             </div>
                         </div>
