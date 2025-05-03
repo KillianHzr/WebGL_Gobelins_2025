@@ -178,7 +178,7 @@ export const ModelMarker = React.memo(function ModelMarker({
         const targetRef = objectRef || groupRef;
 
         if (targetRef.current) {
-            console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
+            // console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
 
             // Ajouter des écouteurs pour le survol
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {

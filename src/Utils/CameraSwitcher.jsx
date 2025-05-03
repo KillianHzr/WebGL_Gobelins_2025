@@ -1,22 +1,24 @@
-import React, { useEffect, useRef } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
+import React, {useEffect, useRef, useState} from 'react';
+import {useFrame, useThree} from '@react-three/fiber';
+import {PerspectiveCamera} from '@react-three/drei';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
-import { EventBus } from '../Utils/EventEmitter';
-import { getProject } from '@theatre/core';
+import {EventBus} from './EventEmitter';
 
 /**
  * Component that manages switching between TheatreJS camera and a free camera with ZQSD controls
  */
 const CameraSwitcher = () => {
-    const { scene, gl, camera: mainCamera, set } = useThree();
-    const { debug, getDebugConfigValue, updateDebugConfig } = useStore();
+    const {scene, gl, camera: mainCamera, set} = useThree();
+    const {debug, getDebugConfigValue, updateDebugConfig} = useStore();
+
+    // Track last known mode to avoid duplicate mode changes
+    const lastKnownMode = useRef('theatre');
 
     // Get camera mode from store
     const cameraMode = useStore(state =>
         state.visualization?.cameraMode ||
-        getDebugConfigValue('visualization.cameraMode.value', 'theatre')
+        (getDebugConfigValue ? getDebugConfigValue('visualization.cameraMode.value', 'theatre') : 'theatre')
     );
 
     // References for cameras and controls
@@ -33,8 +35,8 @@ const CameraSwitcher = () => {
     // Movement speed
     const moveSpeed = useRef(0.1);
     // Mouse movement
-    const mouseMovement = useRef({ x: 0, y: 0 });
-    const cameraRotation = useRef({ x: 0, y: 0 });
+    const mouseMovement = useRef({x: 0, y: 0});
+    const cameraRotation = useRef({x: 0, y: 0});
     const mouseSensitivity = useRef(0.002);
     const isMouseDown = useRef(false);
 
@@ -45,26 +47,28 @@ const CameraSwitcher = () => {
         mapInstance: [] // Map instances
     });
 
+    // State to track whether event listeners are initialized
+    const [listenersInitialized, setListenersInitialized] = useState(false);
+
+    // Éviter les rendus en boucle et les changements multiples
+    const isChangingMode = useRef(false);
+
     // Find and store all forest-related objects
     const findAndStoreForestObjects = () => {
         if (!scene) return;
 
         // Clear previous references
         forestGroupsRef.current = {
-            forest: [],
-            instances: [],
-            mapInstance: []
+            forest: [], instances: [], mapInstance: []
         };
 
         // Find all forest-related objects
         scene.traverse((object) => {
             if (object.name === 'Forest') {
                 forestGroupsRef.current.forest.push(object);
-            }
-            else if (object.name?.includes('instances')) {
+            } else if (object.name?.includes('instances')) {
                 forestGroupsRef.current.instances.push(object);
-            }
-            else if (object.name?.includes('MapInstance')) {
+            } else if (object.name?.includes('MapInstance')) {
                 forestGroupsRef.current.mapInstance.push(object);
             }
             // Also include child objects of Forest
@@ -73,10 +77,7 @@ const CameraSwitcher = () => {
             }
         });
 
-        const totalObjects =
-            forestGroupsRef.current.forest.length +
-            forestGroupsRef.current.instances.length +
-            forestGroupsRef.current.mapInstance.length;
+        const totalObjects = forestGroupsRef.current.forest.length + forestGroupsRef.current.instances.length + forestGroupsRef.current.mapInstance.length;
 
         console.log(`Found ${totalObjects} forest-related objects:`, {
             forest: forestGroupsRef.current.forest.length,
@@ -90,7 +91,6 @@ const CameraSwitcher = () => {
         Object.values(forestGroupsRef.current).forEach(group => {
             group.forEach(object => {
                 if (object.visible !== visible) {
-                    console.log(`Setting ${object.name} visibility to ${visible}`);
                     object.visible = visible;
                 }
             });
@@ -99,25 +99,6 @@ const CameraSwitcher = () => {
         // Force scene update
         scene.updateMatrixWorld(true);
     };
-
-    // Effect to find forest objects on component mount
-    useEffect(() => {
-        console.log("CameraSwitcher mounted, finding forest objects...");
-        findAndStoreForestObjects();
-
-        // Listen for forest-ready event to refresh object list
-        const forestReadyHandler = () => {
-            console.log("Forest ready event received, refreshing forest object list");
-            findAndStoreForestObjects();
-        };
-
-        // Subscribe to relevant events
-        const forestReadyUnsubscribe = EventBus.on('forest-ready', forestReadyHandler);
-
-        return () => {
-            forestReadyUnsubscribe();
-        };
-    }, [scene]);
 
     // Copy all camera parameters exactly to ensure identical rendering
     const copyAllCameraParameters = (source, target) => {
@@ -151,105 +132,56 @@ const CameraSwitcher = () => {
         target.updateProjectionMatrix();
     };
 
-    // Handle camera mode switching
-    useEffect(() => {
-        if (!mainCamera || !freeCameraRef.current) return;
+    // Handle camera teleport events
+    const handleCameraTeleport = (data) => {
+        if (cameraMode === 'Free Camera' && freeCameraRef.current) {
+            // For free camera mode
+            const camera = freeCameraRef.current;
 
-        // Store reference to the original TheatreJS camera on first run
-        if (!theatreCameraRef.current) {
-            theatreCameraRef.current = mainCamera;
+            // Update position directly from event data
+            if (data.position) {
+                camera.position.copy(data.position);
+            }
+
+            // Look at target position
+            if (data.target) {
+                camera.lookAt(data.target);
+
+                // Update rotation reference to match current quaternion
+                const euler = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+                cameraRotation.current.x = euler.x;
+                cameraRotation.current.y = euler.y;
+            }
+
+            // Force matrix and projection update
+            camera.updateMatrixWorld(true);
+            camera.updateProjectionMatrix();
         }
+    };
 
-        // Always refresh forest objects list when switching modes
-        findAndStoreForestObjects();
-
-        if (cameraMode === 'free') {
-            // Switch to the free camera
-            console.log('Switching to free camera mode');
-
-            // Copy all camera parameters exactly to ensure identical rendering behavior
-            copyAllCameraParameters(mainCamera, freeCameraRef.current);
-
-            // Initialize rotation reference
-            cameraRotation.current = {
-                x: mainCamera.rotation.x,
-                y: mainCamera.rotation.y
-            };
-
-            // Track that we've made the switch
-            hasInitiatedFirstSwitch.current = true;
-
-            // Make the free camera the active camera in Three.js
-            set({ camera: freeCameraRef.current });
-
-            // Hide Theatre.js UI if it exists
-            if (window.__theatreStudio && window.__theatreStudio.ui) {
-                const studioUI = window.__theatreStudio.ui;
-                // Store current UI state to restore later
-                window.__wasTheatreUIVisible = !studioUI.isHidden;
-                if (window.__wasTheatreUIVisible) {
-                    studioUI.hide();
-                }
-            }
-
-            // This is crucial: disable scroll in ScrollControls when in free camera mode
-            const interaction = useStore.getState().interaction;
-            if (interaction && typeof interaction.setAllowScroll === 'function') {
-                interaction.setAllowScroll(false);
-                console.log("Disabling scroll for Theatre.js in free camera mode");
-            }
-
-        } else {
-            // Switch back to TheatreJS camera
-            console.log('Switching to TheatreJS camera mode');
-
-            // Set the original camera back as active
-            set({ camera: theatreCameraRef.current });
-
-            // Re-enable scroll in ScrollControls
-            const interaction = useStore.getState().interaction;
-            if (interaction && typeof interaction.setAllowScroll === 'function') {
-                interaction.setAllowScroll(true);
-                console.log("Re-enabling scroll for Theatre.js");
-            }
-
-            // Restore Theatre.js UI if necessary
-            if (window.__theatreStudio && window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
-                window.__theatreStudio.ui.restore();
-            }
-
-            // Only force visibility after first switching to free camera mode
-            if (hasInitiatedFirstSwitch.current) {
-                // Force visibility of all forest objects
-                console.log("Enforcing forest visibility after switching back to TheatreJS mode");
-                enforceForestVisibility(true);
-
-                // Trigger a forest-restore event to notify other components
-                console.log("Emitting forest-visibility-restore event");
-                EventBus.trigger('forest-visibility-restore');
-
-                // Request a frame update
-                requestAnimationFrame(() => {
-                    scene.updateMatrixWorld(true);
-                });
-            }
+    // Fonction pour nettoyer les événements clavier
+    function clearAllKeys() {
+        for (const key in keysPressed.current) {
+            keysPressed.current[key] = false;
         }
+    }
 
-    }, [cameraMode, mainCamera, set, scene]);
+    // Set up event listeners for mouse and keyboard controls
+    const setupEventListeners = () => {
+        if (listenersInitialized) return null;
 
-    // Register key event handlers - IMPORTANT: This is outside the cameraMode condition
-    // so the event listeners are always active
-    useEffect(() => {
         const handleKeyDown = (e) => {
+            // Toujours capturer les touches sans condition
             keysPressed.current[e.key.toLowerCase()] = true;
         };
 
         const handleKeyUp = (e) => {
+            // Toujours relâcher les touches sans condition
             keysPressed.current[e.key.toLowerCase()] = false;
         };
 
         const handleMouseDown = (e) => {
-            if (e.button === 0 && cameraMode === 'free') { // Left mouse button and only in free mode
+            if (e.button === 0 && cameraMode === 'Free Camera') { // Left mouse button and only in free mode
                 isMouseDown.current = true;
                 try {
                     gl.domElement.requestPointerLock();
@@ -269,30 +201,34 @@ const CameraSwitcher = () => {
         };
 
         const handleMouseMove = (e) => {
-            if (document.pointerLockElement === gl.domElement && cameraMode === 'free') {
+            if (document.pointerLockElement === gl.domElement && cameraMode === 'Free Camera') {
                 mouseMovement.current = {
-                    x: e.movementX || 0,
-                    y: e.movementY || 0
+                    x: e.movementX || 0, y: e.movementY || 0
                 };
             }
         };
 
         // Speed modifier handler
         const handleSpeedChange = (e) => {
-            if (e.key.toLowerCase() === 'shift' && cameraMode === 'free') {
+            if (e.key.toLowerCase() === 'shift') {
                 moveSpeed.current = e.type === 'keydown' ? 0.3 : 0.1; // Faster when shift is pressed
             }
         };
 
         // Add wheel event handler to prevent scrolling in free mode
         const handleWheel = (e) => {
-            if (cameraMode === 'free') {
+            if (cameraMode === 'Free Camera') {
                 e.preventDefault();
                 e.stopPropagation();
             }
         };
 
-        // Add event listeners - important to attach them to window for key events
+        // Handle window blur (tab loses focus)
+        const handleBlur = () => {
+            clearAllKeys();
+        };
+
+        // Add event listeners
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
         window.addEventListener('keydown', handleSpeedChange);
@@ -300,8 +236,13 @@ const CameraSwitcher = () => {
         gl.domElement.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('mousemove', handleMouseMove);
-        gl.domElement.addEventListener('wheel', handleWheel, { passive: false });
+        gl.domElement.addEventListener('wheel', handleWheel, {passive: false});
+        window.addEventListener('blur', handleBlur);
 
+        // Update state to track that listeners are initialized
+        setListenersInitialized(true);
+
+        // Return cleanup function
         return () => {
             // Clean up event listeners
             window.removeEventListener('keydown', handleKeyDown);
@@ -312,40 +253,197 @@ const CameraSwitcher = () => {
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('mousemove', handleMouseMove);
             gl.domElement.removeEventListener('wheel', handleWheel);
+            window.removeEventListener('blur', handleBlur);
 
             // Ensure pointer lock is released
             if (document.pointerLockElement === gl.domElement) {
                 document.exitPointerLock();
             }
+
+            clearAllKeys();
+            setListenersInitialized(false);
         };
-    }, [gl, cameraMode]);
+    };
+
+    // Register for camera events when component mounts
+    useEffect(() => {
+        console.log("CameraSwitcher mounted");
+        findAndStoreForestObjects();
+
+        // Setup event listeners immediately
+        const cleanup = setupEventListeners();
+
+        // Listen for events
+        const forestReadyHandler = () => {
+            findAndStoreForestObjects();
+        };
+
+        const teleportHandler = (data) => {
+            handleCameraTeleport(data);
+        };
+
+        const cameraModeHandler = (data) => {
+            if (data && data.mode) {
+                console.log(`CameraSwitcher received camera mode change event: ${data.mode}`);
+            }
+        };
+
+        // Subscribe to events
+        const forestReadyUnsubscribe = EventBus.on('forest-ready', forestReadyHandler);
+        const teleportUnsubscribe = EventBus.on('camera-teleported', teleportHandler);
+        const cameraModeUnsubscribe = EventBus.on('camera-mode-changed', cameraModeHandler);
+
+        return () => {
+            // Clean up event listeners
+            if (cleanup) cleanup();
+            forestReadyUnsubscribe();
+            teleportUnsubscribe();
+            cameraModeUnsubscribe();
+        };
+    }, []);
+
+    // Handle camera mode switching
+    useEffect(() => {
+        if (!mainCamera || !freeCameraRef.current) return;
+
+        // Avoid changing mode multiple times
+        if (isChangingMode.current || cameraMode === lastKnownMode.current) return;
+
+        // Start changing mode
+        isChangingMode.current = true;
+
+        // Store reference to the original TheatreJS camera on first run
+        if (!theatreCameraRef.current) {
+            theatreCameraRef.current = mainCamera;
+        }
+
+        console.log(`CameraSwitcher: Camera mode is now ${cameraMode}`);
+        lastKnownMode.current = cameraMode;
+
+        if (cameraMode === 'Free Camera') {
+            // Switch to the free camera
+            console.log('Switching to free camera mode');
+
+            // Copy all camera parameters exactly to ensure identical rendering behavior
+            copyAllCameraParameters(mainCamera, freeCameraRef.current);
+
+            // Initialize rotation reference
+            cameraRotation.current = {
+                x: mainCamera.rotation.x, y: mainCamera.rotation.y
+            };
+
+            // Track that we've made the switch
+            hasInitiatedFirstSwitch.current = true;
+
+            // Make the free camera the active camera in Three.js
+            set({camera: freeCameraRef.current});
+
+            // Hide Theatre.js UI if it exists
+            if (window.__theatreStudio && window.__theatreStudio.ui) {
+                const studioUI = window.__theatreStudio.ui;
+                window.__wasTheatreUIVisible = !studioUI.isHidden;
+                if (window.__wasTheatreUIVisible) {
+                    studioUI.hide();
+                }
+            }
+
+            // Disable scroll in ScrollControls
+            const interaction = useStore.getState().interaction;
+            if (interaction && typeof interaction.setAllowScroll === 'function') {
+                interaction.setAllowScroll(false);
+                console.log("Disabling scroll for Theatre.js in free camera mode");
+            }
+
+            // Update the store with the new mode
+            const store = useStore.getState();
+            if (store.visualization) {
+                store.visualization.cameraMode = 'Free Camera';
+            } else {
+                store.visualization = {cameraMode: 'Free Camera'};
+            }
+
+            // Update debug config
+            if (typeof store.updateDebugConfig === 'function') {
+                store.updateDebugConfig('visualization.cameraMode.value', 'Free Camera');
+            }
+        } else {
+            // Switch back to TheatreJS camera
+            console.log('Switching to TheatreJS camera mode');
+
+            // Set the original camera back as active
+            set({camera: theatreCameraRef.current});
+
+            // Re-enable scroll in ScrollControls
+            const interaction = useStore.getState().interaction;
+            if (interaction && typeof interaction.setAllowScroll === 'function') {
+                interaction.setAllowScroll(true);
+                console.log("Re-enabling scroll for Theatre.js");
+            }
+
+            // Restore Theatre.js UI if necessary
+            if (window.__theatreStudio && window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
+                window.__theatreStudio.ui.restore();
+            }
+
+            // Force visibility of all forest objects
+            if (hasInitiatedFirstSwitch.current) {
+                enforceForestVisibility(true);
+
+                // Trigger a forest-restore event to notify other components
+                EventBus.trigger('forest-visibility-restore');
+
+                // Request a frame update
+                requestAnimationFrame(() => {
+                    scene.updateMatrixWorld(true);
+                });
+            }
+
+            // Update the store with the new mode
+            const store = useStore.getState();
+            if (store.visualization) {
+                store.visualization.cameraMode = 'theatre';
+            } else {
+                store.visualization = {cameraMode: 'theatre'};
+            }
+
+            // Update debug config
+            if (typeof store.updateDebugConfig === 'function') {
+                store.updateDebugConfig('visualization.cameraMode.value', 'theatre');
+            }
+        }
+
+        // Set a timeout to allow mode changes again
+        setTimeout(() => {
+            isChangingMode.current = false;
+        }, 300);
+    }, [cameraMode, mainCamera, set, scene]);
 
     // Update free camera position and rotation each frame
     useFrame(() => {
-        if (cameraMode === 'free' && freeCameraRef.current) {
+        if (cameraMode === 'Free Camera' && freeCameraRef.current) {
             // Only process camera movement in free mode
             const camera = freeCameraRef.current;
 
             // Apply mouse movement to camera rotation
             if (mouseMovement.current.x !== 0 || mouseMovement.current.y !== 0) {
-                // Mettre à jour les angles de rotation
+                // Update rotation angles
                 cameraRotation.current.y -= mouseMovement.current.x * mouseSensitivity.current;
                 cameraRotation.current.x -= mouseMovement.current.y * mouseSensitivity.current;
 
-                // Limiter l'angle vertical (pitch) pour éviter de dépasser la verticale
-                cameraRotation.current.x = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, cameraRotation.current.x));
+                // Limit vertical angle (pitch) to avoid flipping
+                cameraRotation.current.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, cameraRotation.current.x));
 
-                // Réinitialiser la rotation de la caméra
+                // Reset camera rotation
                 camera.rotation.set(0, 0, 0);
 
-                // Appliquer d'abord la rotation horizontale (yaw)
+                // Apply horizontal rotation (yaw) first
                 camera.rotateY(cameraRotation.current.y);
 
-                // Puis appliquer la rotation verticale (pitch) autour de l'axe X local
+                // Then apply vertical rotation (pitch) around local X axis
                 camera.rotateX(cameraRotation.current.x);
 
-                // Réinitialiser le mouvement de la souris
-                mouseMovement.current = { x: 0, y: 0 };
+                // Reset mouse movement for next frame
+                mouseMovement.current = {x: 0, y: 0};
             }
 
             // Process keyboard input for movement
@@ -370,6 +468,17 @@ const CameraSwitcher = () => {
             }
             if (keysPressed.current['control'] || keysPressed.current['c']) {
                 moveDirection.y = -1;
+            }
+
+            // Debug logging of key states occasionally
+            if (Math.random() < 0.01) {
+                const pressedKeys = Object.entries(keysPressed.current)
+                    .filter(([_, pressed]) => pressed)
+                    .map(([key]) => key);
+
+                if (pressedKeys.length > 0) {
+                    console.log("Keys pressed:", pressedKeys.join(', '));
+                }
             }
 
             // Only move if there's input
@@ -401,25 +510,22 @@ const CameraSwitcher = () => {
 
                 // Apply movement to camera position
                 camera.position.add(movement);
-
-                // Debug log position occasionally
-                if (Math.random() < 0.01) { // Only log about once every 100 frames
-                    console.log(`Free camera position: ${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)}`);
-                }
             }
         }
     });
 
-    // Create a PerspectiveCamera that copies all properties from the TheatreJS camera
     return (
-        <PerspectiveCamera
-            ref={freeCameraRef}
-            makeDefault={false}
-            position={[0, 0, 5]}
-            near={0.1}
-            far={1000}
-            fov={75}
-        />
+        <>
+            {/* Free camera setup */}
+            <PerspectiveCamera
+                ref={freeCameraRef}
+                makeDefault={false}
+                position={[0, 1.6, 3]} // Default position
+                fov={75}
+                near={0.1}
+                far={1000}
+            />
+        </>
     );
 };
 

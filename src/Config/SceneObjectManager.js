@@ -37,32 +37,26 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
-                receiveShadow: true, // S'assurer que cette propriété est à true
-                castShadow: false, // Le sol ne projette pas d'ombre
-                defaultPlacements: [{
-                    position: [0, 0, 0],
-                    rotation: [0, 0, 0],
-                    receiveShadow: true // Spécifier explicitement au niveau du placement
-                }]
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
 
-            // 'WaterPlane': {
-            //     id: 'WaterPlane',
-            //     path: '/models/forest/river/River.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: false,
-            //     useTextures: true,
-            //     defaultPlacements: [
-            //         {position: [0, 0, 0], rotation: [0, 0, 0]}
-            //     ]
-            // },
+            'WaterPlane': {
+                id: 'WaterPlane',
+                path: '/models/forest/river/River.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [
+                    {position: [0, 0, 0], rotation: [0, 0, 0]}
+                ]
+            },
 
             // Scene 02 - Information Panel (First stop)
             'DirectionPanelStartInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -70,7 +64,7 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
                     position: [-8.343, 0, 13.953],
@@ -85,7 +79,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
                 scale: [1.000, 1.000, 1.000],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_UP,
@@ -108,7 +102,7 @@ class SceneObjectManager {
                 id: 'LeafErable',
                 path: '/models/primary/MultipleLeaf.glb',
                 scale: [1, 1, 1],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_RIGHT,
@@ -129,7 +123,7 @@ class SceneObjectManager {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.184, 0.184, 0.184],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -152,7 +146,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -173,7 +167,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -194,7 +188,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -215,7 +209,7 @@ class SceneObjectManager {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -238,7 +232,7 @@ class SceneObjectManager {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/Obstacle2Tree.glb',
                 scale: [1, 1, 1],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.DRAG_DOWN,
@@ -259,7 +253,7 @@ class SceneObjectManager {
             'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
-                scale: [0.124, 0.124, 0.124],
+                scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
                 // animations: {
@@ -340,7 +334,7 @@ class SceneObjectManager {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
                 scale: [0.605, 0.605, 0.605],
-                interactive: false,
+                interactive: true,
                 useTextures: true,
                 interaction: {
                     type: INTERACTION_TYPES.CLICK,
@@ -348,7 +342,7 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
                     position: [-8.343 /4, 0, 13.953/4],

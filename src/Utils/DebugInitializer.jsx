@@ -2,11 +2,14 @@ import {useEffect, useRef} from 'react';
 import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
+import * as THREE from 'three';
+import {getProject} from '@theatre/core';
 import guiConfig from '../Config/guiConfig';
 import {audioManager} from './AudioManager';
 import {addNarrationControlsToDebug} from './NarrationDebugControls';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
+import sceneObjectManager from '../Config/SceneObjectManager';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -20,7 +23,7 @@ const DebugInitializer = () => {
     const foldersRef = useRef(new Map());
     const warningShownRef = useRef(new Set()); // Pour éviter de répéter les avertissements
 
-    const DEFAULT_PROFILE = 'artist'; // Changer ici pour le profil par défaut souhaité
+    const DEFAULT_PROFILE = 'developer'; // Changer ici pour le profil par défaut souhaité
 
     // Fonction pour appliquer un profil à la configuration avant création des dossiers
     const initializeWithProfile = (profileName) => {
@@ -135,25 +138,31 @@ const DebugInitializer = () => {
         }
     };
 
-    // Amélioration de la fonction toggleCameraMode existante
+    // Fonction toggleCameraMode améliorée pour assurer la stabilité
     const toggleCameraMode = (mode) => {
-        // Update the visualization state in the store
-        useStore.getState().visualization.cameraMode = mode;
+        try {
+            // Récupérer l'état actuel
+            const store = useStore.getState();
 
-        // Store the setting in debug config
-        if (useStore.getState().updateDebugConfig) {
-            useStore.getState().updateDebugConfig('visualization.cameraMode.value', mode);
+            // S'assurer que visualization existe
+            if (!store.visualization) {
+                store.visualization = { cameraMode: mode };
+            } else {
+                store.visualization.cameraMode = mode;
+            }
+
+            // Mettre à jour le paramètre dans la configuration de debug
+            if (typeof store.updateDebugConfig === 'function') {
+                store.updateDebugConfig('visualization.cameraMode.value', mode);
+            }
+
+            console.log(`Camera mode switched to: ${mode}`);
+
+            // Émettre un événement pour informer d'autres composants
+            EventBus.trigger('camera-mode-changed', {mode});
+        } catch (error) {
+            console.error('Error toggling camera mode:', error);
         }
-
-        console.log(`Camera mode switched to: ${mode}`);
-
-        // Emit an event for other components
-        const store = useStore.getState();
-        if (store.visualization) {
-            store.visualization.cameraMode = mode;
-        }
-        // Émettre un événement pour informer d'autres composants
-        EventBus.trigger('camera-mode-changed', {mode});
     };
 
     // Fonction pour appliquer le mode wireframe à tous les objets de la scène
@@ -244,6 +253,15 @@ const DebugInitializer = () => {
                     applyFolderVisibility(subFolder);
                 }
             });
+        }
+    };
+
+    // Sécuriser la fonction updateDebugConfig
+    const updateDebugConfig = (path, value) => {
+        if (typeof useStore.getState().updateDebugConfig === 'function') {
+            useStore.getState().updateDebugConfig(path, value);
+        } else {
+            console.warn('updateDebugConfig not available in store');
         }
     };
 
@@ -372,7 +390,7 @@ const DebugInitializer = () => {
                     showInstances: true,
                     showInteractive: true,
                     showStatic: true,
-                    cameraMode: 'theatre' // 'theatre' ou 'free'
+                    cameraMode: 'free' // 'theatre' ou 'free'
                 };
 
                 // Obtenir les valeurs sauvegardées si disponibles
@@ -427,8 +445,6 @@ const DebugInitializer = () => {
 
                 // Camera mode control
                 const cameraModeOptions = {theatre: 'Theatre.js', free: 'Free Camera'};
-                const cameraModeControl = visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
-                    .name('Camera Mode');
 
                 visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
                     .name('Mode Caméra')
@@ -439,141 +455,165 @@ const DebugInitializer = () => {
                     visualizationFolder.close();
                 }
 
-
+                // Ajouter le dossier des points d'interaction
                 const interactionPointsFolder = gui.addFolder('Points d\'interaction');
 
-                // Récupérer les emplacements d'interaction depuis sceneObjectManager
-                const interactivePlacements = sceneObjectManager.getInteractivePlacements();
-
-                // Fonction pour téléporter la caméra à un emplacement spécifique
-                const teleportCamera = (interactionPoint) => {
-                    if (!camera) {
-                        console.warn("Camera not available for teleportation");
-                        return;
+                try {
+                    // Récupérer les emplacements d'interaction depuis sceneObjectManager de manière sécurisée
+                    let interactivePlacements = [];
+                    try {
+                        if (sceneObjectManager && typeof sceneObjectManager.getInteractivePlacements === 'function') {
+                            interactivePlacements = sceneObjectManager.getInteractivePlacements();
+                        } else {
+                            console.warn("sceneObjectManager not available or getInteractivePlacements is not a function");
+                        }
+                    } catch (error) {
+                        console.error("Error getting interactive placements:", error);
                     }
 
-                    try {
-                        // Extraire la position du point d'interaction
-                        const posX = interactionPoint.position[0] || 0;
-                        const posY = interactionPoint.position[1] || 0;
-                        const posZ = interactionPoint.position[2] || 0;
+                    // Fonction pour téléporter la caméra à un emplacement spécifique
+                    const teleportCamera = (interactionPoint) => {
+                        if (!camera) {
+                            console.warn("Camera not available for teleportation");
+                            return;
+                        }
 
-                        const interactionPos = new THREE.Vector3(posX, posY, posZ);
+                        try {
+                            // Extraire la position du point d'interaction
+                            const posX = interactionPoint.position[0] || 0;
+                            const posY = interactionPoint.position[1] || 0;
+                            const posZ = interactionPoint.position[2] || 0;
 
-                        // Position de la caméra légèrement en arrière et au-dessus du point d'interaction
-                        const cameraOffset = new THREE.Vector3(0, 2, 5);
+                            const interactionPos = new THREE.Vector3(posX, posY, posZ);
 
-                        // Position finale de la caméra
-                        const cameraPos = interactionPos.clone().add(cameraOffset);
+                            // Position de la caméra légèrement en arrière et au-dessus du point d'interaction
+                            const cameraOffset = new THREE.Vector3(0, 2, 5);
 
-                        console.log(`Teleporting camera to: ${cameraPos.x}, ${cameraPos.y}, ${cameraPos.z}`);
+                            // Position finale de la caméra
+                            const cameraPos = interactionPos.clone().add(cameraOffset);
 
-                        // Téléporter la caméra à la position calculée
-                        camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
+                            console.log(`Teleporting camera to: ${cameraPos.x}, ${cameraPos.y}, ${cameraPos.z}`);
+                            console.log(`Target position: ${interactionPos.x}, ${interactionPos.y}, ${interactionPos.z}`);
 
-                        // Faire la caméra regarder vers le point d'interaction
-                        camera.lookAt(interactionPos);
+                            // Obtenir le mode de caméra actuel depuis le store
+                            const cameraMode = useStore.getState().visualization?.cameraMode || 'theatre';
+                            console.log(`Current camera mode: ${cameraMode}`);
 
-                        // Mettre à jour la matrice de projection de la caméra
-                        camera.updateProjectionMatrix();
+                            // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
+                            if (cameraMode === 'theatre') {
+                                // Téléporter la caméra à la position calculée
+                                camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
 
-                        // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
-                        if (window.__theatreStudio && useStore.getState().visualization?.cameraMode === 'theatre') {
-                            console.log("Updating Theatre.js camera position");
+                                // Faire la caméra regarder vers le point d'interaction
+                                camera.lookAt(interactionPos);
 
-                            try {
-                                // Accéder à la feuille actuelle
-                                const project = getProject('WebGL_Gobelins');
-                                if (project) {
-                                    const sheet = project.sheet('Scene');
+                                // Mettre à jour la matrice de projection de la caméra
+                                camera.updateProjectionMatrix();
 
-                                    if (sheet) {
-                                        // Mise à jour de l'objet caméra dans Theatre.js
-                                        const obj = sheet.object('Camera');
+                                if (window.__theatreStudio) {
+                                    console.log("Updating Theatre.js camera position");
 
-                                        if (obj) {
-                                            obj.set({
-                                                position: {
-                                                    x: cameraPos.x, y: cameraPos.y, z: cameraPos.z
+                                    try {
+                                        // Accéder à la feuille actuelle
+                                        const project = getProject('WebGL_Gobelins');
+                                        if (project) {
+                                            const sheet = project.sheet('Scene');
+
+                                            if (sheet) {
+                                                // Mise à jour de l'objet caméra dans Theatre.js
+                                                const obj = sheet.object('Camera');
+
+                                                if (obj) {
+                                                    obj.set({
+                                                        position: {
+                                                            x: cameraPos.x, y: cameraPos.y, z: cameraPos.z
+                                                        }
+                                                    });
+
+                                                    console.log("Theatre.js camera position updated successfully");
                                                 }
-                                            });
-
-                                            console.log("Theatre.js camera position updated successfully");
+                                            }
                                         }
+                                    } catch (error) {
+                                        console.warn("Failed to update Theatre.js camera:", error);
                                     }
                                 }
-                            } catch (error) {
-                                console.warn("Failed to update Theatre.js camera:", error);
                             }
+
+                            // Mettre à jour la configuration de débogage
+                            updateDebugConfig('camera.position.x.value', cameraPos.x);
+                            updateDebugConfig('camera.position.y.value', cameraPos.y);
+                            updateDebugConfig('camera.position.z.value', cameraPos.z);
+
+                            // Émettre un événement pour informer d'autres composants (notamment CameraSwitcher)
+                            // C'est essentiel pour le mode free camera
+                            EventBus.trigger('camera-teleported', {position: cameraPos, target: interactionPos});
+
+                            return true;
+                        } catch (error) {
+                            console.error("Error teleporting camera:", error);
+                            return false;
                         }
-
-                        // Mettre à jour la configuration de débogage
-                        if (typeof useStore.getState().updateDebugConfig === 'function') {
-                            useStore.getState().updateDebugConfig('camera.position.x.value', cameraPos.x);
-                            useStore.getState().updateDebugConfig('camera.position.y.value', cameraPos.y);
-                            useStore.getState().updateDebugConfig('camera.position.z.value', cameraPos.z);
-                        }
-
-                        // Émettre un événement pour informer d'autres composants
-                        EventBus.trigger('camera-teleported', {position: cameraPos, target: interactionPos});
-
-                        return true;
-                    } catch (error) {
-                        console.error("Error teleporting camera:", error);
-                        return false;
-                    }
-                };
-
-                // Créer un objet pour stocker les fonctions de téléportation
-                const teleportFunctions = {};
-
-                // Ajouter des boutons pour se téléporter à chaque point d'interaction
-                interactivePlacements.forEach((placement, index) => {
-                    // Générer un nom unique pour ce point d'interaction
-                    const pointName = placement.markerText || placement.requiredStep || placement.markerId || `${placement.objectKey}_${index}`;
-
-                    // Créer une propriété unique pour cette fonction de téléportation
-                    const functionName = `teleportTo_${index}`;
-
-                    // Ajouter la fonction de téléportation à l'objet
-                    teleportFunctions[functionName] = () => {
-                        teleportCamera(placement);
                     };
 
-                    // Ajouter un bouton pour cette fonction
-                    interactionPointsFolder.add(teleportFunctions, functionName).name(`TP: ${pointName}`);
-                });
+                    // Créer un objet pour stocker les fonctions de téléportation
+                    const teleportFunctions = {};
 
-                // Ajouter une fonction pour désactiver le mouvement automatique de la caméra
-                teleportFunctions.disableAutoMove = () => {
-                    const state = useStore.getState();
+                    // Ajouter des boutons pour se téléporter à chaque point d'interaction
+                    interactivePlacements.forEach((placement, index) => {
+                        // Générer un nom unique pour ce point d'interaction
+                        const pointName = placement.markerText || placement.requiredStep || placement.markerId || `${placement.objectKey}_${index}`;
 
-                    // Si l'interaction a une méthode pour désactiver le défilement automatique
-                    if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
-                        state.interaction.setAllowScroll(false);
-                        console.log("Auto-scrolling disabled");
-                    }
-                };
+                        // Créer une propriété unique pour cette fonction de téléportation
+                        const functionName = `teleportTo_${index}`;
 
-                // Ajouter une fonction pour activer le mouvement automatique de la caméra
-                teleportFunctions.enableAutoMove = () => {
-                    const state = useStore.getState();
+                        // Ajouter la fonction de téléportation à l'objet
+                        teleportFunctions[functionName] = () => {
+                            teleportCamera(placement);
+                        };
 
-                    // Si l'interaction a une méthode pour activer le défilement automatique
-                    if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
-                        state.interaction.setAllowScroll(true);
-                        console.log("Auto-scrolling enabled");
-                    }
-                };
+                        // Ajouter un bouton pour cette fonction
+                        interactionPointsFolder.add(teleportFunctions, functionName).name(`TP: ${pointName}`);
+                    });
 
-                // Ajouter ces boutons
-                interactionPointsFolder.add(teleportFunctions, 'disableAutoMove').name("Désactiver AutoMove");
-                interactionPointsFolder.add(teleportFunctions, 'enableAutoMove').name("Activer AutoMove");
+                    // Ajouter une fonction pour désactiver le mouvement automatique de la caméra
+                    teleportFunctions.disableAutoMove = () => {
+                        const state = useStore.getState();
+
+                        // Si l'interaction a une méthode pour désactiver le défilement automatique
+                        if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                            state.interaction.setAllowScroll(false);
+                            console.log("Auto-scrolling disabled");
+                        }
+                    };
+
+                    // Ajouter une fonction pour activer le mouvement automatique de la caméra
+                    teleportFunctions.enableAutoMove = () => {
+                        const state = useStore.getState();
+
+                        // Si l'interaction a une méthode pour activer le défilement automatique
+                        if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                            state.interaction.setAllowScroll(true);
+                            console.log("Auto-scrolling enabled");
+                        }
+                    };
+
+                    // Ajouter ces boutons
+                    interactionPointsFolder.add(teleportFunctions, 'disableAutoMove').name("Désactiver AutoMove");
+                    interactionPointsFolder.add(teleportFunctions, 'enableAutoMove').name("Activer AutoMove");
+
+                } catch (error) {
+                    console.error("Error setting up interaction points:", error);
+                    // Ajouter un message d'erreur dans le dossier
+                    const errorObj = { message: "Erreur: sceneObjectManager non disponible" };
+                    interactionPointsFolder.add(errorObj, 'message').name("ERREUR").disable();
+                }
 
                 // Fermer le dossier si configuré ainsi
                 if (guiConfig.gui.closeFolders) {
                     interactionPointsFolder.close();
                 }
+
                 // Stocker l'interface GUI
                 setGui(gui);
                 console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
@@ -581,32 +621,28 @@ const DebugInitializer = () => {
             } catch (error) {
                 console.error('Error initializing debug GUI:', error);
                 initializedRef.current = false;
-                }
             }
-
-            // Cleanup function - destroy GUI on unmount
-            return () => {
-                try {
-                    const {gui} = useStore.getState();
-                    if (gui) {
-                        gui.destroy();
-                        setGui(null);
-                        initializedRef.current = false;
-                        foldersRef.current.clear(); // Nettoyer la référence aux dossiers
-                        warningShownRef.current.clear(); // Nettoyer la liste des avertissements
-                    }
-                } catch (error) {
-                    console.error('Error cleaning up debug GUI:', error);
-                }
-            };
         }
-    ,
-        [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]
-    )
-        ;
 
-        // This component doesn't render anything
-        return null;
-    };
+        // Cleanup function - destroy GUI on unmount
+        return () => {
+            try {
+                const {gui} = useStore.getState();
+                if (gui) {
+                    gui.destroy();
+                    setGui(null);
+                    initializedRef.current = false;
+                    foldersRef.current.clear(); // Nettoyer la référence aux dossiers
+                    warningShownRef.current.clear(); // Nettoyer la liste des avertissements
+                }
+            } catch (error) {
+                console.error('Error cleaning up debug GUI:', error);
+            }
+        };
+    }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);
 
-    export default DebugInitializer;
+    // This component doesn't render anything
+    return null;
+};
+
+export default DebugInitializer;
