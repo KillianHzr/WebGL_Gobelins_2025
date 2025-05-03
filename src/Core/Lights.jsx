@@ -1,5 +1,5 @@
 // Mise à jour du fichier Lights.jsx pour implémenter l'interface GUI visible dans l'image
-import {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {useThree, useFrame} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
@@ -252,7 +252,17 @@ export default function Lights() {
                 intensity={lightSettingsRef.current.current.ambientIntensity}
                 color={lightSettingsRef.current.current.ambientColor}
             />
-
+            {/*<spotLight*/}
+            {/*    position={[-6, 1, 14]}*/}
+            {/*    intensity={20.5}*/}
+            {/*    angle={Math.PI / 4}*/}
+            {/*    penumbra={0.5}*/}
+            {/*    distance={15}*/}
+            {/*    castShadow*/}
+            {/*    shadow-bias={-0.001}*/}
+            {/*    decay={1.5}*/}
+            {/*    visible={true}*/}
+            {/*/>*/}
             {/* Lumière principale (point light) */}
             <pointLight
                 ref={directionalLightRef}

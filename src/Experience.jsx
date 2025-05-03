@@ -19,8 +19,7 @@ import InteractiveMarkersProvider from './Utils/MarkerSystem';
 import MARKER_EVENTS from "./Utils/EventEmitter.jsx";
 import SceneObjects from './World/SceneObjects';
 import guiConfig from "./Config/guiConfig.js";
-
-
+import Flashlight from "./World/Flashlight.jsx";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -46,7 +45,6 @@ export default function Experience() {
 
         debugLog('Renderer initialized with consistent settings');
     }, [gl]);
-
 
     // Gestion optimisée des événements des marqueurs
     useEffect(() => {
@@ -134,11 +132,7 @@ export default function Experience() {
             if (window.__theatreStudio) {
                 window.__theatreStudio.ui.hide();
             }
-
-            // Parcourir la scène une seule fois pour initialiser les lumières
-
         }
-
 
         // Nettoyage lors du démontage
         return () => {
@@ -183,6 +177,9 @@ export default function Experience() {
 
                         {/* La forêt avec ses instances nombreuses (instanced meshes) */}
                         {forestScene}
+
+                        {/* Ajout du composant Flashlight */}
+                        <Flashlight/>
                     </ScrollControls>
                 </InteractiveMarkersProvider>
             </RayCaster>

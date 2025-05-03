@@ -21,6 +21,7 @@ const guiFolderConfig = {
         "Audio": true,            // Contrôles audio
         "Interfaces": true,       // Contrôles des interfaces
         "Utils": true,            // Utilitaires (import/export)
+        "Flashlight": true,      // Contrôles de la lampe torche
 
         // Sous-dossiers (format "parent/enfant")
         "Controls/Auto Rotation": true,
@@ -93,7 +94,9 @@ const guiFolderConfig = {
             "Objects": false,
             "Audio": false,
             "Interfaces": false,
-            "Utils": false
+            "Utils": false,
+            "Flashlight": true,      // Contrôles de la lampe torche
+
         },
         "developer": {
             // Profil pour les développeurs
@@ -110,7 +113,9 @@ const guiFolderConfig = {
             "Objects": true,
             "Audio": true,
             "Interfaces": true,
-            "Utils": true
+            "Utils": true,
+            "Flashlight": true,      // Contrôles de la lampe torche
+
         },
         "performance": {
             // Profil pour tester les performances

@@ -364,7 +364,7 @@ export default function Forest() {
 
         // Prendre un lot de chunks à traiter
         const batch = queue.splice(0, LOADING_CONFIG.BATCH_SIZE);
-        console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
+        // console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
 
         // Précharger les textures pour les types d'objets du lot
         const objectTypes = [...new Set(batch.map(chunk => chunk.objectId))];
@@ -681,7 +681,7 @@ export default function Forest() {
     const preloadTexturesForModels = async (modelIds) => {
         if (!textureManager) return {};
 
-        console.log('Preloading textures for all models...');
+        // console.log('Preloading textures for all models...');
         const loadedTextures = {};
 
         // Load textures for each model in parallel
@@ -691,7 +691,7 @@ export default function Forest() {
                     const textures = await textureManager.preloadTexturesForModel(modelId);
                     if (textures) {
                         loadedTextures[modelId] = textures;
-                        console.log(`Textures preloaded for ${modelId}`);
+                        // console.log(`Textures preloaded for ${modelId}`);
                     }
                 } catch (error) {
                     console.warn(`Error preloading textures for ${modelId}:`, error);

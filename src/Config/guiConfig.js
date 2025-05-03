@@ -17,6 +17,63 @@ const guiConfig = {
             default: true
         }
     },
+    flashlight: {
+        folder: 'Flashlight',
+        intensity: {
+            default: 2.5,
+            min: 0.1,
+            max: 10.0,
+            step: 0.1
+        },
+        color: {
+            default: '#fff4ad'
+        },
+        angle: {
+            default: Math.PI / 5,
+            min: Math.PI / 12,
+            max: Math.PI / 2,
+            step: 0.01
+        },
+        penumbra: {
+            default: 0.66,
+            min: 0,
+            max: 1,
+            step: 0.01
+        },
+        distance: {
+            default: 4,
+            min: 1,
+            max: 50,
+            step: 0.5
+        },
+        decay: {
+            default: 1.0,
+            min: 0,
+            max: 2,
+            step: 0.1
+        },
+        shadows: {
+            enabled: {
+                default: true
+            },
+            mapSize: {
+                default: 512,
+                options: [256, 512, 1024, 2048, 4096]
+            },
+            bias: {
+                default: -0.001,
+                min: -0.01,
+                max: 0.01,
+                step: 0.0001
+            },
+            normalBias: {
+                default: 0,
+                min: -0.05,
+                max: 0.05,
+                step: 0.001
+            }
+        }
+    },
     // Nouvelle section pour les contrôles de visualisation générale
     visualization: {
         folder: "Visualisation",

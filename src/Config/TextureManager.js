@@ -570,8 +570,8 @@ class TextureManager {
             metalness: materialProperties.metalness
         });
 
-        console.log(`Création d'un nouveau matériau pour ${modelId} avec options:`, optionsWithLOD);
-        console.log(`Propriétés appliquées: roughness=${materialProperties.roughness}, metalness=${materialProperties.metalness}`);
+        // console.log(`Création d'un nouveau matériau pour ${modelId} avec options:`, optionsWithLOD);
+        // console.log(`Propriétés appliquées: roughness=${materialProperties.roughness}, metalness=${materialProperties.metalness}`);
         this.stats.materialsCreated++;
 
         // Précharger et appliquer les textures de manière asynchrone
@@ -583,12 +583,12 @@ class TextureManager {
                         ...materialProperties,  // Inclure les propriétés spécifiques du matériau
                         modelId: modelId
                     });
-                    console.log(`Textures appliquées au matériau ${modelId}`);
+                    // console.log(`Textures appliquées au matériau ${modelId}`);
 
                     // Si ce matériau est le premier pour son groupe, l'utiliser aussi comme matériau de groupe
                     if (options.useGroupMaterial && group && !this.materialPool[groupKey]) {
                         this.materialPool[groupKey] = material;
-                        console.log(`Matériau de référence créé pour le groupe ${group}`);
+                        // console.log(`Matériau de référence créé pour le groupe ${group}`);
                     }
                 }
             })
@@ -724,7 +724,7 @@ class TextureManager {
                     material.envMapIntensity = config.envMapIntensity *
                         (config.lod === 'high' ? 1.0 : 0.5); // Réduire l'intensité pour medium
                     material.needsUpdate = true;
-                    console.log(`EnvMap appliquée avec une intensité de ${material.envMapIntensity}`);
+                    // console.log(`EnvMap appliquée avec une intensité de ${material.envMapIntensity}`);
                 }
             }
 
