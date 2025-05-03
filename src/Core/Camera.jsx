@@ -3,6 +3,7 @@ import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import * as THREE from 'three';
+import {Mesh, SRGBColorSpace, TextureLoader} from 'three';
 
 export default function Camera() {
     const {camera, gl, scene} = useThree();
@@ -20,6 +21,52 @@ export default function Camera() {
         shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
+    useEffect(() => {
+        const loader = new TextureLoader();
+
+        // Liste des chemins possibles à tester
+        const possibleBackgroundPaths = [
+            '/textures/Background.png',
+        ];
+
+        const tryLoadTexture = (paths) => {
+            if (paths.length === 0) {
+                console.error('Aucun chemin de texture de fond valide trouvé');
+                return;
+            }
+
+            const currentPath = paths[0];
+            console.log(`Tentative de chargement de la texture depuis : ${currentPath}`);
+
+            loader.load(
+                currentPath,
+                (texture) => {
+                    // Succès du chargement
+                    console.log(`Texture chargée avec succès depuis : ${currentPath}`);
+
+                    // Configurer correctement l'espace de couleur
+                    texture.colorSpace = SRGBColorSpace;
+
+
+                    // Ajouter le mesh de fond à la scène
+                    scene.background = texture;
+                },
+                // Progression du chargement
+                (xhr) => {
+                    console.log(`Chargement de ${currentPath}: ${(xhr.loaded / xhr.total * 100)}% chargé`);
+                },
+                // Gestion des erreurs
+                (error) => {
+                    console.error(`Erreur de chargement de la texture depuis ${currentPath}:`, error);
+                    // Essayer le prochain chemin
+                    tryLoadTexture(paths.slice(1));
+                }
+            );
+        };
+
+        // Commencer à essayer de charger la texture
+        tryLoadTexture(possibleBackgroundPaths);
+    }, [scene]);
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
         // Appliquer les valeurs par défaut indépendamment du mode debug

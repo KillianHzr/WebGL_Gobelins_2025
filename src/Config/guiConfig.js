@@ -298,11 +298,7 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-        background: {
-            color: "#000000",
-            name: "Background",
-            default: "#000000"
-        },
+
         fog: {
             enabled: {
                 name: "Fog",

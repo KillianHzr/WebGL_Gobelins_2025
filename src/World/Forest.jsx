@@ -5,7 +5,6 @@ import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
 import {textureManager} from '../Config/TextureManager';
-import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
 import {MeshStandardMaterial} from "three";
 
 // -------------------- CONFIGURABLE LOD PARAMETERS --------------------

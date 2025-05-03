@@ -169,7 +169,6 @@ export default function Experience() {
             <RayCaster>
                 <InteractiveMarkersProvider>
                     <ScrollControls>
-                        <color attach="background" args={['#1e1e2f']}/>
 
                         {/* Utiliser le composant principal qui affiche tous les objets de scène
                             avec les placements par défaut du SceneObjectManager */}

@@ -1,5 +1,16 @@
-import {DoubleSide, RepeatWrapping, TextureLoader, MeshStandardMaterial, Mesh, Group, MeshBasicMaterial, Matrix4, MathUtils} from "three";
-import {LinearEncoding, sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
+import {
+    DoubleSide,
+    RepeatWrapping,
+    TextureLoader,
+    MeshStandardMaterial,
+    Mesh,
+    Group,
+    MeshBasicMaterial,
+    Matrix4,
+    MathUtils,
+    SRGBColorSpace, LinearFilter
+} from "three";
+import {LinearEncoding} from "@react-three/drei/helpers/deprecated.js";
 
 /**
  * TextureManager - Version optimisée avec fusion de matériaux et configuration précise des propriétés
@@ -431,15 +442,15 @@ class TextureManager {
                     texturePath,
                     (texture) => {
                         // Configuration standard pour les textures
-                        texture.encoding = sRGBEncoding;
+                        texture.encoding = SRGBColorSpace;
                         texture.wrapS = RepeatWrapping;
                         texture.wrapT = RepeatWrapping;
                         texture.flipY = false;
 
                         // Réduire la résolution selon le LOD actuel
                         if (lodScale < 1.0) {
-                            texture.minFilter = THREE.LinearFilter;
-                            texture.magFilter = THREE.LinearFilter;
+                            texture.minFilter = LinearFilter;
+                            texture.magFilter = LinearFilter;
                             // Simuler une réduction de résolution en ajustant l'anisotropie
                             texture.anisotropy = Math.max(1, Math.floor(16 * lodScale));
                         }
@@ -513,7 +524,7 @@ class TextureManager {
         switch (textureType) {
             case 'baseColor':
             case 'diffuse':
-                texture.encoding = sRGBEncoding;
+                texture.encoding = SRGBColorSpace;
                 break;
             case 'normal':
             case 'normalOpenGL':
