@@ -60,7 +60,7 @@ export default function ForestScene() {
         <>
             {/*{mapComponent}*/}
             {forestComponent}
-            {waterComponent}
+            {/*{waterComponent}*/}
         </>
     );
 }
