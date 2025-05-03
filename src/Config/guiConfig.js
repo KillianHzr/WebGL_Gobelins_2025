@@ -305,7 +305,7 @@ const guiConfig = {
                 default: true
             },
             color: {
-                color: "#6a74fb",
+                color: "#ffffff",
                 name: "Fog Color",
                 default: "#1E6B31"
             },
@@ -330,7 +330,7 @@ const guiConfig = {
                     max: 1,
                     step: 0.01,
                     name: "Start Point",
-                    default: 0.3
+                    default: 0.0
                 },
                 endPoint: {
                     min: 0,
@@ -351,7 +351,7 @@ const guiConfig = {
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 20
+                    default: 25
                 }
             }
         }
