@@ -98,6 +98,23 @@ const guiFolderConfig = {
             "Flashlight": true,      // Contrôles de la lampe torche
 
         },
+        "empty": {
+            "Theatre.js": false,
+            "Visualisation": false,
+            "Camera": false,
+            "Render": false,
+            "Controls": false,
+            "Scene": false,
+            "Renderer": false,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
+            "Materials": false,
+            "Lights": false,
+            "Effects": false,
+            "Objects": false,
+            "Audio": false,
+            "Interfaces": false,
+            "Utils": false,
+            "Flashlight": false,
+        },
         "developer": {
             // Profil pour les développeurs
             "Theatre.js": true,

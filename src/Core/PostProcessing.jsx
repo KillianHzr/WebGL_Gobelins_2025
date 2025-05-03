@@ -57,32 +57,32 @@ export default function PostProcessing() {
         composerRef.current = composer;
 
         // Ajouter les contrôles GUI si disponibles
-        if (gui) {
-            const grainFolder = gui.addFolder('Film Grain');
-
-            // Contrôle de l'intensité du grain
-            const intensityController = grainFolder.add(grainSettingsRef.current, 'intensity', 0, 0.15, 0.001)
-                .name('Intensity')
-                .onChange(value => {
-                    // Si le grain est déjà activé, mettre à jour
-                    if (grainPassRef.current) {
-                        grainPassRef.current.uniforms.grainIntensity.value = value;
-                    }
-                });
-
-            // Contrôle des FPS du grain
-            grainFolder.add(grainSettingsRef.current, 'fps', 1, 60, 1)
-                .name('Grain Update FPS')
-                .onChange(value => {
-                    // Si le grain est déjà activé, mettre à jour
-                    if (grainPassRef.current) {
-                        grainPassRef.current.uniforms.grainFPS.value = value;
-                    }
-                });
-
-            // Fermer le dossier par défaut
-            grainFolder.close();
-        }
+        // if (gui) {
+        //     const grainFolder = gui.addFolder('Film Grain');
+        //
+        //     // Contrôle de l'intensité du grain
+        //     const intensityController = grainFolder.add(grainSettingsRef.current, 'intensity', 0, 0.15, 0.001)
+        //         .name('Intensity')
+        //         .onChange(value => {
+        //             // Si le grain est déjà activé, mettre à jour
+        //             if (grainPassRef.current) {
+        //                 grainPassRef.current.uniforms.grainIntensity.value = value;
+        //             }
+        //         });
+        //
+        //     // Contrôle des FPS du grain
+        //     grainFolder.add(grainSettingsRef.current, 'fps', 1, 60, 1)
+        //         .name('Grain Update FPS')
+        //         .onChange(value => {
+        //             // Si le grain est déjà activé, mettre à jour
+        //             if (grainPassRef.current) {
+        //                 grainPassRef.current.uniforms.grainFPS.value = value;
+        //             }
+        //         });
+        //
+        //     // Fermer le dossier par défaut
+        //     grainFolder.close();
+        // }
 
         // Cleanup
         return () => {
