@@ -12,9 +12,6 @@ export default function ForestScene() {
     const {scene, gl} = useThree();
 
     useEffect(() => {
-        // Configurer le renderer
-        // configureRenderer(gl);
-
 
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {
@@ -48,6 +45,13 @@ export default function ForestScene() {
             console.log('La scène forestière est entièrement chargée');
             // Émettre un événement pour indiquer que tout est prêt
             EventBus.trigger('forest-scene-ready');
+
+            // Afficher les instructions de contrôle
+            console.log(`
+INSTRUCTIONS DE CONTRÔLE:
+- Touche E: Afficher/Masquer le groupe des objets "End"
+- Touche S: Afficher/Masquer le groupe des écrans
+`);
         }
     }, [mapReady, forestReady]);
 
@@ -60,7 +64,7 @@ export default function ForestScene() {
         <>
             {/*{mapComponent}*/}
             {forestComponent}
-            {/*{waterComponent}*/}
+            {waterComponent}
         </>
     );
 }

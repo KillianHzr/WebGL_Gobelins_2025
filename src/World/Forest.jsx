@@ -5,35 +5,25 @@ import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
 import {textureManager} from '../Config/TextureManager';
-import {MeshStandardMaterial} from "three";
 
 // -------------------- CONFIGURABLE LOD PARAMETERS --------------------
 const LOD_CONFIG = {
-    MAX_DETAIL_DISTANCE: 60,
-    MIN_DETAIL_DISTANCE: 90,
-    LOD_LEVELS: 2,
-    MIN_DETAIL_PERCENTAGE: 0.1,
-    DEBUG_LOD: false
+    MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 2, MIN_DETAIL_PERCENTAGE: 0.1, DEBUG_LOD: false
 };
 
-// Nouveau: Configuration du chargement progressif
+// Configuration du chargement progressif
 const LOADING_CONFIG = {
     // Nombre maximum d'objets à charger par lot
-    BATCH_SIZE: 5,
-    // Délai entre les lots (ms)
-    BATCH_DELAY: 20,
-    // Rayon autour de la caméra pour la priorisation
-    PRIORITY_RADIUS: 100,
-    // Nombre maximum de threads WebWorker pour la géométrie
-    MAX_WORKERS: 2,
-    // Active le cache de géométrie
-    ENABLE_GEOMETRY_CACHE: true,
-    // Taille du chunk pour le regroupement des instances
+    BATCH_SIZE: 5, // Délai entre les lots (ms)
+    BATCH_DELAY: 20, // Rayon autour de la caméra pour la priorisation
+    PRIORITY_RADIUS: 100, // Nombre maximum de threads WebWorker pour la géométrie
+    MAX_WORKERS: 2, // Active le cache de géométrie
+    ENABLE_GEOMETRY_CACHE: true, // Taille du chunk pour le regroupement des instances
     CHUNK_SIZE: 40
 };
 // ----------------------------------------------------------------------
 
-// Nouveau: Cache de géométrie partagé entre les instances
+// Cache de géométrie partagé entre les instances
 const GeometryCache = {
     cache: new Map(),
 
@@ -66,8 +56,18 @@ const GeometryCache = {
 export default function Forest() {
     const {scene, camera} = useThree();
     const forestRef = useRef(new THREE.Group());
+    const endGroupRef = useRef(new THREE.Group());  // Groupe pour les objets "End"
+    const screenGroupRef = useRef(new THREE.Group()); // Groupe pour les écrans
     const assetManager = window.assetManager;
     const eventEmitter = useEventEmitter();
+
+
+    const endGroupVisible = useStore(state => state.endGroupVisible);
+    const screenGroupVisible = useStore(state => state.screenGroupVisible);
+    const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
+    const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
+    const toggleEndGroupVisible = useStore(state => state.toggleEndGroupVisible);
+    const toggleScreenGroupVisible = useStore(state => state.toggleScreenGroupVisible);
 
     // Refs pour stocker les données et l'état
     const objectPositionsRef = useRef(null);
@@ -78,7 +78,7 @@ export default function Forest() {
     const frameSkipRef = useRef(0);
     const FRAME_SKIP = 2;
 
-    // Nouveaux refs pour le chargement prioritaire
+    // Refs pour le chargement prioritaire
     const loadingQueueRef = useRef([]);
     const isLoadingRef = useRef(false);
     const loadedChunksRef = useRef(new Set());
@@ -88,41 +88,169 @@ export default function Forest() {
     const frustumRef = useRef(new THREE.Frustum());
     const projScreenMatrixRef = useRef(new THREE.Matrix4());
 
+    // Fonction pour basculer la visibilité d'un groupe
+    const toggleGroupVisibility = (groupRef, currentVisibility, setVisibility) => {
+        const newVisibility = !currentVisibility;
+        if (groupRef.current) {
+            groupRef.current.visible = newVisibility;
+        }
+        setVisibility(newVisibility);
+        return newVisibility;
+    };
+
+    // In your useEffect for displaying group info
+    useEffect(() => {
+        // Add a delay to ensure groups are initialized
+        setTimeout(() => {
+            if (forestRef.current && endGroupRef.current && screenGroupRef.current) {
+                console.log(`Groupes initialisés avec succès:`);
+                console.log(`- Forest principal: ${forestRef.current.children.length} objets directs`);
+                console.log(`- Groupe "End": ${endGroupRef.current.children.length} objets`);
+                console.log(`- Groupe "Screen": ${screenGroupRef.current.children.length} objets`);
+
+                // Display usage instructions
+                console.log(`
+INSTRUCTIONS DE CONTRÔLE:
+- Touche E: Afficher/Masquer le groupe "End" (actuellement ${endGroupVisible ? 'visible' : 'caché'})
+- Touche S: Afficher/Masquer le groupe "Screen" (actuellement ${screenGroupVisible ? 'visible' : 'caché'})
+`);
+            }
+        }, 5000); // Check after 5 seconds of loading
+    }, [endGroupVisible, screenGroupVisible]); // Add dependencies to re-run when visibility changes
+
     useEffect(() => {
         console.log('Forest: Component mounted');
-        console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` +
-            `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` +
-            `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
+        console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` + `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` + `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
 
-        // Créer le groupe principal
+        // Create the main group and subgroups
         const forestGroup = new THREE.Group();
         forestGroup.name = 'Forest';
+
+        // Create the group for "End" objects
+        const endGroup = new THREE.Group();
+        endGroup.name = 'EndObjects';
+        endGroup.visible = endGroupVisible; // Use store value
+        forestGroup.add(endGroup);
+        endGroupRef.current = endGroup;
+
+        // Create the group for screens
+        const screenGroup = new THREE.Group();
+        screenGroup.name = 'ScreenObjects';
+        screenGroup.visible = screenGroupVisible; // Use store value
+        forestGroup.add(screenGroup);
+        screenGroupRef.current = screenGroup;
+
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Nouveau: Initialiser le pool de workers
+        // Add keyboard event listener
+        window.addEventListener('keydown', handleKeyPress);
+
+
+        const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
+            console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+        });
+        const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
+            console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+        });
+
+        // Initialiser le pool de workers
         initializeWorkerPool();
 
         // Charger les données de la forêt
         initForestLoading();
 
+
+        forceGroupVisibility(true);
         // Nettoyer les ressources
         return () => {
             cleanupResources();
+            window.removeEventListener('keydown', handleKeyPress);
+            endGroupUnsubscribe();
+            screenGroupUnsubscribe();
         };
     }, [scene, camera, assetManager]);
 
-    // Nouveau: Initialiser le pool de workers pour la création de géométrie
+    const handleKeyPress = (event) => {
+        if (event.key === 'e' || event.key === 'E') {
+            // Obtenir l'état actuel
+            const currentVisibility = useStore.getState().endGroupVisible;
+            const newVisibility = !currentVisibility;
+
+            console.log(`Touche E pressée - Visibilité du groupe "End": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
+
+            // 1. Mettre à jour l'état dans le store
+            useStore.getState().setEndGroupVisible(newVisibility);
+
+            // 2. Mettre à jour directement la référence du DOM
+            if (endGroupRef.current) {
+                endGroupRef.current.visible = newVisibility;
+            }
+
+            // 3. Émettre un événement unique avec le nouvel état
+            EventBus.trigger('end-group-visibility-changed', newVisibility);
+        }
+
+        if (event.key === 's' || event.key === 'S') {
+            // Même logique pour le groupe Screen
+            const currentVisibility = useStore.getState().screenGroupVisible;
+            const newVisibility = !currentVisibility;
+
+            console.log(`Touche S pressée - Visibilité du groupe "Screen": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
+
+            useStore.getState().setScreenGroupVisible(newVisibility);
+
+            if (screenGroupRef.current) {
+                screenGroupRef.current.visible = newVisibility;
+            }
+
+            EventBus.trigger('screen-group-visibility-changed', newVisibility);
+        }
+    };
+
+    useEffect(() => {
+        // Synchroniser les objets Three.js avec l'état du store
+        if (endGroupRef.current) {
+            endGroupRef.current.visible = endGroupVisible;
+            console.log(`Groupe "End" visibilité synchronisée: ${endGroupVisible ? 'visible' : 'caché'}`);
+        }
+
+        if (screenGroupRef.current) {
+            screenGroupRef.current.visible = screenGroupVisible;
+            console.log(`Groupe "Screen" visibilité synchronisée: ${screenGroupVisible ? 'visible' : 'caché'}`);
+        }
+    }, [endGroupVisible, screenGroupVisible]);
+    const forceGroupVisibility = (force = true) => {
+        console.log(`Force visibility appelé avec: ${force ? 'visible' : 'caché'}`);
+
+        // Mettre à jour le store
+        useStore.getState().setEndGroupVisible(force);
+        useStore.getState().setScreenGroupVisible(force);
+
+        // Appliquer directement aux références
+        if (endGroupRef.current) {
+            endGroupRef.current.visible = force;
+        }
+
+        if (screenGroupRef.current) {
+            screenGroupRef.current.visible = force;
+        }
+
+        // Émettre les événements
+        EventBus.trigger('end-group-visibility-changed', force);
+        EventBus.trigger('screen-group-visibility-changed', force);
+    };
+
+    // Initialiser le pool de workers pour la création de géométrie
     const initializeWorkerPool = () => {
         // On pourrait implémenter ici un pool de Web Workers pour la création de géométrie
         // Mais pour la simplicité, nous allons simuler le comportement
         workerPoolRef.current = Array(LOADING_CONFIG.MAX_WORKERS).fill(null).map(() => ({
-            busy: false,
-            id: Math.random().toString(36).substring(7)
+            busy: false, id: Math.random().toString(36).substring(7)
         }));
     };
 
-    // Nouveau: Fonction principale de chargement de la forêt
+    // Fonction principale de chargement de la forêt
     const initForestLoading = async () => {
         try {
             // 1. Charger les positions d'abord
@@ -162,29 +290,22 @@ export default function Forest() {
             console.log('Loading object positions from JSON...');
 
             // Essayer les chemins possibles
-            const paths = [
-                './data/treePositions.json',
-                '/data/treePositions.json',
-                '../data/treePositions.json',
-                'treePositions.json'
-            ];
+            const paths = ['./data/treePositions.json', '/data/treePositions.json', '../data/treePositions.json', 'treePositions.json'];
 
             // Promise.race pour prendre le premier chemin qui fonctionne
-            const fetchPromises = paths.map(path =>
-                fetch(path)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`Path ${path} failed`);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log(`Successfully loaded from ${path}`);
-                        return data;
-                    })
-                    .catch(err => {
-                        console.log(`Path ${path} failed:`, err.message);
-                        return null;
-                    })
-            );
+            const fetchPromises = paths.map(path => fetch(path)
+                .then(response => {
+                    if (!response.ok) throw new Error(`Path ${path} failed`);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(`Successfully loaded from ${path}`);
+                    return data;
+                })
+                .catch(err => {
+                    console.log(`Path ${path} failed:`, err.message);
+                    return null;
+                }));
 
             // Ajouter un fallback pour le store
             const storePromise = new Promise(resolve => {
@@ -234,7 +355,7 @@ export default function Forest() {
                     // Vérifier si le modèle est déjà chargé
                     const model = assetManager.getItem(assetName);
                     if (model) {
-                        resolve({ name: assetName, model });
+                        resolve({name: assetName, model});
                         return;
                     }
 
@@ -243,7 +364,7 @@ export default function Forest() {
                         if (loadedName === assetName) {
                             // Désabonner pour éviter les fuites de mémoire
                             assetManager.off('assetLoaded', onAssetLoaded);
-                            resolve({ name: assetName, model: loadedModel });
+                            resolve({name: assetName, model: loadedModel});
                         }
                     };
 
@@ -262,7 +383,7 @@ export default function Forest() {
 
             // Convertir en objet
             const modelObject = {};
-            loadedModels.forEach(({ name, model }) => {
+            loadedModels.forEach(({name, model}) => {
                 modelObject[name] = model;
             });
 
@@ -274,7 +395,7 @@ export default function Forest() {
         }
     };
 
-    // Nouveau: Préparation de la file d'attente de chargement
+    // Préparation de la file d'attente de chargement
     const prepareLoadingQueue = (positions) => {
         if (!positions || !camera) return;
 
@@ -284,9 +405,7 @@ export default function Forest() {
 
         // Créer des chunks pour chaque type d'objet
         Object.keys(positions).forEach(objectId => {
-            if (objectId === templateManager.undefinedCategory ||
-                !positions[objectId] ||
-                positions[objectId].length === 0) {
+            if (objectId === templateManager.undefinedCategory || !positions[objectId] || positions[objectId].length === 0) {
                 return;
             }
 
@@ -305,11 +424,7 @@ export default function Forest() {
                         chunkZ,
                         chunkId,
                         positions: [],
-                        center: new THREE.Vector3(
-                            (chunkX + 0.5) * CHUNK_SIZE,
-                            0,
-                            (chunkZ + 0.5) * CHUNK_SIZE
-                        )
+                        center: new THREE.Vector3((chunkX + 0.5) * CHUNK_SIZE, 0, (chunkZ + 0.5) * CHUNK_SIZE)
                     };
                 }
 
@@ -322,9 +437,7 @@ export default function Forest() {
                 const distanceToCamera = chunk.center.distanceTo(cameraPosition);
 
                 queue.push({
-                    ...chunk,
-                    distanceToCamera,
-                    priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
+                    ...chunk, distanceToCamera, priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
                 });
             });
         });
@@ -339,7 +452,7 @@ export default function Forest() {
         loadingQueueRef.current = queue;
     };
 
-    // Nouveau: Lancement du chargement progressif
+    // Lancement du chargement progressif
     const startProgressiveLoading = () => {
         if (isLoadingRef.current || loadingQueueRef.current.length === 0) return;
 
@@ -347,7 +460,7 @@ export default function Forest() {
         processNextBatch();
     };
 
-    // Nouveau: Traitement d'un lot de chunks
+    // Traitement d'un lot de chunks
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
 
@@ -370,9 +483,7 @@ export default function Forest() {
         const preloadedTextures = await preloadTexturesForModels(objectTypes);
 
         // Traiter chaque chunk du lot en parallèle
-        await Promise.all(batch.map(chunk =>
-            createChunkInstances(chunk, preloadedTextures)
-        ));
+        await Promise.all(batch.map(chunk => createChunkInstances(chunk, preloadedTextures)));
 
         // Planifier le prochain lot après un court délai
         setTimeout(() => {
@@ -380,9 +491,9 @@ export default function Forest() {
         }, LOADING_CONFIG.BATCH_DELAY);
     };
 
-    // Nouveau: Création des instances pour un chunk
+    // Création des instances pour un chunk avec répartition dans les groupes
     const createChunkInstances = async (chunk, preloadedTextures) => {
-        const { objectId, chunkId, positions, center } = chunk;
+        const {objectId, chunkId, positions, center} = chunk;
 
         // Vérifier si ce chunk a déjà été traité
         if (loadedChunksRef.current.has(chunkId)) {
@@ -401,18 +512,22 @@ export default function Forest() {
             }
 
             // Créer les instances LOD pour ce chunk
-            const instances = await createLodInstancedMeshesForChunk(
-                objectId,
-                model,
-                positions,
-                preloadedTextures,
-                center,
-                chunkId
-            );
+            const instances = await createLodInstancedMeshesForChunk(objectId, model, positions, preloadedTextures, center, chunkId);
 
-            // Ajouter les instances au groupe de la forêt et à la liste des instances
+            // Déterminer à quel groupe l'objet appartient
+            let targetGroup = forestRef.current;
+
+            if (objectId.includes('Screen') || objectId === 'ScreenOld' || objectId === 'Screen') {
+                // Les écrans vont dans le groupe des écrans
+                targetGroup = screenGroupRef.current;
+            } else if (objectId.includes('End')) {
+                // Les objets avec "End" dans leur ID vont dans le groupe "End"
+                targetGroup = endGroupRef.current;
+            }
+
+            // Ajouter les instances au groupe approprié et à la liste des instances
             instances.forEach(instance => {
-                forestRef.current.add(instance);
+                targetGroup.add(instance);
                 lodInstancesRef.current.push(instance);
             });
 
@@ -421,13 +536,7 @@ export default function Forest() {
         }
     };
 
-    // Modifié: Création des instances LOD pour un chunk spécifique
-    /**
-     * Extrait optimisé de Forest.jsx qui concerne la création des instances et l'application des textures
-     * Cette version utilise le TextureManagerOptimized pour éviter les duplications de textures
-     */
-
-// Modifié: Création des instances LOD pour un chunk spécifique
+    // Création des instances LOD pour un chunk spécifique
     const createLodInstancedMeshesForChunk = async (objectId, model, positions, preloadedTextures, chunkCenter, chunkId) => {
         if (!positions || positions.length === 0) {
             return [];
@@ -451,8 +560,7 @@ export default function Forest() {
         // OPTIMISATION: Au lieu de créer un nouveau matériau chaque fois,
         // utiliser le gestionnaire de textures optimisé pour obtenir un matériau réutilisable
         const material = textureManager.getMaterial(objectId, {
-            aoIntensity: 0.0,
-            alphaTest: 1.0
+            aoIntensity: 0.0, alphaTest: 1.0
         });
 
         // Créer les instances LOD
@@ -469,13 +577,9 @@ export default function Forest() {
             const detailLevel = level === 0 ? 1.0 : 1.0 - (level / (lodLevels - 1));
 
             // Calculer la plage de distance pour ce niveau LOD
-            const minDistance = level === 0 ? 0 :
-                LOD_CONFIG.MAX_DETAIL_DISTANCE +
-                (level - 1) / (lodLevels - 1) * distanceRange;
+            const minDistance = level === 0 ? 0 : LOD_CONFIG.MAX_DETAIL_DISTANCE + (level - 1) / (lodLevels - 1) * distanceRange;
 
-            const maxDistance = level === lodLevels - 1 ? Infinity :
-                LOD_CONFIG.MAX_DETAIL_DISTANCE +
-                level / (lodLevels - 1) * distanceRange;
+            const maxDistance = level === lodLevels - 1 ? Infinity : LOD_CONFIG.MAX_DETAIL_DISTANCE + level / (lodLevels - 1) * distanceRange;
 
             // Vérifier le cache de géométrie ou créer une géométrie simplifiée
             let levelGeometry;
@@ -496,11 +600,8 @@ export default function Forest() {
 
             // OPTIMISATION: Utilisation du même matériau de référence partagé
             // au lieu de créer une copie avec material.clone()
-            const instancedMesh = new THREE.InstancedMesh(
-                levelGeometry,
-                material,  // Réutilisation du même matériau - pas de clone()
-                positions.length
-            );
+            const instancedMesh = new THREE.InstancedMesh(levelGeometry, material,  // Réutilisation du même matériau - pas de clone()
+                positions.length);
 
             instancedMesh.name = `${objectId}_lod${level}_chunk${chunkId}`;
             instancedMesh.castShadow = true;
@@ -514,10 +615,7 @@ export default function Forest() {
             instancedMesh.userData.objectId = objectId;
 
             // Calculer la sphère englobante pour le frustum culling
-            const boundingSphere = new THREE.Sphere(
-                chunkCenter.clone(),
-                LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2)
-            );
+            const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
             instancedMesh.userData.boundingSphere = boundingSphere;
 
             // Définir les matrices d'instance
@@ -536,16 +634,14 @@ export default function Forest() {
             instances.push(instancedMesh);
 
             if (LOD_CONFIG.DEBUG_LOD) {
-                console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` +
-                    `Detail ${(detailLevel * 100).toFixed(0)}% ` +
-                    `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
+                console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` + `Detail ${(detailLevel * 100).toFixed(0)}% ` + `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
             }
         }
 
         return instances;
     };
 
-    // Nouveau: Version asynchrone pour la création de géométrie simplifiée
+    // Version asynchrone pour la création de géométrie simplifiée
     const createSimplifiedGeometryAsync = (geometry, detailLevel, objectId) => {
         return new Promise(resolve => {
             // Pour les détails maximaux, pas besoin de simplifier
@@ -574,7 +670,7 @@ export default function Forest() {
         });
     };
 
-    // Fonction de création de géométrie simplifiée (non modifiée)
+    // Fonction de création de géométrie simplifiée
     const createSimplifiedGeometry = (geometry, detailLevel, objectId) => {
         if (!geometry) return null;
 
@@ -588,12 +684,10 @@ export default function Forest() {
 
         // Calculer le ratio de triangles à conserver
         // Interpolation linéaire entre MIN_DETAIL_PERCENTAGE et 1.0
-        const ratio = LOD_CONFIG.MIN_DETAIL_PERCENTAGE +
-            (1.0 - LOD_CONFIG.MIN_DETAIL_PERCENTAGE) * detailLevel;
+        const ratio = LOD_CONFIG.MIN_DETAIL_PERCENTAGE + (1.0 - LOD_CONFIG.MIN_DETAIL_PERCENTAGE) * detailLevel;
 
         if (LOD_CONFIG.DEBUG_LOD) {
-            console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` +
-                `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
+            console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` + `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
         }
 
         // Si la géométrie a un buffer d'index (triangles)
@@ -638,8 +732,7 @@ export default function Forest() {
             }
 
             // Mettre à jour l'attribut de position
-            clonedGeometry.setAttribute('position',
-                new THREE.BufferAttribute(newPositions, 3));
+            clonedGeometry.setAttribute('position', new THREE.BufferAttribute(newPositions, 3));
 
             // Mettre à jour les autres attributs (normales, UVs, etc.)
             if (clonedGeometry.attributes.normal) {
@@ -651,8 +744,7 @@ export default function Forest() {
                         newNormals[i + k] = normals[baseIndex + k];
                     }
                 }
-                clonedGeometry.setAttribute('normal',
-                    new THREE.BufferAttribute(newNormals, 3));
+                clonedGeometry.setAttribute('normal', new THREE.BufferAttribute(newNormals, 3));
             }
 
             if (clonedGeometry.attributes.uv) {
@@ -664,8 +756,7 @@ export default function Forest() {
                         newUVs[i + k] = uvs[baseIndex + k];
                     }
                 }
-                clonedGeometry.setAttribute('uv',
-                    new THREE.BufferAttribute(newUVs, 2));
+                clonedGeometry.setAttribute('uv', new THREE.BufferAttribute(newUVs, 2));
             }
         }
 
@@ -721,10 +812,7 @@ export default function Forest() {
             const cameraPosition = camera.position;
 
             // Mettre à jour le frustum pour le culling
-            projScreenMatrixRef.current.multiplyMatrices(
-                camera.projectionMatrix,
-                camera.matrixWorldInverse
-            );
+            projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
             // Mettre à jour la visibilité des LOD pour tous les meshes instanciés
@@ -754,10 +842,7 @@ export default function Forest() {
 
                 // Logging de débogage pour les premières instances
                 if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001) {
-                    console.log(`LOD update for ${instance.name}: ` +
-                        `distance=${distance.toFixed(1)}, ` +
-                        `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` +
-                        `visible=${instance.visible}, in frustum=${visible}`);
+                    console.log(`LOD update for ${instance.name}: ` + `distance=${distance.toFixed(1)}, ` + `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` + `visible=${instance.visible}, in frustum=${visible}`);
                 }
             });
         }
@@ -803,6 +888,26 @@ export default function Forest() {
             GeometryCache.clear();
         }
     };
+
+    // Afficher des informations sur les groupes
+    useEffect(() => {
+        // Ajouter un délai pour s'assurer que les groupes sont initialisés
+        setTimeout(() => {
+            if (forestRef.current && endGroupRef.current && screenGroupRef.current) {
+                console.log(`Groupes initialisés avec succès:`);
+                console.log(`- Forest principal: ${forestRef.current.children.length} objets directs`);
+                console.log(`- Groupe "End": ${endGroupRef.current.children.length} objets`);
+                console.log(`- Groupe "Screen": ${screenGroupRef.current.children.length} objets`);
+
+                // Afficher les instructions d'utilisation
+                console.log(`
+INSTRUCTIONS DE CONTRÔLE:
+- Touche E: Afficher/Masquer le groupe "End" (actuellement ${endGroupVisible ? 'visible' : 'caché'})
+- Touche S: Afficher/Masquer le groupe "Screen" (actuellement ${screenGroupVisible ? 'visible' : 'caché'})
+`);
+            }
+        }, 5000); // Vérifier après 5 secondes de chargement
+    }, [endGroupVisible, screenGroupVisible]);
 
     return null;
 }
