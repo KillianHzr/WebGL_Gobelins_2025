@@ -5,6 +5,7 @@ import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
+import {EventBus} from "../Utils/EventEmitter.jsx";
 
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
@@ -37,8 +38,14 @@ function CameraController({children}) {
 
     const {size, camera, scene} = useThree();
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
+    const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
+    const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
+    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
 
-    // Get interaction state from the store
+    const endGroupVisible = useStore(state => state.endGroupVisible);
+    const screenGroupVisible = useStore(state => state.screenGroupVisible);
+    const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
+    const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
     const isWaitingForInteraction = useStore(state => state.interaction?.waitingForInteraction);
     const allowScroll = useStore(state => state.interaction?.allowScroll !== false);
     const interactionStep = useStore(state => state.interaction?.currentStep);
@@ -48,6 +55,105 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
+
+    useFrame(() => {
+        if (!camera) return;
+
+        const cameraPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
+        };
+
+        setCurrentCameraZ(cameraPosition.z);
+
+        // Vérifier les déclencheurs d'interaction
+        checkInteractionTriggers(cameraPosition);
+
+        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
+            timelinePositionRef.current += scrollVelocity.current;
+            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
+            sheet.sequence.position = timelinePositionRef.current;
+
+            scrollVelocity.current *= DECELERATION;
+        }
+
+        const progressPercentage = sequenceLengthRef.current > 0
+            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
+            : 0;
+
+        const indicator = document.getElementById('progress-indicator');
+        if (indicator) {
+            indicator.style.width = `${progressPercentage}%`;
+        }
+
+        // Détection de la fin du scroll
+        const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
+        const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
+
+        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
+        if (isNowAtEnd !== isAtEndOfScroll) {
+            setIsAtEndOfScroll(isNowAtEnd);
+        }
+
+        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
+        if (isNowAtEnd && !hasTriggeredEndSwitch) {
+            // Basculer entre End et Screen à la fin du scroll
+            console.log("Fin du scroll atteinte, exécution du switch End/Screen");
+
+            // Si on est sur End, passer à Screen
+            if (endGroupVisible && !screenGroupVisible) {
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+            }
+
+            setHasTriggeredEndSwitch(true);
+
+            // Réinitialiser le déclencheur après un délai pour permettre un nouveau switch
+            // si l'utilisateur revient en arrière puis revient à la fin
+            setTimeout(() => {
+                setHasTriggeredEndSwitch(false);
+            }, 3000); // Délai de 3 secondes avant de pouvoir redéclencher
+        }
+    });
+    useEffect(() => {
+        // Si on n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch
+        if (!isAtEndOfScroll) {
+            setHasTriggeredEndSwitch(false);
+        }
+
+        // Si on est à moins de 50% du scroll, remettre End visible et Screen invisible
+        const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
+        if (scrollProgress < 0.5) {
+            setEndGroupVisible(true);
+            setScreenGroupVisible(false);
+
+            // Mettre à jour directement les références DOM si elles sont exposées
+            if (window.endGroupRef && window.endGroupRef.current) {
+                window.endGroupRef.current.visible = true;
+            }
+            if (window.screenGroupRef && window.screenGroupRef.current) {
+                window.screenGroupRef.current.visible = false;
+            }
+
+            // Émettre les événements
+            EventBus.trigger('end-group-visibility-changed', true);
+            EventBus.trigger('screen-group-visibility-changed', false);
+        }
+    }, [isAtEndOfScroll, timelinePositionRef.current]);
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {

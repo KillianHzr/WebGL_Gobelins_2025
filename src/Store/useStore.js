@@ -62,7 +62,7 @@ const useStore = create((set, get) => ({
 
 
 
-    endGroupVisible: true,
+    endGroupVisible: false,
     screenGroupVisible: true,
 
     setEndGroupVisible: (visible) => set({ endGroupVisible: visible }),
