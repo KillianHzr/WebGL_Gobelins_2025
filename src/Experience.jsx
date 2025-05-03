@@ -22,7 +22,6 @@ import guiConfig from "./Config/guiConfig.js";
 import Flashlight from "./World/Flashlight.jsx";
 import BackgroundWithFog from './Core/BackgroundWithFog'; // Importer notre nouveau composant intégré
 import NarrationTriggers from './Utils/NarrationTriggers';
-import CameraModeSync from "./Utils/CameraModeSync.jsx";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
