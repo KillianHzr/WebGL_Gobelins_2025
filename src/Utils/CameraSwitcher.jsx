@@ -132,18 +132,24 @@ const CameraSwitcher = () => {
     };
 
     // Handle camera teleport events
+    // Handle camera teleport events
     const handleCameraTeleport = (data) => {
-        if (cameraMode === 'Free Camera' && freeCameraRef.current) {
+        // Check if we have a free camera and appropriate data
+        if (freeCameraRef.current) {
+            console.log("CameraSwitcher received teleport event:", data);
+
             // For free camera mode
             const camera = freeCameraRef.current;
 
             // Update position directly from event data
             if (data.position) {
+                console.log("Setting free camera position to:", data.position);
                 camera.position.copy(data.position);
             }
 
             // Look at target position
             if (data.target) {
+                console.log("Setting free camera to look at:", data.target);
                 camera.lookAt(data.target);
 
                 // Update rotation reference to match current quaternion
@@ -155,6 +161,10 @@ const CameraSwitcher = () => {
             // Force matrix and projection update
             camera.updateMatrixWorld(true);
             camera.updateProjectionMatrix();
+
+            console.log("Free camera teleported successfully");
+        } else {
+            console.warn("Free camera reference not available for teleportation");
         }
     };
 

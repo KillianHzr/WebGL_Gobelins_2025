@@ -473,6 +473,7 @@ const DebugInitializer = () => {
                     }
 
                     // Fonction pour téléporter la caméra à un emplacement spécifique
+                    // Fonction pour téléporter la caméra à un emplacement spécifique
                     const teleportCamera = (interactionPoint) => {
                         if (!camera) {
                             console.warn("Camera not available for teleportation");
@@ -501,7 +502,7 @@ const DebugInitializer = () => {
                             console.log(`Current camera mode: ${cameraMode}`);
 
                             // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
-                            if (cameraMode === 'theatre') {
+                            if (cameraMode === 'theatre' || cameraMode === 'Theatre.js') {
                                 // Téléporter la caméra à la position calculée
                                 camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
 
@@ -546,9 +547,17 @@ const DebugInitializer = () => {
                             updateDebugConfig('camera.position.y.value', cameraPos.y);
                             updateDebugConfig('camera.position.z.value', cameraPos.z);
 
-                            // Émettre un événement pour informer d'autres composants (notamment CameraSwitcher)
-                            // C'est essentiel pour le mode free camera
-                            EventBus.trigger('camera-teleported', {position: cameraPos, target: interactionPos});
+                            // IMPORTANT: Toujours émettre l'événement pour les deux modes de caméra
+                            // Cet événement est crucial pour que le mode free camera fonctionne
+                            EventBus.trigger('camera-teleported', {
+                                position: cameraPos,
+                                target: interactionPos
+                            });
+
+                            console.log("Teleport event emitted with data:", {
+                                position: cameraPos,
+                                target: interactionPos
+                            });
 
                             return true;
                         } catch (error) {
