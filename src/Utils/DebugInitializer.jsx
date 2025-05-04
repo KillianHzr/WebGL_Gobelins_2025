@@ -10,6 +10,7 @@ import {addNarrationControlsToDebug} from './NarrationDebugControls';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
 import sceneObjectManager from '../Config/SceneObjectManager';
+import GuiConfig from "../Config/guiConfig";
 
 /**
  * Component that initializes debug features based on URL hash
@@ -386,20 +387,20 @@ const DebugInitializer = () => {
 
                 // Configurer les paramètres de visualisation
                 const visualizationSettings = {
-                    wireframe: false,
-                    showInstances: true,
-                    showInteractive: true,
-                    showStatic: true,
+                    wireframe: GuiConfig.visualization.wireframe.default,
+                    showInstances: GuiConfig.visualization.showInstances.default,
+                    showInteractive: GuiConfig.visualization.showInteractive.default,
+                    showStatic: GuiConfig.visualization.showStatic.default,
                     cameraMode: 'free' // 'theatre' ou 'free'
                 };
 
                 // Obtenir les valeurs sauvegardées si disponibles
                 if (useStore.getState().getDebugConfigValue) {
-                    visualizationSettings.wireframe = useStore.getState().getDebugConfigValue('visualization.wireframe.value', false);
-                    visualizationSettings.showInstances = useStore.getState().getDebugConfigValue('visualization.showInstances.value', true);
-                    visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue('visualization.showInteractive.value', true);
-                    visualizationSettings.showStatic = useStore.getState().getDebugConfigValue('visualization.showStatic.value', true);
-                    visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue('visualization.cameraMode.value', 'theatre');
+                    visualizationSettings.wireframe = useStore.getState().getDebugConfigValue('visualization.wireframe.value', GuiConfig.visualization.wireframe.default);
+                    visualizationSettings.showInstances = useStore.getState().getDebugConfigValue('visualization.showInstances.value', GuiConfig.visualization.showInstances.default);
+                    visualizationSettings.showInteractive = useStore.getState().getDebugConfigValue('visualization.showInteractive.value', GuiConfig.visualization.showInteractive.default);
+                    visualizationSettings.showStatic = useStore.getState().getDebugConfigValue('visualization.showStatic.value', GuiConfig.visualization.showStatic.default);
+                    visualizationSettings.cameraMode = useStore.getState().getDebugConfigValue('visualization.cameraMode.value', 'free');
                 }
 
                 // Initialiser l'état dans le store
@@ -496,7 +497,7 @@ const DebugInitializer = () => {
                             console.log(`Target position: ${interactionPos.x}, ${interactionPos.y}, ${interactionPos.z}`);
 
                             // Obtenir le mode de caméra actuel depuis le store
-                            const cameraMode = useStore.getState().visualization?.cameraMode || 'theatre';
+                            const cameraMode = useStore.getState().visualization?.cameraMode || 'free';
                             console.log(`Current camera mode: ${cameraMode}`);
 
                             // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js

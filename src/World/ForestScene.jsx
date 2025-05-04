@@ -4,6 +4,7 @@ import Forest from './Forest';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
 import WaterPlane from './WaterPlane';
+import GuiConfig from "../Config/guiConfig.js";
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
@@ -63,7 +64,8 @@ INSTRUCTIONS DE CONTRÔLE:
     return (
         <>
             {/*{mapComponent}*/}
-            {forestComponent}
+            {(GuiConfig.visualization.showInstances.default) ? forestComponent : null}
+            {/*{forestComponent}*/}
             {waterComponent}
         </>
     );
