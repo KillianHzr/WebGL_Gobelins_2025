@@ -83,7 +83,7 @@ const guiConfig = {
         },
         showInstances: {
             name: "Afficher Instances",
-            default: false
+            default: true
         },
         showInteractive: {
             name: "Afficher Interactifs",
