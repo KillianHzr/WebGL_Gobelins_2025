@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useFrame, useThree} from '@react-three/fiber';
-import {PerspectiveCamera} from '@react-three/drei';
+import {OrbitControls, PerspectiveCamera} from '@react-three/drei';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
 import {EventBus} from './EventEmitter';
@@ -34,11 +34,10 @@ const CameraSwitcher = () => {
     const keysPressed = useRef({});
     // Movement speed
     const moveSpeed = useRef(0.1);
-    // Mouse movement
-    const mouseMovement = useRef({x: 0, y: 0});
+
+    // Camera rotation state
     const cameraRotation = useRef({x: 0, y: 0});
-    const mouseSensitivity = useRef(0.002);
-    const isMouseDown = useRef(false);
+    const rotationSpeed = useRef(0.03); // Rotation speed with arrow keys
 
     // Track all forest objects by category for better restoration
     const forestGroupsRef = useRef({
@@ -180,32 +179,17 @@ const CameraSwitcher = () => {
             keysPressed.current[e.key.toLowerCase()] = false;
         };
 
+        // We don't need the complex mouse drag handlers anymore
         const handleMouseDown = (e) => {
-            if (e.button === 0 && cameraMode === 'Free Camera') { // Left mouse button and only in free mode
-                isMouseDown.current = true;
-                try {
-                    gl.domElement.requestPointerLock();
-                } catch (err) {
-                    console.warn("Could not request pointer lock:", err);
-                }
-            }
+            // No specific action needed for mouse down
         };
 
         const handleMouseUp = (e) => {
-            if (e.button === 0) { // Left mouse button
-                isMouseDown.current = false;
-                if (document.pointerLockElement === gl.domElement) {
-                    document.exitPointerLock();
-                }
-            }
+            // No specific action needed for mouse up
         };
 
         const handleMouseMove = (e) => {
-            if (document.pointerLockElement === gl.domElement && cameraMode === 'Free Camera') {
-                mouseMovement.current = {
-                    x: e.movementX || 0, y: e.movementY || 0
-                };
-            }
+            // No specific action needed for mouse move
         };
 
         // Speed modifier handler
@@ -228,6 +212,15 @@ const CameraSwitcher = () => {
             clearAllKeys();
         };
 
+        // No need for special cursor styles anymore
+        const handleMouseEnter = () => {
+            // No specific action needed
+        };
+
+        const handleMouseLeave = () => {
+            // No specific action needed
+        };
+
         // Add event listeners
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -238,6 +231,8 @@ const CameraSwitcher = () => {
         window.addEventListener('mousemove', handleMouseMove);
         gl.domElement.addEventListener('wheel', handleWheel, {passive: false});
         window.addEventListener('blur', handleBlur);
+        gl.domElement.addEventListener('mouseenter', handleMouseEnter);
+        gl.domElement.addEventListener('mouseleave', handleMouseLeave);
 
         // Update state to track that listeners are initialized
         setListenersInitialized(true);
@@ -254,13 +249,14 @@ const CameraSwitcher = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             gl.domElement.removeEventListener('wheel', handleWheel);
             window.removeEventListener('blur', handleBlur);
+            gl.domElement.removeEventListener('mouseenter', handleMouseEnter);
+            gl.domElement.removeEventListener('mouseleave', handleMouseLeave);
 
-            // Ensure pointer lock is released
-            if (document.pointerLockElement === gl.domElement) {
-                document.exitPointerLock();
-            }
+            // Reset cursor style
+            gl.domElement.style.cursor = 'auto';
 
             clearAllKeys();
+            isDragging.current = false;
             setListenersInitialized(false);
         };
     };
@@ -328,9 +324,12 @@ const CameraSwitcher = () => {
             copyAllCameraParameters(mainCamera, freeCameraRef.current);
 
             // Initialize rotation reference
+            const euler = new THREE.Euler().setFromQuaternion(freeCameraRef.current.quaternion, 'YXZ');
             cameraRotation.current = {
-                x: mainCamera.rotation.x, y: mainCamera.rotation.y
+                x: euler.x, y: euler.y
             };
+
+            // No need to change cursor style
 
             // Track that we've made the switch
             hasInitiatedFirstSwitch.current = true;
@@ -369,6 +368,8 @@ const CameraSwitcher = () => {
         } else {
             // Switch back to TheatreJS camera
             console.log('Switching to TheatreJS camera mode');
+
+            // No need to reset cursor
 
             // Set the original camera back as active
             set({camera: theatreCameraRef.current});
@@ -424,31 +425,34 @@ const CameraSwitcher = () => {
             // Only process camera movement in free mode
             const camera = freeCameraRef.current;
 
-            // Apply mouse movement to camera rotation
-            if (mouseMovement.current.x !== 0 || mouseMovement.current.y !== 0) {
-                // Update rotation angles
-                cameraRotation.current.y -= mouseMovement.current.x * mouseSensitivity.current;
-                cameraRotation.current.x -= mouseMovement.current.y * mouseSensitivity.current;
-
-                // Limit vertical angle (pitch) to avoid flipping
-                cameraRotation.current.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, cameraRotation.current.x));
-
-                // Reset camera rotation
-                camera.rotation.set(0, 0, 0);
-
-                // Apply horizontal rotation (yaw) first
-                camera.rotateY(cameraRotation.current.y);
-
-                // Then apply vertical rotation (pitch) around local X axis
-                camera.rotateX(cameraRotation.current.x);
-
-                // Reset mouse movement for next frame
-                mouseMovement.current = {x: 0, y: 0};
-            }
-
             // Process keyboard input for movement
             const moveDirection = new THREE.Vector3(0, 0, 0);
             const speed = moveSpeed.current;
+
+            // Check for camera rotation using arrow keys
+            const rotateAmount = rotationSpeed.current;
+
+            // Handle arrow keys for rotation
+            if (keysPressed.current['arrowleft']) {
+                cameraRotation.current.y += rotateAmount;
+            }
+            if (keysPressed.current['arrowright']) {
+                cameraRotation.current.y -= rotateAmount;
+            }
+            if (keysPressed.current['arrowup']) {
+                cameraRotation.current.x += rotateAmount;
+            }
+            if (keysPressed.current['arrowdown']) {
+                cameraRotation.current.x -= rotateAmount;
+            }
+
+            // Limit vertical angle (pitch) to avoid flipping
+            cameraRotation.current.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, cameraRotation.current.x));
+
+            // Apply rotation
+            camera.rotation.set(0, 0, 0);
+            camera.rotateY(cameraRotation.current.y);
+            camera.rotateX(cameraRotation.current.x);
 
             // Check all possible movement keys - support both ZQSD (French) and WASD (English)
             if (keysPressed.current['z'] || keysPressed.current['w']) {
