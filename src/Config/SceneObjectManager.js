@@ -37,13 +37,7 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: false,
                 useTextures: true,
-                receiveShadow: true, // S'assurer que cette propriété est à true
-                castShadow: false, // Le sol ne projette pas d'ombre
-                defaultPlacements: [{
-                    position: [0, 0, 0],
-                    rotation: [0, 0, 0],
-                    receiveShadow: true // Spécifier explicitement au niveau du placement
-                }]
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
 
             // 'WaterPlane': {
@@ -52,9 +46,7 @@ class SceneObjectManager {
             //     scale: [1, 1, 1],
             //     interactive: false,
             //     useTextures: true,
-            //     defaultPlacements: [
-            //         {position: [0, 0, 0], rotation: [0, 0, 0]}
-            //     ]
+            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
             // },
 
             // Scene 02 - Information Panel (First stop)
@@ -70,11 +62,12 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
-                    position: [-8.343, 0, 13.953],
-                    rotation: [0, 29.02, 0],
+                    position: [-8.34293, 0, 13.95312],
+                    rotation: [0, 180 - 29.02382, 0],
+                    scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
                     requiredStep: 'initialStop'
                 }
@@ -96,10 +89,7 @@ class SceneObjectManager {
                     interfaceToShow: "camera"
                 },
                 defaultPlacement: {
-                    position: [1.833, 0, -11.911],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
-                    requiredStep: 'firstStop'
+                    position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
                 }
             },
 
@@ -124,8 +114,7 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'thirdStop'
                 }
-            },
-            'AnimalPaws': {
+            }, 'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.184, 0.184, 0.184],
@@ -168,8 +157,7 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'eleventhStop'
                 }
-            },
-            'JumpRock2': {
+            }, 'JumpRock2': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -189,8 +177,7 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'twelfthStop'
                 }
-            },
-            'JumpRock3': {
+            }, 'JumpRock3': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -210,8 +197,7 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'thirteenthStop'
                 }
-            },
-            'JumpRock4': {
+            }, 'JumpRock4': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -249,20 +235,15 @@ class SceneObjectManager {
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [-41.732, 0.0, -115.572],
-                    rotation: [0.0, -0.20, -0.05],
-                    // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
-                    outlinePulse: false,
-                    requiredStep: 'fourthStop'
+                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
+                    outlinePulse: false, requiredStep: 'fourthStop'
                 }
-            },
-            'BigRock': {
+            }, 'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
-                scale: [0.124, 0.124, 0.124],
+                scale: [0.12371, 0.12371, 0.12371],
                 interactive: false,
-                useTextures: true,
-                // animations: {
+                useTextures: true, // animations: {
                 //     // Animation "move" qui sera jouée automatiquement
                 //     'Action.001.001': {
                 //         autoplay: true,            // Cette animation démarrera automatiquement
@@ -272,19 +253,18 @@ class SceneObjectManager {
                 //     },
                 // },
                 defaultPlacements: [{
-                    position: [-41.72699737548828, 0.059255074709653854, -115.571],
-                    rotation: [0, 40.81, 0]
+                    position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
                 }]
-            },
-            'TreeStump': {
+            }, 'TreeStump': {
                 id: 'TreeStump',
                 path: '/models/forest/tree/TreeStump.glb',
-                scale: [0.075, 0.075, 0.075],
+                // scale: [0.108, 0.07866, 0.108],
                 interactive: false,
                 useTextures: true,
                 defaultPlacements: [{
-                    position: [-41.258, 0.0642661452293396, -115.151],
-                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174]
+                    position: [-41.25625, 0.06409, -115.15076],
+                    rotation: [-3.14159, 40.80581, -3.14159],
+                    scale: [0.07507, 0.07507, 0.07507],
                 }]
             },
 
@@ -298,40 +278,23 @@ class SceneObjectManager {
                 animations: {
                     // Tester plusieurs variations possibles du nom de l'animation
                     'action': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action.001': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action.001.001': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    // Ajouter cette variante au cas où
+                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+                    }, 'Action': {
+                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+                    }, 'Action.001': {
+                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+                    }, 'Action.001.001': {
+                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+                    }, // Ajouter cette variante au cas où
                     '*': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
+                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
                     }
                 },
                 defaultPlacements: [{
-                    position: [51.907, 0.0, -134.251],
-                    rotation: [0, -121.79, 0],
+                    // position: [51.907, 0.0, -134.251], rotation: [0, -121.79, 0],
+                    position: [57.62935, 0.1154, -133.0208],
+                    rotation: [0.04812, 90 - 1.68127, 1.56843],
+                    scale: [0.1, 0.1, 0.1],
                 }]
             },
 
@@ -348,11 +311,12 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
-                    position: [-8.343 /4, 0, 13.953/4],
-                    rotation: [0, 29.02, 0],
+                    position: [51.907, 0.0, -134.251],
+                    rotation: [0, 90 - 29.02382, 0],
+                    scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
                     requiredStep: 'tenthStop'
                 }
@@ -522,9 +486,7 @@ class SceneObjectManager {
             baseConfig.animations = config.animations;
 
             // Vérifier si une animation est marquée pour démarrer automatiquement
-            const autoplayAnimation = Object.entries(config.animations).find(([name, animConfig]) =>
-                animConfig.autoplay === true
-            );
+            const autoplayAnimation = Object.entries(config.animations).find(([name, animConfig]) => animConfig.autoplay === true);
 
             if (autoplayAnimation) {
                 const [animName, animConfig] = autoplayAnimation;

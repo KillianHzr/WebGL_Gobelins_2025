@@ -178,7 +178,7 @@ export const ModelMarker = React.memo(function ModelMarker({
         const targetRef = objectRef || groupRef;
 
         if (targetRef.current) {
-            console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
+            // console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
 
             // Ajouter des écouteurs pour le survol
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
@@ -1012,7 +1012,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {text}
+                        {"Clique"}
                     </div>
                 </div>
             </Html>)}
@@ -1042,7 +1042,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {text}
+                        {buttonHovered ? "Maintiens" : "Clique"}
                     </div>
                     <div
                         className="marker-button-inner-progress"
@@ -1105,7 +1105,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                 </svg>
                             </div>
                             <div className="marker-drag-inner-text">
-                                {text}
+                                {"Tire"}
                             </div>
                         </div>
                     </div>

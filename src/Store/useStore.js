@@ -60,6 +60,13 @@ const useStore = create((set, get) => ({
     timelinePosition: 0,
     sequenceLength: 1,
 
+
+
+    endGroupVisible: false,
+    screenGroupVisible: true,
+
+    setEndGroupVisible: (visible) => set({ endGroupVisible: visible }),
+    setScreenGroupVisible: (visible) => set({ screenGroupVisible: visible }),
     // NOUVELLES ACTIONS POUR LA TRANSITION JOUR/NUIT
     setTimelinePosition: (position) => set({ timelinePosition: position }),
     setSequenceLength: (length) => set({ sequenceLength: length }),

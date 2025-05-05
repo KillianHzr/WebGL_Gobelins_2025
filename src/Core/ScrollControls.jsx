@@ -5,7 +5,7 @@ import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
-
+import {EventBus} from "../Utils/EventEmitter.jsx";
 
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
@@ -38,8 +38,14 @@ function CameraController({children}) {
 
     const {size, camera, scene} = useThree();
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
+    const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
+    const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
+    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
 
-    // Get interaction state from the store
+    const endGroupVisible = useStore(state => state.endGroupVisible);
+    const screenGroupVisible = useStore(state => state.screenGroupVisible);
+    const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
+    const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
     const isWaitingForInteraction = useStore(state => state.interaction?.waitingForInteraction);
     const allowScroll = useStore(state => state.interaction?.allowScroll !== false);
     const interactionStep = useStore(state => state.interaction?.currentStep);
@@ -49,10 +55,105 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
-    // NOUVEAU: Ajouter des états pour partager la position de la timeline et la longueur de la séquence
-    const setTimelinePosition = useStore(state => state.setTimelinePosition) || (pos => {});
-    const setSequenceLength = useStore(state => state.setSequenceLength) || (length => {});
 
+    useFrame(() => {
+        if (!camera) return;
+
+        const cameraPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
+        };
+
+        setCurrentCameraZ(cameraPosition.z);
+
+        // Vérifier les déclencheurs d'interaction
+        checkInteractionTriggers(cameraPosition);
+
+        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
+            timelinePositionRef.current += scrollVelocity.current;
+            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
+            sheet.sequence.position = timelinePositionRef.current;
+
+            scrollVelocity.current *= DECELERATION;
+        }
+
+        const progressPercentage = sequenceLengthRef.current > 0
+            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
+            : 0;
+
+        const indicator = document.getElementById('progress-indicator');
+        if (indicator) {
+            indicator.style.width = `${progressPercentage}%`;
+        }
+
+        // Détection de la fin du scroll
+        const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
+        const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
+
+        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
+        if (isNowAtEnd !== isAtEndOfScroll) {
+            setIsAtEndOfScroll(isNowAtEnd);
+        }
+
+        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
+        if (isNowAtEnd && !hasTriggeredEndSwitch) {
+            // Basculer entre End et Screen à la fin du scroll
+            console.log("Fin du scroll atteinte, exécution du switch End/Screen");
+
+            // Si on est sur End, passer à Screen
+            if (endGroupVisible && !screenGroupVisible) {
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+            }
+
+            setHasTriggeredEndSwitch(true);
+
+            // Réinitialiser le déclencheur après un délai pour permettre un nouveau switch
+            // si l'utilisateur revient en arrière puis revient à la fin
+            setTimeout(() => {
+                setHasTriggeredEndSwitch(false);
+            }, 3000); // Délai de 3 secondes avant de pouvoir redéclencher
+        }
+    });
+    useEffect(() => {
+        // Si on n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch
+        if (!isAtEndOfScroll) {
+            setHasTriggeredEndSwitch(false);
+        }
+
+        // Si on est à moins de 50% du scroll, remettre End visible et Screen invisible
+        const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
+        if (scrollProgress < 0.5) {
+            setEndGroupVisible(true);
+            setScreenGroupVisible(false);
+
+            // Mettre à jour directement les références DOM si elles sont exposées
+            if (window.endGroupRef && window.endGroupRef.current) {
+                window.endGroupRef.current.visible = true;
+            }
+            if (window.screenGroupRef && window.screenGroupRef.current) {
+                window.screenGroupRef.current.visible = false;
+            }
+
+            // Émettre les événements
+            EventBus.trigger('end-group-visibility-changed', true);
+            EventBus.trigger('screen-group-visibility-changed', false);
+        }
+    }, [isAtEndOfScroll, timelinePositionRef.current]);
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
@@ -87,31 +188,44 @@ function CameraController({children}) {
         console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
 
-    // Au chargement initial, mettre à jour la longueur de la séquence dans le store
-    useEffect(() => {
-        sequenceLengthRef.current = val(sheet.sequence.pointer.length);
-        // NOUVEAU: Partager la longueur de la séquence avec le store
-        if (typeof setSequenceLength === 'function') {
-            setSequenceLength(sequenceLengthRef.current);
-        }
-    }, [sheet, setSequenceLength]);
-
     useEffect(() => {
         // Ajouter le contrôle de la caméra via Theatre.js
         if (camera && sheet) {
             // Créer un objet pour stocker les paramètres de la caméra
-            const obj = sheet.object('Camera', {
-                position: {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z
-                },
-                rotation: {
-                    x: camera.rotation.x,
-                    y: camera.rotation.y,
-                    z: camera.rotation.z
-                }
-            });
+            let obj;
+            try {
+                obj = sheet.object('Camera');
+
+                obj.set({
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                });
+
+                console.log('Updated existing Theatre.js camera object');
+            } catch (error) {
+                // Si l'objet n'existe pas, le créer avec une configuration de base
+                obj = sheet.object('Camera', {
+                    position: {
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
+                    }
+                }, { reconfigure: true }); // Ajout de l'option reconfigure ici
+                console.log('Created new Theatre.js camera object with reconfigure option');
+            }
 
             // Écouter les modifications de Theatre.js et les appliquer à la caméra
             const unsubscribe = obj.onValuesChange((values) => {
@@ -410,7 +524,7 @@ function CameraController({children}) {
                 );
 
                 if (!leafErableCompleted) {
-                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
+                    console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
                     return; // Ignorer cette interaction
                 }
             }
@@ -527,11 +641,6 @@ function CameraController({children}) {
             timelinePositionRef.current += scrollVelocity.current;
             timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
             sheet.sequence.position = timelinePositionRef.current;
-
-            // NOUVEAU: Partager la position de la timeline avec le store
-            if (typeof setTimelinePosition === 'function') {
-                setTimelinePosition(timelinePositionRef.current);
-            }
 
             scrollVelocity.current *= DECELERATION;
         }
