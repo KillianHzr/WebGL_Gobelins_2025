@@ -57,10 +57,6 @@ class NarrationManager {
 
         document.body.appendChild(this.subtitleElement);
         console.log('NarrationManager: Élément de sous-titre créé');
-
-        // Test d'affichage au démarrage
-        this.showSubtitle("Test des sous-titres - Si vous voyez ce message, tout fonctionne correctement");
-        setTimeout(() => this.hideSubtitle(), 3000);
     }
 
     /**

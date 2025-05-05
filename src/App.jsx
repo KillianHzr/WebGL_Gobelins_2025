@@ -7,6 +7,8 @@ import ScannerInterface from './Utils/ScannerInterface.jsx'
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
+import LoadingScreen from './Utils/LoadingScreen'
+import MainLayout from './Utils/MainLayout'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
@@ -14,6 +16,9 @@ export default function App() {
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
     const [isDesktopView, setIsDesktopView] = useState(false)
+    const [showExperience, setShowExperience] = useState(false)
+    const [showMainLayout, setShowMainLayout] = useState(false)
+    const canvasRef = useRef(null)
 
     // Check viewport width on mount and resize
     useEffect(() => {
@@ -37,6 +42,9 @@ export default function App() {
             window.assetManager = assetManagerRef.current;
             console.log('AssetManager reference set to window.assetManager');
             setIsAssetManagerInitialized(true);
+
+            // Make EventBus globally available for LoadingManager
+            window.EventBus = EventBus;
         }
 
         // Émettre un événement pour prévenir quand
@@ -61,7 +69,36 @@ export default function App() {
         }
         console.log("Assets ready callback triggered");
         setAssetsLoaded(true);
+
+        // Émettre un événement pour le LoadingManager
+        EventBus.trigger('assetsInitialized', { count: assetManagerRef.current?.assetsToLoad?.length || 0 });
     };
+
+    // Callback when user clicks "Découvre ta mission" button
+    const handleEnterExperience = () => {
+        console.log("User entered experience - preparing 3D content");
+
+        // Set a flag to show the 3D content after a delay that matches the black screen animation
+        setTimeout(() => {
+            console.log("Black screen transition in progress - preparing 3D content");
+            setShowExperience(true);
+
+            // Focus on canvas after showing it
+            setTimeout(() => {
+                if (canvasRef.current) {
+                    canvasRef.current.focus();
+                }
+            }, 100);
+        }, 800); // This should match when the black screen is at full opacity
+    };
+
+    // Show MainLayout when loading is complete (on landing page)
+    useEffect(() => {
+        if (assetsLoaded) {
+            console.log("Assets loaded - showing MainLayout");
+            setShowMainLayout(true);
+        }
+    }, [assetsLoaded]);
 
     if (!isDesktopView) {
         return <ResponsiveLanding />;
@@ -73,19 +110,50 @@ export default function App() {
             <AssetManager
                 ref={assetManagerRef}
                 onReady={onAssetsReady}
-                key="assetManager" // Clé stable pour éviter les remontages
+                key="assetManager"
             />
-            <CaptureInterface />
 
-            {/* Scanner interface - outside Canvas */}
-            <ScannerInterface />
+            {/* Loading Screen and Desktop Landing */}
+            {!showExperience && (
+                <LoadingScreen onComplete={handleEnterExperience} />
+            )}
+
+            {/* Main Layout - only show after assets are loaded */}
+            {showMainLayout && <MainLayout />}
+
+            {/* Interfaces - only show when experience is visible */}
+            {showExperience && (
+                <>
+                    <CaptureInterface />
+                    <ScannerInterface />
+                </>
+            )}
+
             {/* Canvas for 3D content */}
-            <Canvas
-                gl={{ preserveDrawingBuffer: true }}
-                shadows
+            <div
+                ref={canvasRef}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    visibility: showExperience ? 'visible' : 'hidden',
+                    opacity: showExperience ? 1 : 0,
+                    transition: 'opacity 1s ease',
+                    transitionDelay: '0.5s',
+                    zIndex: 2,
+                    backgroundColor: '#000'
+                }}
+                tabIndex={0}
             >
-                <Experience />
-            </Canvas>
+                <Canvas
+                    gl={{ preserveDrawingBuffer: true }}
+                    shadows
+                >
+                    <Experience />
+                </Canvas>
+            </div>
         </EventEmitterProvider>
     )
 }
