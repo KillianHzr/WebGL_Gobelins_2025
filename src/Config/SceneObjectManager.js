@@ -8,7 +8,15 @@ import {textureManager} from './TextureManager';
 
 class SceneObjectManager {
     constructor() {
-        // Définition des étapes dans l'ordre
+        /**
+         * PARCOURS INTERACTIF - DÉCOUVERTE ENVIRONNEMENTALE
+         * =================================================
+         * Ce gestionnaire organise une expérience narrative centrée sur la découverte
+         * d'un vison affecté par la pollution et la pénurie d'eau. L'utilisateur progresse
+         * à travers différentes scènes interactives qui racontent une histoire environnementale.
+         */
+
+        // Définition des étapes dans l'ordre de progression du parcours
         this.interactionSteps = ['firstStop', 'secondStop', 'thirdStop', 'fourthStop', 'fifthStop', 'sixthStop'
             // Ajoutez d'autres étapes si nécessaire
         ];
@@ -30,7 +38,12 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
-            // Scene 01 - Starting point
+            /**
+             * SCÈNE 01 - POINT DE DÉPART
+             * Introduction narrative avec Célia (narratrice)
+             * Déclencheur: Fin de la cinématique d'introduction
+             * Type: Événement automatique basé sur la timeline
+             */
             'Ground': {
                 id: 'Ground',
                 path: '/models/Ground.glb',
@@ -49,7 +62,13 @@ class SceneObjectManager {
             //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
             // },
 
-            // Scene 02 - Information Panel (First stop)
+            /**
+             * SCÈNE 02 - PANNEAU D'INFORMATION
+             * Premier point interactif avec informations contextuelles
+             * Déclencheur: CLICK sur le panneau "Lis le panneau"
+             * Effet: Rotation et zoom vers le panneau, narration par Célia
+             * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
+             */
             'DirectionPanelStartInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
@@ -62,7 +81,7 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
+                    interfaceToShow: "none"
                 },
                 defaultPlacement: {
                     position: [-8.34293, 0, 13.95312],
@@ -73,7 +92,12 @@ class SceneObjectManager {
                 }
             },
 
-            // Scene 03 - Tree trunk obstacle (First stop)
+            /**
+             * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
+             * Apprentissage du mouvement vertical
+             * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
+             * Effet: Animation de saut par-dessus l'obstacle
+             */
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
@@ -86,14 +110,21 @@ class SceneObjectManager {
                     color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "camera"
+                    interfaceToShow: "none"
                 },
                 defaultPlacement: {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
                 }
             },
 
-            // Scene 04 - Searching for traces (Third stop)
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
             'LeafErable': {
                 id: 'LeafErable',
                 path: '/models/primary/MultipleLeaf.glb',
@@ -136,7 +167,12 @@ class SceneObjectManager {
                 }
             },
 
-            // Scene 05 - River crossing with stones
+            /**
+             * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
+             * Puzzle spatial avec progression séquentielle
+             * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
+             * Effet: Animation de saut sur chaque pierre pour traverser la rivière
+             */
             'JumpRock1': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
@@ -219,7 +255,12 @@ class SceneObjectManager {
                 }
             },
 
-            // Scene 06 - Branch obstacle (Fourth stop)
+            /**
+             * SCÈNE 06 - OBSTACLE DE LA BRANCHE
+             * Apprentissage du mouvement vertical inverse
+             * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
+             * Effet: Animation de passage sous la branche
+             */
             'ThinTrunkInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/Obstacle2Tree.glb',
@@ -268,37 +309,55 @@ class SceneObjectManager {
                 }]
             },
 
-            // Scene 07 & 08 - Discovering the mink (Second stop)
-            'Vison': {
-                id: 'Vison',
-                path: '/models/primary/Vison.glb',
-                scale: [1.000, 1.000, 1.000],
-                interactive: true,
-                useTextures: true,
-                animations: {
-                    // Tester plusieurs variations possibles du nom de l'animation
-                    'action': {
-                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-                    }, 'Action': {
-                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-                    }, 'Action.001': {
-                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-                    }, 'Action.001.001': {
-                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-                    }, // Ajouter cette variante au cas où
-                    '*': {
-                        autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-                    }
-                },
-                defaultPlacements: [{
-                    // position: [51.907, 0.0, -134.251], rotation: [0, -121.79, 0],
-                    position: [57.62935, 0.1154, -133.0208],
-                    rotation: [0.04812, 90 - 1.68127, 1.56843],
-                    scale: [0.1, 0.1, 0.1],
-                }]
-            },
+            /**
+             * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
+             * Révélation principale et message environnemental
+             * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
+             *  - Explication du problème de pénurie d'eau
+             * Scène 08: Découverte du vison mort
+             *  - Animation automatique d'éclairage révélant le vison
+             *  - CLICK "Immortalise le moment" pour prendre photo
+             *  - Flash d'appareil photo et transition vers scène suivante
+             */
+            // 'Vison': {
+            //     id: 'Vison',
+            //     path: '/models/fox/Vison.glb',
+            //     scale: [1.000, 1.000, 1.000],
+            //     interactive: true,
+            //     useTextures: false,
+            //     animations: {
+            //         // Tester plusieurs variations possibles du nom de l'animation
+            //         'action': {
+            //             autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //         }, 'Action': {
+            //             autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //         }, 'Action.001': {
+            //             autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //         }, 'Action.001.001': {
+            //             autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //         }, // Ajouter cette variante au cas où
+            //         '*': {
+            //             autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //         }
+            //     },
+            //     defaultPlacements: [{
+            //         // position: [51.907, 0.0, -134.251], rotation: [0, -121.79, 0],
+            //         position: [57.62935, 0.1154, -133.0208],
+            //         rotation: [0.04812, 90 - 1.68127, 1.56843],
+            //         scale: [0.1, 0.1, 0.1],
+            //     }]
+            // },
 
-            // Scene 09 & 10 - Final revelation and call to action
+            /**
+             * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
+             * Scène 09: Clairière digitalisée avec panneau interactif
+             *  - CLICK "Récupérer votre facture" sur panneau directionnel digital
+             *  - Affichage de la facture écologique avec narration de Célia
+             *  - CLICK MAINTENU "Quitte le panneau" pour fermer l'interface
+             * Scène 10: Actualité fantasmée et CTA final
+             *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
+             *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
+             */
             'DirectionPanelEndInteractive': {
                 id: 'DirectionPanel',
                 path: '/models/primary/DirectionPanel.gltf',
@@ -320,7 +379,27 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'tenthStop'
                 }
-            }
+            },
+            // 'RadioInteractive': {
+            //     id: 'Radio',
+            //     path: '/models/primary/Radio.glb',
+            //     scale: [0.5, 0.5, 0.5],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: {
+            //         type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
+            //         text: "Allumer la radio",
+            //         color: "#ffcc44",
+            //         offset: 0.5,
+            //         axis: "y"
+            //     },
+            //     defaultPlacement: {
+            //         position: [51.907, 1.0, -134.251], // Position près du panneau de fin
+            //         rotation: [0, 0, 0],
+            //         requiredStep: 'tenthStop'
+            //     }
+            // }
+
         };
         // Liste des placements d'objets dans la scène
         this.placements = [];
@@ -428,16 +507,17 @@ class SceneObjectManager {
     }
 
     // Configurer les écouteurs d'événements
+    // Configurer les écouteurs d'événements
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
-                console.log(`==== INTERACTION COMPLÉTÉE ====`);
-                console.log(`SceneObjectManager: Interaction complétée pour ${placement.markerId}`);
-                console.log(`Objet: ${placement.objectKey} à la position [${placement.position}]`);
+                console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`, 'background: #930; color: white; padding: 3px;');
+                console.log(`Marqueur: ${placement.markerId}`);
+                console.log(`Objet: ${placement.objectKey}`);
                 console.log(`Étape requise: ${placement.requiredStep}`);
-                console.log(`Type d'interaction: ${placement.markerType}`);
+                console.log(`Type d'interaction: ${data.type || placement.markerType}`);
                 console.log(`=============================`);
 
                 // Exécuter le callback personnalisé si défini
@@ -447,6 +527,13 @@ class SceneObjectManager {
 
                 // Mettre à jour l'état d'interaction de l'objet
                 placement.interacted = true;
+
+                // Émettre un événement pour le système de scénario
+                EventBus.trigger('object:interaction:complete', {
+                    markerId: placement.markerId,
+                    objectKey: placement.objectKey,
+                    requiredStep: placement.requiredStep
+                });
             }
         });
     }

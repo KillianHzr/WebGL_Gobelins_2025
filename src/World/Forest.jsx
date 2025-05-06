@@ -148,10 +148,10 @@ INSTRUCTIONS DE CONTRÔLE:
 
 
         const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            // console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
         const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            // console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
 
         // Initialiser le pool de workers

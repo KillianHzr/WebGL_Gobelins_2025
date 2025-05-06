@@ -524,7 +524,7 @@ function CameraController({children}) {
                 );
 
                 if (!leafErableCompleted) {
-                    console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
+                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
                     return; // Ignorer cette interaction
                 }
             }

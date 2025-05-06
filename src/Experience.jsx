@@ -22,6 +22,7 @@ import guiConfig from "./Config/guiConfig.js";
 import Flashlight from "./World/Flashlight.jsx";
 import BackgroundWithFog from './Core/BackgroundWithFog'; // Importer notre nouveau composant intégré
 import NarrationTriggers from './Utils/NarrationTriggers';
+import ScenarioSystem from "./Utils/ScenarioSystem.jsx";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -185,6 +186,9 @@ export default function Experience() {
 
                         {/* Ajout du composant Flashlight */}
                         <Flashlight/>
+
+                        {/* Système de scénario pour gérer les interactions */}
+                        <ScenarioSystem/>
                     </ScrollControls>
                 </InteractiveMarkersProvider>
             </RayCaster>
