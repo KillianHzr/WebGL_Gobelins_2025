@@ -105,7 +105,7 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: {
-                    type: INTERACTION_TYPES.DRAG_UP,
+                    type: INTERACTION_TYPES.DRAG_UP, // Peut être remplacé par CLICK si préféré
                     text: "Observer le tronc",
                     color: "#44aacc",
                     offset: -0.5,
@@ -113,7 +113,10 @@ class SceneObjectManager {
                     interfaceToShow: "none"
                 },
                 defaultPlacement: {
-                    position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
+                    position: [1.833, 0, -11.911],
+                    rotation: [0, 0, 0],
+                    outlinePulse: false,
+                    requiredStep: 'firstStop'
                 }
             },
 

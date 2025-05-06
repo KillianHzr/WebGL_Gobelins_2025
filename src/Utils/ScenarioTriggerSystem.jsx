@@ -29,10 +29,10 @@ const SCENARIO_CONFIG = {
         objectKey: 'TrunkLargeInteractive',    // Match your object key
         triggerType: MARKER_EVENTS.INTERACTION_COMPLETE,   // DRAG_UP creates this event
         narrationId: 'Scene03_SautAuDessusDeLArbre',
-        postInteractionAnimation: {
-            name: 'jump-animation',
-            options: { duration: 1.5, height: 2 }
-        }
+        // postInteractionAnimation: {
+        //     name: 'jump-animation',
+        //     options: { duration: 1.5, height: 2 }
+        // }
     },
 
 
@@ -218,11 +218,11 @@ const ScenarioTriggerSystem = () => {
         });
 
         // Debug logs to help troubleshoot
-        console.log('ScenarioTriggerSystem: Config chargé avec les marqueurs:', {
-            scenes: Object.keys(SCENARIO_CONFIG),
-            markers: Object.keys(markerToSceneMap),
-            objects: Object.keys(objectKeyToSceneMap)
-        });
+        // console.log('ScenarioTriggerSystem: Config chargé avec les marqueurs:', {
+        //     scenes: Object.keys(SCENARIO_CONFIG),
+        //     markers: Object.keys(markerToSceneMap),
+        //     objects: Object.keys(objectKeyToSceneMap)
+        // });
 
         // Fonction de gestion des événements de marqueur
         const handleMarkerEvent = (eventType, data) => {
@@ -317,7 +317,7 @@ const ScenarioTriggerSystem = () => {
             // Stocker les références pour le nettoyage
             eventListenersRef.current = listeners;
 
-            console.log('ScenarioTriggerSystem: Écouteurs d\'événements configurés');
+            // console.log('ScenarioTriggerSystem: Écouteurs d\'événements configurés');
         } catch (error) {
             console.error('Erreur lors de la configuration des écouteurs pour le scénario:', error);
         }

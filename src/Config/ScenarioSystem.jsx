@@ -19,11 +19,11 @@ const ScenarioSystem = () => {
     useEffect(() => {
         if (!scene || !camera) return;
 
-        console.log('Initializing ScenarioSystem');
+        // console.log('Initializing ScenarioSystem');
 
         // Initialiser le gestionnaire d'animations
         if (!animationInitialized.current) {
-            console.log('Initializing AnimationManager');
+            // console.log('Initializing AnimationManager');
 
             try {
                 // Stocker le renderer dans userData de la scène pour les animations
@@ -64,7 +64,7 @@ const ScenarioSystem = () => {
         // Initialiser le système de narration si nécessaire
         try {
             narrationManager.init();
-            console.log('NarrationManager initialized');
+            // console.log('NarrationManager initialized');
         } catch (error) {
             console.error('Error initializing NarrationManager:', error);
         }

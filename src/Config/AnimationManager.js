@@ -50,23 +50,16 @@ class AnimationManager {
      * Configure les animations prédéfinies disponibles
      */
     _setupAnimations() {
-        // Animation de saut par-dessus un obstacle
-        this.registerAnimation('jump-animation', this._createJumpAnimation);
-
-        // Animation de dispersion des feuilles
+        // Animations existantes - Maintenant jump-animation utilise l'avancement timeline
+        this.registerAnimation('jump-animation', this._createTimelineAdvanceAnimation);
         this.registerAnimation('leaf-scatter', this._createLeafScatterAnimation);
-
-        // Animation de saut sur des pierres pour traverser la rivière
         this.registerAnimation('river-jump', this._createRiverJumpAnimation);
-
-        // Animation de passage sous une branche
         this.registerAnimation('duck-animation', this._createDuckAnimation);
-
-        // Animation de flash d'appareil photo
         this.registerAnimation('camera-flash', this._createCameraFlashAnimation);
-
-        // Animation de zoom caméra vers un objet
         this.registerAnimation('camera-zoom', this._createCameraZoomAnimation);
+
+        // Avancement dans la timeline
+        this.registerAnimation('timeline-advance', this._createTimelineAdvanceAnimation);
     }
 
     /**
@@ -104,11 +97,36 @@ class AnimationManager {
 
             if (!target) {
                 console.warn(`Target object for animation "${animationName}" not found with id "${id}"`);
-                // Utiliser un objet vide comme fallback
-                target = new THREE.Object3D();
-                target.name = `animation-target-${id}`;
-                this.scene.add(target);
+                // Utiliser un objet vide comme fallback UNIQUEMENT pour les animations qui en ont besoin
+                // Pour timeline-advance, on n'a pas toujours besoin d'un target
+                if (animationName !== 'timeline-advance' || (animationName === 'timeline-advance' && id)) {
+                    target = new THREE.Object3D();
+                    target.name = `animation-target-${id}`;
+                    this.scene.add(target);
+                }
             }
+        }
+
+        // AJOUT IMPORTANT: Vérifier si une animation timeline-advance est déjà en cours
+        if (animationName === 'timeline-advance' || animationName === 'jump-animation') {
+            // Vérifier si des animations de même type sont déjà actives
+            let animationsOfSameTypeActive = false;
+
+            for (const [id, animation] of this.activeAnimations.entries()) {
+                if (id.startsWith('timeline-advance-') || id.startsWith('jump-animation-')) {
+                    console.log(`Une animation d'avancement est déjà active: ${id} - Annulation du nouveau déclenchement`);
+                    animationsOfSameTypeActive = true;
+                    break;
+                }
+            }
+
+            if (animationsOfSameTypeActive) {
+                console.warn(`Animation "${animationName}" non déclenchée car une animation similaire est déjà en cours`);
+                return;
+            }
+
+            // Annuler les animations contradictoires
+            this._cancelAnimationsByType(['timeline-advance', 'jump-animation']);
         }
 
         // Créer et démarrer l'animation en appelant la fonction d'animation
@@ -124,18 +142,34 @@ class AnimationManager {
 
             // Stocker l'animation active
             if (animation) {
-                const animationId = `${animationName}-${id}-${Date.now()}`;
+                const animationId = `${animationName}-${id || 'global'}-${Date.now()}`;
                 this.activeAnimations.set(animationId, animation);
+                console.log(`Animation démarrée et stockée avec ID: ${animationId}`);
 
                 // Configurer le nettoyage automatique
                 if (animation.duration) {
                     setTimeout(() => {
                         this._cleanupAnimation(animationId);
-                    }, animation.duration * 1000);
+                    }, animation.duration * 1000 + 100); // Ajouter un délai supplémentaire par sécurité
                 }
             }
         } catch (error) {
             console.error(`Error starting animation "${animationName}":`, error);
+        }
+    }
+
+    /**
+     * Annule les animations du type spécifié
+     * @param {Array<string>} animationTypes - Liste des types d'animations à annuler
+     */
+    _cancelAnimationsByType(animationTypes) {
+        for (const [id, animation] of this.activeAnimations.entries()) {
+            const [animationType] = id.split('-');
+            if (animationTypes.includes(animationType) && animation.cancel) {
+                console.log(`Cancelling existing animation: ${id}`);
+                animation.cancel();
+                this.activeAnimations.delete(id);
+            }
         }
     }
 
@@ -174,10 +208,180 @@ class AnimationManager {
         const animation = this.activeAnimations.get(animationId);
 
         if (animation && animation.cleanup) {
-            animation.cleanup();
+            try {
+                animation.cleanup();
+            } catch (error) {
+                console.error(`Error cleaning up animation ${animationId}:`, error);
+            }
         }
 
         this.activeAnimations.delete(animationId);
+    }
+
+    /**
+     * Crée une animation d'avancement automatique dans la timeline
+     * @param {THREE.Object3D} target - Objet cible (peut être null dans ce cas)
+     * @param {Object} options - Options de l'animation
+     * @returns {Object} - Objet d'animation avec méthodes de contrôle
+     */
+    // In AnimationManager.js - Improve the _createTimelineAdvanceAnimation function
+    _createTimelineAdvanceAnimation(target, options = {}) {
+        if (!this.scene) return null;
+
+        const duration = options.duration || 2.0; // Duration in seconds
+
+        // Get store and timeline information
+        const store = this.scene.userData.storeInstance;
+        if (!store) {
+            console.error("Store not available for timeline advancement animation");
+            return null;
+        }
+
+        // Get Theatre.js sheet and sequence
+        const sheet = this.scene.userData.theatreSheet;
+        if (!sheet) {
+            console.error("Theatre.js sheet not available");
+            return null;
+        }
+
+        // Use explicit positions if provided, otherwise calculate them
+        let currentPosition, finalPosition;
+
+        if (options.startPosition !== undefined && options.targetPosition !== undefined) {
+            // Use provided positions
+            currentPosition = options.startPosition;
+            finalPosition = options.targetPosition;
+        } else {
+            // Calculate positions
+            currentPosition = sheet.sequence.position;
+            const sequenceLength = store.sequenceLength || 1;
+            const advancePercentage = options.percentage || 10; // Default to 10% advancement
+            const advanceAmount = (sequenceLength * advancePercentage) / 100;
+            finalPosition = Math.min(currentPosition + advanceAmount, sequenceLength);
+        }
+
+        // Mark animation in progress in the store
+        store.setAnimationInProgress(true);
+
+        // Important: Disable scroll during animation to prevent conflicts
+        if (store.interaction && store.interaction.setAllowScroll) {
+            store.interaction.setAllowScroll(false);
+        }
+
+        // Animation variables
+        let startTime = Date.now();
+        let animationFrame = null;
+        let completed = false;
+        let canceled = false;
+
+        // Animation function
+        const animate = () => {
+            if (canceled) return;
+
+            const elapsedTime = (Date.now() - startTime) / 1000;
+            const progress = Math.min(elapsedTime / duration, 1);
+
+            // Easing function for smoother movement
+            const easeProgress = easeInOutCubic(progress);
+
+            // Calculate new position
+            const newPosition = currentPosition + (finalPosition - currentPosition) * easeProgress;
+
+            // Apply new position to timeline
+            try {
+                // Update the Theatre.js timeline position
+                sheet.sequence.position = newPosition;
+
+                // Update store references to keep everything in sync
+                if (store.setTimelinePosition) {
+                    store.setTimelinePosition(newPosition);
+                }
+
+                // Important: Also update the lastProcessedPosition in the interaction state
+                // This ensures the scroll control doesn't block the animation progress
+                if (store.interaction && store.interaction._lastProcessedPosition !== undefined) {
+                    store.interaction._lastProcessedPosition = newPosition;
+                }
+            } catch (error) {
+                console.error("Error updating timeline position:", error);
+                canceled = true;
+            }
+
+            // Continue animation until end
+            if (progress < 1 && !canceled) {
+                animationFrame = requestAnimationFrame(animate);
+            } else {
+                // Animation completed
+                completed = true;
+
+                // Get final position from Theatre.js
+                const actualFinalPosition = sheet.sequence.position;
+
+                // Ensure store references are updated with final position
+                if (store.setTimelinePosition) {
+                    store.setTimelinePosition(actualFinalPosition);
+                }
+
+                // Critical: Update lastProcessedPosition to final position
+                if (store.interaction && store.interaction._lastProcessedPosition !== undefined) {
+                    store.interaction._lastProcessedPosition = actualFinalPosition;
+                }
+
+                // Emit event with EXACT final position
+                EventBus.trigger('animation:complete', {
+                    name: 'timeline-advance',
+                    target: target ? target.name || target.uuid : null,
+                    finalPosition: actualFinalPosition,
+                    originalTarget: finalPosition,
+                    // Add a lock flag to prevent position changes
+                    lockPosition: true
+                });
+
+                // Reset animation state
+                store.setAnimationInProgress(false);
+
+                // Now re-enable scroll after a short delay
+                setTimeout(() => {
+                    if (store.interaction && store.interaction.setAllowScroll) {
+                        store.interaction.setAllowScroll(true);
+                    }
+                }, 200); // Short delay to prevent immediate scrolling
+            }
+        };
+
+        // Cubic easing function
+        const easeInOutCubic = (t) => {
+            return t < 0.5
+                ? 4 * t * t * t
+                : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        };
+
+        // Start animation
+        animationFrame = requestAnimationFrame(animate);
+
+        // Return animation object with control methods
+        return {
+            duration,
+            cancel: () => {
+                if (!completed && !canceled && animationFrame) {
+                    canceled = true;
+                    cancelAnimationFrame(animationFrame);
+
+                    // Ensure animation state is properly reset
+                    store.setAnimationInProgress(false);
+
+                    // Re-enable scrolling
+                    if (store.interaction && store.interaction.setAllowScroll) {
+                        store.interaction.setAllowScroll(true);
+                    }
+                }
+            },
+            cleanup: () => {
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+        };
     }
 
     /**
@@ -195,114 +399,6 @@ class AnimationManager {
             return createFunction.call(this, target, options);
         };
     }
-
-    /**
-     * Crée une animation de saut par-dessus un obstacle
-     * @param {THREE.Object3D} target - Objet cible de l'animation
-     * @param {Object} options - Options de l'animation
-     * @returns {Object} - Objet d'animation avec méthodes de contrôle
-     */
-    /**
-     * Crée une animation de saut par-dessus un obstacle
-     * @param {THREE.Object3D} target - Objet cible de l'animation
-     * @param {Object} options - Options de l'animation
-     * @returns {Object} - Objet d'animation avec méthodes de contrôle
-     */
-    _createJumpAnimation(target, options = {}) {
-        if (!target || !this.scene || !this.camera) return null;
-
-        const duration = options.duration || 1.5; // Durée en secondes
-        const height = options.height || 2; // Hauteur du saut
-
-        // Position initiale
-        const initialPosition = {
-            x: this.camera.position.x,
-            y: this.camera.position.y,
-            z: this.camera.position.z
-        };
-
-        // Position finale (après le saut)
-        const targetPosition = new THREE.Vector3();
-        target.getWorldPosition(targetPosition);
-
-        // Ajouter un décalage pour atterrir après l'obstacle
-        const direction = new THREE.Vector3().subVectors(targetPosition, this.camera.position).normalize();
-        const finalPosition = {
-            x: targetPosition.x + direction.x * 3,
-            y: initialPosition.y,
-            z: targetPosition.z + direction.z * 3
-        };
-
-        // Obtenir le store depuis scene.userData au lieu d'importer directement
-        const store = this.scene.userData.storeInstance;
-
-        // Désactiver temporairement le scroll
-        if (store && store.interaction) {
-            store.interaction.setAllowScroll(false);
-        }
-
-        // Variables de l'animation
-        let startTime = Date.now();
-        let animationFrame = null;
-        let completed = false;
-
-        // Fonction d'animation
-        const animate = () => {
-            const elapsedTime = (Date.now() - startTime) / 1000;
-            const progress = Math.min(elapsedTime / duration, 1);
-
-            // Courbe d'animation pour le saut (parabole)
-            const jumpCurve = Math.sin(progress * Math.PI) * height;
-
-            // Interpolation de la position
-            this.camera.position.x = initialPosition.x + (finalPosition.x - initialPosition.x) * progress;
-            this.camera.position.y = initialPosition.y + jumpCurve;
-            this.camera.position.z = initialPosition.z + (finalPosition.z - initialPosition.z) * progress;
-
-            // Continuer l'animation jusqu'à la fin
-            if (progress < 1) {
-                animationFrame = requestAnimationFrame(animate);
-            } else {
-                // Animation terminée
-                completed = true;
-
-                // Réactiver le scroll
-                if (store && store.interaction) {
-                    store.interaction.setAllowScroll(true);
-                }
-
-                // Émettre un événement de fin d'animation
-                EventBus.trigger('animation:complete', {
-                    name: 'jump-animation',
-                    target: target.name || target.uuid
-                });
-            }
-        };
-
-        // Démarrer l'animation
-        animationFrame = requestAnimationFrame(animate);
-
-        // Retourner l'objet d'animation avec méthodes de contrôle
-        return {
-            duration,
-            cancel: () => {
-                if (!completed && animationFrame) {
-                    cancelAnimationFrame(animationFrame);
-
-                    // Réactiver le scroll
-                    if (store && store.interaction) {
-                        store.interaction.setAllowScroll(true);
-                    }
-                }
-            },
-            cleanup: () => {
-                if (animationFrame) {
-                    cancelAnimationFrame(animationFrame);
-                }
-            }
-        };
-    }
-
 
     /**
      * Crée une animation de saut sur des pierres pour traverser la rivière
@@ -339,9 +435,12 @@ class AnimationManager {
         let startTime = Date.now();
         let animationFrame = null;
         let completed = false;
+        let canceled = false;
 
         // Fonction d'animation
         const animate = () => {
+            if (canceled) return;
+
             const elapsedTime = (Date.now() - startTime) / 1000;
             const progress = Math.min(elapsedTime / duration, 1);
 
@@ -354,22 +453,24 @@ class AnimationManager {
             this.camera.position.z = initialPosition.z + (targetPosition.z - initialPosition.z) * progress;
 
             // Continuer l'animation jusqu'à la fin
-            if (progress < 1) {
+            if (progress < 1 && !canceled) {
                 animationFrame = requestAnimationFrame(animate);
             } else {
                 // Animation terminée
                 completed = true;
 
                 // Réactiver le scroll
-                if (store && store.interaction) {
+                if (store && store.interaction && !canceled) {
                     store.interaction.setAllowScroll(true);
                 }
 
                 // Émettre un événement de fin d'animation
-                EventBus.trigger('animation:complete', {
-                    name: 'river-jump',
-                    target: target.name || target.uuid
-                });
+                if (!canceled) {
+                    EventBus.trigger('animation:complete', {
+                        name: 'river-jump',
+                        target: target.name || target.uuid
+                    });
+                }
             }
         };
 
@@ -380,7 +481,8 @@ class AnimationManager {
         return {
             duration,
             cancel: () => {
-                if (!completed && animationFrame) {
+                if (!completed && !canceled && animationFrame) {
+                    canceled = true;
                     cancelAnimationFrame(animationFrame);
 
                     // Réactiver le scroll
@@ -439,9 +541,12 @@ class AnimationManager {
         let startTime = Date.now();
         let animationFrame = null;
         let completed = false;
+        let canceled = false;
 
         // Fonction d'animation
         const animate = () => {
+            if (canceled) return;
+
             const elapsedTime = (Date.now() - startTime) / 1000;
             const progress = Math.min(elapsedTime / duration, 1);
 
@@ -454,22 +559,24 @@ class AnimationManager {
             this.camera.position.z = initialPosition.z + (finalPosition.z - initialPosition.z) * progress;
 
             // Continuer l'animation jusqu'à la fin
-            if (progress < 1) {
+            if (progress < 1 && !canceled) {
                 animationFrame = requestAnimationFrame(animate);
             } else {
                 // Animation terminée
                 completed = true;
 
                 // Réactiver le scroll
-                if (store && store.interaction) {
+                if (store && store.interaction && !canceled) {
                     store.interaction.setAllowScroll(true);
                 }
 
                 // Émettre un événement de fin d'animation
-                EventBus.trigger('animation:complete', {
-                    name: 'duck-animation',
-                    target: target.name || target.uuid
-                });
+                if (!canceled) {
+                    EventBus.trigger('animation:complete', {
+                        name: 'duck-animation',
+                        target: target.name || target.uuid
+                    });
+                }
             }
         };
 
@@ -480,7 +587,8 @@ class AnimationManager {
         return {
             duration,
             cancel: () => {
-                if (!completed && animationFrame) {
+                if (!completed && !canceled && animationFrame) {
+                    canceled = true;
                     cancelAnimationFrame(animationFrame);
 
                     // Réactiver le scroll
@@ -543,7 +651,9 @@ class AnimationManager {
 
         // Variables de l'animation
         let startTime = Date.now();
+        let animationFrame = null;
         let completed = false;
+        let canceled = false;
 
         // Nouvelle fonction de rendu avec flash
         const renderWithFlash = () => {
@@ -561,6 +671,12 @@ class AnimationManager {
 
         // Fonction d'animation
         const animate = () => {
+            if (canceled) {
+                // Si annulé, restaurer immédiatement la fonction de rendu originale
+                this.scene.userData.renderFunction = originalRenderFunction;
+                return;
+            }
+
             const elapsedTime = (Date.now() - startTime) / 1000;
             const progress = Math.min(elapsedTime / duration, 1);
 
@@ -578,8 +694,8 @@ class AnimationManager {
             flashMaterial.opacity = flashCurve;
 
             // Continuer l'animation jusqu'à la fin
-            if (progress < 1) {
-                requestAnimationFrame(animate);
+            if (progress < 1 && !canceled) {
+                animationFrame = requestAnimationFrame(animate);
             } else {
                 // Animation terminée
                 completed = true;
@@ -593,20 +709,27 @@ class AnimationManager {
                 flashMaterial.dispose();
 
                 // Émettre un événement de fin d'animation
-                EventBus.trigger('animation:complete', {
-                    name: 'camera-flash'
-                });
+                if (!canceled) {
+                    EventBus.trigger('animation:complete', {
+                        name: 'camera-flash'
+                    });
+                }
             }
         };
 
         // Démarrer l'animation
-        requestAnimationFrame(animate);
+        animationFrame = requestAnimationFrame(animate);
 
         // Retourner l'objet d'animation avec méthodes de contrôle
         return {
             duration,
             cancel: () => {
-                if (!completed) {
+                if (!completed && !canceled) {
+                    canceled = true;
+                    if (animationFrame) {
+                        cancelAnimationFrame(animationFrame);
+                    }
+
                     // Restaurer la fonction de rendu originale
                     this.scene.userData.renderFunction = originalRenderFunction;
 
@@ -627,6 +750,10 @@ class AnimationManager {
                     flashScene.remove(flashMesh);
                     flashGeometry.dispose();
                     flashMaterial.dispose();
+                }
+
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
                 }
             }
         };
@@ -699,9 +826,12 @@ class AnimationManager {
         let startTime = Date.now();
         let animationFrame = null;
         let completed = false;
+        let canceled = false;
 
         // Fonction d'animation
         const animate = () => {
+            if (canceled) return;
+
             const elapsedTime = (Date.now() - startTime) / 1000;
             const progress = Math.min(elapsedTime / duration, 1);
 
@@ -721,22 +851,24 @@ class AnimationManager {
             }
 
             // Continuer l'animation jusqu'à la fin
-            if (progress < 1) {
+            if (progress < 1 && !canceled) {
                 animationFrame = requestAnimationFrame(animate);
             } else {
                 // Animation terminée
                 completed = true;
 
                 // Réactiver le scroll uniquement si l'option le permet
-                if (!options.keepScrollDisabled && store && store.interaction) {
+                if (!options.keepScrollDisabled && store && store.interaction && !canceled) {
                     store.interaction.setAllowScroll(true);
                 }
 
                 // Émettre un événement de fin d'animation
-                EventBus.trigger('animation:complete', {
-                    name: 'camera-zoom',
-                    target: target.name || target.uuid
-                });
+                if (!canceled) {
+                    EventBus.trigger('animation:complete', {
+                        name: 'camera-zoom',
+                        target: target.name || target.uuid
+                    });
+                }
             }
         };
 
@@ -754,7 +886,8 @@ class AnimationManager {
         return {
             duration,
             cancel: () => {
-                if (!completed && animationFrame) {
+                if (!completed && !canceled && animationFrame) {
+                    canceled = true;
                     cancelAnimationFrame(animationFrame);
 
                     // Réactiver le scroll

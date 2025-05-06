@@ -52,11 +52,16 @@ const useStore = create((set, get) => ({
     gui: null,
     setGui: (gui) => set({gui}),
 
+    animationInProgress: false,
+    setAnimationInProgress: (inProgress) => set({ animationInProgress: inProgress }),
+
+    // Timeline position tracking
     // Debug configuration (for export/import)
     debugConfig: null,
     setDebugConfig: (config) => set({debugConfig: config}),
 
     // NOUVELLES PROPRIÉTÉS POUR LA TRANSITION JOUR/NUIT
+
     timelinePosition: 0,
     sequenceLength: 1,
 

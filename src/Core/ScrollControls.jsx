@@ -5,7 +5,7 @@ import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
 import theatreState from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
-import {EventBus} from "../Utils/EventEmitter.jsx";
+import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
@@ -17,11 +17,9 @@ export default function ScrollControls({children}) {
     const project = getProject('WebGL_Gobelins', {state: theatreState});
     const sheet = project.sheet('Scene');
 
-    return (
-        <SheetProvider sheet={sheet}>
-            <CameraController>{children}</CameraController>
-        </SheetProvider>
-    );
+    return (<SheetProvider sheet={sheet}>
+        <CameraController>{children}</CameraController>
+    </SheetProvider>);
 }
 
 function CameraController({children}) {
@@ -35,6 +33,11 @@ function CameraController({children}) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
     const previousAllowScrollRef = useRef(true);
+
+    // Nouvelle référence pour mémoriser la dernière position traitée
+    // et empêcher le retour en arrière
+    const lastProcessedPosition = useRef(0);
+
 
     const {size, camera, scene} = useThree();
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
@@ -55,49 +58,167 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
+    // Ajouter une référence pour savoir si un avancement automatique est en cours
+    const isAutoAdvancing = useRef(false);
+
+
+    useEffect(() => {
+        if (scene && lastProcessedPosition) {
+            // Exposer lastProcessedPosition au store pour qu'il soit accessible par l'AnimationManager
+            if (useStore.getState().interaction) {
+                useStore.getState().interaction._lastProcessedPosition = lastProcessedPosition.current;
+            }
+        }
+    }, [scene, lastProcessedPosition]);
+    useEffect(() => {
+        // Ajouter la sheet Theatre.js à la scène pour qu'elle soit accessible depuis AnimationManager
+        if (scene && sheet) {
+            scene.userData.theatreSheet = sheet;
+
+            // Stocker également l'instance du store dans la scène
+            scene.userData.storeInstance = useStore.getState();
+
+            // Stocker la longueur de la séquence dans le store
+            useStore.getState().setSequenceLength(sequenceLengthRef.current);
+
+            console.log('Theatre.js sheet attachée à la scène pour les animations');
+        }
+    }, [scene, sheet]);
+
+    // Écouter les événements d'animation timeline-advance
+    // Dans useEffect pour les événements d'animation dans ScrollControls.jsx
+    // ScrollControls.jsx - Modifications
+
+// 1. Improve the animation completion handler in useEffect to properly update lastProcessedPosition
+    // Modify the animation completion handler in ScrollControls.jsx
+    // Create a ref to track if animation has been completed
+    const animationCompletedRef = useRef(false);
+    const [timelineLocked, setTimelineLocked] = useState(false);
+    const [lockedPosition, setLockedPosition] = useState(null);
+
+    useEffect(() => {
+        const unsubscribe = EventBus.on('animation:complete', (data) => {
+            if (data && data.name === 'timeline-advance') {
+                console.log('Timeline advance animation completed', data);
+
+                // Get final position
+                const finalPosition = data.finalPosition;
+
+                // Update our internal references
+                lastProcessedPosition.current = finalPosition;
+                timelinePositionRef.current = finalPosition;
+
+                // If the animation requests position locking
+                if (data.lockPosition) {
+                    // Set locked position and enable lock
+                    setLockedPosition(finalPosition);
+                    setTimelineLocked(true);
+
+                    console.log(`Timeline position locked at: ${finalPosition}`);
+
+                    // Explicitly update Theatre.js position to ensure consistency
+                    try {
+                        if (sheet && sheet.sequence) {
+                            sheet.sequence.position = finalPosition;
+                        }
+                    } catch (error) {
+                        console.error("Error enforcing timeline position:", error);
+                    }
+
+                    // Update the timeline position in the store as well
+                    if (useStore.getState().setTimelinePosition) {
+                        useStore.getState().setTimelinePosition(finalPosition);
+                    }
+
+                    // Unlock after a delay to allow for a smooth transition
+                    setTimeout(() => {
+                        setTimelineLocked(false);
+                        console.log("Timeline position lock released");
+                    }, 500);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, [sheet]);
+
 
     useFrame(() => {
         if (!camera) return;
 
         const cameraPosition = {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
+            x: camera.position.x, y: camera.position.y, z: camera.position.z
         };
 
         setCurrentCameraZ(cameraPosition.z);
 
-        // Vérifier les déclencheurs d'interaction
-        checkInteractionTriggers(cameraPosition);
+        // Check for interactions if scrolling is allowed
+        if (allowScroll) {
+            checkInteractionTriggers(cameraPosition);
+        }
 
-        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
-            timelinePositionRef.current += scrollVelocity.current;
-            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
-            sheet.sequence.position = timelinePositionRef.current;
+        // If timeline is locked, force the position
+        if (timelineLocked && lockedPosition !== null) {
+            // Force Theatre.js timeline to stay at locked position
+            if (sheet && sheet.sequence && Math.abs(sheet.sequence.position - lockedPosition) > 0.0001) {
+                sheet.sequence.position = lockedPosition;
+                console.log(`Timeline position enforced at: ${lockedPosition}`);
+            }
 
+            // Also maintain our internal reference
+            timelinePositionRef.current = lockedPosition;
+            return; // Skip normal scroll processing
+        }
+
+        // Check if an animation is in progress from the store
+        const animationInProgress = useStore.getState().animationInProgress;
+
+        // Handle scrolling (only if allowed and no animation is in progress)
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !animationInProgress) {
+            // Calculate new position
+            const newPosition = timelinePositionRef.current + scrollVelocity.current;
+
+            // Ensure we don't go backward beyond last processed position
+            if (newPosition >= lastProcessedPosition.current) {
+                // Valid position, update
+                const constrainedPosition = Math.min(sequenceLengthRef.current, newPosition);
+                timelinePositionRef.current = constrainedPosition;
+
+                // Update Theatre.js timeline
+                try {
+                    if (sheet && sheet.sequence) {
+                        // Only update if difference is significant
+                        if (Math.abs(sheet.sequence.position - constrainedPosition) > 0.001) {
+                            sheet.sequence.position = constrainedPosition;
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error updating timeline in useFrame:", error);
+                }
+            } else {
+                // Block backward movement
+                scrollVelocity.current = 0;
+            }
+
+            // Gradually reduce velocity
             scrollVelocity.current *= DECELERATION;
         }
 
-        const progressPercentage = sequenceLengthRef.current > 0
-            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
-            : 0;
-
+        // Update progress indicator
+        const progressPercentage = sequenceLengthRef.current > 0 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100 : 0;
         const indicator = document.getElementById('progress-indicator');
         if (indicator) {
             indicator.style.width = `${progressPercentage}%`;
         }
 
-        // Détection de la fin du scroll
+        // Continue processing other frame updates like end detection
         const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
-        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
         if (isNowAtEnd !== isAtEndOfScroll) {
             setIsAtEndOfScroll(isNowAtEnd);
         }
 
-        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
         if (isNowAtEnd && !hasTriggeredEndSwitch) {
             // Basculer entre End et Screen à la fin du scroll
             console.log("Fin du scroll atteinte, exécution du switch End/Screen");
@@ -129,6 +250,7 @@ function CameraController({children}) {
             }, 3000); // Délai de 3 secondes avant de pouvoir redéclencher
         }
     });
+
     useEffect(() => {
         // Si on n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch
         if (!isAtEndOfScroll) {
@@ -154,6 +276,7 @@ function CameraController({children}) {
             EventBus.trigger('screen-group-visibility-changed', false);
         }
     }, [isAtEndOfScroll, timelinePositionRef.current]);
+
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
@@ -174,13 +297,10 @@ function CameraController({children}) {
         const interactionPoints = interactivePlacements.map(placement => {
             return {
                 id: placement.requiredStep, // Utiliser l'étape requise comme identifiant
-                name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep),
-                triggers: {
+                name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep), triggers: {
                     x: placement.position[0], // Position X du modèle
                     z: placement.position[2]  // Position Z du modèle
-                },
-                isActive: true,
-                objectKey: placement.objectKey // Référence à l'objet associé
+                }, isActive: true, objectKey: placement.objectKey // Référence à l'objet associé
             };
         });
 
@@ -198,14 +318,9 @@ function CameraController({children}) {
 
                 obj.set({
                     position: {
-                        x: camera.position.x,
-                        y: camera.position.y,
-                        z: camera.position.z
-                    },
-                    rotation: {
-                        x: camera.rotation.x,
-                        y: camera.rotation.y,
-                        z: camera.rotation.z
+                        x: camera.position.x, y: camera.position.y, z: camera.position.z
+                    }, rotation: {
+                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
                     }
                 });
 
@@ -214,16 +329,11 @@ function CameraController({children}) {
                 // Si l'objet n'existe pas, le créer avec une configuration de base
                 obj = sheet.object('Camera', {
                     position: {
-                        x: camera.position.x,
-                        y: camera.position.y,
-                        z: camera.position.z
-                    },
-                    rotation: {
-                        x: camera.rotation.x,
-                        y: camera.rotation.y,
-                        z: camera.rotation.z
+                        x: camera.position.x, y: camera.position.y, z: camera.position.z
+                    }, rotation: {
+                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
                     }
-                }, { reconfigure: true }); // Ajout de l'option reconfigure ici
+                }, {reconfigure: true}); // Ajout de l'option reconfigure ici
                 console.log('Created new Theatre.js camera object with reconfigure option');
             }
 
@@ -259,9 +369,7 @@ function CameraController({children}) {
         const normalizeWheelDelta = (e) => {
             const now = performance.now();
             recentWheelEvents.push({
-                deltaY: e.deltaY,
-                timestamp: now,
-                deltaMode: e.deltaMode
+                deltaY: e.deltaY, timestamp: now, deltaMode: e.deltaMode
             });
 
             if (recentWheelEvents.length > MAX_WHEEL_SAMPLES) {
@@ -485,6 +593,43 @@ function CameraController({children}) {
         }
     }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener, interactions]);
 
+    const forceUpdateTheatreJSTimeline = (position) => {
+        if (!sheet || !sheet.sequence) {
+            console.error("Theatre.js sheet ou sequence manquante");
+            return false;
+        }
+
+        try {
+            // Forcer la mise à jour directe de la timeline
+            const oldPosition = sheet.sequence.position;
+            sheet.sequence.position = position;
+
+            // Vérifier si la mise à jour a réussi
+            if (sheet.sequence.position !== position) {
+                console.error(`Échec de la mise à jour Theatre.js: ${oldPosition} -> ${position}, actuel: ${sheet.sequence.position}`);
+                // Tentative supplémentaire avec un léger délai
+                setTimeout(() => {
+                    try {
+                        sheet.sequence.position = position;
+                        console.log(`Update forcé après délai: ${sheet.sequence.position}`);
+                    } catch (e) {
+                        console.error("Échec de la seconde tentative:", e);
+                    }
+                }, 10);
+                return false;
+            }
+
+            // Log uniquement si la position a changé significativement
+            if (Math.abs(oldPosition - position) > 0.001) {
+                console.log(`Timeline Theatre.js mise à jour: ${oldPosition.toFixed(4)} -> ${position.toFixed(4)}`);
+            }
+            return true;
+        } catch (error) {
+            console.error("Erreur lors de la mise à jour Theatre.js:", error);
+            return false;
+        }
+    };
+
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
         let targetObject = null;
@@ -498,6 +643,50 @@ function CameraController({children}) {
         }
         return targetObject;
     };
+
+    const advanceTimelineAutomatically = (percentage) => {
+        console.log(`Attempting automatic timeline advancement (${percentage}%)`);
+
+        if (!sheet) {
+            console.error("Cannot trigger animation: Theatre.js sheet missing");
+            return;
+        }
+
+        // Calculate new position
+        const advanceAmount = (sequenceLengthRef.current * percentage) / 100;
+        const currentPosition = timelinePositionRef.current;
+        const targetPosition = Math.min(currentPosition + advanceAmount, sequenceLengthRef.current);
+
+        console.log(`Current position: ${currentPosition}, target: ${targetPosition}`);
+
+        // Update minimum position BEFORE starting the animation
+        lastProcessedPosition.current = currentPosition;
+
+        // Important: Update the store's internal reference as well
+        if (useStore.getState().interaction) {
+            useStore.getState().interaction._lastProcessedPosition = currentPosition;
+        }
+
+        // Disable scrolling during animation
+        setAllowScroll(false);
+
+        // Reset velocity
+        scrollVelocity.current = 0;
+
+        // Signal that an animation is in progress
+        useStore.getState().setAnimationInProgress(true);
+
+        // Trigger animation with explicit start and target positions
+        EventBus.trigger(MARKER_EVENTS.INTERACTION_ANIMATION, {
+            animationName: 'timeline-advance',
+            animationOptions: {
+                duration: 3.0,
+                startPosition: currentPosition,
+                targetPosition: targetPosition
+            }
+        });
+    }
+
 
     const checkInteractionTriggers = (position) => {
         // Variable pour stocker l'interaction déclenchée
@@ -515,16 +704,12 @@ function CameraController({children}) {
                 return;
             }
 
-            // NOUVEAU: Vérification spéciale pour AnimalPaws
+            // Vérification spéciale pour AnimalPaws
             if (interaction.objectKey === 'AnimalPaws') {
-                // Vérifier si LeafErable a été complété en cherchant dans les interactions complétées
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirdStop') || // Le requiredStep de LeafErable
-                    key.includes('LeafErable')   // L'objectKey
-                );
+                // Vérifier si LeafErable a été complété
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
 
                 if (!leafErableCompleted) {
-                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
                     return; // Ignorer cette interaction
                 }
             }
@@ -542,13 +727,11 @@ function CameraController({children}) {
                 // Récupérer l'objet associé à cette interaction
                 const relatedObjectKey = interaction.objectKey;
                 const placement = sceneObjectManager.getPlacements({
-                    objectKey: relatedObjectKey,
-                    requiredStep: interaction.id
+                    objectKey: relatedObjectKey, requiredStep: interaction.id
                 })[0];
 
                 // Trouver l'objet cible dans la scène si spécifié
-                const targetObject = placement?.targetId ?
-                    findObjectByName(placement.targetId) : null;
+                const targetObject = placement?.targetId ? findObjectByName(placement.targetId) : null;
 
                 // Bloquer le défilement
                 setAllowScroll(false);
@@ -567,6 +750,43 @@ function CameraController({children}) {
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
+
+                // Vérifier s'il s'agit de l'interaction avec le tronc
+                const isTrunkInteraction = interaction.objectKey === 'TrunkLargeInteractive';
+                if (isTrunkInteraction) {
+                    console.log("Interaction avec le tronc détectée - préparation de l'avancement automatique");
+
+                    // Stocker l'original
+                    const originalCompleteInteraction = completeInteraction;
+
+                    // Remplacer temporairement la fonction
+                    useStore.getState().interaction.completeInteraction = () => {
+                        // Appeler la fonction originale pour compléter l'interaction
+                        const step = originalCompleteInteraction();
+
+                        // Désactiver immédiatement le scroll
+                        if (setAllowScroll) {
+                            setAllowScroll(false);
+                            console.log("Scroll désactivé pour l'animation");
+                        }
+
+                        // IMPORTANT: Activer explicitement l'auto-avancement AVANT d'appeler la fonction
+                        isAutoAdvancing.current = true;
+                        console.log("isAutoAdvancing défini à true");
+
+                        // IMPORTANT: Mémoriser la position actuelle comme point de départ minimal
+                        // Nous enregistrons cette position AVANT l'animation pour bloquer tout retour en arrière
+                        const currentPosition = timelinePositionRef.current;
+                        lastProcessedPosition.current = currentPosition;
+                        console.log(`Position minimale définie à: ${lastProcessedPosition.current}`);
+
+                        // Appeler directement sans setTimeout
+                        console.log("Déclenchement immédiat de l'avancement automatique");
+                        advanceTimelineAutomatically(5); // Avancer de 15% dans la timeline
+
+                        return step;
+                    };
+                }
             }
         });
 
@@ -575,12 +795,10 @@ function CameraController({children}) {
             console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
             console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
             console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(
-                Math.pow(position.x - triggeredInteraction.triggers.x, 2) +
-                Math.pow(position.z - triggeredInteraction.triggers.z, 2)
-            ).toFixed(2)} unités`);
+            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
         }
     };
+
 
     const startCountdown = () => {
         setCountdown(5);
@@ -622,42 +840,7 @@ function CameraController({children}) {
         }
     }, [countdown]);
 
-    useFrame(() => {
-        if (!camera) return;
-
-        const cameraPosition = {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
-        };
-
-        setCurrentCameraZ(cameraPosition.z);
-
-        // Vérifier les déclencheurs d'interaction
-        checkInteractionTriggers(cameraPosition);
-
-        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
-            timelinePositionRef.current += scrollVelocity.current;
-            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
-            sheet.sequence.position = timelinePositionRef.current;
-
-            scrollVelocity.current *= DECELERATION;
-        }
-
-        const progressPercentage = sequenceLengthRef.current > 0
-            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
-            : 0;
-
-        const indicator = document.getElementById('progress-indicator');
-        if (indicator) {
-            indicator.style.width = `${progressPercentage}%`;
-        }
-    });
-
-    return (
-        <>
-            {children}
-        </>
-    );
+    return (<>
+        {children}
+    </>);
 }
