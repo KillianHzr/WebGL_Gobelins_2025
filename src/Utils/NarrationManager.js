@@ -47,7 +47,7 @@ class NarrationManager {
             font-weight: 600;
             font-style: italic;
             text-align: center;
-            z-index: 1000;
+            z-index: 12000;
             padding: 8px 16px;
             pointer-events: none;
             width: 90%;

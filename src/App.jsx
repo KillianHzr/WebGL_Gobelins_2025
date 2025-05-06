@@ -89,6 +89,11 @@ export default function App() {
                     canvasRef.current.focus();
                 }
             }, 100);
+
+            setTimeout(() => {
+                narrationManager.playNarration('Scene01_Mission');
+                console.log("Lecture de la narration Scene01_Mission après transition");
+            }, 2000);
         }, 800); // This should match when the black screen is at full opacity
     };
 
