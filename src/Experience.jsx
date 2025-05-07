@@ -186,8 +186,6 @@ export default function Experience() {
                         {/* Ajout du composant Flashlight */}
                         <Flashlight/>
 
-                        {/* Système de scénario pour gérer les interactions */}
-                        <ScenarioSystem/>
                     </ScrollControls>
                 </InteractiveMarkersProvider>
             </RayCaster>

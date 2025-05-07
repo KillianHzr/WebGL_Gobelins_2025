@@ -1,3 +1,4 @@
+// ScrollControls.jsx - Système de chapitres pour Theatre.js - Version corrigée
 import React, {useEffect, useRef, useState} from 'react';
 import {useFrame, useThree} from '@react-three/fiber';
 import {getProject, val} from '@theatre/core';
@@ -7,21 +8,40 @@ import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus} from "../Utils/EventEmitter.jsx";
 
+// Configuration des chapitres
+const CHAPTERS = [{id: 'intro', name: "Introduction", position: 0, completed: false}, {
+    id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false
+}, {id: 'discovery', name: "Découverte", position: 12.3, completed: false}, {
+    id: 'creatures', name: "Créatures", position: 18.7, completed: false
+}, {id: 'conclusion', name: "Conclusion", position: 25.4, completed: false}];
+
+// Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.0001;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
+// Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
+const getStartChapterFromURL = () => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const chapterId = urlParams.get('chapter');
+        if (chapterId) {
+            const chapter = CHAPTERS.find(c => c.id === chapterId);
+            return chapter ? chapter.position : 0;
+        }
+    }
+    return 0; // Chapitre par défaut
+};
+
 export default function ScrollControls({children}) {
     const project = getProject('WebGL_Gobelins', {state: theatreState});
     const sheet = project.sheet('Scene');
 
-    return (
-        <SheetProvider sheet={sheet}>
-            <CameraController>{children}</CameraController>
-        </SheetProvider>
-    );
+    return (<SheetProvider sheet={sheet}>
+        <CameraController>{children}</CameraController>
+    </SheetProvider>);
 }
 
 function CameraController({children}) {
@@ -35,6 +55,9 @@ function CameraController({children}) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
     const previousAllowScrollRef = useRef(true);
+    const [currentChapter, setCurrentChapter] = useState(0);
+    const [chapterTransitioning, setChapterTransitioning] = useState(false);
+    const isTransitioningRef = useRef(false);
 
     const {size, camera, scene} = useThree();
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
@@ -55,14 +78,260 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
 
+    // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
+    const [interactions, setInteractions] = useState([]);
 
+    // Fonction pour trouver un objet dans la scène par son nom
+    const findObjectByName = (name) => {
+        let targetObject = null;
+        if (name && scene) {
+            // Parcourir la scène pour trouver l'objet avec le nom correspondant
+            scene.traverse((object) => {
+                if (object.name === name) {
+                    targetObject = object;
+                }
+            });
+        }
+        return targetObject;
+    };
+
+    // Fonction pour démarrer un compte à rebours
+    const startCountdown = () => {
+        setCountdown(5);
+
+        const interval = setInterval(() => {
+            setCountdown(prevCount => {
+                if (prevCount <= 1) {
+                    clearInterval(interval);
+                    setAllowScroll(true);
+                    return null;
+                }
+                return prevCount - 1;
+            });
+        }, 1000);
+    };
+
+    // Transition fluide entre les chapitres
+    const smoothJumpTo = (targetPosition) => {
+        if (isTransitioningRef.current) return;
+        isTransitioningRef.current = true;
+        setChapterTransitioning(true);
+
+        // Désactiver temporairement le défilement pendant la transition
+        const wasScrollEnabled = allowScroll;
+        if (wasScrollEnabled && setAllowScroll) {
+            setAllowScroll(false);
+        }
+
+        // Réinitialiser la vélocité de défilement
+        scrollVelocity.current = 0;
+
+        // Animation de transition
+        const startPosition = timelinePositionRef.current;
+        const distance = targetPosition - startPosition;
+        const duration = 1500; // ms
+        const startTime = performance.now();
+
+        const animateTransition = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Fonction d'easing (ease-in-out)
+            const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+            // Calculer nouvelle position
+            const newPosition = startPosition + distance * easeInOut(progress);
+            timelinePositionRef.current = newPosition;
+            sheet.sequence.position = newPosition;
+
+            // Mettre à jour l'indicateur de progression
+            const progressPercentage = sequenceLengthRef.current > 0 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100 : 0;
+
+            const indicator = document.getElementById('progress-indicator');
+            if (indicator) {
+                indicator.style.width = `${progressPercentage}%`;
+            }
+
+            // Continuer l'animation ou terminer
+            if (progress < 1) {
+                requestAnimationFrame(animateTransition);
+            } else {
+                // Réactiver le défilement si nécessaire
+                if (wasScrollEnabled && setAllowScroll) {
+                    setTimeout(() => {
+                        setAllowScroll(true);
+                        setChapterTransitioning(false);
+                        isTransitioningRef.current = false;
+                    }, 300);
+                } else {
+                    setChapterTransitioning(false);
+                    isTransitioningRef.current = false;
+                }
+            }
+        };
+
+        requestAnimationFrame(animateTransition);
+    };
+
+    // Fonction pour passer à un chapitre spécifique
+    const jumpToChapter = (index) => {
+        if (index >= 0 && index < CHAPTERS.length) {
+            const chapter = CHAPTERS[index];
+            console.log(`Transition vers le chapitre: ${chapter.name}`);
+
+            // Marquer les chapitres précédents comme complétés
+            const updatedChapters = [...CHAPTERS];
+            for (let i = 0; i < index; i++) {
+                updatedChapters[i].completed = true;
+            }
+
+            // Mettre à jour l'interface
+            setCurrentChapter(index);
+
+            // Marquer les interactions précédentes comme complétées
+            markPreviousInteractionsAsCompleted(chapter.position, sequenceLengthRef.current);
+
+            // Transition fluide vers le chapitre
+            smoothJumpTo(chapter.position);
+
+            // Mettre à jour l'URL sans rechargement pour la navigation
+            if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('chapter', chapter.id);
+                window.history.replaceState({}, '', url);
+            }
+        }
+    };
+
+    // Trouver le chapitre actuel en fonction de la position
+    const updateCurrentChapter = () => {
+        if (chapterTransitioning) return;
+
+        const position = timelinePositionRef.current;
+        let newChapterIndex = 0;
+
+        for (let i = CHAPTERS.length - 1; i >= 0; i--) {
+            if (position >= CHAPTERS[i].position) {
+                newChapterIndex = i;
+                break;
+            }
+        }
+
+        if (newChapterIndex !== currentChapter) {
+            setCurrentChapter(newChapterIndex);
+
+            // Marquer les chapitres précédents comme complétés
+            const updatedChapters = [...CHAPTERS];
+            for (let i = 0; i <= newChapterIndex; i++) {
+                updatedChapters[i].completed = true;
+            }
+        }
+    };
+
+    // Marquer les interactions précédentes comme complétées
+    const markPreviousInteractionsAsCompleted = (targetPosition, totalLength) => {
+        const progressPercentage = targetPosition / totalLength;
+        const completedInteractions = {...useStore.getState().interaction.completedInteractions};
+
+        // Estimer quelles interactions seraient avant ce point
+        interactions.forEach(interaction => {
+            // Cette logique est simplifiée - vous devrez l'adapter selon votre structure exacte
+            const interactionEstimatedPosition = interaction.triggers.z / 100; // Exemple de calcul
+
+            if (interactionEstimatedPosition <= progressPercentage) {
+                completedInteractions[interaction.id] = true;
+            }
+        });
+
+        // Mettre à jour le store avec les interactions complétées
+        if (useStore.getState().interaction) {
+            useStore.getState().interaction.completedInteractions = completedInteractions;
+        }
+    };
+
+    // Fonction pour vérifier les déclencheurs d'interaction
+    const checkInteractionTriggers = (position) => {
+        // Variable pour stocker l'interaction déclenchée
+        let triggeredInteraction = null;
+
+        // Récupérer la liste des interactions complétées
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+        // Définir une distance maximale
+        const TRIGGER_PROXIMITY = 2.0;
+
+        interactions.forEach(interaction => {
+            // Ignorer les interactions déjà complétées
+            if (!interaction.isActive || completedInteractions[interaction.id]) {
+                return;
+            }
+
+            // Vérifications spécifiques de prérequis
+            if (interaction.objectKey === 'AnimalPaws') {
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
+
+                if (!leafErableCompleted) {
+                    return;
+                }
+            }
+
+            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
+            const dx = position.x - interaction.triggers.x;
+            const dz = position.z - interaction.triggers.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // Si la distance est inférieure au seuil ET que le défilement est autorisé
+            if (distance < TRIGGER_PROXIMITY && allowScroll && !chapterTransitioning) {
+                // Stocker l'interaction déclenchée pour le log
+                triggeredInteraction = interaction;
+
+                // Récupérer l'objet associé à cette interaction
+                const relatedObjectKey = interaction.objectKey;
+                const placement = sceneObjectManager.getPlacements({
+                    objectKey: relatedObjectKey, requiredStep: interaction.id
+                })[0];
+
+                // Trouver l'objet cible dans la scène si spécifié
+                const targetObject = placement?.targetId ? findObjectByName(placement.targetId) : null;
+
+                // Bloquer le défilement
+                setAllowScroll(false);
+
+                // Réinitialiser la vélocité pour éviter tout mouvement résiduel
+                scrollVelocity.current = 0;
+
+                // Indiquer que nous attendons une interaction de l'utilisateur
+                setWaitingForInteraction(true);
+
+                // Enregistrer l'étape actuelle
+                setCurrentStep(interaction.id);
+
+                // Stocker la référence à l'objet cible dans le store
+                setInteractionTarget(targetObject);
+
+                // Mettre à jour l'état local
+                setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
+            }
+        });
+
+        // Afficher le log uniquement si une interaction est déclenchée
+        if (triggeredInteraction) {
+            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+
+            // Mettre à jour le chapitre actuel en fonction de l'interaction
+            updateCurrentChapter();
+        }
+    };
+
+    // Vérifier le chapitre actuel à chaque frame
     useFrame(() => {
         if (!camera) return;
 
         const cameraPosition = {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
+            x: camera.position.x, y: camera.position.y, z: camera.position.z
         };
 
         setCurrentCameraZ(cameraPosition.z);
@@ -71,17 +340,18 @@ function CameraController({children}) {
         checkInteractionTriggers(cameraPosition);
 
         // Ne mettre à jour la position de la timeline que si le défilement est autorisé
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !chapterTransitioning) {
             timelinePositionRef.current += scrollVelocity.current;
             timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
             sheet.sequence.position = timelinePositionRef.current;
 
             scrollVelocity.current *= DECELERATION;
+
+            // Mettre à jour le chapitre actuel
+            updateCurrentChapter();
         }
 
-        const progressPercentage = sequenceLengthRef.current > 0
-            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
-            : 0;
+        const progressPercentage = sequenceLengthRef.current > 0 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100 : 0;
 
         const indicator = document.getElementById('progress-indicator');
         if (indicator) {
@@ -122,26 +392,25 @@ function CameraController({children}) {
 
             setHasTriggeredEndSwitch(true);
 
-            // Réinitialiser le déclencheur après un délai pour permettre un nouveau switch
-            // si l'utilisateur revient en arrière puis revient à la fin
+            // Réinitialiser le déclencheur après un délai
             setTimeout(() => {
                 setHasTriggeredEndSwitch(false);
-            }, 3000); // Délai de 3 secondes avant de pouvoir redéclencher
+            }, 3000);
         }
     });
+
     useEffect(() => {
-        // Si on n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch
+        // S'il n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch
         if (!isAtEndOfScroll) {
             setHasTriggeredEndSwitch(false);
         }
 
-        // Si on est à moins de 50% du scroll, remettre End visible et Screen invisible
+        // Gérer la visibilité des groupes selon la progression
         const scrollProgress = timelinePositionRef.current / sequenceLengthRef.current;
         if (scrollProgress < 0.5) {
             setEndGroupVisible(true);
             setScreenGroupVisible(false);
 
-            // Mettre à jour directement les références DOM si elles sont exposées
             if (window.endGroupRef && window.endGroupRef.current) {
                 window.endGroupRef.current.visible = true;
             }
@@ -149,11 +418,37 @@ function CameraController({children}) {
                 window.screenGroupRef.current.visible = false;
             }
 
-            // Émettre les événements
             EventBus.trigger('end-group-visibility-changed', true);
             EventBus.trigger('screen-group-visibility-changed', false);
         }
     }, [isAtEndOfScroll, timelinePositionRef.current]);
+
+    // Gestion de l'affichage du compte à rebours
+    useEffect(() => {
+        const countdownEl = document.getElementById('countdown-element');
+        if (countdownEl) {
+            if (countdown !== null) {
+                countdownEl.textContent = `Scroll actif dans ${countdown}...`;
+                countdownEl.style.display = 'block';
+
+                if (countdown === 0) {
+                    countdownEl.style.opacity = '1';
+                    countdownEl.style.transition = 'opacity 1s ease';
+
+                    setTimeout(() => {
+                        countdownEl.style.opacity = '0';
+                        setTimeout(() => {
+                            countdownEl.style.display = 'none';
+                            countdownEl.style.opacity = '1';
+                        }, 1000);
+                    }, 500);
+                }
+            } else {
+                countdownEl.style.display = 'none';
+            }
+        }
+    }, [countdown]);
+
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
@@ -163,24 +458,19 @@ function CameraController({children}) {
         previousAllowScrollRef.current = allowScroll;
     }, [allowScroll]);
 
-    // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
-    const [interactions, setInteractions] = useState([]);
-
+    // Récupérer les points d'interaction
     useEffect(() => {
-        // Récupérer les placements d'objets interactifs depuis le SceneObjectManager
         const interactivePlacements = sceneObjectManager.getInteractivePlacements();
 
-        // Convertir les placements en points d'interaction
         const interactionPoints = interactivePlacements.map(placement => {
             return {
-                id: placement.requiredStep, // Utiliser l'étape requise comme identifiant
+                id: placement.requiredStep,
                 name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep),
                 triggers: {
-                    x: placement.position[0], // Position X du modèle
-                    z: placement.position[2]  // Position Z du modèle
+                    x: placement.position[0], z: placement.position[2]
                 },
                 isActive: true,
-                objectKey: placement.objectKey // Référence à l'objet associé
+                objectKey: placement.objectKey
             };
         });
 
@@ -188,46 +478,29 @@ function CameraController({children}) {
         console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
 
+    // Initialiser la timeline et créer l'interface utilisateur
     useEffect(() => {
-        // Ajouter le contrôle de la caméra via Theatre.js
         if (camera && sheet) {
-            // Créer un objet pour stocker les paramètres de la caméra
             let obj;
             try {
                 obj = sheet.object('Camera');
-
                 obj.set({
                     position: {
-                        x: camera.position.x,
-                        y: camera.position.y,
-                        z: camera.position.z
-                    },
-                    rotation: {
-                        x: camera.rotation.x,
-                        y: camera.rotation.y,
-                        z: camera.rotation.z
+                        x: camera.position.x, y: camera.position.y, z: camera.position.z
+                    }, rotation: {
+                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
                     }
                 });
-
-                console.log('Updated existing Theatre.js camera object');
             } catch (error) {
-                // Si l'objet n'existe pas, le créer avec une configuration de base
                 obj = sheet.object('Camera', {
                     position: {
-                        x: camera.position.x,
-                        y: camera.position.y,
-                        z: camera.position.z
-                    },
-                    rotation: {
-                        x: camera.rotation.x,
-                        y: camera.rotation.y,
-                        z: camera.rotation.z
+                        x: camera.position.x, y: camera.position.y, z: camera.position.z
+                    }, rotation: {
+                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
                     }
-                }, { reconfigure: true }); // Ajout de l'option reconfigure ici
-                console.log('Created new Theatre.js camera object with reconfigure option');
+                }, {reconfigure: true});
             }
 
-            // Écouter les modifications de Theatre.js et les appliquer à la caméra
             const unsubscribe = obj.onValuesChange((values) => {
                 if (values.position) {
                     camera.position.x = values.position.x;
@@ -242,16 +515,40 @@ function CameraController({children}) {
                 camera.updateProjectionMatrix();
             });
 
-            // Nettoyer l'abonnement
             return () => {
                 unsubscribe();
             };
         }
     }, [camera, sheet]);
 
+    // Initialiser la timeline et créer l'interface de chapitres
     useEffect(() => {
         sequenceLengthRef.current = val(sheet.sequence.pointer.length);
 
+        // Déterminer la position de départ
+        const startChapterPosition = getStartChapterFromURL();
+        timelinePositionRef.current = startChapterPosition;
+        sheet.sequence.position = startChapterPosition;
+
+        // Créer l'interface de navigation par chapitres
+        createChapterUI();
+
+        // Configurer le scroll
+        setupScrollHandlers();
+
+        // Si on commence à une position autre que 0, marquer les interactions précédentes
+        if (startChapterPosition > 0) {
+            markPreviousInteractionsAsCompleted(startChapterPosition, sequenceLengthRef.current);
+        }
+
+        // Nettoyer lors du démontage
+        return () => {
+            cleanupUI();
+        };
+    }, [sheet, allowScroll]);
+
+    // Fonction pour configurer les gestionnaires d'événements de défilement
+    const setupScrollHandlers = () => {
         let lastWheelTimestamp = 0;
         let recentWheelEvents = [];
         const MAX_WHEEL_SAMPLES = 5;
@@ -259,9 +556,7 @@ function CameraController({children}) {
         const normalizeWheelDelta = (e) => {
             const now = performance.now();
             recentWheelEvents.push({
-                deltaY: e.deltaY,
-                timestamp: now,
-                deltaMode: e.deltaMode
+                deltaY: e.deltaY, timestamp: now, deltaMode: e.deltaMode
             });
 
             if (recentWheelEvents.length > MAX_WHEEL_SAMPLES) {
@@ -296,13 +591,13 @@ function CameraController({children}) {
         let lastTouchY = 0;
 
         const handleTouchStart = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
             touchStartY = e.touches[0].clientY;
             lastTouchY = touchStartY;
         };
 
         const handleTouchMove = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
 
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
@@ -318,7 +613,7 @@ function CameraController({children}) {
         };
 
         const handleWheel = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
 
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
@@ -339,117 +634,270 @@ function CameraController({children}) {
             canvasElement.addEventListener('touchmove', handleTouchMove, {passive: false});
         }
 
-        const createUI = () => {
-            if (!document.getElementById('scroll-debug-indicator')) {
-                const indicator = document.createElement('div');
-                indicator.id = 'scroll-debug-indicator';
-                indicator.style.position = 'fixed';
-                indicator.style.bottom = '20px';
-                indicator.style.right = '20px';
-                indicator.style.padding = '8px 12px';
-                indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-                indicator.style.color = '#00ff00';
-                indicator.style.fontFamily = 'sans-serif';
-                indicator.style.fontSize = '14px';
-                indicator.style.borderRadius = '4px';
-                indicator.style.zIndex = '100';
-                indicator.style.transition = 'color 0.3s ease';
-                indicator.textContent = 'Scroll actif';
-                document.body.appendChild(indicator);
-            }
+        // Attacher les fonctions au window pour y accéder depuis la console ou d'autres modules
+        window.jumpToChapter = jumpToChapter;
+        window.CHAPTERS = CHAPTERS;
+    };
 
-            if (!document.getElementById('interaction-button')) {
-                const button = document.createElement('button');
-                button.id = 'interaction-button';
-                button.style.position = 'fixed';
-                button.style.top = '50%';
-                button.style.left = '50%';
-                button.style.transform = 'translate(-50%, -50%)';
-                button.style.padding = '15px 30px';
+    // Création de l'interface utilisateur pour les chapitres
+    const createChapterUI = () => {
+        createProgressUI();
+        createChapterNavigationUI();
+    };
+
+    // Créer UI pour les progrès généraux
+    const createProgressUI = () => {
+        if (!document.getElementById('scroll-debug-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'scroll-debug-indicator';
+            indicator.style.position = 'fixed';
+            indicator.style.bottom = '20px';
+            indicator.style.right = '20px';
+            indicator.style.padding = '8px 12px';
+            indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+            indicator.style.color = '#00ff00';
+            indicator.style.fontFamily = 'sans-serif';
+            indicator.style.fontSize = '14px';
+            indicator.style.borderRadius = '4px';
+            indicator.style.zIndex = '100';
+            indicator.style.transition = 'color 0.3s ease';
+            indicator.textContent = 'Scroll actif';
+            document.body.appendChild(indicator);
+        }
+
+        if (!document.getElementById('timeline-progress')) {
+            const progressBar = document.createElement('div');
+            progressBar.id = 'timeline-progress';
+            progressBar.style.position = 'fixed';
+            progressBar.style.bottom = '10px';
+            progressBar.style.left = '10px';
+            progressBar.style.right = '10px';
+            progressBar.style.height = '4px';
+            progressBar.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            progressBar.style.borderRadius = '2px';
+            progressBar.style.zIndex = '100';
+
+            const progressIndicator = document.createElement('div');
+            progressIndicator.id = 'progress-indicator';
+            progressIndicator.style.height = '100%';
+            progressIndicator.style.width = '0%';
+            progressIndicator.style.backgroundColor = 'white';
+            progressIndicator.style.borderRadius = '2px';
+            progressIndicator.style.transition = 'width 0.05s ease-out';
+
+            progressBar.appendChild(progressIndicator);
+            document.body.appendChild(progressBar);
+        }
+    };
+
+    // Créer l'interface de navigation par chapitres
+    const createChapterNavigationUI = () => {
+        if (!document.getElementById('chapter-navigation')) {
+            const chapterNav = document.createElement('div');
+            chapterNav.id = 'chapter-navigation';
+            chapterNav.style.position = 'fixed';
+            chapterNav.style.top = '20px';
+            chapterNav.style.right = '20px';
+            chapterNav.style.padding = '10px';
+            chapterNav.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            chapterNav.style.borderRadius = '8px';
+            chapterNav.style.zIndex = '100';
+            chapterNav.style.color = 'white';
+            chapterNav.style.fontFamily = 'sans-serif';
+            chapterNav.style.fontSize = '14px';
+            chapterNav.style.minWidth = '180px';
+            chapterNav.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            chapterNav.style.transition = 'all 0.3s ease';
+            chapterNav.style.cursor = 'pointer';
+
+            // Titre
+            const title = document.createElement('div');
+            title.textContent = 'Chapitres';
+            title.style.textAlign = 'center';
+            title.style.fontWeight = 'bold';
+            title.style.marginBottom = '10px';
+            title.style.borderBottom = '1px solid rgba(255, 255, 255, 0.3)';
+            title.style.paddingBottom = '5px';
+            chapterNav.appendChild(title);
+
+            // Créer les entrées de chapitre
+            CHAPTERS.forEach((chapter, index) => {
+                const chapterItem = document.createElement('div');
+                chapterItem.className = 'chapter-item';
+                chapterItem.setAttribute('data-index', index);
+                chapterItem.textContent = chapter.name;
+                chapterItem.style.padding = '8px 10px';
+                chapterItem.style.marginBottom = '4px';
+                chapterItem.style.borderRadius = '4px';
+                chapterItem.style.transition = 'all 0.2s ease';
+                chapterItem.style.display = 'flex';
+                chapterItem.style.alignItems = 'center';
+                chapterItem.style.justifyContent = 'space-between';
+
+                // Indicateur d'état
+                const statusIndicator = document.createElement('span');
+                statusIndicator.className = 'chapter-status';
+                statusIndicator.style.width = '8px';
+                statusIndicator.style.height = '8px';
+                statusIndicator.style.borderRadius = '50%';
+                statusIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                statusIndicator.style.display = 'inline-block';
+                statusIndicator.style.marginLeft = '8px';
+                chapterItem.appendChild(statusIndicator);
+
+                // Ajouter un gestionnaire de clic
+                chapterItem.addEventListener('click', (e) => {
+                    jumpToChapter(index);
+                });
+
+                // Ajouter l'effet de survol
+                chapterItem.addEventListener('mouseover', () => {
+                    if (index !== currentChapter && !chapterTransitioning) {
+                        chapterItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                });
+
+                chapterItem.addEventListener('mouseout', () => {
+                    if (index !== currentChapter) {
+                        chapterItem.style.backgroundColor = 'transparent';
+                    }
+                });
+
+                chapterNav.appendChild(chapterItem);
+            });
+
+            document.body.appendChild(chapterNav);
+
+            // Mettre à jour l'UI des chapitres initialement
+            updateChapterUI(0);
+        }
+    };
+
+// Mettre à jour l'interface des chapitres
+    const updateChapterUI = (activeIndex) => {
+        const chapterItems = document.querySelectorAll('.chapter-item');
+
+        chapterItems.forEach((item, index) => {
+            const statusIndicator = item.querySelector('.chapter-status');
+
+            if (index === activeIndex) {
+                // Chapitre actif
+                item.style.backgroundColor = 'rgba(67, 131, 245, 0.5)';
+                item.style.fontWeight = 'bold';
+                statusIndicator.style.backgroundColor = '#ffffff';
+            } else if (index < activeIndex) {
+                // Chapitres complétés
+                item.style.backgroundColor = 'transparent';
+                item.style.fontWeight = 'normal';
+                statusIndicator.style.backgroundColor = '#4eda92'; // Vert pour complété
+            } else {
+                // Chapitres à venir
+                item.style.backgroundColor = 'transparent';
+                item.style.fontWeight = 'normal';
+                statusIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Gris pour non visité
+            }
+        });
+    };
+
+// Nettoyer l'interface lors du démontage
+    const cleanupUI = () => {
+        // Supprimer tous les éléments d'interface créés
+        ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction', 'chapter-navigation'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.remove();
+        });
+
+        // Supprimer les fonctions globales
+        if (typeof window !== 'undefined') {
+            window.jumpToChapter = undefined;
+            window.CHAPTERS = undefined;
+        }
+
+        // Nettoyer les écouteurs d'événements
+        const canvasElement = document.querySelector('canvas');
+        if (canvasElement) {
+            // Note: Ces gestionnaires sont définis dans setupScrollHandlers,
+            // nous devrions idéalement les stocker dans des refs pour un nettoyage précis
+            canvasElement.removeEventListener('wheel', () => {
+            });
+            canvasElement.removeEventListener('touchstart', () => {
+            });
+            canvasElement.removeEventListener('touchmove', () => {
+            });
+        }
+    };
+
+// Gestion des éléments d'interface pour les interactions
+    useEffect(() => {
+        // Créer l'élément d'instruction pour les interactions si nécessaire
+        if (!document.getElementById('interaction-instruction')) {
+            const instruction = document.createElement('div');
+            instruction.id = 'interaction-instruction';
+            instruction.style.position = 'fixed';
+            instruction.style.top = '50%';
+            instruction.style.left = '50%';
+            instruction.style.transform = 'translate(-50%, -50%)';
+            instruction.style.padding = '15px 30px';
+            instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            instruction.style.color = 'white';
+            instruction.style.fontFamily = 'sans-serif';
+            instruction.style.fontSize = '18px';
+            instruction.style.fontWeight = 'bold';
+            instruction.style.borderRadius = '8px';
+            instruction.style.display = 'none';
+            instruction.style.zIndex = '100';
+            instruction.style.textAlign = 'center';
+            instruction.textContent = 'Interagir pour continuer';
+            document.body.appendChild(instruction);
+        }
+
+        // Créer le bouton d'interaction si nécessaire
+        if (!document.getElementById('interaction-button') && isWaitingForInteraction) {
+            const button = document.createElement('button');
+            button.id = 'interaction-button';
+            button.style.position = 'fixed';
+            button.style.top = '60%';
+            button.style.left = '50%';
+            button.style.transform = 'translate(-50%, -50%)';
+            button.style.padding = '15px 30px';
+            button.style.backgroundColor = '#4383f5';
+            button.style.color = 'white';
+            button.style.border = 'none';
+            button.style.borderRadius = '8px';
+            button.style.fontSize = '18px';
+            button.style.fontWeight = 'bold';
+            button.style.cursor = 'pointer';
+            button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
+            button.style.transition = 'all 0.3s ease';
+            button.style.zIndex = '100';
+            button.textContent = 'Continuer';
+
+            button.addEventListener('mouseover', () => {
+                button.style.backgroundColor = '#306ad6';
+            });
+
+            button.addEventListener('mouseout', () => {
                 button.style.backgroundColor = '#4383f5';
-                button.style.color = 'white';
-                button.style.border = 'none';
-                button.style.borderRadius = '8px';
-                button.style.fontSize = '18px';
-                button.style.fontWeight = 'bold';
-                button.style.cursor = 'pointer';
-                button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-                button.style.transition = 'all 0.3s ease';
-                button.style.display = 'none';
-                button.style.zIndex = '100';
-                button.textContent = 'Interaction';
+            });
 
-                button.addEventListener('mouseover', () => {
-                    button.style.backgroundColor = '#306ad6';
-                });
+            button.addEventListener('click', completeInteraction);
 
-                button.addEventListener('mouseout', () => {
-                    button.style.backgroundColor = '#4383f5';
-                });
-
-                button.addEventListener('click', completeInteraction);
-
-                document.body.appendChild(button);
-            }
-
-            if (!document.getElementById('countdown-element')) {
-                const countdownEl = document.createElement('div');
-                countdownEl.id = 'countdown-element';
-                countdownEl.style.position = 'fixed';
-                countdownEl.style.top = '50%';
-                countdownEl.style.left = '50%';
-                countdownEl.style.transform = 'translate(-50%, -50%)';
-                countdownEl.style.fontSize = '36px';
-                countdownEl.style.fontWeight = 'bold';
-                countdownEl.style.color = 'white';
-                countdownEl.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.5)';
-                countdownEl.style.display = 'none';
-                countdownEl.style.zIndex = '100';
-                document.body.appendChild(countdownEl);
-            }
-
-            if (!document.getElementById('timeline-progress')) {
-                const progressBar = document.createElement('div');
-                progressBar.id = 'timeline-progress';
-                progressBar.style.position = 'fixed';
-                progressBar.style.bottom = '10px';
-                progressBar.style.left = '10px';
-                progressBar.style.right = '10px';
-                progressBar.style.height = '4px';
-                progressBar.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                progressBar.style.borderRadius = '2px';
-                progressBar.style.zIndex = '100';
-
-                const progressIndicator = document.createElement('div');
-                progressIndicator.id = 'progress-indicator';
-                progressIndicator.style.height = '100%';
-                progressIndicator.style.width = '0%';
-                progressIndicator.style.backgroundColor = 'white';
-                progressIndicator.style.borderRadius = '2px';
-                progressIndicator.style.transition = 'width 0.05s ease-out';
-
-                progressBar.appendChild(progressIndicator);
-                document.body.appendChild(progressBar);
-            }
-        };
-
-        createUI();
+            document.body.appendChild(button);
+            setShowInteractionButton(true);
+        } else if (document.getElementById('interaction-button') && !isWaitingForInteraction) {
+            const button = document.getElementById('interaction-button');
+            button.remove();
+            setShowInteractionButton(false);
+        }
 
         return () => {
-            if (canvasElement) {
-                canvasElement.removeEventListener('wheel', handleWheel);
-                canvasElement.removeEventListener('touchstart', handleTouchStart);
-                canvasElement.removeEventListener('touchmove', handleTouchMove);
+            if (document.getElementById('interaction-button')) {
+                document.getElementById('interaction-button').remove();
             }
-
-            ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.remove();
-            });
         };
-    }, [sheet, allowScroll]);
+    }, [isWaitingForInteraction, completeInteraction]);
 
-    // Update UI based on interaction state
+// Mettre à jour l'état UI en fonction de l'état d'interaction
     useEffect(() => {
         const debugIndicator = document.getElementById('scroll-debug-indicator');
         if (debugIndicator) {
@@ -478,186 +926,9 @@ function CameraController({children}) {
                 instruction.style.display = 'none';
             }
         }
+    }, [allowScroll, isWaitingForInteraction, interactionStep, interactions]);
 
-        // Vérifier si l'écoute n'est pas déjà active
-        if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
-            clickListener.startListening();
-        }
-    }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener, interactions]);
-
-    // Fonction pour trouver un objet dans la scène par son nom
-    const findObjectByName = (name) => {
-        let targetObject = null;
-        if (name && scene) {
-            // Parcourir la scène pour trouver l'objet avec le nom correspondant
-            scene.traverse((object) => {
-                if (object.name === name) {
-                    targetObject = object;
-                }
-            });
-        }
-        return targetObject;
-    };
-
-    const checkInteractionTriggers = (position) => {
-        // Variable pour stocker l'interaction déclenchée
-        let triggeredInteraction = null;
-
-        // Récupérer la liste des interactions complétées avec une valeur par défaut
-        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-        // Définir une distance maximale pour considérer qu'on est "proche" du trigger
-        const TRIGGER_PROXIMITY = 2.0; // Ajuster cette valeur selon les besoins
-
-        interactions.forEach(interaction => {
-            // Ignorer les interactions déjà complétées
-            if (!interaction.isActive || completedInteractions[interaction.id]) {
-                return;
-            }
-
-            // NOUVEAU: Vérification spéciale pour AnimalPaws
-            if (interaction.objectKey === 'AnimalPaws') {
-                // Vérifier si LeafErable a été complété en cherchant dans les interactions complétées
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirdStop') || // Le requiredStep de LeafErable
-                    key.includes('LeafErable')   // L'objectKey
-                );
-
-                if (!leafErableCompleted) {
-                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
-                    return; // Ignorer cette interaction
-                }
-            }
-
-            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
-            const dx = position.x - interaction.triggers.x;
-            const dz = position.z - interaction.triggers.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-
-            // Si la distance est inférieure au seuil ET que le défilement est autorisé
-            if (distance < TRIGGER_PROXIMITY && allowScroll) {
-                // Stocker l'interaction déclenchée pour le log
-                triggeredInteraction = interaction;
-
-                // Récupérer l'objet associé à cette interaction
-                const relatedObjectKey = interaction.objectKey;
-                const placement = sceneObjectManager.getPlacements({
-                    objectKey: relatedObjectKey,
-                    requiredStep: interaction.id
-                })[0];
-
-                // Trouver l'objet cible dans la scène si spécifié
-                const targetObject = placement?.targetId ?
-                    findObjectByName(placement.targetId) : null;
-
-                // Bloquer le défilement
-                setAllowScroll(false);
-
-                // Réinitialiser la vélocité pour éviter tout mouvement résiduel
-                scrollVelocity.current = 0;
-
-                // Indiquer que nous attendons une interaction de l'utilisateur
-                setWaitingForInteraction(true);
-
-                // Enregistrer l'étape actuelle
-                setCurrentStep(interaction.id);
-
-                // Stocker la référence à l'objet cible dans le store
-                setInteractionTarget(targetObject);
-
-                // Mettre à jour l'état local
-                setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
-            }
-        });
-
-        // Afficher le log uniquement si une interaction est déclenchée
-        if (triggeredInteraction) {
-            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(
-                Math.pow(position.x - triggeredInteraction.triggers.x, 2) +
-                Math.pow(position.z - triggeredInteraction.triggers.z, 2)
-            ).toFixed(2)} unités`);
-        }
-    };
-
-    const startCountdown = () => {
-        setCountdown(5);
-
-        const interval = setInterval(() => {
-            setCountdown(prevCount => {
-                if (prevCount <= 1) {
-                    clearInterval(interval);
-                    setAllowScroll(true);
-                    return null;
-                }
-                return prevCount - 1;
-            });
-        }, 1000);
-    };
-
-    useEffect(() => {
-        const countdownEl = document.getElementById('countdown-element');
-        if (countdownEl) {
-            if (countdown !== null) {
-                countdownEl.textContent = `Scroll actif dans ${countdown}...`;
-                countdownEl.style.display = 'block';
-
-                if (countdown === 0) {
-                    countdownEl.style.opacity = '1';
-                    countdownEl.style.transition = 'opacity 1s ease';
-
-                    setTimeout(() => {
-                        countdownEl.style.opacity = '0';
-                        setTimeout(() => {
-                            countdownEl.style.display = 'none';
-                            countdownEl.style.opacity = '1';
-                        }, 1000);
-                    }, 500);
-                }
-            } else {
-                countdownEl.style.display = 'none';
-            }
-        }
-    }, [countdown]);
-
-    useFrame(() => {
-        if (!camera) return;
-
-        const cameraPosition = {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
-        };
-
-        setCurrentCameraZ(cameraPosition.z);
-
-        // Vérifier les déclencheurs d'interaction
-        checkInteractionTriggers(cameraPosition);
-
-        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
-            timelinePositionRef.current += scrollVelocity.current;
-            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
-            sheet.sequence.position = timelinePositionRef.current;
-
-            scrollVelocity.current *= DECELERATION;
-        }
-
-        const progressPercentage = sequenceLengthRef.current > 0
-            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
-            : 0;
-
-        const indicator = document.getElementById('progress-indicator');
-        if (indicator) {
-            indicator.style.width = `${progressPercentage}%`;
-        }
-    });
-
-    return (
-        <>
-            {children}
-        </>
-    );
-}
+    return (<>
+        {children}
+    </>);
+} // Fin de CameraController
