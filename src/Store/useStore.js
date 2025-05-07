@@ -3,6 +3,7 @@ import {createAudioSlice} from './AudioSlice'
 import {createInteractionSlice} from './InteractionSlice'
 import {createClickListenerSlice} from './clickListenerSlice'
 import {createNarrationSlice} from './NarrationSlice'
+import {createEndingLandingSlice} from "./EndingLandingSlice.js";
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -262,7 +263,8 @@ const useStore = create((set, get) => ({
     ...createClickListenerSlice(set, get),
     ...createInteractionSlice(set, get),
     ...createAudioSlice(set, get),
-    ...createNarrationSlice(set, get)
+    ...createNarrationSlice(set, get),
+    ...createEndingLandingSlice(set, get)
 }));
 
 // Listen for hash changes to toggle debug mode

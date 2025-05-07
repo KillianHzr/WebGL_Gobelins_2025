@@ -456,6 +456,27 @@ const DebugInitializer = () => {
                     visualizationFolder.close();
                 }
 
+                const endingFolder = gui.addFolder('Ending');
+
+                // Create ending landing control functions
+                const endingControls = {
+                    showEndingLanding: useStore.getState().endingLandingVisible || false,
+                    triggerEnding: () => {
+                        const state = useStore.getState();
+                        if (state.triggerEnding) {
+                            state.triggerEnding();
+                        } else {
+                            // Fallback if triggerEnding not available
+                            state.setEndingLandingVisible(true);
+                        }
+                        console.log('Full ending triggered');
+                    },
+                };
+
+                // Add button to trigger full ending
+                endingFolder.add(endingControls, 'triggerEnding')
+                    .name('Trigger Full Ending');
+
                 // Ajouter le dossier des points d'interaction
                 const interactionPointsFolder = gui.addFolder('Points d\'interaction');
 

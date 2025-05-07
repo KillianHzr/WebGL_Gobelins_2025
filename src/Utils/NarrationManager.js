@@ -68,11 +68,32 @@ class NarrationManager {
         if (!this.subtitleElement) return;
 
         console.log(`NarrationManager: Affichage sous-titre: "${text}"`);
-        this.subtitleElement.textContent = text;
+
+        const processedText = this._processFormattingTags(text);
+
+        // Use innerHTML instead of textContent to allow HTML formatting
+        this.subtitleElement.innerHTML = processedText;
         this.subtitleElement.style.display = 'block';
 
         // Également émettre l'événement pour compatibilité
         EventBus.trigger('subtitle-changed', { text });
+    }
+
+    /**
+     * Traite les balises de formatage spéciales dans le texte
+     * @param {string} text - Texte à traiter
+     * @returns {string} - Texte avec balises HTML
+     */
+    _processFormattingTags(text) {
+        if (!text) return '';
+
+        // Remplacer \strong par <strong>
+        let processedText = text.replace(/\\strong\s(.*?)(?:\n|$)/g, '<strong>$1</strong>');
+
+        // Conserver les sauts de ligne (remplacer \n par <br>)
+        processedText = processedText.replace(/\n/g, '<br>');
+
+        return processedText;
     }
 
     /**
@@ -326,7 +347,8 @@ class NarrationManager {
             { id: 'Scene06_PassageEn-DessousDeLaBranche', label: 'Passage en-dessous de la branche (Scène 6)' },
             { id: 'Scene07_RemplissageDeLaGourde', label: 'Remplissage de la gourde (Scène 7)' },
             { id: 'Scene08_DecouverteDuVisonMort', label: 'Découverte du vison mort (Scène 8)' },
-            { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' }
+            { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' },
+            { id: 'SceneGenerique', label: 'Générique de fin' }
         ];
     }
 

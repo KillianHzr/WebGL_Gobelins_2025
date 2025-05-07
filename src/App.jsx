@@ -1,4 +1,3 @@
-// Modification de la fonction handleEnterExperience dans App.jsx
 import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Experience from './Experience'
@@ -10,16 +9,18 @@ import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
 import LoadingScreen from './Utils/LoadingScreen'
 import MainLayout from './Utils/MainLayout'
+import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 
 export default function App() {
-    const { loaded, setLoaded } = useStore()
+    const { loaded, setLoaded, endingLandingVisible } = useStore()
     const assetManagerRef = useRef(null)
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
     const [isDesktopView, setIsDesktopView] = useState(false)
     const [showExperience, setShowExperience] = useState(false)
     const [showMainLayout, setShowMainLayout] = useState(false)
+    const [showEndingLanding, setShowEndingLanding] = useState(false)
     const canvasRef = useRef(null)
     const narrationEndedRef = useRef(false)
 
@@ -35,6 +36,28 @@ export default function App() {
 
         return () => window.removeEventListener('resize', checkViewport);
     }, []);
+
+    // Subscribe to ending landing visibility changes
+    useEffect(() => {
+        // Set initial state
+        setShowEndingLanding(endingLandingVisible || false);
+
+        // Subscribe to store changes
+        const unsubscribe = useStore.subscribe(
+            state => state.endingLandingVisible,
+            visible => {
+                setShowEndingLanding(visible);
+                // When showing ending, hide the experience
+                if (visible && canvasRef.current) {
+                    canvasRef.current.style.visibility = 'hidden';
+                } else if (!visible && canvasRef.current && showExperience) {
+                    canvasRef.current.style.visibility = 'visible';
+                }
+            }
+        );
+
+        return unsubscribe;
+    }, [endingLandingVisible, showExperience]);
 
     // Only initialize asset manager when in desktop view
     useEffect(() => {
@@ -148,6 +171,12 @@ export default function App() {
         }, 800); // This should match when the black screen is at full opacity
     };
 
+    // Handle the "learn more" button click in ending landing
+    const handleLearnMore = () => {
+        // Open the Gobelins website in a new tab
+        window.open('https://www.gobelins.fr/', '_blank');
+    };
+
     // Show MainLayout when loading is complete (on landing page)
     useEffect(() => {
         if (assetsLoaded) {
@@ -176,6 +205,11 @@ export default function App() {
 
             {/* Main Layout - only show after assets are loaded */}
             {showMainLayout && <MainLayout />}
+
+            {/* Ending Landing - shows when triggered */}
+            {showEndingLanding && (
+                <EndingLanding onLearnMore={handleLearnMore} />
+            )}
 
             {/* Interfaces - only show when experience is visible */}
             {showExperience && (
