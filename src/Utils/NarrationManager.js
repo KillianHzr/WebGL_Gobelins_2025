@@ -317,6 +317,7 @@ class NarrationManager {
     async getNarrationList() {
         // Liste statique pour l'instant
         return [
+            { id: 'Scene00_Radio', label: 'Radio (Introduction)' },
             { id: 'Scene01_Mission', label: 'Mission (Scène 1)' },
             { id: 'Scene02_PanneauInformation', label: 'Panneau d\'information (Scène 2)' },
             { id: 'Scene03_SautAuDessusDeLArbre', label: 'Saut au-dessus de l\'arbre (Scène 3)' },

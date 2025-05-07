@@ -246,7 +246,7 @@
   width: 100%;
   height: 100%;
   background-color: #000;
-  z-index: 10000;
+  z-index: 10;
   opacity: 0;
   animation: fadeInOut 2s forwards;
 }
@@ -255,13 +255,7 @@
   0% {
     opacity: 0;
   }
-  40% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 1;
-  }
   100% {
-    opacity: 0;
+    opacity: 1;
   }
 }

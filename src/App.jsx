@@ -1,3 +1,4 @@
+// Modification de la fonction handleEnterExperience dans App.jsx
 import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Experience from './Experience'
@@ -9,6 +10,7 @@ import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
 import LoadingScreen from './Utils/LoadingScreen'
 import MainLayout from './Utils/MainLayout'
+import { narrationManager } from './Utils/NarrationManager'
 
 export default function App() {
     const { loaded, setLoaded } = useStore()
@@ -19,6 +21,7 @@ export default function App() {
     const [showExperience, setShowExperience] = useState(false)
     const [showMainLayout, setShowMainLayout] = useState(false)
     const canvasRef = useRef(null)
+    const narrationEndedRef = useRef(false)
 
     // Check viewport width on mount and resize
     useEffect(() => {
@@ -76,24 +79,72 @@ export default function App() {
 
     // Callback when user clicks "Découvre ta mission" button
     const handleEnterExperience = () => {
-        console.log("User entered experience - preparing 3D content");
+        console.log("User entered experience - preparing transition");
+        narrationEndedRef.current = false;
 
-        // Set a flag to show the 3D content after a delay that matches the black screen animation
+        // Set a flag to show the black screen transition
+        setShowExperience(false);
+
+        // Set up the black screen transition first
         setTimeout(() => {
-            console.log("Black screen transition in progress - preparing 3D content");
-            setShowExperience(true);
+            console.log("Black screen transition in progress - preparing to play Scene00_Radio");
 
-            // Focus on canvas after showing it
-            setTimeout(() => {
-                if (canvasRef.current) {
-                    canvasRef.current.focus();
+            // Set up a listener for the narration ended event
+            const narrationEndedListener = EventBus.on('narration-ended', (data) => {
+                if (data && data.narrationId === 'Scene00_Radio') {
+                    console.log("Scene00_Radio narration completed, proceeding to 3D scene");
+                    narrationEndedRef.current = true;
+
+                    // Transition to 3D scene after narration ends
+                    setShowExperience(true);
+
+                    // Focus on canvas after showing it
+                    setTimeout(() => {
+                        if (canvasRef.current) {
+                            canvasRef.current.focus();
+                        }
+
+                        // Play the next narration after showing the 3D scene
+                        setTimeout(() => {
+                            narrationManager.playNarration('Scene01_Mission');
+                            console.log("Lecture de la narration Scene01_Mission après transition");
+                        }, 2000);
+                    }, 100);
+
+                    // Remove this listener as it's no longer needed
+                    narrationEndedListener();
                 }
-            }, 100);
+            });
 
+            // Play the Scene00_Radio narration
+            narrationManager.playNarration('Scene00_Radio');
+            console.log("Lecture de la narration Scene00_Radio pendant l'écran noir");
+
+            // Fallback in case the narration-ended event isn't fired
+            // Get the audio duration if possible or use a default value (e.g., 30 seconds)
+            const defaultDuration = 30000; // 30 seconds in ms
             setTimeout(() => {
-                narrationManager.playNarration('Scene01_Mission');
-                console.log("Lecture de la narration Scene01_Mission après transition");
-            }, 2000);
+                if (!narrationEndedRef.current) {
+                    console.log("Fallback: Scene00_Radio didn't fire ended event, proceeding anyway");
+                    narrationEndedRef.current = true;
+
+                    // Transition to 3D scene after the fallback duration
+                    setShowExperience(true);
+
+                    // Focus on canvas after showing it
+                    setTimeout(() => {
+                        if (canvasRef.current) {
+                            canvasRef.current.focus();
+                        }
+
+                        // Play the next narration after showing the 3D scene
+                        setTimeout(() => {
+                            narrationManager.playNarration('Scene01_Mission');
+                            console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
+                        }, 2000);
+                    }, 100);
+                }
+            }, defaultDuration);
         }, 800); // This should match when the black screen is at full opacity
     };
 
@@ -153,6 +204,9 @@ export default function App() {
                 tabIndex={0}
             >
                 <Canvas
+                    style={{
+                        backgroundColor: '#000',
+                    }}
                     gl={{ preserveDrawingBuffer: true }}
                     shadows
                 >
