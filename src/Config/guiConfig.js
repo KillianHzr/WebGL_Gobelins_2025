@@ -74,6 +74,27 @@ const guiConfig = {
             }
         }
     },
+    // Ajouter cette section dans guiConfig.js
+    chapters: {
+        folder: "Chapitres",
+        controls: {
+            currentChapter: {
+                name: "Chapitre actuel",
+                default: 0,
+                options: {
+                    "Introduction": 0,
+                    "Forêt mystérieuse": 1,
+                    "Découverte": 2,
+                    "Créatures": 3,
+                    "Conclusion": 4
+                }
+            },
+            autoProgress: {
+                name: "Progression auto",
+                default: true
+            },
+        }
+    },
     // Nouvelle section pour les contrôles de visualisation générale
     visualization: {
         folder: "Visualisation",

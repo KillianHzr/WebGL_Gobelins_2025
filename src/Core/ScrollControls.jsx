@@ -1,4 +1,4 @@
-// ScrollControls.jsx - Système de chapitres pour Theatre.js - Version corrigée
+// ScrollControls.jsx - Système de chapitres pour Theatre.js - Version modifiée
 import React, {useEffect, useRef, useState} from 'react';
 import {useFrame, useThree} from '@react-three/fiber';
 import {getProject, val} from '@theatre/core';
@@ -9,11 +9,13 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus} from "../Utils/EventEmitter.jsx";
 
 // Configuration des chapitres
-const CHAPTERS = [{id: 'intro', name: "Introduction", position: 0, completed: false}, {
-    id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false
-}, {id: 'discovery', name: "Découverte", position: 12.3, completed: false}, {
-    id: 'creatures', name: "Créatures", position: 18.7, completed: false
-}, {id: 'conclusion', name: "Conclusion", position: 25.4, completed: false}];
+const CHAPTERS = [
+    { id: 'intro', name: "Introduction", position: 0, completed: false },
+    { id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false },
+    { id: 'discovery', name: "Découverte", position: 12.3, completed: false },
+    { id: 'creatures', name: "Créatures", position: 18.7, completed: false },
+    { id: 'conclusion', name: "Conclusion", position: 25.4, completed: false }
+];
 
 // Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
@@ -39,9 +41,11 @@ export default function ScrollControls({children}) {
     const project = getProject('WebGL_Gobelins', {state: theatreState});
     const sheet = project.sheet('Scene');
 
-    return (<SheetProvider sheet={sheet}>
-        <CameraController>{children}</CameraController>
-    </SheetProvider>);
+    return (
+        <SheetProvider sheet={sheet}>
+            <CameraController>{children}</CameraController>
+        </SheetProvider>
+    );
 }
 
 function CameraController({children}) {
@@ -80,6 +84,42 @@ function CameraController({children}) {
 
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
+
+    useEffect(() => {
+        // Exposer la fonction jumpToChapter globalement
+        window.jumpToChapter = jumpToChapter;
+        window.CHAPTERS = CHAPTERS;
+
+        return () => {
+            // Nettoyage lors du démontage
+            window.jumpToChapter = undefined;
+            window.CHAPTERS = undefined;
+        };
+    }, []);
+    useEffect(() => {
+        const guiJumpSubscription = EventBus.on('gui-chapter-jump-initiated', (data) => {
+            console.log(`GUI a initié une transition vers le chapitre ${data.chapterName}`);
+            // Des actions supplémentaires si nécessaires
+        });
+
+        // Nettoyage lors du démontage
+        return () => {
+            guiJumpSubscription();
+        };
+    }, []);
+    // Ajouter l'écouteur d'événement pour réinitialiser la vélocité de défilement
+    useEffect(() => {
+        // Réinitialiser la vélocité de défilement lorsque demandé par le GUI
+        const velocityResetSubscription = EventBus.on('reset-scroll-velocity', () => {
+            console.log('Réinitialisation de la vélocité de défilement');
+            scrollVelocity.current = 0;
+        });
+
+        // Nettoyage lors du démontage
+        return () => {
+            velocityResetSubscription();
+        };
+    }, []);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
@@ -145,7 +185,9 @@ function CameraController({children}) {
             sheet.sequence.position = newPosition;
 
             // Mettre à jour l'indicateur de progression
-            const progressPercentage = sequenceLengthRef.current > 0 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100 : 0;
+            const progressPercentage = sequenceLengthRef.current > 0
+                ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
+                : 0;
 
             const indicator = document.getElementById('progress-indicator');
             if (indicator) {
@@ -268,7 +310,9 @@ function CameraController({children}) {
 
             // Vérifications spécifiques de prérequis
             if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
+                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirdStop') || key.includes('LeafErable')
+                );
 
                 if (!leafErableCompleted) {
                     return;
@@ -288,11 +332,13 @@ function CameraController({children}) {
                 // Récupérer l'objet associé à cette interaction
                 const relatedObjectKey = interaction.objectKey;
                 const placement = sceneObjectManager.getPlacements({
-                    objectKey: relatedObjectKey, requiredStep: interaction.id
+                    objectKey: relatedObjectKey,
+                    requiredStep: interaction.id
                 })[0];
 
                 // Trouver l'objet cible dans la scène si spécifié
-                const targetObject = placement?.targetId ? findObjectByName(placement.targetId) : null;
+                const targetObject = placement?.targetId ?
+                    findObjectByName(placement.targetId) : null;
 
                 // Bloquer le défilement
                 setAllowScroll(false);
@@ -319,7 +365,10 @@ function CameraController({children}) {
             console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
             console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
             console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+            console.log(`Distance: ${Math.sqrt(
+                Math.pow(position.x - triggeredInteraction.triggers.x, 2) +
+                Math.pow(position.z - triggeredInteraction.triggers.z, 2)
+            ).toFixed(2)} unités`);
 
             // Mettre à jour le chapitre actuel en fonction de l'interaction
             updateCurrentChapter();
@@ -331,7 +380,9 @@ function CameraController({children}) {
         if (!camera) return;
 
         const cameraPosition = {
-            x: camera.position.x, y: camera.position.y, z: camera.position.z
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
         };
 
         setCurrentCameraZ(cameraPosition.z);
@@ -351,7 +402,9 @@ function CameraController({children}) {
             updateCurrentChapter();
         }
 
-        const progressPercentage = sequenceLengthRef.current > 0 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100 : 0;
+        const progressPercentage = sequenceLengthRef.current > 0
+            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
+            : 0;
 
         const indicator = document.getElementById('progress-indicator');
         if (indicator) {
@@ -467,7 +520,8 @@ function CameraController({children}) {
                 id: placement.requiredStep,
                 name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep),
                 triggers: {
-                    x: placement.position[0], z: placement.position[2]
+                    x: placement.position[0],
+                    z: placement.position[2]
                 },
                 isActive: true,
                 objectKey: placement.objectKey
@@ -486,19 +540,29 @@ function CameraController({children}) {
                 obj = sheet.object('Camera');
                 obj.set({
                     position: {
-                        x: camera.position.x, y: camera.position.y, z: camera.position.z
-                    }, rotation: {
-                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
                     }
                 });
             } catch (error) {
                 obj = sheet.object('Camera', {
                     position: {
-                        x: camera.position.x, y: camera.position.y, z: camera.position.z
-                    }, rotation: {
-                        x: camera.rotation.x, y: camera.rotation.y, z: camera.rotation.z
+                        x: camera.position.x,
+                        y: camera.position.y,
+                        z: camera.position.z
+                    },
+                    rotation: {
+                        x: camera.rotation.x,
+                        y: camera.rotation.y,
+                        z: camera.rotation.z
                     }
-                }, {reconfigure: true});
+                }, { reconfigure: true });
             }
 
             const unsubscribe = obj.onValuesChange((values) => {
@@ -521,7 +585,7 @@ function CameraController({children}) {
         }
     }, [camera, sheet]);
 
-    // Initialiser la timeline et créer l'interface de chapitres
+    // Initialiser la timeline et créer l'interface de progression
     useEffect(() => {
         sequenceLengthRef.current = val(sheet.sequence.pointer.length);
 
@@ -530,8 +594,8 @@ function CameraController({children}) {
         timelinePositionRef.current = startChapterPosition;
         sheet.sequence.position = startChapterPosition;
 
-        // Créer l'interface de navigation par chapitres
-        createChapterUI();
+        // Créer l'interface de progression
+        createProgressUI();
 
         // Configurer le scroll
         setupScrollHandlers();
@@ -556,7 +620,9 @@ function CameraController({children}) {
         const normalizeWheelDelta = (e) => {
             const now = performance.now();
             recentWheelEvents.push({
-                deltaY: e.deltaY, timestamp: now, deltaMode: e.deltaMode
+                deltaY: e.deltaY,
+                timestamp: now,
+                deltaMode: e.deltaMode
             });
 
             if (recentWheelEvents.length > MAX_WHEEL_SAMPLES) {
@@ -633,16 +699,6 @@ function CameraController({children}) {
             canvasElement.addEventListener('touchstart', handleTouchStart, {passive: false});
             canvasElement.addEventListener('touchmove', handleTouchMove, {passive: false});
         }
-
-        // Attacher les fonctions au window pour y accéder depuis la console ou d'autres modules
-        window.jumpToChapter = jumpToChapter;
-        window.CHAPTERS = CHAPTERS;
-    };
-
-    // Création de l'interface utilisateur pour les chapitres
-    const createChapterUI = () => {
-        createProgressUI();
-        createChapterNavigationUI();
     };
 
     // Créer UI pour les progrès généraux
@@ -690,116 +746,7 @@ function CameraController({children}) {
         }
     };
 
-    // Créer l'interface de navigation par chapitres
-    const createChapterNavigationUI = () => {
-        if (!document.getElementById('chapter-navigation')) {
-            const chapterNav = document.createElement('div');
-            chapterNav.id = 'chapter-navigation';
-            chapterNav.style.position = 'fixed';
-            chapterNav.style.top = '20px';
-            chapterNav.style.right = '20px';
-            chapterNav.style.padding = '10px';
-            chapterNav.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            chapterNav.style.borderRadius = '8px';
-            chapterNav.style.zIndex = '100';
-            chapterNav.style.color = 'white';
-            chapterNav.style.fontFamily = 'sans-serif';
-            chapterNav.style.fontSize = '14px';
-            chapterNav.style.minWidth = '180px';
-            chapterNav.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-            chapterNav.style.transition = 'all 0.3s ease';
-            chapterNav.style.cursor = 'pointer';
 
-            // Titre
-            const title = document.createElement('div');
-            title.textContent = 'Chapitres';
-            title.style.textAlign = 'center';
-            title.style.fontWeight = 'bold';
-            title.style.marginBottom = '10px';
-            title.style.borderBottom = '1px solid rgba(255, 255, 255, 0.3)';
-            title.style.paddingBottom = '5px';
-            chapterNav.appendChild(title);
-
-            // Créer les entrées de chapitre
-            CHAPTERS.forEach((chapter, index) => {
-                const chapterItem = document.createElement('div');
-                chapterItem.className = 'chapter-item';
-                chapterItem.setAttribute('data-index', index);
-                chapterItem.textContent = chapter.name;
-                chapterItem.style.padding = '8px 10px';
-                chapterItem.style.marginBottom = '4px';
-                chapterItem.style.borderRadius = '4px';
-                chapterItem.style.transition = 'all 0.2s ease';
-                chapterItem.style.display = 'flex';
-                chapterItem.style.alignItems = 'center';
-                chapterItem.style.justifyContent = 'space-between';
-
-                // Indicateur d'état
-                const statusIndicator = document.createElement('span');
-                statusIndicator.className = 'chapter-status';
-                statusIndicator.style.width = '8px';
-                statusIndicator.style.height = '8px';
-                statusIndicator.style.borderRadius = '50%';
-                statusIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                statusIndicator.style.display = 'inline-block';
-                statusIndicator.style.marginLeft = '8px';
-                chapterItem.appendChild(statusIndicator);
-
-                // Ajouter un gestionnaire de clic
-                chapterItem.addEventListener('click', (e) => {
-                    jumpToChapter(index);
-                });
-
-                // Ajouter l'effet de survol
-                chapterItem.addEventListener('mouseover', () => {
-                    if (index !== currentChapter && !chapterTransitioning) {
-                        chapterItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    }
-                });
-
-                chapterItem.addEventListener('mouseout', () => {
-                    if (index !== currentChapter) {
-                        chapterItem.style.backgroundColor = 'transparent';
-                    }
-                });
-
-                chapterNav.appendChild(chapterItem);
-            });
-
-            document.body.appendChild(chapterNav);
-
-            // Mettre à jour l'UI des chapitres initialement
-            updateChapterUI(0);
-        }
-    };
-
-// Mettre à jour l'interface des chapitres
-    const updateChapterUI = (activeIndex) => {
-        const chapterItems = document.querySelectorAll('.chapter-item');
-
-        chapterItems.forEach((item, index) => {
-            const statusIndicator = item.querySelector('.chapter-status');
-
-            if (index === activeIndex) {
-                // Chapitre actif
-                item.style.backgroundColor = 'rgba(67, 131, 245, 0.5)';
-                item.style.fontWeight = 'bold';
-                statusIndicator.style.backgroundColor = '#ffffff';
-            } else if (index < activeIndex) {
-                // Chapitres complétés
-                item.style.backgroundColor = 'transparent';
-                item.style.fontWeight = 'normal';
-                statusIndicator.style.backgroundColor = '#4eda92'; // Vert pour complété
-            } else {
-                // Chapitres à venir
-                item.style.backgroundColor = 'transparent';
-                item.style.fontWeight = 'normal';
-                statusIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Gris pour non visité
-            }
-        });
-    };
-
-// Nettoyer l'interface lors du démontage
     const cleanupUI = () => {
         // Supprimer tous les éléments d'interface créés
         ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction', 'chapter-navigation'].forEach(id => {
