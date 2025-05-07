@@ -10,11 +10,11 @@ import {EventBus} from "../Utils/EventEmitter.jsx";
 
 // Configuration des chapitres
 const CHAPTERS = [
-    { id: 'intro', name: "Introduction", position: 0, completed: false },
-    { id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false },
-    { id: 'discovery', name: "Découverte", position: 12.3, completed: false },
-    { id: 'creatures', name: "Créatures", position: 18.7, completed: false },
-    { id: 'conclusion', name: "Conclusion", position: 25.4, completed: false }
+    { id: 'intro', name: "Introduction", position: 0.1, completed: false },
+    { id: 'forest', name: "Forêt mystérieuse", position: 2.5, completed: false },
+    { id: 'discovery', name: "Découverte", position: 2.8, completed: false },
+    { id: 'creatures', name: "Créatures", position: 3.7, completed: false },
+    { id: 'conclusion', name: "Conclusion", position: 4.4, completed: false }
 ];
 
 // Paramètres de défilement
@@ -90,21 +90,70 @@ function CameraController({children}) {
         window.jumpToChapter = jumpToChapter;
         window.CHAPTERS = CHAPTERS;
 
-        return () => {
-            // Nettoyage lors du démontage
-            window.jumpToChapter = undefined;
-            window.CHAPTERS = undefined;
-        };
+
     }, []);
     useEffect(() => {
+        // Listen for chapter jump requests from the GUI
         const guiJumpSubscription = EventBus.on('gui-chapter-jump-initiated', (data) => {
             console.log(`GUI a initié une transition vers le chapitre ${data.chapterName}`);
-            // Des actions supplémentaires si nécessaires
+
+            // Check if we're currently in a transition
+            if (isTransitioningRef.current) {
+                console.log("Transition en cours, réinitialisation forcée avant de démarrer une nouvelle transition");
+                // Force reset transition state
+                isTransitioningRef.current = false;
+                setChapterTransitioning(false);
+                // Reset velocity to stop any ongoing movement
+                scrollVelocity.current = 0;
+            }
+
+            // Find the chapter index based on name
+            const chapterIndex = CHAPTERS.findIndex(chapter => chapter.name === data.chapterName);
+            if (chapterIndex !== -1) {
+                // Execute the jump after a small delay to ensure previous state is cleared
+                setTimeout(() => {
+                    jumpToChapter(chapterIndex);
+                }, 50);
+            }
         });
 
-        // Nettoyage lors du démontage
+        // Listen for direct transition requests
+        const directTransitionSubscription = EventBus.on('direct-transition-to-position', (data) => {
+            console.log(`Transition directe demandée vers la position: ${data.position}`);
+
+            // Force reset transition state
+            isTransitioningRef.current = false;
+            setChapterTransitioning(false);
+
+            // Execute the transition
+            setTimeout(() => {
+                smoothJumpTo(data.position);
+            }, 50);
+        });
+
+        // Add a safety mechanism to detect and fix stuck transitions
+        const checkInterval = setInterval(() => {
+            if (isTransitioningRef.current) {
+                console.log("Vérification d'une transition potentiellement bloquée...");
+                // If a transition has been active for more than 5 seconds, it's probably stuck
+                setTimeout(() => {
+                    if (isTransitioningRef.current) {
+                        console.log("Transition bloquée détectée, réinitialisation forcée");
+                        isTransitioningRef.current = false;
+                        setChapterTransitioning(false);
+                        // Re-enable scrolling
+                        if (setAllowScroll) {
+                            setAllowScroll(true);
+                        }
+                    }
+                }, 5000);
+            }
+        }, 10000); // Check every 10 seconds
+
         return () => {
             guiJumpSubscription();
+            directTransitionSubscription();
+            clearInterval(checkInterval);
         };
     }, []);
     // Ajouter l'écouteur d'événement pour réinitialiser la vélocité de défilement
@@ -153,20 +202,37 @@ function CameraController({children}) {
 
     // Transition fluide entre les chapitres
     const smoothJumpTo = (targetPosition) => {
-        if (isTransitioningRef.current) return;
+        // If already transitioning, queue this transition instead of ignoring it
+        if (isTransitioningRef.current) {
+            console.log("Transition already in progress, queueing next transition...");
+            // Store this transition request to execute after current one finishes
+            setTimeout(() => {
+                console.log("Executing queued transition to position:", targetPosition);
+                smoothJumpTo(targetPosition);
+            }, 1600); // Slightly longer than transition duration to ensure completion
+            return;
+        }
+
+        console.log("Starting transition to position:", targetPosition);
         isTransitioningRef.current = true;
         setChapterTransitioning(true);
 
-        // Désactiver temporairement le défilement pendant la transition
+        // Disable scrolling during transition
         const wasScrollEnabled = allowScroll;
         if (wasScrollEnabled && setAllowScroll) {
             setAllowScroll(false);
         }
 
-        // Réinitialiser la vélocité de défilement
+        // Reset scroll velocity
         scrollVelocity.current = 0;
 
-        // Animation de transition
+        // Emit event to notify other components about transition start
+        EventBus.trigger('chapter-transition-started', {
+            startPosition: timelinePositionRef.current,
+            targetPosition: targetPosition
+        });
+
+        // Animation transition
         const startPosition = timelinePositionRef.current;
         const distance = targetPosition - startPosition;
         const duration = 1500; // ms
@@ -176,15 +242,15 @@ function CameraController({children}) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
 
-            // Fonction d'easing (ease-in-out)
+            // Easing function (ease-in-out)
             const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-            // Calculer nouvelle position
+            // Calculate new position
             const newPosition = startPosition + distance * easeInOut(progress);
             timelinePositionRef.current = newPosition;
             sheet.sequence.position = newPosition;
 
-            // Mettre à jour l'indicateur de progression
+            // Update progress indicator
             const progressPercentage = sequenceLengthRef.current > 0
                 ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
                 : 0;
@@ -194,20 +260,30 @@ function CameraController({children}) {
                 indicator.style.width = `${progressPercentage}%`;
             }
 
-            // Continuer l'animation ou terminer
+            // Continue animation or finish
             if (progress < 1) {
                 requestAnimationFrame(animateTransition);
             } else {
-                // Réactiver le défilement si nécessaire
+                // Transition complete - ensure we properly reset all flags
+                console.log("Transition complete to position:", newPosition);
+
+                // Notify other components that transition is complete
+                EventBus.trigger('chapter-transition-complete', {
+                    position: newPosition
+                });
+
+                // Re-enable scrolling if needed, with a slight delay
                 if (wasScrollEnabled && setAllowScroll) {
                     setTimeout(() => {
                         setAllowScroll(true);
                         setChapterTransitioning(false);
                         isTransitioningRef.current = false;
+                        console.log("Flags reset, ready for next transition");
                     }, 300);
                 } else {
                     setChapterTransitioning(false);
                     isTransitioningRef.current = false;
+                    console.log("Flags reset, ready for next transition");
                 }
             }
         };
@@ -215,28 +291,42 @@ function CameraController({children}) {
         requestAnimationFrame(animateTransition);
     };
 
-    // Fonction pour passer à un chapitre spécifique
+// Fix for the jumpToChapter function
     const jumpToChapter = (index) => {
         if (index >= 0 && index < CHAPTERS.length) {
             const chapter = CHAPTERS[index];
             console.log(`Transition vers le chapitre: ${chapter.name}`);
 
-            // Marquer les chapitres précédents comme complétés
+            // Force reset transition flags if they're stuck
+            if (isTransitioningRef.current) {
+                console.log("Forcing reset of transition flags before starting new transition");
+                isTransitioningRef.current = false;
+                setChapterTransitioning(false);
+            }
+
+            // Mark previous chapters as completed
             const updatedChapters = [...CHAPTERS];
             for (let i = 0; i < index; i++) {
                 updatedChapters[i].completed = true;
             }
 
-            // Mettre à jour l'interface
+            // Update interface
             setCurrentChapter(index);
 
-            // Marquer les interactions précédentes comme complétées
+            // Mark previous interactions as completed
             markPreviousInteractionsAsCompleted(chapter.position, sequenceLengthRef.current);
 
-            // Transition fluide vers le chapitre
+            // Emit event before starting transition
+            EventBus.trigger('chapter-jump-initiated', {
+                chapterIndex: index,
+                chapterName: chapter.name,
+                chapterPosition: chapter.position
+            });
+
+            // Smooth transition to chapter
             smoothJumpTo(chapter.position);
 
-            // Mettre à jour l'URL sans rechargement pour la navigation
+            // Update URL without reloading for navigation
             if (typeof window !== 'undefined') {
                 const url = new URL(window.location.href);
                 url.searchParams.set('chapter', chapter.id);
@@ -244,6 +334,50 @@ function CameraController({children}) {
             }
         }
     };
+
+// Add a cleanup mechanism to ensure flags are reset properly
+    useEffect(() => {
+        // Reset flags function that can be called externally
+        const resetTransitionFlags = () => {
+            isTransitioningRef.current = false;
+            setChapterTransitioning(false);
+            console.log("Transition flags manually reset");
+        };
+
+        // Register event listener for forced reset
+        const resetSubscription = EventBus.on('force-reset-transition', resetTransitionFlags);
+
+        // Make the reset function available globally
+        window.resetTransitionFlags = resetTransitionFlags;
+
+        // Add an emergency timeout that will reset flags if stuck for too long
+        const safetyInterval = setInterval(() => {
+            if (isTransitioningRef.current) {
+                const transitionDuration = 3000; // 3 seconds is longer than any transition should take
+                console.log("Checking if transition is stuck...");
+
+                // If transition state doesn't change for 5 seconds, reset it
+                setTimeout(() => {
+                    if (isTransitioningRef.current) {
+                        console.log("Transition appears stuck, forcing reset");
+                        resetTransitionFlags();
+                        scrollVelocity.current = 0;
+
+                        // Re-enable scrolling as well
+                        if (setAllowScroll) {
+                            setAllowScroll(true);
+                        }
+                    }
+                }, transitionDuration);
+            }
+        }, 5000); // Check every 5 seconds
+
+        return () => {
+            resetSubscription();
+            clearInterval(safetyInterval);
+            window.resetTransitionFlags = undefined;
+        };
+    }, []);
 
     // Trouver le chapitre actuel en fonction de la position
     const updateCurrentChapter = () => {
@@ -755,10 +889,10 @@ function CameraController({children}) {
         });
 
         // Supprimer les fonctions globales
-        if (typeof window !== 'undefined') {
-            window.jumpToChapter = undefined;
-            window.CHAPTERS = undefined;
-        }
+        // if (typeof window !== 'undefined') {
+        //     window.jumpToChapter = undefined;
+        //     window.CHAPTERS = undefined;
+        // }
 
         // Nettoyer les écouteurs d'événements
         const canvasElement = document.querySelector('canvas');

@@ -278,61 +278,60 @@ const DebugInitializer = () => {
         if (index >= 0 && index < CHAPTERS.length) {
             const chapter = CHAPTERS[index];
             console.log(`GUI: Transition vers le chapitre: ${chapter.name}`);
+            console.log(`GUI: Position du chapitre: ${chapter.position}`);
+            console.log(`GUI: ${ window.jumpToChapter}`);
+            // Si window.jumpToChapter existe (défini dans ScrollControls.jsx),
+            // l'utiliser comme méthode principale
+            if (typeof window.jumpToChapter === 'function') {
+                console.log('Using window.jumpToChapter as main jumpToChapter function');
+                window.jumpToChapter(index);// Émettre un événement pour indiquer que la transition a été démarrée via le GUI
+                EventBus.trigger('gui-chapter-jump-initiated', {
+                    chapterIndex: index,
+                    chapterName: chapter.name
+                });
 
-            // Au lieu d'initialiser un nouveau projet Theatre.js, utilisez celui déjà disponible globalement
-            try {
-                // Si window.jumpToChapter existe (défini dans ScrollControls.jsx),
-                // l'utiliser comme méthode principale
-                if (typeof window.jumpToChapter === 'function') {
-                    window.jumpToChapter(index);// Émettre un événement pour indiquer que la transition a été démarrée via le GUI
-                    EventBus.trigger('gui-chapter-jump-initiated', {
-                        chapterIndex: index,
-                        chapterName: chapter.name
-                    });
-
-                    return; // Terminer ici pour éviter la double initialisation
-                }
-                const existingProject = window.__theatreProjects && window.__theatreProjects['WebGL_Gobelins'];
-                if (existingProject) {
-                    const sheet = existingProject.sheet('Scene');
-                    if (sheet) {
-                        // Transition fluide vers la position du chapitre
-                        const startPosition = sheet.sequence.position;
-                        const targetPosition = chapter.position;
-                        const distance = targetPosition - startPosition;
-                        const duration = 1500; // ms, ajusté par la vitesse
-                        const startTime = performance.now();
-
-                        // Animation de la transition
-                        const animateTransition = (currentTime) => {
-                            const elapsed = currentTime - startTime;
-                            const progress = Math.min(elapsed / duration, 1);
-
-                            // Fonction d'easing (ease-in-out)
-                            const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-
-                            // Calculer nouvelle position
-                            const newPosition = startPosition + distance * easeInOut(progress);
-                            sheet.sequence.position = newPosition;
-
-                            // Continuer l'animation ou terminer
-                            if (progress < 1) {
-                                requestAnimationFrame(animateTransition);
-                            } else {
-                                // Émettre un événement pour indiquer que la transition est terminée
-                                EventBus.trigger('chapter-transition-complete', {
-                                    chapterIndex: index,
-                                    chapterName: chapter.name
-                                });
-                            }
-                        };
-
-                        requestAnimationFrame(animateTransition);
-                    }
-                }
-            } catch (error) {
-                console.error('Erreur lors du saut de chapitre:', error);
+                return; // Terminer ici pour éviter la double initialisation
             }
+            const existingProject = window.__theatreProjects && window.__theatreProjects['WebGL_Gobelins'];
+            if (existingProject) {
+                console.log('Using existing Theatre.js project for jumpToChapter');
+                const sheet = existingProject.sheet('Scene');
+                if (sheet) {
+                    // Transition fluide vers la position du chapitre
+                    const startPosition = sheet.sequence.position;
+                    const targetPosition = chapter.position;
+                    const distance = targetPosition - startPosition;
+                    const duration = 1500; // ms, ajusté par la vitesse
+                    const startTime = performance.now();
+
+                    // Animation de la transition
+                    const animateTransition = (currentTime) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+
+                        // Fonction d'easing (ease-in-out)
+                        const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+                        // Calculer nouvelle position
+                        const newPosition = startPosition + distance * easeInOut(progress);
+                        sheet.sequence.position = newPosition;
+
+                        // Continuer l'animation ou terminer
+                        if (progress < 1) {
+                            requestAnimationFrame(animateTransition);
+                        } else {
+                            // Émettre un événement pour indiquer que la transition est terminée
+                            EventBus.trigger('chapter-transition-complete', {
+                                chapterIndex: index,
+                                chapterName: chapter.name
+                            });
+                        }
+                    };
+
+                    requestAnimationFrame(animateTransition);
+                }
+            }
+
 
             // Si window.jumpToChapter existe déjà (défini dans ScrollControls.jsx),
             // l'utiliser comme fallback
@@ -797,7 +796,18 @@ const DebugInitializer = () => {
             }
         };
     }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);
+// Add to DebugInitializer's useEffect section
+    useEffect(() => {
+        const transitionFailureSubscription = EventBus.on('chapter-transition-failed', (data) => {
+            console.warn("Chapter transition failed:", data);
+            // Force reset the transition flags
+            EventBus.trigger('force-reset-transition');
+        });
 
+        return () => {
+            transitionFailureSubscription();
+        };
+    }, []);
     // This component doesn't render anything
     return null;
 };
