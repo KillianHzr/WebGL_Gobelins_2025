@@ -10,12 +10,12 @@ import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 
 // Configuration des chapitres
 const CHAPTERS = [
-    {id: 'firstStop', name: "Introduction", distance: 0.5, completed: false},
-    {id: 'secondStop', name: "Forêt mystérieuse", distance: 2.0, completed: false},
-    {id: 'thirdStop', name: "Découverte", distance: 1.5, completed: false},
-    {id: 'fourthStop', name: "Créatures", distance: 1.0, completed: false},
-    {id: 'fifthStop', name: "Exploration", distance: 0.8, completed: false},
-    {id: 'sixthStop', name: "Conclusion", distance: 1.2, completed: false}
+    {id: 'firstStop', name: "Introduction", distance: 0.01, completed: false},
+    {id: 'secondStop', name: "Forêt mystérieuse", distance: 0.01, completed: false},
+    {id: 'thirdStop', name: "Découverte", distance: 0.01, completed: false},
+    {id: 'fourthStop', name: "Créatures", distance: 0.01, completed: false},
+    {id: 'fifthStop', name: "Exploration", distance: 0.01, completed: false},
+    {id: 'sixthStop', name: "Conclusion", distance: 0.01, completed: false}
 ];
 
 // Paramètres de défilement
