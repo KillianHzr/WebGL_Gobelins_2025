@@ -373,7 +373,7 @@ class SceneObjectManager {
             //     }]
             // },
             // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
-            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin
+            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin + caché le groupe de mesh End + afficher le groupe de mesh Screen
             /**
              * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
              * Scène 09: Clairière digitalisée avec panneau interactif
@@ -402,7 +402,8 @@ class SceneObjectManager {
                     rotation: [0, 90 - 29.02382, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
-                    requiredStep: 'tenthStop'
+                    requiredStep: 'tenthStop',
+                    interfaceToShow: "none"
                 }
             },
             // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
@@ -420,7 +421,8 @@ class SceneObjectManager {
             //         text: "Allumer la radio",
             //         color: "#ffcc44",
             //         offset: 0.5,
-            //         axis: "y"
+            //         axis: "y",
+            //         interfaceToShow: "blackScreen"
             //     },
             //     defaultPlacement: {
             //         position: [51.907, 1.0, -134.251], // Position près du panneau de fin

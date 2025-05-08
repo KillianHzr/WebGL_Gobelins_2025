@@ -38,11 +38,11 @@ const useStore = create((set, get) => ({
     },
     // Camera state for zoom functionality
     camera: null,
-    setCamera: (camera) => set({ camera }),
+    setCamera: (camera) => set({camera}),
     cameraInitialZoom: null,
-    setCameraInitialZoom: (zoom) => set({ cameraInitialZoom: zoom }),
+    setCameraInitialZoom: (zoom) => set({cameraInitialZoom: zoom}),
     currentZoomLevel: 0, // -3 to +3 range
-    setCurrentZoomLevel: (level) => set({ currentZoomLevel: level }),
+    setCurrentZoomLevel: (level) => set({currentZoomLevel: level}),
 
     // Theatre.js Studio instance
     theatreStudio: null,
@@ -61,15 +61,14 @@ const useStore = create((set, get) => ({
     sequenceLength: 1,
 
 
-
     endGroupVisible: false,
     screenGroupVisible: true,
 
-    setEndGroupVisible: (visible) => set({ endGroupVisible: visible }),
-    setScreenGroupVisible: (visible) => set({ screenGroupVisible: visible }),
+    setEndGroupVisible: (visible) => set({endGroupVisible: visible}),
+    setScreenGroupVisible: (visible) => set({screenGroupVisible: visible}),
     // NOUVELLES ACTIONS POUR LA TRANSITION JOUR/NUIT
-    setTimelinePosition: (position) => set({ timelinePosition: position }),
-    setSequenceLength: (length) => set({ sequenceLength: length }),
+    setTimelinePosition: (position) => set({timelinePosition: position}),
+    setSequenceLength: (length) => set({sequenceLength: length}),
     updateFlashlightState: (newState) => set((state) => ({
         flashlight: {
             ...state.flashlight,
@@ -177,6 +176,7 @@ const useStore = create((set, get) => ({
         completedInteractions: {},
         showCaptureInterface: false,
         showScannerInterface: false,
+        showBlackscreenInterface: false,
 
         setShowCaptureInterface: (show) => set(state => ({
             interaction: {
@@ -189,6 +189,12 @@ const useStore = create((set, get) => ({
             interaction: {
                 ...state.interaction,
                 showScannerInterface: show
+            }
+        })),
+        setShowBlackscreenInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showBlackscreenInterface: show
             }
         })),
 
@@ -254,10 +260,10 @@ const useStore = create((set, get) => ({
 
     // Gestion des instances et des positions des arbres
     instanceGroups: {},
-    setInstanceGroups: (groups) => set({ instanceGroups: groups }),
+    setInstanceGroups: (groups) => set({instanceGroups: groups}),
 
     treePositions: null,
-    setTreePositions: (positions) => set({ treePositions: positions }),
+    setTreePositions: (positions) => set({treePositions: positions}),
 
     // Intégration des tranches
     ...createClickListenerSlice(set, get),

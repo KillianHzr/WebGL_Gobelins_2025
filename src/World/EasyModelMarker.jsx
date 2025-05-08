@@ -261,6 +261,21 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         }));
                     }
                 }
+                else if (interfaceToShow === 'blackScreen') {
+                    if (typeof store.setShowBlackscreenInterface === 'function') {
+                        store.setShowBlackscreenInterface(true);
+                    } else if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
+                        store.interaction.setShowBlackscreenInterface(true);
+                    } else {
+                        debugLog("Méthode setShowBlackscreenInterface non trouvée, utilisation d'une alternative");
+                        useStore.setState(state => ({
+                            interaction: {
+                                ...state.interaction,
+                                showBlackscreenInterface: true
+                            }
+                        }));
+                    }
+                }
             }
 
             // Si une animation post-interaction est définie, la déclencher
