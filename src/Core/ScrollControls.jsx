@@ -10,11 +10,12 @@ import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 
 // Configuration des chapitres
 const CHAPTERS = [
-    {id: 'intro', name: "Introduction", position: 0.1, completed: false},
-    {id: 'forest', name: "Forêt mystérieuse", position: 2.5, completed: false},
-    {id: 'discovery', name: "Découverte", position: 2.8, completed: false},
-    {id: 'creatures', name: "Créatures", position: 3.7, completed: false},
-    {id: 'conclusion', name: "Conclusion", position: 4.4, completed: false}
+    {id: 'firstStop', name: "Introduction", distance: 0.5, completed: false},
+    {id: 'secondStop', name: "Forêt mystérieuse", distance: 2.0, completed: false},
+    {id: 'thirdStop', name: "Découverte", distance: 1.5, completed: false},
+    {id: 'fourthStop', name: "Créatures", distance: 1.0, completed: false},
+    {id: 'fifthStop', name: "Exploration", distance: 0.8, completed: false},
+    {id: 'sixthStop', name: "Conclusion", distance: 1.2, completed: false}
 ];
 
 // Paramètres de défilement
@@ -30,12 +31,19 @@ const getStartChapterFromURL = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const chapterId = urlParams.get('chapter');
         if (chapterId) {
-            const chapter = CHAPTERS.find(c => c.id === chapterId);
-            return chapter ? chapter.position : 0;
+            const chapterIndex = CHAPTERS.findIndex(c => c.id === chapterId);
+            if (chapterIndex >= 0) {
+                let cumulativeDistance = 0;
+                for (let i = 0; i <= chapterIndex; i++) {
+                    cumulativeDistance += CHAPTERS[i].distance;
+                }
+                return cumulativeDistance;
+            }
         }
     }
-    return 0; // Chapitre par défaut
+    return 0; // Position de départ par défaut
 };
+
 
 export default function ScrollControls({children}) {
     const project = getProject('WebGL_Gobelins', {state: theatreState});
@@ -346,7 +354,7 @@ function CameraController({children}) {
 
         if (index >= 0 && index < CHAPTERS.length) {
             const chapter = CHAPTERS[index];
-            console.log(`Transition vers le chapitre: ${chapter.name} (position: ${chapter.position})`);
+            console.log(`Transition vers le chapitre: ${chapter.name} (distance: ${chapter.distance})`);
 
             // Force reset transition flags if they're stuck
             if (isTransitioningRef.current) {
@@ -365,28 +373,32 @@ function CameraController({children}) {
             setCurrentChapter(index);
             console.log(`Chapitre cible défini sur: ${index} (${chapter.name})`);
 
-            // Reset scroll velocity to prevent any ongoing movement
-            // scrollVelocity.current = 0;
-
             // Assurez-vous que le scroll est désactivé pendant la transition
             if (setAllowScroll) {
                 setAllowScroll(false);
                 console.log("Scroll désactivé pour la transition");
             }
 
-            // Mark previous interactions as completed
-            // markPreviousInteractionsAsCompleted(chapter.position, sequenceLengthRef.current);
+            // Calculer la position cible en fonction de la position actuelle et de la distance relative
+            const currentPosition = timelinePositionRef.current;
+            const targetPosition = currentPosition + chapter.distance;
+
+            console.log(`Position actuelle: ${currentPosition}`);
+            console.log(`Distance à parcourir: ${chapter.distance}`);
+            console.log(`Position cible calculée: ${targetPosition}`);
 
             // Emit event before starting transition
             EventBus.trigger('chapter-jump-initiated', {
                 chapterIndex: index,
                 chapterName: chapter.name,
-                chapterPosition: chapter.position
+                startPosition: currentPosition,
+                distance: chapter.distance,
+                targetPosition: targetPosition
             });
 
-            // Smooth transition to chapter - ensure we move to the exact chapter position
-            smoothJumpTo(chapter.position);
-            console.log(`Transition fluide démarrée vers la position: ${chapter.position}`);
+            // Smooth transition to the calculated target position
+            smoothJumpTo(targetPosition);
+            console.log(`Transition fluide démarrée vers la position: ${targetPosition}`);
 
             // Update URL without reloading for navigation
             if (typeof window !== 'undefined') {
@@ -453,12 +465,15 @@ function CameraController({children}) {
 
         const position = timelinePositionRef.current;
         let newChapterIndex = 0;
+        let cumulativeDistance = 0;
 
-        for (let i = CHAPTERS.length - 1; i >= 0; i--) {
-            if (position >= CHAPTERS[i].position) {
-                newChapterIndex = i;
+        // Parcourir les chapitres et déterminer lequel correspond à la position actuelle
+        for (let i = 0; i < CHAPTERS.length; i++) {
+            cumulativeDistance += CHAPTERS[i].distance;
+            if (position < cumulativeDistance) {
                 break;
             }
+            newChapterIndex = i;
         }
 
         if (newChapterIndex !== currentChapter) {
@@ -471,6 +486,7 @@ function CameraController({children}) {
             }
         }
     };
+
 
     // Marquer les interactions précédentes comme complétées
     const markPreviousInteractionsAsCompleted = (targetPosition, totalLength) => {
@@ -817,7 +833,7 @@ function CameraController({children}) {
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
             console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
-            scrollVelocity.current = 0;
+            // scrollVelocity.current = 0;
         }
         previousAllowScrollRef.current = allowScroll;
     }, [allowScroll]);
@@ -1214,12 +1230,12 @@ function CameraController({children}) {
             setTimeout(() => {
                 // Trouver le chapitre actuel de manière plus robuste
                 let currentChapterIndex = -1;
+                let cumulativeDistance = 0;
 
-                // Parcourir les chapitres pour trouver l'index actuel
+                // Parcourir les chapitres pour trouver l'index actuel basé sur les distances cumulées
                 for (let i = 0; i < CHAPTERS.length; i++) {
-                    if (i === CHAPTERS.length - 1 ||
-                        (timelinePositionRef.current >= CHAPTERS[i].position &&
-                            timelinePositionRef.current < CHAPTERS[i + 1].position)) {
+                    cumulativeDistance += CHAPTERS[i].distance;
+                    if (i === CHAPTERS.length - 1 || timelinePositionRef.current < cumulativeDistance) {
                         currentChapterIndex = i;
                         break;
                     }
@@ -1231,10 +1247,15 @@ function CameraController({children}) {
                 // S'il y a un chapitre suivant, y naviguer
                 if (currentChapterIndex >= 0 && currentChapterIndex < CHAPTERS.length - 1) {
                     const nextChapterIndex = currentChapterIndex + 1;
-                    console.log(`Interaction complétée, transition automatique vers le chapitre suivant: ${CHAPTERS[nextChapterIndex].name} (position: ${CHAPTERS[nextChapterIndex].position})`);
+                    const nextChapter = CHAPTERS[nextChapterIndex];
 
-                    // Enregistrer les données actuelles avant la transition
+                    // Enregistrer la position actuelle avant la transition
                     const currentPosition = timelinePositionRef.current;
+
+                    // Calculer la distance à parcourir (la distance du prochain chapitre)
+                    const distanceToTravel = nextChapter.distance;
+
+                    console.log(`Interaction complétée, transition automatique vers le chapitre suivant: ${nextChapter.name} (distance: ${distanceToTravel})`);
 
                     // Forcer la transition vers le chapitre suivant
                     jumpToChapter(nextChapterIndex);
@@ -1244,7 +1265,8 @@ function CameraController({children}) {
                         previousChapter: currentChapterIndex,
                         newChapter: nextChapterIndex,
                         previousPosition: currentPosition,
-                        newPosition: CHAPTERS[nextChapterIndex].position
+                        distance: distanceToTravel,
+                        newPosition: currentPosition + distanceToTravel
                     });
                 } else {
                     console.log("Aucun chapitre suivant disponible ou dernier chapitre atteint");
