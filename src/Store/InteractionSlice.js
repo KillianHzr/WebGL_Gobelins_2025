@@ -1,3 +1,5 @@
+import {EventBus} from "../Utils/EventEmitter.jsx";
+
 /**
  * Tranche du store Zustand pour la gestion des interactions
  * Gère l'état des interactions disponibles et actives
@@ -5,10 +7,7 @@
 export const createInteractionSlice = (set, get) => ({
     // État des interactions
     interaction: {
-        currentStep: null,
-        allowScroll: true,
-        waitingForInteraction: false,
-        completedInteractions: {},
+        currentStep: null, allowScroll: true, waitingForInteraction: false, completedInteractions: {},
 
         // Objet de la scène qui est actuellement ciblé pour l'interaction
         interactionTarget: null,
@@ -16,32 +15,28 @@ export const createInteractionSlice = (set, get) => ({
         // Définir l'étape actuelle
         setCurrentStep: (step) => set(state => ({
             interaction: {
-                ...state.interaction,
-                currentStep: step
+                ...state.interaction, currentStep: step
             }
         })),
 
         // Définir si le défilement est autorisé
         setAllowScroll: (allow) => set(state => ({
             interaction: {
-                ...state.interaction,
-                allowScroll: allow
+                ...state.interaction, allowScroll: allow
             }
         })),
 
         // Définir si on attend une interaction
         setWaitingForInteraction: (waiting) => set(state => ({
             interaction: {
-                ...state.interaction,
-                waitingForInteraction: waiting
+                ...state.interaction, waitingForInteraction: waiting
             }
         })),
 
         // Définir l'objet actuellement ciblé pour l'interaction
         setInteractionTarget: (target) => set(state => ({
             interaction: {
-                ...state.interaction,
-                interactionTarget: target
+                ...state.interaction, interactionTarget: target
             }
         })),
 
@@ -53,31 +48,47 @@ export const createInteractionSlice = (set, get) => ({
             // Récupérer l'étape actuelle
             const currentStep = state.interaction.currentStep;
 
-            // Désactiver immédiatement l'attente d'interaction
+            // IMPORTANT: Émettre un événement AVANT de modifier l'état
+            // Cela permet à ScrollControls de sauvegarder la position actuelle
+            EventBus.trigger('pre-interaction-complete', {
+                step: currentStep,
+                timestamp: Date.now()
+            });
+
+            // Mettre à jour l'état
             set(state => ({
                 interaction: {
                     ...state.interaction,
                     waitingForInteraction: false,
+                    currentStep: null,
                     interactionTarget: null,
-                    // S'assurer que completedInteractions existe
                     completedInteractions: {
-                        ...(state.interaction.completedInteractions || {}),
+                        ...state.interaction.completedInteractions,
                         [currentStep]: true
                     }
                 }
             }));
 
-            // Réactiver le défilement avec un léger délai
+            // IMPORTANT: Attendre la mise à jour de l'état avant d'émettre l'événement suivant
             setTimeout(() => {
-                set(state => ({
-                    interaction: {
-                        ...state.interaction,
-                        allowScroll: true
-                    }
-                }));
-            }, 500);
+                // Déclencher un événement pour que ScrollControls puisse réactiver le scroll
+                EventBus.trigger('interaction-complete-set-allow-scroll', {
+                    step: currentStep,
+                    timestamp: Date.now()
+                });
+
+                // NOUVEAU: Emit the main INTERACTION_COMPLETE event directly here
+                // This ensures it's called after state updates but isn't missed
+                console.log("Emitting INTERACTION_COMPLETE event directly from completeInteraction");
+                EventBus.trigger('INTERACTION_COMPLETE', {
+                    id: currentStep,
+                    type: 'direct',
+                    source: 'interaction-slice'
+                });
+            }, 50);
 
             return currentStep;
         }
+
     }
 });
