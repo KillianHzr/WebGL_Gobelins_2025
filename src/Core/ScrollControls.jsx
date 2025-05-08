@@ -8,14 +8,14 @@ import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import CameraAnimator from './CameraAnimator';
 
 // Configuration des chapitres
-const CHAPTERS = [{id: 'firstStop', name: "Introduction", distance: 0.01, completed: false}, {
-    id: 'secondStop', name: "Forêt mystérieuse", distance: 0.01, completed: false
-}, {id: 'thirdStop', name: "Découverte", distance: 0.01, completed: false}, {
-    id: 'fourthStop', name: "Créatures", distance: 0.01, completed: false
-}, {id: 'fifthStop', name: "Exploration", distance: 0.01, completed: false}, {
-    id: 'sixthStop', name: "Conclusion", distance: 0.01, completed: false
-
-}];
+const CHAPTERS = [
+    {id: 'firstStop', name: "Introduction", distance: 0.01, completed: false},
+    {id: 'secondStop', name: "Forêt mystérieuse", distance: 0.01, completed: false},
+    {id: 'thirdStop', name: "Découverte", distance: 0.01, completed: false},
+    {id: 'fourthStop', name: "Créatures", distance: 0.01, completed: false},
+    {id: 'fifthStop', name: "Exploration", distance: 0.01, completed: false},
+    {id: 'sixthStop', name: "Conclusion", distance: 0.01, completed: false}
+];
 
 // Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;

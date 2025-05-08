@@ -12,11 +12,12 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 
 // Configuration des chapitres
 const CHAPTERS = [
-    {id: 'intro', name: "Introduction", position: 0, completed: false},
-    {id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false},
-    {id: 'discovery', name: "Découverte", position: 12.3, completed: false},
-    {id: 'creatures', name: "Créatures", position: 18.7, completed: false},
-    {id: 'conclusion', name: "Conclusion", position: 25.4, completed: false}
+    {id: 'firstStop', name: "Introduction", distance: 0.5, completed: false},
+    {id: 'secondStop', name: "Forêt mystérieuse", distance: 2.0, completed: false},
+    {id: 'thirdStop', name: "Découverte", distance: 1.5, completed: false},
+    {id: 'fourthStop', name: "Créatures", distance: 1.0, completed: false},
+    {id: 'fifthStop', name: "Exploration", distance: 0.8, completed: false},
+    {id: 'sixthStop', name: "Conclusion", distance: 1.2, completed: false}
 ];
 
 /**

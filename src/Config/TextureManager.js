@@ -1,14 +1,13 @@
 import {
     DoubleSide,
-    RepeatWrapping,
-    TextureLoader,
-    MeshStandardMaterial,
-    Mesh,
     Group,
-    MeshBasicMaterial,
+    LinearFilter,
     Matrix4,
-    MathUtils,
-    SRGBColorSpace, LinearFilter
+    Mesh,
+    MeshStandardMaterial,
+    RepeatWrapping,
+    SRGBColorSpace,
+    TextureLoader
 } from "three";
 import {LinearEncoding} from "@react-three/drei/helpers/deprecated.js";
 
@@ -108,8 +107,42 @@ class TextureManager {
             metalness: 0.7,
             envMapIntensity: 0.08
         });
+        this.addTextureMapping('TreeNaked', 'forest/tree', null, {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 0.08
+        });
 
-        this.addTextureMapping('TreeStump', 'forest/tree', null, {
+        this.addTextureMapping('TrunkLargeEnd', 'forest/tree', 'TrunkLarge', {
+            roughness: 0.78,
+            metalness: 0.71,
+            envMapIntensity: 0.08
+        });
+
+        this.addTextureMapping('TrunkThinEnd', 'forest/tree', 'TrunkThin', {
+            roughness: 0.81,
+            metalness: 0.7,
+            envMapIntensity: 0.08
+        });
+        this.addTextureMapping('TreeNakedEnd', 'forest/tree', 'TreeNaked', {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 0.08
+        });
+
+        this.addTextureMapping('TrunkLargeDigital', 'forest/tree', 'TrunkLarge', {
+            roughness: 0.78,
+            metalness: 0.71,
+            envMapIntensity: 0.08
+        });
+
+        this.addTextureMapping('TrunkThinDigital', 'forest/tree', 'TrunkThin', {
+            roughness: 0.81,
+            metalness: 0.7,
+            envMapIntensity: 0.08
+        });
+
+        this.addTextureMapping('TreeStumpDigital', 'forest/tree', 'TreeNaked', {
             roughness: 0.81,
             metalness: 0.7,
             envMapIntensity: 0.08
@@ -202,8 +235,8 @@ class TextureManager {
         });
         this.addPlantTexture('Grass', 'forest/plant', {
             roughness: 0.1,
-                metalness: 0.0,
-                envMapIntensity: 0.05
+            metalness: 0.0,
+            envMapIntensity: 0.05
         });
 
         // Fleurs
@@ -339,7 +372,7 @@ class TextureManager {
         if (properties.envMapIntensity !== undefined && material.envMap) material.envMapIntensity = properties.envMapIntensity;
         if (properties.aoIntensity !== undefined && material.aoMap) material.aoMapIntensity = properties.aoIntensity;
         if (properties.normalScale !== undefined && material.normalMap) {
-            if (!material.normalScale) material.normalScale = { x: 1, y: 1 };
+            if (!material.normalScale) material.normalScale = {x: 1, y: 1};
             material.normalScale.x = material.normalScale.y = properties.normalScale;
         }
         if (properties.displacementScale !== undefined && material.displacementMap) {
@@ -553,7 +586,7 @@ class TextureManager {
         const group = this.modelGroupMap[modelId] || 'default';
 
         // Créer une clé qui reflète le LOD actuel et options
-        const optionsWithLOD = { ...options, lod: options.lod || this.currentLOD };
+        const optionsWithLOD = {...options, lod: options.lod || this.currentLOD};
         const key = this._getMaterialKey(modelId, optionsWithLOD);
         const groupKey = `group_${group}_${JSON.stringify(optionsWithLOD)}`;
 
@@ -665,11 +698,11 @@ class TextureManager {
                 if (textures.normalOpenGL) {
                     material.normalMap = textures.normalOpenGL;
                     this.configureTexture(material.normalMap, 'normalOpenGL');
-                    material.normalScale = { x: config.normalScale, y: config.normalScale };
+                    material.normalScale = {x: config.normalScale, y: config.normalScale};
                 } else if (textures.normal) {
                     material.normalMap = textures.normal;
                     this.configureTexture(material.normalMap, 'normal');
-                    material.normalScale = { x: config.normalScale, y: config.normalScale };
+                    material.normalScale = {x: config.normalScale, y: config.normalScale};
                 }
 
                 // Carte de rugosité
@@ -1325,7 +1358,7 @@ class TextureManager {
      * Mettre à jour une propriété spécifique pour tous les matériaux d'un modèle
      */
     updateMaterialProperty(modelId, property, value) {
-        return this.updateMaterialProperties(modelId, { [property]: value });
+        return this.updateMaterialProperties(modelId, {[property]: value});
     }
 
     /**
@@ -1464,13 +1497,13 @@ class TextureManager {
         // Identifier les modèles qui pourraient bénéficier d'une fusion
         const mergeCandidates = Object.entries(this.instanceTracker)
             .filter(([_, data]) => data.count > this.optimizationConfig.mergeThreshold)
-            .map(([modelId, data]) => ({ modelId, count: data.count }))
+            .map(([modelId, data]) => ({modelId, count: data.count}))
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
 
         if (mergeCandidates.length > 0) {
             console.log("Modèles candidats pour la fusion:");
-            mergeCandidates.forEach(({ modelId, count }) => {
+            mergeCandidates.forEach(({modelId, count}) => {
                 console.log(`- ${modelId}: ${count} instances`);
             });
 
@@ -1575,7 +1608,7 @@ class TextureManager {
     updateGlobalLOD(performanceStats = null) {
         // Si des stats de performance sont fournies, les utiliser pour ajuster automatiquement
         if (performanceStats) {
-            const { fps, memoryUsage } = performanceStats;
+            const {fps, memoryUsage} = performanceStats;
 
             // Ajuster le LOD en fonction du FPS
             if (fps < 30 && this.currentLOD !== 'low') {
@@ -1658,7 +1691,7 @@ class TextureManager {
             // Si le LOD actuel est différent de celui du matériau, mettre à jour
             if (options.lod !== this.currentLOD) {
                 // Créer de nouvelles options avec le LOD actuel
-                const newOptions = { ...options, lod: this.currentLOD };
+                const newOptions = {...options, lod: this.currentLOD};
 
                 // Précharger les textures avec le nouveau LOD
                 this.preloadTexturesForModel(modelId)
@@ -1854,7 +1887,7 @@ class TextureManager {
         });
 
         // Créer un mesh combiné pour chaque type de matériau
-        Object.values(meshes).forEach(({ material, geometries }) => {
+        Object.values(meshes).forEach(({material, geometries}) => {
             if (geometries.length === 0) return;
 
             // Fusionner toutes les géométries

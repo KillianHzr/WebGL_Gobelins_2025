@@ -4,6 +4,7 @@ import Experience from './Experience'
 import useStore from './Store/useStore'
 import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
+import BlackscreenInterface from "./Utils/BlackscreenInterface.jsx";
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
@@ -76,7 +77,7 @@ export default function App() {
                 key="assetManager" // Clé stable pour éviter les remontages
             />
             <CaptureInterface />
-
+            <BlackscreenInterface/>
             {/* Scanner interface - outside Canvas */}
             <ScannerInterface />
             {/* Canvas for 3D content */}
