@@ -185,6 +185,7 @@ export default function Experience() {
 
                         {/* Ajout du composant Flashlight */}
                         <Flashlight/>
+
                     </ScrollControls>
                 </InteractiveMarkersProvider>
             </RayCaster>

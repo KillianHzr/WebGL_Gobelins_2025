@@ -223,29 +223,30 @@ const useStore = create((set, get) => ({
 
             // Récupérer l'étape actuelle
             const currentStep = state.interaction.currentStep;
+            const currentStepBeforeComplete = get().interaction.currentStep;
 
-            // Désactiver immédiatement l'attente d'interaction
             set(state => ({
                 interaction: {
                     ...state.interaction,
                     waitingForInteraction: false,
-                    // S'assurer que completedInteractions existe
+                    currentStep: null,
+                    interactionTarget: null,
                     completedInteractions: {
-                        ...(state.interaction.completedInteractions || {}),
-                        [currentStep]: true
+                        ...state.interaction.completedInteractions,
+                        [currentStepBeforeComplete]: true
                     }
                 }
             }));
 
             // Réactiver le défilement avec un léger délai
-            setTimeout(() => {
-                set(state => ({
-                    interaction: {
-                        ...state.interaction,
-                        allowScroll: true
-                    }
-                }));
-            }, 500);
+            // setTimeout(() => {
+            //     set(state => ({
+            //         interaction: {
+            //             ...state.interaction,
+            //             allowScroll: true
+            //         }
+            //     }));
+            // }, 500);
 
             return currentStep;
         }

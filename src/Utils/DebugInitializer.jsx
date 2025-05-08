@@ -5,12 +5,19 @@ import GUI from 'lil-gui';
 import * as THREE from 'three';
 import {getProject} from '@theatre/core';
 import guiConfig from '../Config/guiConfig';
-import {audioManager} from './AudioManager';
-import {addNarrationControlsToDebug} from './NarrationDebugControls';
+import GuiConfig from '../Config/guiConfig';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
 import sceneObjectManager from '../Config/SceneObjectManager';
-import GuiConfig from "../Config/guiConfig";
+
+// Configuration des chapitres
+const CHAPTERS = [
+    {id: 'intro', name: "Introduction", position: 0, completed: false},
+    {id: 'forest', name: "Forêt mystérieuse", position: 5.5, completed: false},
+    {id: 'discovery', name: "Découverte", position: 12.3, completed: false},
+    {id: 'creatures', name: "Créatures", position: 18.7, completed: false},
+    {id: 'conclusion', name: "Conclusion", position: 25.4, completed: false}
+];
 
 /**
  * Component that initializes debug features based on URL hash
@@ -147,7 +154,7 @@ const DebugInitializer = () => {
 
             // S'assurer que visualization existe
             if (!store.visualization) {
-                store.visualization = { cameraMode: mode };
+                store.visualization = {cameraMode: mode};
             } else {
                 store.visualization.cameraMode = mode;
             }
@@ -263,6 +270,81 @@ const DebugInitializer = () => {
             useStore.getState().updateDebugConfig(path, value);
         } else {
             console.warn('updateDebugConfig not available in store');
+        }
+    };
+
+    // Fonction pour sauter à un chapitre spécifique
+    const jumpToChapter = (index) => {
+        if (index >= 0 && index < CHAPTERS.length) {
+            const chapter = CHAPTERS[index];
+            console.log(`GUI: Transition vers le chapitre: ${chapter.name}`);
+            console.log(`GUI: Position du chapitre: ${chapter.position}`);
+            console.log(`GUI: ${ window.jumpToChapter}`);
+            // Si window.jumpToChapter existe (défini dans ScrollControls.jsx),
+            // l'utiliser comme méthode principale
+            if (typeof window.jumpToChapter === 'function') {
+                console.log('Using window.jumpToChapter as main jumpToChapter function');
+                window.jumpToChapter(index);// Émettre un événement pour indiquer que la transition a été démarrée via le GUI
+                EventBus.trigger('gui-chapter-jump-initiated', {
+                    chapterIndex: index,
+                    chapterName: chapter.name
+                });
+
+                return; // Terminer ici pour éviter la double initialisation
+            }
+            const existingProject = window.__theatreProjects && window.__theatreProjects['WebGL_Gobelins'];
+            if (existingProject) {
+                console.log('Using existing Theatre.js project for jumpToChapter');
+                const sheet = existingProject.sheet('Scene');
+                if (sheet) {
+                    // Transition fluide vers la position du chapitre
+                    const startPosition = sheet.sequence.position;
+                    const targetPosition = chapter.position;
+                    const distance = targetPosition - startPosition;
+                    const duration = 1500; // ms, ajusté par la vitesse
+                    const startTime = performance.now();
+
+                    // Animation de la transition
+                    const animateTransition = (currentTime) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+
+                        // Fonction d'easing (ease-in-out)
+                        const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+                        // Calculer nouvelle position
+                        const newPosition = startPosition + distance * easeInOut(progress);
+                        sheet.sequence.position = newPosition;
+
+                        // Continuer l'animation ou terminer
+                        if (progress < 1) {
+                            requestAnimationFrame(animateTransition);
+                        } else {
+                            // Émettre un événement pour indiquer que la transition est terminée
+                            EventBus.trigger('chapter-transition-complete', {
+                                chapterIndex: index,
+                                chapterName: chapter.name
+                            });
+                        }
+                    };
+
+                    requestAnimationFrame(animateTransition);
+                }
+            }
+
+
+            // Si window.jumpToChapter existe déjà (défini dans ScrollControls.jsx),
+            // l'utiliser comme fallback
+            if (typeof window.jumpToChapter === 'function') {
+                window.jumpToChapter(index);
+            }
+
+            // Mettre à jour l'URL sans rechargement pour la navigation
+            if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.set('chapter', chapter.id);
+                window.history.replaceState({}, '', url);
+            }
         }
     };
 
@@ -615,13 +697,77 @@ const DebugInitializer = () => {
                 } catch (error) {
                     console.error("Error setting up interaction points:", error);
                     // Ajouter un message d'erreur dans le dossier
-                    const errorObj = { message: "Erreur: sceneObjectManager non disponible" };
+                    const errorObj = {message: "Erreur: sceneObjectManager non disponible"};
                     interactionPointsFolder.add(errorObj, 'message').name("ERREUR").disable();
                 }
 
                 // Fermer le dossier si configuré ainsi
                 if (guiConfig.gui.closeFolders) {
                     interactionPointsFolder.close();
+                }
+
+                // Ajouter le dossier de gestion des chapitres
+                const chaptersFolder = gui.addFolder('Chapitres');
+
+                // Objet pour stocker les fonctions et paramètres liés aux chapitres
+                const chapterSettings = {
+                    currentChapter: 0,
+                    autoProgress: true,
+                    // Fonctions pour les boutons
+                    jumpToIntro: () => jumpToChapter(0),
+                    jumpToForest: () => jumpToChapter(1),
+                    jumpToDiscovery: () => jumpToChapter(2),
+                    jumpToCreatures: () => jumpToChapter(3), jumpToConclusion: () => jumpToChapter(4),
+                    resetScrollVelocity: () => {
+                        // Émettre un événement pour demander la réinitialisation de la vélocité
+                        EventBus.trigger('reset-scroll-velocity');
+                    }
+                };
+
+                // Ajouter les contrôles de chapitres au GUI
+                chaptersFolder.add(chapterSettings, 'currentChapter', {
+                    "Introduction": 0,
+                    "Forêt mystérieuse": 1,
+                    "Découverte": 2,
+                    "Créatures": 3,
+                    "Conclusion": 4
+                }).name('Chapitre actuel')
+                    .onChange((value) => {
+                        jumpToChapter(value);
+                    });
+
+                chaptersFolder.add(chapterSettings, 'autoProgress').name('Progression auto')
+                    .onChange((value) => {
+                        // Permettre ou non le défilement automatique
+                        const state = useStore.getState();
+                        if (state.interaction && typeof state.interaction.setAllowScroll === 'function') {
+                            state.interaction.setAllowScroll(value);
+                        }
+                    });
+
+                // Section navigation directe
+                const navigationSection = chaptersFolder.addFolder('Navigation directe');
+                navigationSection.add(chapterSettings, 'jumpToIntro').name('→ Introduction');
+                navigationSection.add(chapterSettings, 'jumpToForest').name('→ Forêt mystérieuse');
+                navigationSection.add(chapterSettings, 'jumpToDiscovery').name('→ Découverte');
+                navigationSection.add(chapterSettings, 'jumpToCreatures').name('→ Créatures');
+                navigationSection.add(chapterSettings, 'jumpToConclusion').name('→ Conclusion');
+
+                // Utilitaires
+                const utilsSection = chaptersFolder.addFolder('Utilitaires');
+                utilsSection.add(chapterSettings, 'resetScrollVelocity').name('Arrêter défilement');
+
+                // Fermer le dossier si configuré ainsi
+                if (guiConfig.gui.closeFolders) {
+                    chaptersFolder.close();
+                    navigationSection.close();
+                    utilsSection.close();
+                }
+
+                // Exposer CHAPTERS et jumpToChapter pour l'interopérabilité avec ScrollControls
+                if (typeof window !== 'undefined') {
+                    window.CHAPTERS = CHAPTERS;
+                    window.jumpToChapter = jumpToChapter;
                 }
 
                 // Stocker l'interface GUI
@@ -650,7 +796,18 @@ const DebugInitializer = () => {
             }
         };
     }, [debug?.active, debug?.showGui, setDebug, setGui, setDebugConfig, scene, camera, controls]);
+// Add to DebugInitializer's useEffect section
+    useEffect(() => {
+        const transitionFailureSubscription = EventBus.on('chapter-transition-failed', (data) => {
+            console.warn("Chapter transition failed:", data);
+            // Force reset the transition flags
+            EventBus.trigger('force-reset-transition');
+        });
 
+        return () => {
+            transitionFailureSubscription();
+        };
+    }, []);
     // This component doesn't render anything
     return null;
 };
