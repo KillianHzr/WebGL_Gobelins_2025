@@ -20,6 +20,27 @@ const useStore = create((set, get) => ({
     loaded: false,
     setLoaded: (loaded) => set({loaded}),
 
+
+    chapters: {
+        distances: {},
+        currentChapter: 0
+    },
+    setChapterDistance: (chapterId, distance) => set(state => ({
+        chapters: {
+            ...state.chapters,
+            distances: {
+                ...state.chapters.distances,
+                [chapterId]: distance
+            }
+        }
+    })),
+    setCurrentChapter: (index) => set(state => ({
+        chapters: {
+            ...state.chapters,
+            currentChapter: index
+        }
+    })),
+
     // Debug state - initially set based on URL hash
     debug: {
         active: isDebugEnabled(),     // Enable debug features only if #debug in URL

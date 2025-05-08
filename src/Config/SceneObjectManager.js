@@ -81,7 +81,8 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "none",
+                    chapterDistance: 0.0
                 },
                 defaultPlacement: {
                     position: [-8.34293, 0, 13.95312],
@@ -113,7 +114,8 @@ class SceneObjectManager {
                     color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "none",
+                    chapterDistance: 0.0
                 },
                 defaultPlacement: {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
@@ -141,7 +143,9 @@ class SceneObjectManager {
                     color: "#44aacc",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
+                    interfaceToShow: "none",
+                    chapterDistance: 0.0
+
                 },
                 defaultPlacement: {
                     position: [-6.905, 0.05, -55.498],
@@ -164,7 +168,9 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
+                    interfaceToShow: "scanner",
+                    chapterDistance: "none"
+
                 },
                 defaultPlacement: {
                     position: [-6.921, 0.038, -55.531],
@@ -444,6 +450,32 @@ class SceneObjectManager {
         this._initializeDefaultPlacements();
     }
 
+    // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
+    getChapterDistance(stepId) {
+        const placements = this.getInteractivePlacements({ requiredStep: stepId });
+
+        if (placements.length > 0) {
+            const objectKey = placements[0].objectKey;
+            const objectConfig = this.getObjectFromCatalog(objectKey);
+
+            if (objectConfig && objectConfig.interaction) {
+                // Vérifier explicitement les cas spéciaux
+                if (objectConfig.interaction.chapterDistance === "none" ||
+                    objectConfig.interaction.chapterDistance === 0 ||
+                    objectConfig.interaction.chapterDistance === "0") {
+                    console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
+                    return 0;
+                }
+
+                if (objectConfig.interaction.chapterDistance !== undefined) {
+                    return objectConfig.interaction.chapterDistance;
+                }
+            }
+        }
+
+        // Valeur par défaut
+        return 0;
+    }
     // Attribue automatiquement une étape en fonction de l'ordre des objets
     _getNextStep() {
         // Vérifier si nous avons encore des étapes disponibles
