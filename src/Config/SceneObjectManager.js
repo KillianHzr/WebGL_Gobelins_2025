@@ -92,6 +92,9 @@ class SceneObjectManager {
                 }
             },
 
+            // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
+            // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
             /**
              * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
              * Apprentissage du mouvement vertical
@@ -116,6 +119,7 @@ class SceneObjectManager {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
                 }
             },
+            // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
 
             /**
              * SCÈNE 04 - RECHERCHE DES INDICES
@@ -145,7 +149,10 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'thirdStop'
                 }
-            }, 'AnimalPaws': {
+            },
+            // thirdStop au drag -> déplacement de l'objet vers la droite
+
+            'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.184, 0.184, 0.184],
@@ -166,6 +173,8 @@ class SceneObjectManager {
                     requiredStep: 'fifthStop'
                 }
             },
+            // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
 
             /**
              * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
@@ -193,7 +202,9 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'eleventhStop'
                 }
-            }, 'JumpRock2': {
+            },
+            // eleventhStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            'JumpRock2': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -213,7 +224,9 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'twelfthStop'
                 }
-            }, 'JumpRock3': {
+            },
+            // twelfthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            'JumpRock3': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -233,7 +246,9 @@ class SceneObjectManager {
                     outlinePulse: false,
                     requiredStep: 'thirteenthStop'
                 }
-            }, 'JumpRock4': {
+            },
+            // thirteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            'JumpRock4': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
@@ -254,6 +269,7 @@ class SceneObjectManager {
                     requiredStep: 'fourteenthStop'
                 }
             },
+            // fourteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
 
             /**
              * SCÈNE 06 - OBSTACLE DE LA BRANCHE
@@ -279,7 +295,9 @@ class SceneObjectManager {
                     position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
                     outlinePulse: false, requiredStep: 'fourthStop'
                 }
-            }, 'BigRock': {
+            },
+            // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+            'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
                 scale: [0.12371, 0.12371, 0.12371],
@@ -314,6 +332,12 @@ class SceneObjectManager {
              * Révélation principale et message environnemental
              * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
              *  - Explication du problème de pénurie d'eau
+             */
+
+
+
+
+            /**
              * Scène 08: Découverte du vison mort
              *  - Animation automatique d'éclairage révélant le vison
              *  - CLICK "Immortalise le moment" pour prendre photo
@@ -345,9 +369,11 @@ class SceneObjectManager {
             //         position: [57.62935, 0.1154, -133.0208],
             //         rotation: [0.04812, 90 - 1.68127, 1.56843],
             //         scale: [0.1, 0.1, 0.1],
+            //         requiredStep: 'sixthStop',
             //     }]
             // },
-
+            // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
+            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin
             /**
              * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
              * Scène 09: Clairière digitalisée avec panneau interactif
@@ -370,7 +396,6 @@ class SceneObjectManager {
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
                 },
                 defaultPlacement: {
                     position: [51.907, 0.0, -134.251],
@@ -380,6 +405,10 @@ class SceneObjectManager {
                     requiredStep: 'tenthStop'
                 }
             },
+            // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
+
             // 'RadioInteractive': {
             //     id: 'Radio',
             //     path: '/models/primary/Radio.glb',
@@ -396,9 +425,11 @@ class SceneObjectManager {
             //     defaultPlacement: {
             //         position: [51.907, 1.0, -134.251], // Position près du panneau de fin
             //         rotation: [0, 0, 0],
-            //         requiredStep: 'tenthStop'
+            //         requiredStep: 'seventhStop',
             //     }
             // }
+            // seventhStop au click -> voile noir sur tout l'écran
+
 
         };
         // Liste des placements d'objets dans la scène
