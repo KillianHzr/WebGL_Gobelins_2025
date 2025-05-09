@@ -82,10 +82,18 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.0
+                    chapterDistance: 0.01
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Quitter le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.1
                 }],
                 defaultPlacement: {
-                    position: [-8.34293, 0, 13.95312],
+                    position: [-5.34293, 0, 8.95312],
                     rotation: [0, 180 - 29.02382, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
@@ -108,7 +116,7 @@ class SceneObjectManager {
                 scale: [1.000, 1.000, 1.000],
                 interactive: true,
                 useTextures: true,
-                interaction:[ {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_UP,
                     text: "Observer le tronc",
                     color: "#44aacc",
@@ -136,7 +144,7 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction:[ {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_RIGHT,
                     text: "Observer le tronc",
                     color: "#44aacc",
@@ -432,7 +440,27 @@ class SceneObjectManager {
         // Initialiser les placements par défaut
         this._initializeDefaultPlacements();
     }
+    _getCurrentInteraction(objectConfig, placement) {
+        if (!objectConfig.interaction || !Array.isArray(objectConfig.interaction)) {
+            return null;
+        }
 
+        // If the object hasn't been interacted with yet, return the first interaction
+        if (!placement || !placement.interacted) {
+            return objectConfig.interaction[0];
+        }
+
+        // If we have an interactionIndex stored in the placement, use it
+        const currentIndex = placement.interactionIndex || 0;
+
+        // If we've completed all interactions, return the last one
+        if (currentIndex >= objectConfig.interaction.length) {
+            return objectConfig.interaction[objectConfig.interaction.length - 1];
+        }
+
+        // Return the current interaction
+        return objectConfig.interaction[currentIndex];
+    }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});
@@ -440,18 +468,40 @@ class SceneObjectManager {
         if (placements.length > 0) {
             const objectKey = placements[0].objectKey;
             const objectConfig = this.getObjectFromCatalog(objectKey);
+            const placement = placements[0];
 
-            if (objectConfig && objectConfig.interaction && objectConfig.interaction.length > 0) {
-                // Vérifier explicitement les cas spéciaux
-                if (objectConfig.interaction[0].chapterDistance === "none" ||
-                    objectConfig.interaction[0].chapterDistance === 0 ||
-                    objectConfig.interaction[0].chapterDistance === "0") {
-                    console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
-                    return 0;
+            if (objectConfig && objectConfig.interaction) {
+                // For multiple interactions (array)
+                if (Array.isArray(objectConfig.interaction)) {
+                    const currentInteraction = this._getCurrentInteraction(objectConfig, placement);
+
+                    if (currentInteraction) {
+                        // Vérifier explicitement les cas spéciaux
+                        if (currentInteraction.chapterDistance === "none" ||
+                            currentInteraction.chapterDistance === 0 ||
+                            currentInteraction.chapterDistance === "0") {
+                            console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
+                            return 0;
+                        }
+
+                        if (currentInteraction.chapterDistance !== undefined) {
+                            return currentInteraction.chapterDistance;
+                        }
+                    }
                 }
+                // For single interaction (backward compatibility)
+                else if (objectConfig.interaction.length > 0) {
+                    // Vérifier explicitement les cas spéciaux
+                    if (objectConfig.interaction[0].chapterDistance === "none" ||
+                        objectConfig.interaction[0].chapterDistance === 0 ||
+                        objectConfig.interaction[0].chapterDistance === "0") {
+                        console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
+                        return 0;
+                    }
 
-                if (objectConfig.interaction[0].chapterDistance !== undefined) {
-                    return objectConfig.interaction[0].chapterDistance;
+                    if (objectConfig.interaction[0].chapterDistance !== undefined) {
+                        return objectConfig.interaction[0].chapterDistance;
+                    }
                 }
             }
         }
@@ -557,6 +607,7 @@ class SceneObjectManager {
 
     // Configurer les écouteurs d'événements
     // Configurer les écouteurs d'événements
+    // Inside the _setupEventListeners method
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
@@ -576,6 +627,32 @@ class SceneObjectManager {
 
                 // Mettre à jour l'état d'interaction de l'objet
                 placement.interacted = true;
+
+                // ADD THIS CODE: Update the interaction if multiple interactions are defined
+                const objectConfig = this.getObjectFromCatalog(placement.objectKey);
+                if (objectConfig &&
+                    Array.isArray(objectConfig.interaction) &&
+                    placement.interactionIndex < objectConfig.interaction.length - 1) {
+
+                    placement.interactionIndex++;
+                    placement.interacted = false; // Reset interacted state for the next interaction
+
+                    // Update the marker properties for the next interaction
+                    const nextInteraction = objectConfig.interaction[placement.interactionIndex];
+                    this.updatePlacement(placement.markerId, {
+                        markerType: nextInteraction.type,
+                        markerText: nextInteraction.text,
+                        markerColor: nextInteraction.color,
+                        markerOffset: nextInteraction.offset,
+                        markerAxis: nextInteraction.axis,
+                        interacted: false
+                    });
+
+                    console.log(`%c==== PROGRESSION VERS LA PROCHAINE INTERACTION ====`, 'background: #096; color: white; padding: 3px;');
+                    console.log(`Objet: ${placement.objectKey}`);
+                    console.log(`Interaction #${placement.interactionIndex}: ${nextInteraction.text}`);
+                    console.log(`=============================`);
+                }
 
                 // Émettre un événement pour le système de scénario
                 EventBus.trigger('object:interaction:complete', {
@@ -723,13 +800,31 @@ class SceneObjectManager {
                 requiredStep: requiredStep,
                 onInteract: options.onInteract || null,
                 markerText: markerText,
-                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction[0].color,
-                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction[0].offset,
-                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction[0].axis,
-                markerType: options.markerType || objectConfig.interaction[0].type,
-                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction[0].color,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
-                interacted: false
+                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor ||
+                    (Array.isArray(objectConfig.interaction) ?
+                        this._getCurrentInteraction(objectConfig, null)?.color :
+                        objectConfig.interaction[0]?.color),
+                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset ||
+                    (Array.isArray(objectConfig.interaction) ?
+                        this._getCurrentInteraction(objectConfig, null)?.offset :
+                        objectConfig.interaction[0]?.offset),
+                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis ||
+                    (Array.isArray(objectConfig.interaction) ?
+                        this._getCurrentInteraction(objectConfig, null)?.axis :
+                        objectConfig.interaction[0]?.axis),
+                markerType: options.markerType ||
+                    (Array.isArray(objectConfig.interaction) ?
+                        this._getCurrentInteraction(objectConfig, null)?.type :
+                        objectConfig.interaction[0]?.type),
+                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor ||
+                    (Array.isArray(objectConfig.interaction) ?
+                        this._getCurrentInteraction(objectConfig, null)?.color :
+                        objectConfig.interaction[0]?.color),
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
+                    (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
+                        objectConfig.defaultPlacement.outlinePulse : true),
+                interacted: false,
+                interactionIndex: 0 // Add this line to track which interaction is currently active
             });
         }
 
