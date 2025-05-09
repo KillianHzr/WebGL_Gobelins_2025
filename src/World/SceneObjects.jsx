@@ -509,17 +509,17 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                 rotation: placement.rotation,
                 scale: placement.scale,
                 markerId: placement.markerId,
-                markerType: placement.markerType,
-                markerText: placement.markerText,
-                markerColor: placement.markerColor,
-                markerOffset: placement.markerOffset,
-                markerAxis: placement.markerAxis,
-                outlineColor: placement.outlineColor,
                 outlinePulse: placement.outlinePulse,
                 requiredStep: placement.requiredStep,
                 textureModelId: textureModelId,
                 useTextures: useTextures,
-                interfaceToShow: objectConfig.interaction?.interfaceToShow
+                markerType: placement.markerType || objectConfig.interaction[0].type,
+                markerText: placement.markerText || objectConfig.interaction[0].text,
+                markerColor: placement.markerColor || objectConfig.interaction[0].color,
+                markerOffset: placement.markerOffset || objectConfig.interaction[0].offset,
+                markerAxis: placement.markerAxis || objectConfig.interaction[0].axis,
+                outlineColor: placement.outlineColor || objectConfig.interaction[0].color,
+                interfaceToShow: objectConfig.interaction?.[0]?.interfaceToShow
             };
 
             // IMPORTANT: Garantir que la key est unique et bien définie

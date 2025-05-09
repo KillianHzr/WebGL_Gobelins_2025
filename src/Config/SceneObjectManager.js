@@ -75,7 +75,7 @@ class SceneObjectManager {
                 scale: [0.605, 0.605, 0.605],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
@@ -83,7 +83,7 @@ class SceneObjectManager {
                     axis: "y",
                     interfaceToShow: "none",
                     chapterDistance: 0.0
-                },
+                }],
                 defaultPlacement: {
                     position: [-8.34293, 0, 13.95312],
                     rotation: [0, 180 - 29.02382, 0],
@@ -108,7 +108,7 @@ class SceneObjectManager {
                 scale: [1.000, 1.000, 1.000],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction:[ {
                     type: INTERACTION_TYPES.DRAG_UP,
                     text: "Observer le tronc",
                     color: "#44aacc",
@@ -116,12 +116,11 @@ class SceneObjectManager {
                     axis: "y",
                     interfaceToShow: "none",
                     chapterDistance: 0.0
-                },
+                }],
                 defaultPlacement: {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
                 }
-            },
-            // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
 
             /**
              * SCÈNE 04 - RECHERCHE DES INDICES
@@ -137,7 +136,7 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction:[ {
                     type: INTERACTION_TYPES.DRAG_RIGHT,
                     text: "Observer le tronc",
                     color: "#44aacc",
@@ -146,15 +145,14 @@ class SceneObjectManager {
                     interfaceToShow: "none",
                     chapterDistance: 0.0
 
-                },
+                }],
                 defaultPlacement: {
                     position: [-6.905, 0.05, -55.498],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'thirdStop'
                 }
-            },
-            // thirdStop au drag -> déplacement de l'objet vers la droite
+            }, // thirdStop au drag -> déplacement de l'objet vers la droite
 
             'AnimalPaws': {
                 id: 'AnimalPaws',
@@ -162,7 +160,7 @@ class SceneObjectManager {
                 scale: [0.184, 0.184, 0.184],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
@@ -171,15 +169,14 @@ class SceneObjectManager {
                     interfaceToShow: "scanner",
                     chapterDistance: "none"
 
-                },
+                }],
                 defaultPlacement: {
                     position: [-6.921, 0.038, -55.531],
                     rotation: [0, 24.64, 0],
                     outlinePulse: false,
                     requiredStep: 'fifthStop'
                 }
-            },
-            // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
             // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
 
             /**
@@ -194,88 +191,84 @@ class SceneObjectManager {
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
-                },
+                }],
                 defaultPlacement: {
                     position: [-30.164, 0, -75.977],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'eleventhStop'
                 }
-            },
-            // eleventhStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            }, // eleventhStop au click -> progression dans la timeline pour animation de saut sur la pierre
             'JumpRock2': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
-                },
+                }],
                 defaultPlacement: {
                     position: [-30.137, 0, -76.954],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'twelfthStop'
                 }
-            },
-            // twelfthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            }, // twelfthStop au click -> progression dans la timeline pour animation de saut sur la pierre
             'JumpRock3': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
-                },
+                }],
                 defaultPlacement: {
                     position: [-31.319, 0, -76.848],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'thirteenthStop'
                 }
-            },
-            // thirteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            }, // thirteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
             'JumpRock4': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
                     color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none"
-                },
+                }],
                 defaultPlacement: {
                     position: [-31.648, 0, -77.683],
                     rotation: [0, 0, 0],
                     outlinePulse: false,
                     requiredStep: 'fourteenthStop'
                 }
-            },
-            // fourteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            }, // fourteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
 
             /**
              * SCÈNE 06 - OBSTACLE DE LA BRANCHE
@@ -289,20 +282,19 @@ class SceneObjectManager {
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_DOWN,
                     text: "Observer le tronc",
                     color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none"
-                },
+                }],
                 defaultPlacement: {
                     position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
                     outlinePulse: false, requiredStep: 'fourthStop'
                 }
-            },
-            // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
             'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
@@ -321,12 +313,8 @@ class SceneObjectManager {
                     position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
                 }]
             }, 'TreeStump': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.glb',
-                // scale: [0.108, 0.07866, 0.108],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{
+                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
                     position: [-41.25625, 0.06409, -115.15076],
                     rotation: [-3.14159, 40.80581, -3.14159],
                     scale: [0.07507, 0.07507, 0.07507],
@@ -396,13 +384,9 @@ class SceneObjectManager {
                 scale: [0.605, 0.605, 0.605],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
-                    axis: "y",
-                },
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK, text: "Lire le panneau", color: "#ffcc44", offset: 0.5, axis: "y",
+                }],
                 defaultPlacement: {
                     position: [51.907, 0.0, -134.251],
                     rotation: [0, 90 - 29.02382, 0],
@@ -411,8 +395,7 @@ class SceneObjectManager {
                     requiredStep: 'tenthStop',
                     interfaceToShow: "none"
                 }
-            },
-            // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
             // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
 
 
@@ -452,23 +435,23 @@ class SceneObjectManager {
 
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
-        const placements = this.getInteractivePlacements({ requiredStep: stepId });
+        const placements = this.getInteractivePlacements({requiredStep: stepId});
 
         if (placements.length > 0) {
             const objectKey = placements[0].objectKey;
             const objectConfig = this.getObjectFromCatalog(objectKey);
 
-            if (objectConfig && objectConfig.interaction) {
+            if (objectConfig && objectConfig.interaction && objectConfig.interaction.length > 0) {
                 // Vérifier explicitement les cas spéciaux
-                if (objectConfig.interaction.chapterDistance === "none" ||
-                    objectConfig.interaction.chapterDistance === 0 ||
-                    objectConfig.interaction.chapterDistance === "0") {
+                if (objectConfig.interaction[0].chapterDistance === "none" ||
+                    objectConfig.interaction[0].chapterDistance === 0 ||
+                    objectConfig.interaction[0].chapterDistance === "0") {
                     console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
                     return 0;
                 }
 
-                if (objectConfig.interaction.chapterDistance !== undefined) {
-                    return objectConfig.interaction.chapterDistance;
+                if (objectConfig.interaction[0].chapterDistance !== undefined) {
+                    return objectConfig.interaction[0].chapterDistance;
                 }
             }
         }
@@ -476,6 +459,7 @@ class SceneObjectManager {
         // Valeur par défaut
         return 0;
     }
+
     // Attribue automatiquement une étape en fonction de l'ordre des objets
     _getNextStep() {
         // Vérifier si nous avons encore des étapes disponibles
@@ -595,9 +579,7 @@ class SceneObjectManager {
 
                 // Émettre un événement pour le système de scénario
                 EventBus.trigger('object:interaction:complete', {
-                    markerId: placement.markerId,
-                    objectKey: placement.objectKey,
-                    requiredStep: placement.requiredStep
+                    markerId: placement.markerId, objectKey: placement.objectKey, requiredStep: placement.requiredStep
                 });
             }
         });
@@ -620,14 +602,14 @@ class SceneObjectManager {
 
         // Ajouter les propriétés d'interaction si l'objet est interactif
         if (config.interactive) {
-            baseConfig.interaction = {
+            baseConfig.interaction = [{
                 type: config.interaction?.type || INTERACTION_TYPES.CLICK,
                 text: config.interaction?.text || "Interagir",
                 color: config.interaction?.color || "#44ff44",
                 offset: config.interaction?.offset || 1.0,
                 axis: config.interaction?.axis || "y",
                 interfaceToShow: config.interaction?.interfaceToShow || null
-            };
+            }];
         } else if (config.defaultPlacements) {
             // Ajouter les placements par défaut pour les objets statiques
             baseConfig.defaultPlacements = config.defaultPlacements;
@@ -741,11 +723,11 @@ class SceneObjectManager {
                 requiredStep: requiredStep,
                 onInteract: options.onInteract || null,
                 markerText: markerText,
-                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction.color,
-                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction.offset,
-                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
-                markerType: options.markerType || objectConfig.interaction.type,
-                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
+                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction[0].color,
+                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction[0].offset,
+                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction[0].axis,
+                markerType: options.markerType || objectConfig.interaction[0].type,
+                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction[0].color,
                 outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
                 interacted: false
             });
