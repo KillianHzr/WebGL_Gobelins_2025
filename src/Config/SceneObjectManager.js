@@ -3,7 +3,7 @@
 // Gère à la fois les objets interactifs et les objets statiques avec leur placement par défaut
 
 import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
-import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
+import {MARKER_EVENTS, EventBus} from '../Utils/EventEmitter';
 import {textureManager} from './TextureManager';
 
 class SceneObjectManager {
@@ -82,7 +82,7 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.01
+                    chapterDistance: 0.00
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Quitter le panneau",
@@ -445,20 +445,20 @@ class SceneObjectManager {
             return null;
         }
 
-        // If the object hasn't been interacted with yet, return the first interaction
-        if (!placement || !placement.interacted) {
+        // Si l'objet n'a pas encore été interagi du tout, renvoyer la première interaction
+        if (!placement || placement.interactionIndex === undefined) {
             return objectConfig.interaction[0];
         }
 
-        // If we have an interactionIndex stored in the placement, use it
-        const currentIndex = placement.interactionIndex || 0;
+        // Si nous avons un index d'interaction stocké dans le placement, l'utiliser
+        const currentIndex = placement.interactionIndex;
 
-        // If we've completed all interactions, return the last one
+        // Si nous avons terminé toutes les interactions, renvoyer la dernière
         if (currentIndex >= objectConfig.interaction.length) {
             return objectConfig.interaction[objectConfig.interaction.length - 1];
         }
 
-        // Return the current interaction
+        // Renvoyer l'interaction actuelle
         return objectConfig.interaction[currentIndex];
     }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
@@ -625,19 +625,39 @@ class SceneObjectManager {
                     placement.onInteract(data);
                 }
 
-                // Mettre à jour l'état d'interaction de l'objet
-                placement.interacted = true;
+                // Initialiser l'index d'interaction si nécessaire
+                if (placement.interactionIndex === undefined) {
+                    placement.interactionIndex = 0;
+                }
 
-                // ADD THIS CODE: Update the interaction if multiple interactions are defined
+                // Obtenir la configuration de l'objet
                 const objectConfig = this.getObjectFromCatalog(placement.objectKey);
-                if (objectConfig &&
+
+                // Vérifier si l'objet a plusieurs interactions
+                const hasMultipleInteractions = objectConfig &&
                     Array.isArray(objectConfig.interaction) &&
-                    placement.interactionIndex < objectConfig.interaction.length - 1) {
+                    objectConfig.interaction.length > 1;
 
+                // Si nous sommes à la dernière interaction ou s'il n'y a qu'une seule interaction
+                const isLastInteraction = !hasMultipleInteractions ||
+                    placement.interactionIndex >= objectConfig.interaction.length - 1;
+
+                if (isLastInteraction) {
+                    // C'est la dernière interaction, marquer l'objet comme complètement interagi
+                    placement.interacted = true;
+
+                    // Émettre un événement pour le système de scénario
+                    EventBus.trigger('object:interaction:complete', {
+                        markerId: placement.markerId,
+                        objectKey: placement.objectKey,
+                        requiredStep: placement.requiredStep,
+                        isFinalInteraction: true
+                    });
+                } else {
+                    // Ce n'est pas la dernière interaction, passer à la suivante
                     placement.interactionIndex++;
-                    placement.interacted = false; // Reset interacted state for the next interaction
 
-                    // Update the marker properties for the next interaction
+                    // Mettre à jour les propriétés du marqueur pour la prochaine interaction
                     const nextInteraction = objectConfig.interaction[placement.interactionIndex];
                     this.updatePlacement(placement.markerId, {
                         markerType: nextInteraction.type,
@@ -645,6 +665,7 @@ class SceneObjectManager {
                         markerColor: nextInteraction.color,
                         markerOffset: nextInteraction.offset,
                         markerAxis: nextInteraction.axis,
+                        // On ne marque pas encore comme interagi puisqu'il reste des étapes
                         interacted: false
                     });
 
@@ -652,12 +673,16 @@ class SceneObjectManager {
                     console.log(`Objet: ${placement.objectKey}`);
                     console.log(`Interaction #${placement.interactionIndex}: ${nextInteraction.text}`);
                     console.log(`=============================`);
-                }
 
-                // Émettre un événement pour le système de scénario
-                EventBus.trigger('object:interaction:complete', {
-                    markerId: placement.markerId, objectKey: placement.objectKey, requiredStep: placement.requiredStep
-                });
+                    // Émettre un événement pour notifier de la progression de l'interaction
+                    EventBus.trigger('object:interaction:progress', {
+                        markerId: placement.markerId,
+                        objectKey: placement.objectKey,
+                        requiredStep: placement.requiredStep,
+                        currentInteractionIndex: placement.interactionIndex,
+                        totalInteractions: objectConfig.interaction.length
+                    });
+                }
             }
         });
     }

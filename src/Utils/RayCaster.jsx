@@ -168,8 +168,18 @@ const RayCaster = ({children}) => {
 
     // Méthodes pour ajouter des écouteurs de pointeur
     const addPointerEnterListener = (uuid, callback) => {
+        // Si cet uuid a déjà un écouteur, le remplacer au lieu de le doubler
+        if (pointerEnterListenersRef.current.has(uuid)) {
+            console.log(`[RayCaster] Remplacement de l'écouteur pointer enter pour ${uuid}`);
+        }
+
         pointerEnterListenersRef.current.set(uuid, callback);
-        return () => pointerEnterListenersRef.current.delete(uuid);
+        console.log(`[RayCaster] Ajout d'un écouteur pointer enter pour ${uuid}`);
+
+        return () => {
+            console.log(`[RayCaster] Suppression de l'écouteur pointer enter pour ${uuid}`);
+            pointerEnterListenersRef.current.delete(uuid);
+        };
     };
 
     const addPointerLeaveListener = (uuid, callback) => {

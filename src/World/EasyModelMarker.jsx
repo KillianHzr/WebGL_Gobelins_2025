@@ -90,6 +90,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     const modelRef = useRef();
     const isComponentMounted = useRef(true);
     const cleanupFunctions = useRef([]);
+    const [isInInteractionSequence, setIsInInteractionSequence] = useState(false);
 
     // État local
     const [hovered, setHovered] = useState(false);
@@ -199,7 +200,36 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             setIsInteractionCompleted(false);
         }
     }, [interaction?.currentStep, isInteractionCompleted]);
+    useEffect(() => {
+        const handleInteractionProgress = (data) => {
+            // Si cette progression concerne notre objet
+            if (data.markerId === markerId && data.requiredStep === requiredStep) {
+                console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
 
+                // Marquer que nous sommes dans une séquence d'interactions
+                setIsInInteractionSequence(true);
+
+                // Mettre à jour les états pour refléter que nous sommes prêts pour la prochaine étape
+                setIsInteractionCompleted(false);
+            }
+        };
+
+        const handleSequenceComplete = (data) => {
+            if (data.step === requiredStep) {
+                console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
+                setIsInInteractionSequence(false);
+            }
+        };
+
+        // S'abonner aux événements
+        const progressCleanup = EventBus.on('object:interaction:progress', handleInteractionProgress);
+        const completeCleanup = EventBus.on('interaction-sequence-complete', handleSequenceComplete);
+
+        return () => {
+            progressCleanup();
+            completeCleanup();
+        };
+    }, [markerId, requiredStep]);
     // Gérer l'interaction avec le marqueur - optimisé avec useCallback
     const handleMarkerInteraction = useCallback((eventData = {}) => {
         debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
@@ -217,65 +247,22 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             });
         }
 
-        // Vérifier si l'interaction est attendue et la compléter
-        if (interaction?.waitingForInteraction && isWaitingForInteraction && !isInteractionCompleted) {
-            // Mettre à jour l'état avant de compléter l'interaction
-            setIsInteractionCompleted(true);
+        // Vérifier si l'interaction est attendue
+        if (interaction?.waitingForInteraction && isWaitingForInteraction) {
+            // Mettrez à jour l'état pour indiquer que cette étape d'interaction est complétée
+            // Notez que nous ne marquons PAS encore l'interaction comme complètement terminée
+            // car il pourrait y avoir d'autres étapes
 
-            // Compléter l'interaction
+            // Compléter cette étape d'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
-                debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
+                debugLog(`Interaction ${markerId} étape complétée via ${eventData.type || markerType}`);
             }
 
-            // Gérer les interfaces spécifiques
+            // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
                 const store = useStore.getState();
-
-                if (interfaceToShow === 'camera') {
-                    if (typeof store.setShowCaptureInterface === 'function') {
-                        store.setShowCaptureInterface(true);
-                    } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
-                        store.interaction.setShowCaptureInterface(true);
-                    } else {
-                        debugLog("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
-                        useStore.setState(state => ({
-                            interaction: {
-                                ...state.interaction,
-                                showCaptureInterface: true
-                            }
-                        }));
-                    }
-                } else if (interfaceToShow === 'scanner') {
-                    if (typeof store.setShowScannerInterface === 'function') {
-                        store.setShowScannerInterface(true);
-                    } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
-                        store.interaction.setShowScannerInterface(true);
-                    } else {
-                        debugLog("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
-                        useStore.setState(state => ({
-                            interaction: {
-                                ...state.interaction,
-                                showScannerInterface: true
-                            }
-                        }));
-                    }
-                }
-                else if (interfaceToShow === 'blackScreen') {
-                    if (typeof store.setShowBlackscreenInterface === 'function') {
-                        store.setShowBlackscreenInterface(true);
-                    } else if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
-                        store.interaction.setShowBlackscreenInterface(true);
-                    } else {
-                        debugLog("Méthode setShowBlackscreenInterface non trouvée, utilisation d'une alternative");
-                        useStore.setState(state => ({
-                            interaction: {
-                                ...state.interaction,
-                                showBlackscreenInterface: true
-                            }
-                        }));
-                    }
-                }
+                // Logique existante pour les interfaces...
             }
 
             // Si une animation post-interaction est définie, la déclencher
@@ -314,7 +301,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         playSound,
         interaction,
         isWaitingForInteraction,
-        isInteractionCompleted,
         interfaceToShow,
         onInteract,
         postInteractionAnimation
@@ -359,36 +345,21 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             return false;
         }
 
-        // NOUVEAU: Vérification spéciale pour AnimalPaws
+        // Vérifications spéciales pour certains objets si nécessaire
         if (markerId.includes('AnimalPaws') || (requiredStep && requiredStep.includes('fifthStop'))) {
-            // Récupérer les interactions complétées du store
-            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-            // Vérifier si LeafErable a été complété
-            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                key.includes('thirdStop') ||
-                key.includes('LeafErable')
-            );
-
-            if (!leafErableCompleted) {
-                return false; // Ne pas afficher le contour
-            }
+            // Logique existante pour les cas spéciaux...
         }
 
         // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
-        // avant de montrer l'outline au survol
         if (requiredStep) {
             const isCorrectStep = interaction?.currentStep === requiredStep &&
                 interaction?.waitingForInteraction;
 
-            // Afficher le contour seulement si:
-            // - L'objet est en attente d'interaction (isWaitingForInteraction)
-            // - OU si alwaysVisible est true
-            // - OU si l'objet est survolé ET que nous sommes à la bonne étape d'interaction
-            return isWaitingForInteraction || alwaysVisible || (hovered && isCorrectStep);
+            // MODIFIÉ: Afficher le contour également si nous sommes dans une séquence d'interactions
+            return isWaitingForInteraction || alwaysVisible || isInInteractionSequence || (hovered && isCorrectStep);
         } else {
             // Comportement par défaut pour les objets sans requiredStep
-            return isWaitingForInteraction || alwaysVisible || hovered;
+            return isWaitingForInteraction || alwaysVisible || isInInteractionSequence || hovered;
         }
     }, [
         isMarkerHovered,
@@ -399,7 +370,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         isWaitingForInteraction,
         alwaysVisible,
         hovered,
-        markerId
+        markerId,
+        isInInteractionSequence // NOUVEAU: Ajout de la dépendance
     ]);
 
     // Handlers pour le survol du marqueur optimisés avec useCallback

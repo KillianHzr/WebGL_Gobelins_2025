@@ -40,6 +40,7 @@ export const ModelMarker = React.memo(function ModelMarker({
 
     // État pour mémoriser si le marqueur doit rester visible
     const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
+    const [isInInteractionSequence, setIsInInteractionSequence] = useState(false);
 
     // État pour suivre si l'interaction a été complétée
     const [interactionCompleted, setInteractionCompleted] = useState(false);
@@ -57,12 +58,15 @@ export const ModelMarker = React.memo(function ModelMarker({
     const effectiveMarkerType = interactionType || markerType;
 
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
-    const shouldShowMarker = (// Ne pas montrer si l'étape actuelle a déjà été complétée
+    const shouldShowMarker = (
+        // Ne pas montrer si l'étape actuelle a déjà été complétée
         (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
 
-        // Conditions standards d'affichage
-        (isHovered || isMarkerHovered) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)));
-
+        // Conditions standards d'affichage - MODIFIÉ pour inclure isInInteractionSequence
+        ((isHovered || isMarkerHovered || isInInteractionSequence) &&
+            showMarkerOnHover &&
+            (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+    );
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
         if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
@@ -74,7 +78,12 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Marquer l'interaction comme complétée
         setInteractionCompleted(true);
         setLastCompletedStep(interaction?.currentStep);
-        setKeepMarkerVisible(false);
+
+        // NOUVEAU: Définir que nous sommes dans une séquence d'interactions
+        setIsInInteractionSequence(true);
+
+        // Ne pas masquer le marqueur car on est dans une séquence
+        // setKeepMarkerVisible(false);
 
         // Jouer l'animation après l'interaction si spécifiée
         if (postInteractionAnimation) {
@@ -87,6 +96,21 @@ export const ModelMarker = React.memo(function ModelMarker({
             });
         }
     };
+
+    // NOUVEAU: Écouter l'événement de complétion de séquence d'interactions
+    useEffect(() => {
+        const handleSequenceComplete = (data) => {
+            if (data.step === requiredStep) {
+                console.log(`[ModelMarker] Sequence d'interaction ${requiredStep} complètement terminée`);
+                // Une fois que toute la séquence est terminée, on peut masquer le marqueur
+                setIsInInteractionSequence(false);
+                setKeepMarkerVisible(false);
+            }
+        };
+
+        const cleanup = EventBus.on('interaction-sequence-complete', handleSequenceComplete);
+        return cleanup;
+    }, [requiredStep]);
 
     // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant
     const handleMarkerPointerEnter = (e) => {
@@ -133,7 +157,20 @@ export const ModelMarker = React.memo(function ModelMarker({
             onPointerLeave(e);
         }
     };
+    useEffect(() => {
+        const handleNextInteractionReady = (data) => {
+            if (data.markerId === id) {
+                console.log(`[ModelMarker] Prêt pour la prochaine interaction ${id}`);
+                // Mettre à jour les états directement
+                setIsInInteractionSequence(true);
+                setInteractionCompleted(false);
+                setKeepMarkerVisible(true);
+            }
+        };
 
+        const cleanup = EventBus.on('next-interaction-ready', handleNextInteractionReady);
+        return cleanup;
+    }, [id]);
     // Écouter l'événement d'interaction complète
     useEffect(() => {
         const handleInteractionComplete = (data) => {
@@ -171,24 +208,33 @@ export const ModelMarker = React.memo(function ModelMarker({
 
     // S'abonner aux événements de pointeur via le système RayCaster
     useEffect(() => {
-        // Ne pas ajouter d'écouteurs si l'interaction est déjà complétée pour l'étape actuelle
-        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
-
         // Utiliser la référence à l'objet ou au groupe
         const targetRef = objectRef || groupRef;
 
         if (targetRef.current) {
-            // console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
+            // SUPPRIMÉ: la condition qui empêche l'ajout d'écouteurs pour les prochaines interactions
+            // AJOUTÉ: log pour indiquer l'ajout d'écouteurs
+            console.log(`[ModelMarker] Ajout des écouteurs pour ${id}, étape ${interaction?.currentStep}`);
 
-            // Ajouter des écouteurs pour le survol
+            // Ajouter des écouteurs pour le survol - modification de la logique pour gérer les interactions séquentielles
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
-                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+                // Permettre le hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep && !isInInteractionSequence) {
+                    console.log('[EnhancedObjectMarker] Hover ignoré - interaction complétée');
+                    return;
+                }
+
                 console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
                 setHovered(true);
             });
 
             const removeLeaveListener = addPointerLeaveListener(targetRef.current.uuid, (event) => {
-                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+                // Permettre le leave hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep && !isInInteractionSequence) {
+                    console.log('[EnhancedObjectMarker] Leave hover ignoré - interaction complétée');
+                    return;
+                }
+
                 console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
                 setHovered(false);
 
@@ -203,8 +249,18 @@ export const ModelMarker = React.memo(function ModelMarker({
                 removeLeaveListener();
             };
         }
-    }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep, isMarkerHovered]);
-
+    }, [
+        objectRef,
+        groupRef,
+        id,
+        addPointerEnterListener,
+        addPointerLeaveListener,
+        interactionCompleted,
+        interaction?.currentStep,
+        lastCompletedStep,
+        isMarkerHovered,
+        isInInteractionSequence
+    ]);
 
     return (<group ref={groupRef} {...props}>
         {React.Children.map(children, child => React.cloneElement(child, {

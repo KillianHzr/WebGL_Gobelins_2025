@@ -55,17 +55,17 @@ export const createInteractionSlice = (set, get) => ({
                 timestamp: Date.now()
             });
 
-            // Mettre à jour l'état
+            // Vérifier si nous devons marquer l'interaction comme complètement terminée
+            // Cette logique sera gérée par les écouteurs dans SceneObjectManager
+            // qui détermineront si c'est la dernière interaction ou non
+
+            // Mettre à jour l'état pour indiquer que l'interaction actuelle est terminée
+            // mais ne pas nettoyer complètement currentStep, car on pourrait encore
+            // être dans une séquence d'interactions
             set(state => ({
                 interaction: {
                     ...state.interaction,
-                    waitingForInteraction: false,
-                    currentStep: null,
-                    interactionTarget: null,
-                    completedInteractions: {
-                        ...state.interaction.completedInteractions,
-                        [currentStep]: true
-                    }
+                    waitingForInteraction: false
                 }
             }));
 
@@ -77,8 +77,7 @@ export const createInteractionSlice = (set, get) => ({
                     timestamp: Date.now()
                 });
 
-                // NOUVEAU: Emit the main INTERACTION_COMPLETE event directly here
-                // This ensures it's called after state updates but isn't missed
+                // Émettre l'événement principal INTERACTION_COMPLETE
                 console.log("Emitting INTERACTION_COMPLETE event directly from completeInteraction");
                 EventBus.trigger('INTERACTION_COMPLETE', {
                     id: currentStep,
@@ -88,6 +87,27 @@ export const createInteractionSlice = (set, get) => ({
             }, 50);
 
             return currentStep;
+        },
+        finalizeInteractionSequence: (stepId) => {
+            const state = get();
+
+            set(state => ({
+                interaction: {
+                    ...state.interaction,
+                    currentStep: null,
+                    interactionTarget: null,
+                    completedInteractions: {
+                        ...state.interaction.completedInteractions,
+                        [stepId]: true
+                    }
+                }
+            }));
+
+            // Émettre un événement indiquant la fin complète de la séquence
+            EventBus.trigger('interaction-sequence-complete', {
+                step: stepId,
+                timestamp: Date.now()
+            });
         }
 
     }
