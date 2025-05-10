@@ -271,6 +271,8 @@ export const StaticObject = React.memo(function StaticObject({
         };
     }, [textureModelId, useTextures]);
 
+
+
     // Nettoyer lors du démontage
     useEffect(() => {
         isComponentMounted.current = true;
@@ -348,7 +350,14 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
             // Mise à jour initiale
             updatePlacements();
         }
+
+        // Appliquer la correction pour les ombres des planes une seule fois au chargement
+        if (textureManager && typeof textureManager.fixAllPlantMaterials === 'function') {
+            console.log('Application de la correction pour les ombres des planes...');
+            textureManager.fixAllPlantMaterials();
+        }
     }, [filter, updatePlacements]);
+
 
     // Optimiser le rendu avec useMemo
     const staticObjects = useMemo(() => {

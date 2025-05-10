@@ -583,178 +583,191 @@ class TextureManager {
         this.addTextureMapping('TreeRoots', 'forest/tree', null, {
             roughness: 0.81,
             metalness: 0.7,
-            envMapIntensity: 0.08
+            // envMapIntensity: 0.08
         });
         this.addPlantTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0,
             metalness: 0.0,
-            envMapIntensity: 0.05
+            // envMapIntensity: 0.05
         });
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+            receivedShadow: true,
         });
 
         this.addPlantTexture('BranchEucalyptus', 'forest/branch', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('BranchFig', 'forest/branch', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         // Buissons
         this.addPlantTexture('Bush', 'forest/bush', {
             roughness: 1.0,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushBlueberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushRaspberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushStrawberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushTrunk', 'forest/bush', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.10,
+            // castShadow: true,
+
+            // receivedShadow: false,
         });
 
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
         this.addPlantTexture('MultipleLeaf', 'primary', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
         this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('PlantClematis', 'forest/plant', {
 
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
         this.addPlantTexture('Grass', 'forest/plant', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('FlowerClover', 'forest/flower', {
             roughness: 0.8,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         this.addPlantTexture('FlowerChicory', 'forest/flower', {
             roughness: 0.75,
-            metalness: 1.0,
-            envMapIntensity: 0.46
+            // metalness: 1.0,
+            // envMapIntensity: 0.46
         });
 
         // Champignons
         this.addPlantTexture('MushroomSolo', 'forest/mushroom', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
 
         this.addPlantTexture('MushroomDuo', 'forest/mushroom', {
             roughness: 0.7,
-            metalness: 1.0,
-            envMapIntensity: 0.46,
-            castShadow: false,
-            receivedShadow: false,
+            metalness: 0.0,
+            // envMapIntensity: 0.46,
+            castShadow: true,
+
+            receivedShadow: true,
         });
         this.addPlantTexture('LeafErable', 'primary', {
             roughness: 0.96,
-            metalness: 0.4,
-            envMapIntensity: 0.25
+            // metalness: 0.4,
+            // envMapIntensity: 0.25
         });
         this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96,
-            metalness: 0.4,
-            envMapIntensity: 0.25
+            // metalness: 0.4,
+            // envMapIntensity: 0.25
         });
 
         // Rochers
@@ -910,16 +923,35 @@ class TextureManager {
             this.texturePaths[modelId].alpha = `/textures/${folder}/${modelId}_Alpha.png`;
         }
 
-        // Stocker les propriétés du matériau si fournies
+        // Créer des propriétés de matériau par défaut qui désactivent toutes les maps supplémentaires
+        const defaultProperties = {
+            roughness: 0,
+            metalness: 0,
+            normalMap: null,
+            roughnessMap: null,
+            metalnessMap: null,
+            aoMap: null,
+            envMap: null,
+            side: DoubleSide,
+            flatShading: true,
+            needsUpdate: true,
+            envMapIntensity: 0,
+            aoMapIntensity: 0,
+            normalScale: {x: 0, y: 0}
+        };
+
+        // Fusionner avec les propriétés personnalisées si fournies
         if (materialProperties) {
-            this.setMaterialProperties(modelId, materialProperties);
+            this.setMaterialProperties(modelId, {...defaultProperties, ...materialProperties});
+        } else {
+            this.setMaterialProperties(modelId, defaultProperties);
         }
     }
 
     isAlphaTextureAvailable(folder, prefix) {
-        const plantFolders = ['forest/bush', 'forest/branch', 'forest/plant',
-            'forest/flower', 'forest/mushroom', 'primary'];
-        return plantFolders.some(f => folder.includes(f));
+        // Liste des préfixes de dossiers qui peuvent avoir des textures alpha
+        const alphaSupportedPrefixes = ['forest/', 'primary'];
+        return alphaSupportedPrefixes.some(p => folder.startsWith(p));
     }
 
     isOpacityTextureAvailable(folder, prefix) {
@@ -1639,7 +1671,6 @@ class TextureManager {
     // Version privée de applyTexturesToMaterial pour usage interne
     _applyTexturesToMaterial(material, textures, options = {}) {
         if (!material || !textures) return;
-
         // Récupérer les propriétés spécifiques du matériau
         const materialProps = this.getMaterialProperties(options.modelId || '');
 
@@ -1739,6 +1770,14 @@ class TextureManager {
                 this.configureTexture(material.alphaMap, 'alpha');
                 material.transparent = true;
                 material.alphaTest = 0.5;
+
+                material.side = DoubleSide;
+
+                // Débogage spécifique pour TreeRoof
+                if (options.modelId === 'TreeRoof') {
+                    console.log("Application spécifique de Alpha pour TreeRoof:", textures.alpha);
+                    console.log("Configuration matériau TreeRoof:", material);
+                }
             } else if (textures.opacity) {
                 material.alphaMap = textures.opacity;
                 this.configureTexture(material.alphaMap, 'opacity');
