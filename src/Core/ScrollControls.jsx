@@ -669,6 +669,7 @@ function CameraController({children}) {
         const progressPercentage = targetPosition / totalLength;
         const completedInteractions = {...useStore.getState().interaction.completedInteractions};
 
+
         // Estimer quelles interactions seraient avant ce point
         interactions.forEach(interaction => {
             // Cette logique est simplifiée - vous devrez l'adapter selon votre structure exacte
@@ -696,6 +697,8 @@ function CameraController({children}) {
         // Définir une distance maximale
         const TRIGGER_PROXIMITY = 2.0;
 
+        console.log("Current completed interactions:", completedInteractions);
+        console.log("Current interactions:", interactions);
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {

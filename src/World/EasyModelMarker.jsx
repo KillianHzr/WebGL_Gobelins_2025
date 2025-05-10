@@ -81,7 +81,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 children,
                                                                 interfaceToShow = null,
                                                                 postInteractionAnimation = null,
-
                                                             }) {
     // Références
     const modelRef = useRef();
@@ -183,7 +182,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         if (isCurrentInteractionTarget) {
-            debugLog(`${markerId} is waiting for interaction: ${interaction.currentStep}`);
+            debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId, isWaitingForInteraction]);
 
@@ -240,8 +239,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             });
         }
 
-        // Vérifier si l'interaction est attendue
-        if (interaction?.waitingForInteraction && isWaitingForInteraction) {
+        // Vérifier si l'interaction est attendue - vérifier avec le requiredStep
+        if (interaction?.waitingForInteraction && isWaitingForInteraction &&
+            interaction.currentStep === requiredStep) {
             // Compléter l'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
@@ -251,7 +251,25 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
                 const store = useStore.getState();
-                // Logique existante pour les interfaces...
+
+                // Afficher l'interface correspondante basée sur le type
+                switch (interfaceToShow) {
+                    case 'scanner':
+                        if (store.interaction && store.interaction.setShowScannerInterface) {
+                            store.interaction.setShowScannerInterface(true);
+                        }
+                        break;
+                    case 'capture':
+                        if (store.interaction && store.interaction.setShowCaptureInterface) {
+                            store.interaction.setShowCaptureInterface(true);
+                        }
+                        break;
+                    case 'blackScreen':
+                        if (store.interaction && store.interaction.setShowBlackscreenInterface) {
+                            store.interaction.setShowBlackscreenInterface(true);
+                        }
+                        break;
+                }
             }
 
             // Si une animation post-interaction est définie, la déclencher
@@ -279,7 +297,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         try {
             EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                 id: markerId,
-                type: markerType
+                type: markerType,
+                requiredStep: requiredStep // Important: ajouter le requiredStep dans l'événement
             });
         } catch (error) {
             console.error(`Error triggering interaction complete event for ${markerId}:`, error);
@@ -292,8 +311,10 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         isWaitingForInteraction,
         interfaceToShow,
         onInteract,
-        postInteractionAnimation
+        postInteractionAnimation,
+        requiredStep // Important: ajouter requiredStep comme dépendance
     ]);
+
 
     // Gérer le survol de l'objet
     const handlePointerEnter = useCallback(() => {

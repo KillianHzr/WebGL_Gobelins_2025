@@ -516,7 +516,28 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
             const useTextures = placement.useTextures !== undefined ?
                 placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
 
-            // Optimisation: créer un objet de props unique pour chaque marqueur, sans la key
+            // Déterminer le bon markerType, markerText, markerOffset et markerAxis à partir de la bonne interaction
+            let interaction;
+            if (Array.isArray(objectConfig.interaction)) {
+                // Trouver l'interaction correspondant au requiredStep du placement
+                interaction = objectConfig.interaction.find(
+                    i => i.requiredStep === placement.requiredStep
+                );
+
+                // Fallback à la première interaction si aucune correspondance n'est trouvée
+                if (!interaction && objectConfig.interaction.length > 0) {
+                    interaction = objectConfig.interaction[0];
+                }
+            } else {
+                interaction = objectConfig.interaction;
+            }
+
+            if (!interaction) {
+                console.error(`Aucune interaction trouvée pour ${placement.objectKey} (requiredStep: ${placement.requiredStep})`);
+                return null;
+            }
+
+            // Utiliser les propriétés du placement si définies, sinon utiliser celles de l'interaction trouvée
             const markerProps = {
                 modelPath: objectConfig.path,
                 position: placement.position,
@@ -527,15 +548,14 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                 requiredStep: placement.requiredStep,
                 textureModelId: textureModelId,
                 useTextures: useTextures,
-                markerType: placement.markerType || objectConfig.interaction[0].type,
-                markerText: placement.markerText || objectConfig.interaction[0].text,
-                markerOffset: placement.markerOffset || objectConfig.interaction[0].offset,
-                markerAxis: placement.markerAxis || objectConfig.interaction[0].axis,
-                interfaceToShow: objectConfig.interaction?.[0]?.interfaceToShow
+                markerType: placement.markerType || interaction.type,
+                markerText: placement.markerText || interaction.text,
+                markerOffset: placement.markerOffset || interaction.offset,
+                markerAxis: placement.markerAxis || interaction.axis,
+                interfaceToShow: interaction.interfaceToShow
             };
 
             // IMPORTANT: Garantir que la key est unique et bien définie
-            // Utiliser placement.markerId s'il existe, sinon créer une clé unique avec index
             const markerKey = placement.markerId || `interactive-${placement.objectKey}-${index}`;
 
             return (
@@ -582,6 +602,32 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
     const useTextures = options.useTextures !== undefined ?
         options.useTextures : sceneObjectManager.doesObjectUseTextures(objectKey);
 
+    // Déterminer le requiredStep
+    let requiredStep = options.requiredStep;
+    if (!requiredStep) {
+        // Chercher dans les interactions
+        if (Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 0) {
+            requiredStep = objectConfig.interaction[0].requiredStep;
+        } else if (objectConfig.interaction && objectConfig.interaction.requiredStep) {
+            requiredStep = objectConfig.interaction.requiredStep;
+        }
+    }
+
+    // Trouver l'interaction correspondante
+    let matchingInteraction;
+    if (Array.isArray(objectConfig.interaction)) {
+        matchingInteraction = requiredStep
+            ? objectConfig.interaction.find(i => i.requiredStep === requiredStep)
+            : objectConfig.interaction[0];
+    } else {
+        matchingInteraction = objectConfig.interaction;
+    }
+
+    if (!matchingInteraction) {
+        console.error(`Aucune interaction trouvée pour ${objectKey} (requiredStep: ${requiredStep})`);
+        return null;
+    }
+
     // Optimisation: utiliser useMemo pour les props
     const markerProps = useMemo(() => ({
         modelPath: objectConfig.path,
@@ -589,21 +635,24 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         rotation: options.rotation || [0, 0, 0],
         scale: options.scale || objectConfig.scale || [1, 1, 1],
         markerId: markerId,
-        markerType: options.markerType || objectConfig.interaction.type,
-        markerText: options.markerText || objectConfig.interaction.text,
-        markerOffset: options.markerOffset || objectConfig.interaction.offset,
-        markerAxis: options.markerAxis || objectConfig.interaction.axis,
+        markerType: options.markerType || matchingInteraction.type,
+        markerText: options.markerText || matchingInteraction.text,
+        markerOffset: options.markerOffset || matchingInteraction.offset,
+        markerAxis: options.markerAxis || matchingInteraction.axis,
         outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : true,
-        requiredStep: options.requiredStep || null,
+        requiredStep: requiredStep,
         textureModelId: textureModelId,
-        useTextures: useTextures
+        useTextures: useTextures,
+        interfaceToShow: matchingInteraction.interfaceToShow
     }), [
         objectConfig,
         position,
         options,
         markerId,
         textureModelId,
-        useTextures
+        useTextures,
+        matchingInteraction,
+        requiredStep
     ]);
 
     // Gérer l'interaction avec le callback mémorisé
