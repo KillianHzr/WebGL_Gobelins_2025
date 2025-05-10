@@ -81,7 +81,7 @@ class TextureManager {
             metalness: 0.1,
             envMapIntensity: 0.5,
             aoIntensity: 0.5,
-            normalScale: 0.0,
+            normalScale: 1.0,
             displacementScale: 0.0,
             side: DoubleSide,
             depthWrite: false,
