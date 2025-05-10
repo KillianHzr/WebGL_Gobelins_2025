@@ -78,7 +78,6 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -86,7 +85,6 @@ class SceneObjectManager {
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Quitter le panneau",
-                    color: "#ffcc44",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -570,7 +568,6 @@ class SceneObjectManager {
                     markerText: markerText,
                     requiredStep: requiredStep,
                     outlinePulse: config.defaultPlacement.outlinePulse,
-                    markerColor: config.defaultPlacement.markerColor,
                     markerOffset: config.defaultPlacement.markerOffset,
                     markerAxis: config.defaultPlacement.markerAxis
                 });
@@ -660,7 +657,6 @@ class SceneObjectManager {
             baseConfig.interaction = [{
                 type: config.interaction?.type || INTERACTION_TYPES.CLICK,
                 text: config.interaction?.text || "Interagir",
-                color: config.interaction?.color || "#44ff44",
                 offset: config.interaction?.offset || 1.0,
                 axis: config.interaction?.axis || "y",
                 interfaceToShow: config.interaction?.interfaceToShow || null
@@ -778,10 +774,6 @@ class SceneObjectManager {
                 requiredStep: requiredStep,
                 onInteract: options.onInteract || null,
                 markerText: markerText,
-                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor ||
-                    (Array.isArray(objectConfig.interaction) ?
-                        this._getCurrentInteraction(objectConfig, null)?.color :
-                        objectConfig.interaction[0]?.color),
                 markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset ||
                     (Array.isArray(objectConfig.interaction) ?
                         this._getCurrentInteraction(objectConfig, null)?.offset :
@@ -794,10 +786,6 @@ class SceneObjectManager {
                     (Array.isArray(objectConfig.interaction) ?
                         this._getCurrentInteraction(objectConfig, null)?.type :
                         objectConfig.interaction[0]?.type),
-                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor ||
-                    (Array.isArray(objectConfig.interaction) ?
-                        this._getCurrentInteraction(objectConfig, null)?.color :
-                        objectConfig.interaction[0]?.color),
                 outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
                     (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
                         objectConfig.defaultPlacement.outlinePulse : true),

@@ -45,13 +45,11 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 position = [0, 0, 0],
                                                                 scale = [1, 1, 1],
                                                                 rotation = [0, 0, 0],
-                                                                color = "#5533ff",
 
                                                                 // Props du marqueur
                                                                 markerId = `marker-${Math.random().toString(36).substr(2, 9)}`,
                                                                 markerType = INTERACTION_TYPES.CLICK,
                                                                 markerText = "Interagir",
-                                                                markerColor = "#44ff44",
                                                                 markerOffset = 0.8,
                                                                 markerAxis = 'y',
                                                                 alwaysVisible = false,
@@ -67,7 +65,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
                                                                 // Props d'effet visuel
                                                                 showOutline = true,
-                                                                outlineColor = "#ffffff",
                                                                 outlineThickness = 1.5,
                                                                 outlineIntensity = 1,
                                                                 outlinePulse = true,
@@ -152,10 +149,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         const effectRef = updateEffectRef.current;
 
-        // Mettre à jour uniquement les paramètres qui ont changé
-        if (effectRef.color !== outlineColor) {
-            effectRef.color = outlineColor;
-        }
 
         if (effectRef.thickness !== outlineThickness) {
             effectRef.thickness = outlineThickness;
@@ -175,7 +168,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         if (!outlinePulse && effectRef.pulseRef) {
             effectRef.pulseRef.current = {value: 0, direction: 0};
         }
-    }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
+    }, [outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
 
     // Surveiller l'état d'interaction de manière optimisée
     useEffect(() => {
@@ -411,7 +404,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     const markerProps = useMemo(() => ({
         id: markerId,
         markerType: markerType,
-        markerColor: markerColor,
         markerText: markerText,
         onInteract: handleMarkerInteraction,
         viewportMargin: 100,
@@ -427,7 +419,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     }), [
         markerId,
         markerType,
-        markerColor,
         markerText,
         handleMarkerInteraction,
         markerOffset,
@@ -542,7 +533,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [useBox, modelPath, gltf, position, rotation, scale, color, modelProps, nodeProps]);
+    }, [useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
 
     return (
         <ModelMarker {...markerProps}>

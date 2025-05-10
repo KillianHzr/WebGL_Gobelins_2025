@@ -447,30 +447,12 @@ export default function EnhancedCube() {
     };
 
     // Déterminer la couleur du marqueur en fonction du type d'interaction
-    const getMarkerColor = () => {
-        switch (currentInteractionType) {
-            case INTERACTION_TYPES.CLICK:
-                return "#4488ff";  // Bleu pour clic
-            case INTERACTION_TYPES.LONG_PRESS:
-                return "#ff44aa";  // Rose pour appui long
-            case INTERACTION_TYPES.DRAG_LEFT:
-                return "#44ffaa";  // Turquoise pour drag gauche
-            case INTERACTION_TYPES.DRAG_RIGHT:
-                return "#ffaa44";  // Orange pour drag droite
-            case INTERACTION_TYPES.DRAG_UP:
-                return "#33eeff";  // Cyan pour drag haut
-            case INTERACTION_TYPES.DRAG_DOWN:
-                return "#ff7744";  // Corail pour drag bas
-            default:
-                return "#44ff44";  // Vert par défaut
-        }
-    };
+
 
     return (
         <ModelMarker
             id="enhanced-cube-marker"
             markerType={currentInteractionType}
-            markerColor={getMarkerColor()}
             markerText={getMarkerText()}
             onInteract={handleMarkerInteraction}
             positionOptions={{

@@ -529,10 +529,8 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                 useTextures: useTextures,
                 markerType: placement.markerType || objectConfig.interaction[0].type,
                 markerText: placement.markerText || objectConfig.interaction[0].text,
-                markerColor: placement.markerColor || objectConfig.interaction[0].color,
                 markerOffset: placement.markerOffset || objectConfig.interaction[0].offset,
                 markerAxis: placement.markerAxis || objectConfig.interaction[0].axis,
-                outlineColor: placement.outlineColor || objectConfig.interaction[0].color,
                 interfaceToShow: objectConfig.interaction?.[0]?.interfaceToShow
             };
 
@@ -593,10 +591,8 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         markerId: markerId,
         markerType: options.markerType || objectConfig.interaction.type,
         markerText: options.markerText || objectConfig.interaction.text,
-        markerColor: options.markerColor || objectConfig.interaction.color,
         markerOffset: options.markerOffset || objectConfig.interaction.offset,
         markerAxis: options.markerAxis || objectConfig.interaction.axis,
-        outlineColor: options.outlineColor || objectConfig.interaction.color,
         outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : true,
         requiredStep: options.requiredStep || null,
         textureModelId: textureModelId,

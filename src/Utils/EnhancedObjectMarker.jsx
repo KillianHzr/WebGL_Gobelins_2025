@@ -13,7 +13,6 @@ export const ModelMarker = React.memo(function ModelMarker({
                                                                children,
                                                                id,
                                                                markerType = INTERACTION_TYPES.CLICK,
-                                                               markerColor = "#44ff44",
                                                                markerText = "Interagir",
                                                                markerScale = 1,
                                                                onInteract,
@@ -264,7 +263,6 @@ export const ModelMarker = React.memo(function ModelMarker({
         {shouldShowMarker && (<EnhancedObjectMarker
             objectRef={objectRef || groupRef}
             markerType={effectiveMarkerType}
-            color={markerColor}
             scale={markerScale}
             text={markerText}
             onClick={handleObjectInteraction}
@@ -585,7 +583,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                                                           objectRef,
                                                                           markerType = INTERACTION_TYPES.CLICK,
                                                                           hovered,
-                                                                          color = "#44ff44",
                                                                           scale = 1,
                                                                           text = "Interagir",
                                                                           onClick,
