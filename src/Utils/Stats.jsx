@@ -67,11 +67,12 @@ const StatsComponent = () => {
         const updateWebGLPanel = () => {
             if (!gl) return;
             const memory = gl.info.memory;
+            const programs = gl.info.programs.length;
             const render = gl.info.render;
-
+            console.log("gl.info", gl.info);
             glInfoPanel.textContent =
                 `=== Memory ===\n` +
-                `Programs: ${memory.programs}\n` +
+                `Programs: ${programs}\n` +
                 `Geometries: ${memory.geometries}\n` +
                 `Textures: ${memory.textures}\n\n` +
                 `=== Render ===\n` +

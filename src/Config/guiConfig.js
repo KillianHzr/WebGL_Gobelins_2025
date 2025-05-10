@@ -197,7 +197,7 @@ const guiConfig = {
                     Cineon: 3,
                     ACESFilmic: 4
                 },
-                default: 2,
+                default: 4,
                 name: "Tone Mapping"
             },
             toneMappingExposure: {
@@ -205,7 +205,7 @@ const guiConfig = {
                 max: 5,
                 step: 0.01,
                 name: "Exposure",
-                default: 2.36
+                default: 0.36
             }
         }
     },

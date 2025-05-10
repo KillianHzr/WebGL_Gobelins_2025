@@ -52,7 +52,6 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-
             // 'WaterPlane': {
             //     id: 'WaterPlane',
             //     path: '/models/forest/river/River.glb',
@@ -153,10 +152,10 @@ class SceneObjectManager {
                     requiredStep: 'thirdStop'
                 }],
                 defaultPlacement: {
+                    scale: [1, 1, 1],
                     position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, // thirdStop au drag -> déplacement de l'objet vers la droite
-
+            },
             'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
@@ -913,8 +912,22 @@ class SceneObjectManager {
         // Vérifier si l'objet doit utiliser des textures
         if (placement.useTextures === false) return;
 
-        const modelId = this.getTextureModelId(placement.objectKey);
+        // Traitement spécial pour le terrain (Ground)
+        if (placement.objectKey === 'Ground') {
+            if (textureManager) {
+                // Utiliser la méthode spéciale pour le terrain
+                await textureManager.applyGroundTextures(modelObject);
 
+                // Analyser les vertex colors pour débogage (optionnel)
+                if (process.env.NODE_ENV === 'development') {
+                    textureManager.analyzeGroundVertexColors(modelObject);
+                }
+            }
+            return;
+        }
+
+        // Traitement standard pour les autres objets
+        const modelId = this.getTextureModelId(placement.objectKey);
         if (modelId && textureManager) {
             await textureManager.applyTexturesToModel(modelId, modelObject);
         }

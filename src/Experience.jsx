@@ -156,7 +156,6 @@ export default function Experience() {
             <NarrationTriggers/>
             <CameraSwitcher/>
             {/*<CameraModeSync/>*/}
-
             {/* Ajouter notre nouveau composant qui gère à la fois l'image de fond et le brouillard */}
             <BackgroundWithFog />
 

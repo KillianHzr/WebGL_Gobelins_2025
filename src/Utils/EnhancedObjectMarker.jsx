@@ -536,7 +536,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
                     const currentPos = new THREE.Vector3(initialPosition.current.x, initialPosition.current.y, initialPosition.current.z);
 
                     const visible = isInViewport(currentPos);
-                    setIsVisible(visible);
+                    // setIsVisible(visible);
 
                     if (!visible) {
                         calculateStablePosition();

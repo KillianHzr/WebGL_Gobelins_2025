@@ -5,7 +5,13 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { GrainShader } from '../World/Shaders/GrainShader';
 import useStore from '../Store/useStore';
-import {ACESFilmicToneMapping, TextureLoader} from "three";
+import {
+    NoToneMapping,
+    LinearToneMapping,
+    ReinhardToneMapping,
+    CineonToneMapping,
+    ACESFilmicToneMapping
+} from 'three';
 import guiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {
@@ -21,6 +27,13 @@ export default function PostProcessing() {
 
     useEffect(() => {
         gl.autoClear = false;
+            // NoToneMapping
+            // LinearToneMapping
+            // ReinhardToneMapping
+            // CineonToneMapping
+            // ACESFilmicToneMapping
+        gl.toneMapping = CineonToneMapping;
+        gl.toneMappingExposure = 2.0;
 
         // Créer le compositeur
         const composer = new EffectComposer(gl);

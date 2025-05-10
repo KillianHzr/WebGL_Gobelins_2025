@@ -80,8 +80,12 @@ class TextureManager {
             metalness: 0.1,
             envMapIntensity: 0.5,
             aoIntensity: 0.5,
-            normalScale: 1.0,
-            displacementScale: 0.05
+            normalScale: 0.0,
+            displacementScale: 0.0,
+            side: DoubleSide,
+            depthWrite: false,
+            depthTest: false,
+
         };
         this.initializeTextures();
 
@@ -161,111 +165,149 @@ class TextureManager {
 
         // Branches et Buissons
         this.addPlantTexture('BranchTree', 'forest/branch', {
-            roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.015
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('BranchEucalyptus', 'forest/branch', {
-            roughness: 0.8,
-            metalness: 0.5,
-            envMapIntensity: 0.3
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('BranchFig', 'forest/branch', {
-            roughness: 1.0,
-            metalness: 0.75,
-            envMapIntensity: 0.021
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         // Buissons
         this.addPlantTexture('Bush', 'forest/bush', {
             roughness: 1.0,
-            metalness: 0.71,
-            envMapIntensity: 0.63
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushBlueberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 0.07,
-            envMapIntensity: 0.029
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushRaspberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 0.69,
-            envMapIntensity: 0.056
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushStrawberry', 'forest/bush', {
             roughness: 1.0,
-            metalness: 0.77,
-            envMapIntensity: 0.046
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         this.addPlantTexture('BushTrunk', 'forest/bush', {
-            roughness: 1.0,
-            metalness: 0.75,
-            envMapIntensity: 0.24
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant', {
-            roughness: 0.9,
-            metalness: 0.1,
-            envMapIntensity: 0.05
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
-            roughness: 0.9,
-            metalness: 0.2,
-            envMapIntensity: 0.04
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
-            roughness: 0.85,
-            metalness: 0.15,
-            envMapIntensity: 0.045
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('PlantClematis', 'forest/plant', {
-            roughness: 0.8,
-            metalness: 0.3,
-            envMapIntensity: 0.05
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
         this.addPlantTexture('Grass', 'forest/plant', {
-            roughness: 0.1,
-            metalness: 0.0,
-            envMapIntensity: 0.05
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
             roughness: 0.7,
-            metalness: 0.2,
-            envMapIntensity: 0.06
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('FlowerClover', 'forest/flower', {
             roughness: 0.8,
-            metalness: 0.15,
-            envMapIntensity: 0.05
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         this.addPlantTexture('FlowerChicory', 'forest/flower', {
             roughness: 0.75,
-            metalness: 0.25,
-            envMapIntensity: 0.055
+            metalness: 1.0,
+            envMapIntensity: 0.46
         });
 
         // Champignons
         this.addPlantTexture('MushroomSolo', 'forest/mushroom', {
-            roughness: 1.0,
-            metalness: 0.36,
-            envMapIntensity: 0.21
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
         });
 
         this.addPlantTexture('MushroomDuo', 'forest/mushroom', {
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
+        });
+        this.addPlantTexture('LeafErable', 'primary', {
+            roughness: 0.96,
+            metalness: 0.4,
+            envMapIntensity: 0.25
+        });
+        this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96,
             metalness: 0.4,
             envMapIntensity: 0.25
@@ -649,6 +691,456 @@ class TextureManager {
     _getMaterialKey(modelId, options) {
         const optionsKey = JSON.stringify(options);
         return `${modelId}_${optionsKey}`;
+    }
+
+    applyGroundTextures(modelObject, options = {}) {
+        if (!modelObject) return;
+
+        console.log("Application des textures de terrain avec mélange basé sur vertex colors");
+
+        // Précharger les textures de chemin et d'herbe
+        Promise.all([
+            this.preloadTexturesForModel('ForestGrass'),
+            this.preloadTexturesForModel('ForestRoad')
+        ]).then(([grassTextures, roadTextures]) => {
+            // Créer un matériau personnalisé pour le terrain
+            const groundMaterial = new MeshStandardMaterial({
+                name: 'ground_material',
+                vertexColors: true, // Activer les vertex colors
+                side: DoubleSide,
+                transparent: false,
+                roughness: 0.9,
+                metalness: 0.1,
+                envMapIntensity: 0.2
+            });
+
+            // Appliquer les cartes de texture pour l'herbe et le chemin
+            if (grassTextures && roadTextures) {
+                // Configurer les textures principales
+                if (grassTextures.baseColor && roadTextures.baseColor) {
+                    // Configurer les deux textures
+                    this.configureTexture(grassTextures.baseColor, 'baseColor');
+                    this.configureTexture(roadTextures.baseColor, 'baseColor');
+
+                    // Définir les propriétés de shader personnalisé pour mélanger les textures
+                    groundMaterial.userData.isGroundMaterial = true;
+                    groundMaterial.onBeforeCompile = (shader) => {
+                        // Ajouter les uniforms pour les deux textures
+                        shader.uniforms.grassMap = { value: grassTextures.baseColor };
+                        shader.uniforms.roadMap = { value: roadTextures.baseColor };
+
+                        // Modifier le vertex shader pour passer la couleur du vertex au fragment shader
+                        const vertexColorVarying = `
+                        varying vec3 vVertexColor;
+                    `;
+                        shader.vertexShader = shader.vertexShader.replace(
+                            '#include <common>',
+                            '#include <common>\n' + vertexColorVarying
+                        );
+
+                        shader.vertexShader = shader.vertexShader.replace(
+                            '#include <begin_vertex>',
+                            '#include <begin_vertex>\n\tvVertexColor = color.rgb;'
+                        );
+
+                        // Modifier le fragment shader pour mélanger les textures
+                        const fragmentColorVarying = `
+                        varying vec3 vVertexColor;
+                        uniform sampler2D grassMap;
+                        uniform sampler2D roadMap;
+                    `;
+
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            '#include <common>',
+                            '#include <common>\n' + fragmentColorVarying
+                        );
+
+                        // Remplacer la méthode d'échantillonnage de la texture diffuse
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            'vec4 diffuseColor = vec4( diffuse, opacity );',
+                            `
+                        // Échantillonner les deux textures
+                        vec4 grassColor = texture2D(grassMap, vUv);
+                        vec4 roadColor = texture2D(roadMap, vUv);
+                        
+                        // Utiliser le canal R de la couleur du vertex pour mélanger
+                        // Plus c'est blanc (1.0), plus c'est de la route
+                        // Plus c'est noir (0.0), plus c'est de l'herbe
+                        float roadFactor = vVertexColor.r;
+                        
+                        // Mélanger les textures
+                        vec4 diffuseColor = mix(grassColor, roadColor, roadFactor);
+                        diffuseColor.a = opacity;
+                        `
+                        );
+
+                        groundMaterial.userData.shader = shader;
+                    };
+                }
+
+                // Appliquer les textures normal, roughness, etc. si disponibles
+                if (grassTextures.normalOpenGL) {
+                    groundMaterial.normalMap = grassTextures.normalOpenGL;
+                    this.configureTexture(groundMaterial.normalMap, 'normalOpenGL');
+                    groundMaterial.normalScale = { x: 1.0, y: 1.0 };
+                }
+
+                if (grassTextures.roughness) {
+                    groundMaterial.roughnessMap = grassTextures.roughness;
+                    this.configureTexture(groundMaterial.roughnessMap, 'roughness');
+                }
+            }
+
+            // Appliquer le matériau à tous les mesh du terrain
+            modelObject.traverse((node) => {
+                if (node.isMesh) {
+                    // Vérifier si les vertex colors sont présents
+                    if (!node.geometry.attributes.color) {
+                        console.warn("Le mesh de terrain n'a pas d'attribut de couleur de vertex!");
+                        // Créer un attribut de couleur par défaut si nécessaire
+                        const count = node.geometry.attributes.position.count;
+                        const colors = new Float32Array(count * 3);
+                        for (let i = 0; i < count; i++) {
+                            colors[i * 3] = 0.0;     // R - Route (0 = herbe)
+                            colors[i * 3 + 1] = 0.5;  // G
+                            colors[i * 3 + 2] = 0.0;  // B
+                        }
+                        node.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                    }
+
+                    node.material = groundMaterial;
+
+                    // Activer les UV2 pour l'aoMap si nécessaire
+                    if (!node.geometry.attributes.uv2 && node.geometry.attributes.uv) {
+                        node.geometry.setAttribute('uv2', node.geometry.attributes.uv);
+                    }
+                }
+            });
+
+            // Ajouter au pool de matériaux pour réutilisation
+            this.materialPool['ground_special'] = groundMaterial;
+
+            console.log("Textures de terrain appliquées avec succès");
+        }).catch(error => {
+            console.error("Erreur lors de l'application des textures de terrain:", error);
+        });
+    }
+    createVertexColorDebugMaterial(options = {}) {
+        // Créer un matériau simple qui montre directement les couleurs des vertex
+        const material = new THREE.MeshBasicMaterial({
+            vertexColors: true,
+            side: DoubleSide,
+            wireframe: options.wireframe || false
+        });
+
+        // Extension pour visualiser plus clairement les zones road/grass
+        if (options.enhanceRoadGrass) {
+            material.onBeforeCompile = (shader) => {
+                // Ajouter une variable pour passer la couleur de vertex au fragment shader
+                const vertexColorVarying = `
+                varying vec3 vVertexColor;
+            `;
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <common>',
+                    '#include <common>\n' + vertexColorVarying
+                );
+
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <begin_vertex>',
+                    '#include <begin_vertex>\n\tvVertexColor = color.rgb;'
+                );
+
+                // Modifier le fragment shader pour visualiser clairement
+                // les zones de route/herbe basées sur la valeur R
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <common>',
+                    '#include <common>\n varying vec3 vVertexColor;'
+                );
+
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    'vec4 diffuseColor = vec4( diffuse, opacity );',
+                    `
+                // Utiliser le canal R pour déterminer si c'est une route ou de l'herbe
+                float roadFactor = vVertexColor.r;
+                
+                // Créer une visualisation claire: vert pour l'herbe, gris pour la route
+                vec3 debugColor;
+                if (roadFactor > 0.5) {
+                    // Route - en gris avec intensité basée sur la valeur
+                    debugColor = mix(vec3(0.5), vec3(0.9), (roadFactor - 0.5) * 2.0);
+                } else {
+                    // Herbe - en vert avec intensité basée sur la valeur
+                    debugColor = mix(vec3(0.0, 0.5, 0.0), vec3(0.0, 0.2, 0.0), roadFactor * 2.0);
+                }
+                
+                vec4 diffuseColor = vec4(debugColor, opacity);
+                `
+                );
+
+                material.userData.shader = shader;
+            };
+        }
+
+        return material;
+    }
+
+    /**
+     * Applique un matériau de débogage des vertex colors au terrain
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     */
+    applyVertexColorDebugMaterial(groundObject, options = {}) {
+        if (!groundObject) return;
+
+        const debugMaterial = this.createVertexColorDebugMaterial({
+            wireframe: options.wireframe || false,
+            enhanceRoadGrass: options.enhanceRoadGrass !== false
+        });
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // Sauvegarder le matériau original si nécessaire
+                if (options.preserveOriginal && !node.userData.originalMaterial) {
+                    node.userData.originalMaterial = node.material;
+                }
+
+                // Appliquer le matériau de débogage
+                node.material = debugMaterial;
+            }
+        });
+
+        console.log("Matériau de débogage vertex color appliqué au terrain");
+        return debugMaterial;
+    }
+
+    /**
+     * Restaure le matériau original après le débogage
+     * @param {Object} groundObject - L'objet 3D du terrain
+     */
+    restoreOriginalMaterial(groundObject) {
+        if (!groundObject) return;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.userData.originalMaterial) {
+                node.material = node.userData.originalMaterial;
+                delete node.userData.originalMaterial;
+            }
+        });
+
+        console.log("Matériaux originaux restaurés");
+    }
+
+    /**
+     * Méthode utilitaire pour mettre à jour les vertex colors d'un terrain
+     * Peut être utilisé pour tester ou corriger les vertex colors
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Function} updateFn - Fonction qui reçoit (r,g,b,index) et retourne [newR, newG, newB]
+     */
+    updateGroundVertexColors(groundObject, updateFn) {
+        if (!groundObject || typeof updateFn !== 'function') return;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.color) {
+                const colors = node.geometry.attributes.color;
+                const count = colors.count;
+
+                for (let i = 0; i < count; i++) {
+                    const r = colors.getX(i);
+                    const g = colors.getY(i);
+                    const b = colors.getZ(i);
+
+                    // Appliquer la fonction de mise à jour
+                    const [newR, newG, newB] = updateFn(r, g, b, i);
+
+                    // Mettre à jour la couleur
+                    colors.setXYZ(i, newR, newG, newB);
+                }
+
+                colors.needsUpdate = true;
+                console.log(`Vertex colors mis à jour pour ${node.name || 'mesh sans nom'}`);
+            }
+        });
+    }
+
+    /**
+     * Définit un chemin en mettant à jour les vertex colors du terrain
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Array} pathPoints - Points du chemin en coordonnées [x,z]
+     * @param {Object} options - Options de configuration (largeur, intensité, etc.)
+     */
+    createPathOnGround(groundObject, pathPoints, options = {}) {
+        if (!groundObject || !pathPoints || pathPoints.length < 2) return;
+
+        const width = options.width || 1.0;
+        const roadValue = options.roadValue || 1.0;
+        const falloff = options.falloff || 0.5; // Contrôle la transition entre route et herbe
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                // S'assurer que l'attribut color existe
+                const positions = node.geometry.attributes.position;
+
+                if (!node.geometry.attributes.color) {
+                    // Créer l'attribut s'il n'existe pas
+                    const colors = new Float32Array(positions.count * 3);
+                    node.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < positions.count; i++) {
+                    const vx = positions.getX(i);
+                    const vz = positions.getZ(i);
+
+                    // Calculer la distance minimale à n'importe quel segment du chemin
+                    let minDistance = Infinity;
+
+                    for (let j = 0; j < pathPoints.length - 1; j++) {
+                        const [x1, z1] = pathPoints[j];
+                        const [x2, z2] = pathPoints[j + 1];
+
+                        // Calculer la distance du point au segment
+                        const distance = this._distanceToSegment(vx, vz, x1, z1, x2, z2);
+                        minDistance = Math.min(minDistance, distance);
+                    }
+
+                    // Appliquer la valeur de route en fonction de la distance
+                    // Plus la distance est petite, plus la valeur de route est élevée
+                    let roadFactor = 0;
+
+                    if (minDistance <= width) {
+                        // Au centre du chemin, valeur maximale
+                        roadFactor = roadValue;
+                    } else if (minDistance <= width + falloff) {
+                        // Dans la zone de transition, diminution graduelle
+                        roadFactor = roadValue * (1 - (minDistance - width) / falloff);
+                    }
+
+                    // Obtenir les valeurs actuelles
+                    const currentR = colors.getX(i);
+                    const currentG = colors.getY(i);
+                    const currentB = colors.getZ(i);
+
+                    // Prendre la valeur maximum (pour permettre de superposer plusieurs chemins)
+                    const newR = Math.max(currentR, roadFactor);
+
+                    // Mettre à jour la couleur
+                    colors.setXYZ(i, newR, currentG, currentB);
+                }
+
+                colors.needsUpdate = true;
+                console.log(`Chemin appliqué aux vertex colors du terrain`);
+            }
+        });
+    }
+
+    /**
+     * Méthode utilitaire pour calculer la distance d'un point à un segment
+     * Utilisé par createPathOnGround
+     */
+    _distanceToSegment(px, py, x1, y1, x2, y2) {
+        const A = px - x1;
+        const B = py - y1;
+        const C = x2 - x1;
+        const D = y2 - y1;
+
+        const dot = A * C + B * D;
+        const lenSq = C * C + D * D;
+        let param = -1;
+
+        if (lenSq !== 0) {
+            param = dot / lenSq;
+        }
+
+        let xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        const dx = px - xx;
+        const dy = py - yy;
+
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    /**
+     * Méthode utilitaire pour analyser les vertex colors d'un terrain
+     * Utile pour déboguer le mélange de textures
+     */
+    analyzeGroundVertexColors(groundObject) {
+        if (!groundObject) return null;
+
+        const analysis = {
+            hasMeshes: false,
+            hasVertexColors: false,
+            colorStats: {
+                min: [1, 1, 1],
+                max: [0, 0, 0],
+                avg: [0, 0, 0],
+                roadPercentage: 0
+            },
+            meshCount: 0
+        };
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                analysis.hasMeshes = true;
+                analysis.meshCount++;
+
+                if (node.geometry && node.geometry.attributes.color) {
+                    analysis.hasVertexColors = true;
+
+                    const colors = node.geometry.attributes.color;
+                    const count = colors.count;
+                    let roadPixels = 0;
+                    let sum = [0, 0, 0];
+
+                    for (let i = 0; i < count; i++) {
+                        const r = colors.getX(i);
+                        const g = colors.getY(i);
+                        const b = colors.getZ(i);
+
+                        // Accumuler pour la moyenne
+                        sum[0] += r;
+                        sum[1] += g;
+                        sum[2] += b;
+
+                        // Mettre à jour min/max
+                        analysis.colorStats.min[0] = Math.min(analysis.colorStats.min[0], r);
+                        analysis.colorStats.min[1] = Math.min(analysis.colorStats.min[1], g);
+                        analysis.colorStats.min[2] = Math.min(analysis.colorStats.min[2], b);
+
+                        analysis.colorStats.max[0] = Math.max(analysis.colorStats.max[0], r);
+                        analysis.colorStats.max[1] = Math.max(analysis.colorStats.max[1], g);
+                        analysis.colorStats.max[2] = Math.max(analysis.colorStats.max[2], b);
+
+                        // Compter les vertices qui sont plus "route" que "herbe"
+                        if (r > 0.5) {
+                            roadPixels++;
+                        }
+                    }
+
+                    // Calculer la moyenne
+                    analysis.colorStats.avg[0] = sum[0] / count;
+                    analysis.colorStats.avg[1] = sum[1] / count;
+                    analysis.colorStats.avg[2] = sum[2] / count;
+
+                    // Calculer le pourcentage de route
+                    analysis.colorStats.roadPercentage = (roadPixels / count) * 100;
+                }
+            }
+        });
+
+        console.log("Analyse des vertex colors du terrain:", analysis);
+        return analysis;
     }
 
     // Version privée de applyTexturesToMaterial pour usage interne
