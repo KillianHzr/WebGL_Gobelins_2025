@@ -146,7 +146,6 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_RIGHT,
                     text: "Observer le tronc",
-                    color: "#44aacc",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -167,7 +166,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "scanner",
@@ -195,7 +194,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -216,7 +215,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -237,7 +236,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -258,7 +257,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -283,7 +282,6 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_DOWN,
                     text: "Observer le tronc",
-                    color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -386,7 +384,7 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Lire le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -395,7 +393,7 @@ class SceneObjectManager {
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Quitter le panneau",
-                    color: "#ffcc44",
+
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
