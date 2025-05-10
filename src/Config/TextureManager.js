@@ -585,7 +585,7 @@ class TextureManager {
             metalness: 0.7,
             // envMapIntensity: 0.08
         });
-        this.addPlantTexture('TreeRoof', 'forest/tree', {
+        this.addRandomizedTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0,
             metalness: 0.0,
             // envMapIntensity: 0.05
@@ -961,7 +961,176 @@ class TextureManager {
     getTexturePathsForModel(modelId) {
         return this.texturePaths[modelId] || null;
     }
+    addRandomizedTexture(modelId, folder, options = {}) {
+        const variantConfig = {
+            // Configuration des variantes disponibles
+            baseColor: ['TreeRoof_BaseColor.png', 'TreeRoofDark_BaseColor.png', 'TreeRoofMedium_BaseColor.png'],
+            alpha: ['TreeRoof_Alpha.png', 'TreeRoof1_Alpha.png', 'TreeRoof2_Alpha.png', 'TreeRoof3_Alpha.png', 'TreeRoof4_Alpha.png', 'TreeRoof5_Alpha.png'],
+            ...options
+        };
 
+        // Fonctions de sélection aléatoire
+        const getRandomVariant = (variants) => {
+            const index = Math.floor(Math.random() * variants.length);
+            return variants[index];
+        };
+
+        // Sélectionner aléatoirement un BaseColor et un Alpha
+        const selectedBaseColor = getRandomVariant(variantConfig.baseColor);
+        const selectedAlpha = getRandomVariant(variantConfig.alpha);
+
+        console.log(`Textures aléatoires pour ${modelId}: BaseColor=${selectedBaseColor}, Alpha=${selectedAlpha}`);
+
+        // Créer un mappage de texture personnalisé
+        this.texturePaths[modelId] = {
+            baseColor: `/textures/${folder}/${selectedBaseColor}`,
+            alpha: `/textures/${folder}/${selectedAlpha}`
+        };
+
+        // Stocker les propriétés du matériau si fournies
+        const materialProperties = {
+            roughness: 1.0,
+            metalness: 0.0,
+            envMapIntensity: 0.05,
+            ...options.materialProperties
+        };
+
+        this.setMaterialProperties(modelId, materialProperties);
+
+        // Stocker l'information sur les variantes pour référence future
+        this.texturePaths[modelId].isRandomized = true;
+        this.texturePaths[modelId].selectedVariants = {
+            baseColor: selectedBaseColor,
+            alpha: selectedAlpha
+        };
+
+        return this.texturePaths[modelId];
+    }
+    addRandomizedTexture(modelId, folder, options = {}) {
+        const variantConfig = {
+            // Configuration des variantes disponibles
+            baseColor: ['TreeRoof_BaseColor.png', 'TreeRoofDark_BaseColor.png', 'TreeRoofMedium_BaseColor.png'],
+            alpha: ['TreeRoof_Alpha.png', 'TreeRoof1_Alpha.png', 'TreeRoof2_Alpha.png', 'TreeRoof3_Alpha.png', 'TreeRoof4_Alpha.png', 'TreeRoof5_Alpha.png'],
+            ...options
+        };
+
+        // Fonctions de sélection aléatoire
+        const getRandomVariant = (variants) => {
+            const index = Math.floor(Math.random() * variants.length);
+            return variants[index];
+        };
+
+        // Sélectionner aléatoirement un BaseColor et un Alpha
+        const selectedBaseColor = getRandomVariant(variantConfig.baseColor);
+        const selectedAlpha = getRandomVariant(variantConfig.alpha);
+
+        console.log(`Textures aléatoires pour ${modelId}: BaseColor=${selectedBaseColor}, Alpha=${selectedAlpha}`);
+
+        // Créer un mappage de texture personnalisé
+        this.texturePaths[modelId] = {
+            baseColor: `/textures/${folder}/${selectedBaseColor}`,
+            alpha: `/textures/${folder}/${selectedAlpha}`
+        };
+
+        // Stocker les propriétés du matériau si fournies
+        const materialProperties = {
+            roughness: 1.0,
+            metalness: 0.0,
+            envMapIntensity: 0.05,
+            ...options.materialProperties
+        };
+
+        this.setMaterialProperties(modelId, materialProperties);
+
+        // Stocker l'information sur les variantes pour référence future
+        this.texturePaths[modelId].isRandomized = true;
+        this.texturePaths[modelId].selectedVariants = {
+            baseColor: selectedBaseColor,
+            alpha: selectedAlpha
+        };
+
+        return this.texturePaths[modelId];
+    }
+
+    /**
+     * Crée un matériau avec des textures aléatoires pour une instance spécifique
+     * @param {string} modelId - Identifiant du modèle de base (par ex. 'TreeRoof')
+     * @param {string} instanceId - Identifiant unique pour cette instance (ou null pour en générer un)
+     * @param {Object} options - Options supplémentaires
+     * @returns {Object} Le matériau créé
+     */
+    createRandomizedMaterial(modelId, instanceId = null, options = {}) {
+        // Générer un ID d'instance si non fourni
+        const uniqueId = instanceId || `${modelId}_${Math.floor(Math.random() * 10000)}`;
+
+        // Créer un nouveau mappage de textures pour cette instance spécifique
+        this.addRandomizedTexture(uniqueId, options.folder || 'forest/tree', options);
+
+        // Créer un matériau avec ces textures
+        const material = this.getMaterial(uniqueId, options);
+
+        // Associer le matériau unique à cet ID pour pouvoir le retrouver
+        this.materialPool[`random_${uniqueId}`] = material;
+
+        return material;
+    }
+
+    /**
+     * Applique des textures aléatoires à tous les meshes TreeRoof dans un modèle
+     * @param {Object} modelObject - L'objet 3D contenant potentiellement des TreeRoof
+     * @param {Object} options - Options supplémentaires
+     * @returns {number} Nombre de meshes modifiés
+     */
+    applyRandomizedTreeRoofTextures(modelObject, options = {}) {
+        if (!modelObject) return 0;
+
+        let modifiedCount = 0;
+        const textureInstances = new Map(); // Pour réutiliser les textures sur les objets proches
+
+        modelObject.traverse((node) => {
+            // Détecter les meshes qui pourraient être des toits d'arbres
+            if (node.isMesh &&
+                (node.name.includes('TreeRoof') ||
+                    (node.parent && node.parent.name.includes('TreeRoof')))) {
+
+                // Créer un identifiant pour ce nœud basé sur sa position générale
+                // (les parties proches du même arbre auront le même ID de groupe)
+                const groupX = Math.floor(node.position.x / 5);
+                const groupY = Math.floor(node.position.y / 5);
+                const groupZ = Math.floor(node.position.z / 5);
+                const groupId = `group_${groupX}_${groupY}_${groupZ}`;
+
+                let material;
+
+                // Réutiliser le même matériau pour les parties proches du même arbre
+                if (textureInstances.has(groupId)) {
+                    material = textureInstances.get(groupId);
+                } else {
+                    // Créer un nouveau matériau randomisé
+                    const instanceId = `TreeRoof_${groupId}`;
+                    material = this.createRandomizedMaterial('TreeRoof', instanceId, {
+                        folder: 'forest/tree',
+                        materialProperties: {
+                            roughness: 1.0,
+                            metalness: 0.0,
+                            envMapIntensity: 0.05,
+                            ...options.materialProperties
+                        }
+                    });
+
+                    // Stocker pour réutilisation
+                    textureInstances.set(groupId, material);
+                }
+
+                // Appliquer le matériau
+                node.material = material;
+                modifiedCount++;
+            }
+        });
+
+        console.log(`Textures TreeRoof randomisées appliquées à ${modifiedCount} meshes dans ${textureInstances.size} groupes`);
+        return modifiedCount;
+    }
     hasTextures(modelId) {
         return !!this.texturePaths[modelId];
     }
