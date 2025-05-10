@@ -84,8 +84,8 @@ class TextureManager {
             normalScale: 1.0,
             displacementScale: 0.0,
             side: DoubleSide,
-            depthWrite: false,
-            depthTest: false,
+            depthWrite: true,
+            depthTest: true,
 
         };
         this.initializeTextures();
