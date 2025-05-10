@@ -98,29 +98,9 @@ export default function Forest() {
         return newVisibility;
     };
 
-    // In your useEffect for displaying group info
     useEffect(() => {
-        // Add a delay to ensure groups are initialized
-        setTimeout(() => {
-            if (forestRef.current && endGroupRef.current && screenGroupRef.current) {
-                console.log(`Groupes initialisés avec succès:`);
-                console.log(`- Forest principal: ${forestRef.current.children.length} objets directs`);
-                console.log(`- Groupe "End": ${endGroupRef.current.children.length} objets`);
-                console.log(`- Groupe "Screen": ${screenGroupRef.current.children.length} objets`);
-
-                // Display usage instructions
-                console.log(`
-INSTRUCTIONS DE CONTRÔLE:
-- Touche E: Afficher/Masquer le groupe "End" (actuellement ${endGroupVisible ? 'visible' : 'caché'})
-- Touche S: Afficher/Masquer le groupe "Screen" (actuellement ${screenGroupVisible ? 'visible' : 'caché'})
-`);
-            }
-        }, 5000); // Check after 5 seconds of loading
-    }, [endGroupVisible, screenGroupVisible]); // Add dependencies to re-run when visibility changes
-
-    useEffect(() => {
-        console.log('Forest: Component mounted');
-        console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` + `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` + `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
+        // console.log('Forest: Component mounted');
+        // console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` + `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` + `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
 
         // Create the main group and subgroups
         const forestGroup = new THREE.Group();
@@ -148,10 +128,10 @@ INSTRUCTIONS DE CONTRÔLE:
 
 
         const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
-            // console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            // // console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
         const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
-            // console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            // // console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
 
         // Initialiser le pool de workers
@@ -177,7 +157,7 @@ INSTRUCTIONS DE CONTRÔLE:
             const currentVisibility = useStore.getState().endGroupVisible;
             const newVisibility = !currentVisibility;
 
-            console.log(`Touche E pressée - Visibilité du groupe "End": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
+            // console.log(`Touche E pressée - Visibilité du groupe "End": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
 
             // 1. Mettre à jour l'état dans le store
             useStore.getState().setEndGroupVisible(newVisibility);
@@ -196,7 +176,7 @@ INSTRUCTIONS DE CONTRÔLE:
             const currentVisibility = useStore.getState().screenGroupVisible;
             const newVisibility = !currentVisibility;
 
-            console.log(`Touche S pressée - Visibilité du groupe "Screen": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
+            // console.log(`Touche S pressée - Visibilité du groupe "Screen": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
 
             useStore.getState().setScreenGroupVisible(newVisibility);
 
@@ -212,16 +192,16 @@ INSTRUCTIONS DE CONTRÔLE:
         // Synchroniser les objets Three.js avec l'état du store
         if (endGroupRef.current) {
             endGroupRef.current.visible = endGroupVisible;
-            console.log(`Groupe "End" visibilité synchronisée: ${endGroupVisible ? 'visible' : 'caché'}`);
+            // console.log(`Groupe "End" visibilité synchronisée: ${endGroupVisible ? 'visible' : 'caché'}`);
         }
 
         if (screenGroupRef.current) {
             screenGroupRef.current.visible = screenGroupVisible;
-            console.log(`Groupe "Screen" visibilité synchronisée: ${screenGroupVisible ? 'visible' : 'caché'}`);
+            // console.log(`Groupe "Screen" visibilité synchronisée: ${screenGroupVisible ? 'visible' : 'caché'}`);
         }
     }, [endGroupVisible, screenGroupVisible]);
     const forceGroupVisibility = (force = true) => {
-        console.log(`Force visibility appelé avec: ${force ? 'visible' : 'caché'}`);
+        // console.log(`Force visibility appelé avec: ${force ? 'visible' : 'caché'}`);
 
         // Mettre à jour le store
         useStore.getState().setEndGroupVisible(force);
@@ -287,7 +267,7 @@ INSTRUCTIONS DE CONTRÔLE:
     // Optimisé: Chargement des positions
     const loadObjectPositions = async () => {
         try {
-            console.log('Loading object positions from JSON...');
+            // console.log('Loading object positions from JSON...');
 
             // Essayer les chemins possibles
             const paths = ['./data/treePositions.json', '/data/treePositions.json', '../data/treePositions.json', 'treePositions.json'];
@@ -299,11 +279,11 @@ INSTRUCTIONS DE CONTRÔLE:
                     return response.json();
                 })
                 .then(data => {
-                    console.log(`Successfully loaded from ${path}`);
+                    // console.log(`Successfully loaded from ${path}`);
                     return data;
                 })
                 .catch(err => {
-                    console.log(`Path ${path} failed:`, err.message);
+                    // console.log(`Path ${path} failed:`, err.message);
                     return null;
                 }));
 
@@ -311,7 +291,7 @@ INSTRUCTIONS DE CONTRÔLE:
             const storePromise = new Promise(resolve => {
                 const storePositions = useStore.getState().treePositions;
                 if (storePositions) {
-                    console.log('Using positions from store');
+                    // console.log('Using positions from store');
                     resolve(storePositions);
                 } else {
                     resolve(null);
@@ -323,7 +303,7 @@ INSTRUCTIONS DE CONTRÔLE:
             const validResult = results.find(result => result !== null);
 
             if (validResult) {
-                console.log('Object positions loaded successfully');
+                // console.log('Object positions loaded successfully');
                 return validResult;
             }
 
@@ -347,7 +327,7 @@ INSTRUCTIONS DE CONTRÔLE:
             const requiredAssetsInfo = templateManager.getRequiredAssets();
             const requiredAssetNames = requiredAssetsInfo.map(asset => asset.name);
 
-            console.log(`Loading ${requiredAssetNames.length} models...`);
+            // console.log(`Loading ${requiredAssetNames.length} models...`);
 
             // Créer un objet de promesses pour chaque asset
             const modelPromises = requiredAssetNames.map(assetName => {
@@ -387,7 +367,7 @@ INSTRUCTIONS DE CONTRÔLE:
                 modelObject[name] = model;
             });
 
-            console.log('All models loaded successfully:', Object.keys(modelObject));
+            // console.log('All models loaded successfully:', Object.keys(modelObject));
             return modelObject;
         } catch (error) {
             console.error('Error loading models:', error);
@@ -448,7 +428,7 @@ INSTRUCTIONS DE CONTRÔLE:
             return a.distanceToCamera - b.distanceToCamera;
         });
 
-        console.log(`Prepared loading queue with ${queue.length} chunks, sorted by distance`);
+        // console.log(`Prepared loading queue with ${queue.length} chunks, sorted by distance`);
         loadingQueueRef.current = queue;
     };
 
@@ -465,7 +445,7 @@ INSTRUCTIONS DE CONTRÔLE:
         const queue = loadingQueueRef.current;
 
         if (queue.length === 0) {
-            console.log('Progressive loading complete');
+            // console.log('Progressive loading complete');
             isLoadingRef.current = false;
 
             // Déclencher l'événement quand tout est chargé
@@ -476,7 +456,7 @@ INSTRUCTIONS DE CONTRÔLE:
 
         // Prendre un lot de chunks à traiter
         const batch = queue.splice(0, LOADING_CONFIG.BATCH_SIZE);
-        // console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
+        // // console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
 
         // Précharger les textures pour les types d'objets du lot
         const objectTypes = [...new Set(batch.map(chunk => chunk.objectId))];
@@ -634,7 +614,7 @@ INSTRUCTIONS DE CONTRÔLE:
             instances.push(instancedMesh);
 
             if (LOD_CONFIG.DEBUG_LOD) {
-                console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` + `Detail ${(detailLevel * 100).toFixed(0)}% ` + `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
+                // console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` + `Detail ${(detailLevel * 100).toFixed(0)}% ` + `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
             }
         }
 
@@ -687,7 +667,7 @@ INSTRUCTIONS DE CONTRÔLE:
         const ratio = LOD_CONFIG.MIN_DETAIL_PERCENTAGE + (1.0 - LOD_CONFIG.MIN_DETAIL_PERCENTAGE) * detailLevel;
 
         if (LOD_CONFIG.DEBUG_LOD) {
-            console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` + `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
+            // console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` + `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
         }
 
         // Si la géométrie a un buffer d'index (triangles)
@@ -771,7 +751,7 @@ INSTRUCTIONS DE CONTRÔLE:
     const preloadTexturesForModels = async (modelIds) => {
         if (!textureManager) return {};
 
-        // console.log('Preloading textures for all models...');
+        // // console.log('Preloading textures for all models...');
         const loadedTextures = {};
 
         // Load textures for each model in parallel
@@ -781,7 +761,7 @@ INSTRUCTIONS DE CONTRÔLE:
                     const textures = await textureManager.preloadTexturesForModel(modelId);
                     if (textures) {
                         loadedTextures[modelId] = textures;
-                        // console.log(`Textures preloaded for ${modelId}`);
+                        // // console.log(`Textures preloaded for ${modelId}`);
                     }
                 } catch (error) {
                     console.warn(`Error preloading textures for ${modelId}:`, error);
@@ -842,7 +822,7 @@ INSTRUCTIONS DE CONTRÔLE:
 
                 // Logging de débogage pour les premières instances
                 if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001) {
-                    console.log(`LOD update for ${instance.name}: ` + `distance=${distance.toFixed(1)}, ` + `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` + `visible=${instance.visible}, in frustum=${visible}`);
+                    // console.log(`LOD update for ${instance.name}: ` + `distance=${distance.toFixed(1)}, ` + `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` + `visible=${instance.visible}, in frustum=${visible}`);
                 }
             });
         }
@@ -889,25 +869,6 @@ INSTRUCTIONS DE CONTRÔLE:
         }
     };
 
-    // Afficher des informations sur les groupes
-    useEffect(() => {
-        // Ajouter un délai pour s'assurer que les groupes sont initialisés
-        setTimeout(() => {
-            if (forestRef.current && endGroupRef.current && screenGroupRef.current) {
-                console.log(`Groupes initialisés avec succès:`);
-                console.log(`- Forest principal: ${forestRef.current.children.length} objets directs`);
-                console.log(`- Groupe "End": ${endGroupRef.current.children.length} objets`);
-                console.log(`- Groupe "Screen": ${screenGroupRef.current.children.length} objets`);
-
-                // Afficher les instructions d'utilisation
-                console.log(`
-INSTRUCTIONS DE CONTRÔLE:
-- Touche E: Afficher/Masquer le groupe "End" (actuellement ${endGroupVisible ? 'visible' : 'caché'})
-- Touche S: Afficher/Masquer le groupe "Screen" (actuellement ${screenGroupVisible ? 'visible' : 'caché'})
-`);
-            }
-        }, 5000); // Vérifier après 5 secondes de chargement
-    }, [endGroupVisible, screenGroupVisible]);
 
     return null;
 }

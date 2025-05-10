@@ -108,7 +108,7 @@ export const ModelMarker = React.memo(function ModelMarker({
 
     // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant
     const handleMarkerPointerEnter = (e) => {
-        console.log('[ModelMarker] Marker pointer enter', id);
+        // console.log('[ModelMarker] Marker pointer enter', id);
         // Arrêter complètement la propagation
         if (e) {
             e.stopPropagation();
@@ -134,7 +134,7 @@ export const ModelMarker = React.memo(function ModelMarker({
     };
 
     const handleMarkerPointerLeave = (e) => {
-        console.log('[ModelMarker] Marker pointer leave', id);
+        // console.log('[ModelMarker] Marker pointer leave', id);
         // Arrêter complètement la propagation
         if (e) {
             e.stopPropagation();
@@ -154,7 +154,7 @@ export const ModelMarker = React.memo(function ModelMarker({
     // useEffect(() => {
     //     const handleNextInteractionReady = (data) => {
     //         if (data.markerId === id) {
-    //             console.log(`[ModelMarker] Prêt pour la prochaine interaction ${id}`);
+    //             // console.log(`[ModelMarker] Prêt pour la prochaine interaction ${id}`);
     //             // Mettre à jour les états directement
     //             setIsInInteractionSequence(true);
     //             setInteractionCompleted(false);
@@ -169,7 +169,7 @@ export const ModelMarker = React.memo(function ModelMarker({
     useEffect(() => {
         const handleInteractionComplete = (data) => {
             if (data.id === id) {
-                console.log(`[ModelMarker] Interaction ${id} marquée comme complétée pour l'étape ${interaction?.currentStep}`);
+                // console.log(`[ModelMarker] Interaction ${id} marquée comme complétée pour l'étape ${interaction?.currentStep}`);
 
                 // Stocker l'étape qui vient d'être complétée
                 setInteractionCompleted(true);
@@ -195,7 +195,7 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Si l'étape d'interaction a changé et est différente de la dernière étape complétée,
         // réinitialiser l'état pour permettre une nouvelle interaction
         if (interaction && interaction.currentStep !== lastCompletedStep && interaction.waitingForInteraction) {
-            console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
+            // console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
             setInteractionCompleted(false);
         }
     }, [interaction?.currentStep, interaction?.waitingForInteraction, lastCompletedStep]);
@@ -208,28 +208,28 @@ export const ModelMarker = React.memo(function ModelMarker({
         if (targetRef.current) {
             // SUPPRIMÉ: la condition qui empêche l'ajout d'écouteurs pour les prochaines interactions
             // AJOUTÉ: log pour indiquer l'ajout d'écouteurs
-            console.log(`[ModelMarker] Ajout des écouteurs pour ${id}, étape ${interaction?.currentStep}`);
+            // console.log(`[ModelMarker] Ajout des écouteurs pour ${id}, étape ${interaction?.currentStep}`);
 
             // Ajouter des écouteurs pour le survol - modification de la logique pour gérer les interactions séquentielles
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
                 // Permettre le hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
                 if (interactionCompleted && interaction?.currentStep === lastCompletedStep) {
-                    console.log('[EnhancedObjectMarker] Hover ignoré - interaction complétée');
+                    // console.log('[EnhancedObjectMarker] Hover ignoré - interaction complétée');
                     return;
                 }
 
-                console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
+                // console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
                 setHovered(true);
             });
 
             const removeLeaveListener = addPointerLeaveListener(targetRef.current.uuid, (event) => {
                 // Permettre le leave hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
                 if (interactionCompleted && interaction?.currentStep === lastCompletedStep) {
-                    console.log('[EnhancedObjectMarker] Leave hover ignoré - interaction complétée');
+                    // console.log('[EnhancedObjectMarker] Leave hover ignoré - interaction complétée');
                     return;
                 }
 
-                console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
+                // console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
                 setHovered(false);
 
                 // IMPORTANT: Si ni le modèle ni le marqueur ne sont survolés, nous devons nous assurer que le marqueur est caché
@@ -760,7 +760,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
 
         if (markerType.includes('drag')) {
-            console.log(`[EnhancedObjectMarker] Cette interaction nécessite un glissement (${markerType}), pas un simple clic`);
+            // console.log(`[EnhancedObjectMarker] Cette interaction nécessite un glissement (${markerType}), pas un simple clic`);
             return;
         }
 
@@ -1038,7 +1038,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                 <div
                     className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
                     onMouseEnter={(e) => {
-                        console.log('Button hover enter');
+                        // console.log('Button hover enter');
                         stopAllPropagation(e);
                         setButtonHovered(true);
                         if (typeof onPointerEnter === 'function') {
@@ -1046,7 +1046,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         }
                     }}
                     onMouseLeave={(e) => {
-                        console.log('Button hover leave');
+                        // console.log('Button hover leave');
                         stopAllPropagation(e);
                         setButtonHovered(false);
                         if (typeof onPointerLeave === 'function') {
@@ -1076,13 +1076,13 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     onTouchStart={handleLongPressStart}
                     onTouchEnd={handleLongPressCancel}
                     onMouseEnter={(e) => {
-                        console.log('Button hover enter');
+                        // console.log('Button hover enter');
                         stopAllPropagation(e);
                         setButtonHovered(true);
                         if (onPointerEnter) onPointerEnter(e);
                     }}
                     onMouseLeave={(e) => {
-                        console.log('Button hover leave');
+                        // console.log('Button hover leave');
                         stopAllPropagation(e);
                         setButtonHovered(false);
                         if (onPointerLeave) onPointerLeave(e);
@@ -1117,7 +1117,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         onMouseDown={handleDragStart}
                         onTouchStart={handleDragStart}
                         onMouseEnter={(e) => {
-                            console.log('Button hover enter');
+                            // console.log('Button hover enter');
                             stopAllPropagation(e);
                             setButtonHovered(true);
                             if (typeof onPointerEnter === 'function') {
@@ -1125,7 +1125,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             }
                         }}
                         onMouseLeave={(e) => {
-                            console.log('Button hover leave');
+                            // console.log('Button hover leave');
                             stopAllPropagation(e);
                             setButtonHovered(false);
                             if (typeof onPointerLeave === 'function') {

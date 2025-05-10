@@ -115,10 +115,10 @@ const RayCaster = ({children}) => {
         const canvas = gl.domElement;
 
         const handleClick = (event) => {
-            console.log('[RayCaster] Click event captured');
+            // console.log('[RayCaster] Click event captured');
 
             if (!clickListener?.isListening && clickListenersRef.current.size === 0) {
-                console.log('[RayCaster] Not listening or no listeners registered');
+                // console.log('[RayCaster] Not listening or no listeners registered');
                 return;
             }
 
@@ -133,14 +133,14 @@ const RayCaster = ({children}) => {
             const allObjects = getAllSceneObjects();
             const intersects = raycaster.intersectObjects(allObjects, true);
 
-            console.log('[RayCaster] Intersections found:', intersects.length);
+            // console.log('[RayCaster] Intersections found:', intersects.length);
 
             // Parcourir tous les objets intersectés (traverser les éléments)
             for (const intersection of intersects) {
                 const listener = findListenerInAncestors(intersection.object, clickListenersRef.current);
 
                 if (listener) {
-                    console.log('[RayCaster] Found listener for:', listener.object.name || listener.uuid);
+                    // console.log('[RayCaster] Found listener for:', listener.object.name || listener.uuid);
                     listener.callback(intersection, event);
                     // Ne pas arrêter ici pour permettre à tous les écouteurs de réagir
                     // Si vous voulez arrêter après le premier écouteur, décommentez:
@@ -170,14 +170,14 @@ const RayCaster = ({children}) => {
     const addPointerEnterListener = (uuid, callback) => {
         // Si cet uuid a déjà un écouteur, le remplacer au lieu de le doubler
         if (pointerEnterListenersRef.current.has(uuid)) {
-            console.log(`[RayCaster] Remplacement de l'écouteur pointer enter pour ${uuid}`);
+            // console.log(`[RayCaster] Remplacement de l'écouteur pointer enter pour ${uuid}`);
         }
 
         pointerEnterListenersRef.current.set(uuid, callback);
-        console.log(`[RayCaster] Ajout d'un écouteur pointer enter pour ${uuid}`);
+        // console.log(`[RayCaster] Ajout d'un écouteur pointer enter pour ${uuid}`);
 
         return () => {
-            console.log(`[RayCaster] Suppression de l'écouteur pointer enter pour ${uuid}`);
+            // console.log(`[RayCaster] Suppression de l'écouteur pointer enter pour ${uuid}`);
             pointerEnterListenersRef.current.delete(uuid);
         };
     };
@@ -191,22 +191,22 @@ const RayCaster = ({children}) => {
     const removePointerListeners = useCallback((uuid) => {
         if (pointerEnterListenersRef.current.has(uuid)) {
             pointerEnterListenersRef.current.delete(uuid);
-            console.log(`[RayCaster] Removed pointer enter listener for ${uuid}`);
+            // console.log(`[RayCaster] Removed pointer enter listener for ${uuid}`);
         }
 
         if (pointerLeaveListenersRef.current.has(uuid)) {
             pointerLeaveListenersRef.current.delete(uuid);
-            console.log(`[RayCaster] Removed pointer leave listener for ${uuid}`);
+            // console.log(`[RayCaster] Removed pointer leave listener for ${uuid}`);
         }
 
         if (clickListenersRef.current.has(uuid)) {
             clickListenersRef.current.delete(uuid);
-            console.log(`[RayCaster] Removed click listener for ${uuid}`);
+            // console.log(`[RayCaster] Removed click listener for ${uuid}`);
         }
 
         if (hoveredObjectsRef.current.has(uuid)) {
             hoveredObjectsRef.current.delete(uuid);
-            console.log(`[RayCaster] Removed ${uuid} from hovered objects`);
+            // console.log(`[RayCaster] Removed ${uuid} from hovered objects`);
         }
     }, []);
 
