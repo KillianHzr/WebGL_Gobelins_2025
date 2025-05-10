@@ -123,7 +123,7 @@ class SceneObjectManager {
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.0
+                    chapterDistance: 0.05
                 }],
                 defaultPlacement: {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false, requiredStep: 'firstStop'
@@ -625,67 +625,20 @@ class SceneObjectManager {
                     placement.onInteract(data);
                 }
 
-                // Initialiser l'index d'interaction si nécessaire
-                if (placement.interactionIndex === undefined) {
-                    placement.interactionIndex = 0;
-                }
+                // Marquer l'objet comme complètement interagi
+                placement.interacted = true;
 
-                // Obtenir la configuration de l'objet
-                const objectConfig = this.getObjectFromCatalog(placement.objectKey);
-
-                // Vérifier si l'objet a plusieurs interactions
-                const hasMultipleInteractions = objectConfig &&
-                    Array.isArray(objectConfig.interaction) &&
-                    objectConfig.interaction.length > 1;
-
-                // Si nous sommes à la dernière interaction ou s'il n'y a qu'une seule interaction
-                const isLastInteraction = !hasMultipleInteractions ||
-                    placement.interactionIndex >= objectConfig.interaction.length - 1;
-
-                if (isLastInteraction) {
-                    // C'est la dernière interaction, marquer l'objet comme complètement interagi
-                    placement.interacted = true;
-
-                    // Émettre un événement pour le système de scénario
-                    EventBus.trigger('object:interaction:complete', {
-                        markerId: placement.markerId,
-                        objectKey: placement.objectKey,
-                        requiredStep: placement.requiredStep,
-                        isFinalInteraction: true
-                    });
-                } else {
-                    // Ce n'est pas la dernière interaction, passer à la suivante
-                    placement.interactionIndex++;
-
-                    // Mettre à jour les propriétés du marqueur pour la prochaine interaction
-                    const nextInteraction = objectConfig.interaction[placement.interactionIndex];
-                    this.updatePlacement(placement.markerId, {
-                        markerType: nextInteraction.type,
-                        markerText: nextInteraction.text,
-                        markerColor: nextInteraction.color,
-                        markerOffset: nextInteraction.offset,
-                        markerAxis: nextInteraction.axis,
-                        // On ne marque pas encore comme interagi puisqu'il reste des étapes
-                        interacted: false
-                    });
-
-                    console.log(`%c==== PROGRESSION VERS LA PROCHAINE INTERACTION ====`, 'background: #096; color: white; padding: 3px;');
-                    console.log(`Objet: ${placement.objectKey}`);
-                    console.log(`Interaction #${placement.interactionIndex}: ${nextInteraction.text}`);
-                    console.log(`=============================`);
-
-                    // Émettre un événement pour notifier de la progression de l'interaction
-                    EventBus.trigger('object:interaction:progress', {
-                        markerId: placement.markerId,
-                        objectKey: placement.objectKey,
-                        requiredStep: placement.requiredStep,
-                        currentInteractionIndex: placement.interactionIndex,
-                        totalInteractions: objectConfig.interaction.length
-                    });
-                }
+                // Émettre un événement pour le système de scénario
+                EventBus.trigger('object:interaction:complete', {
+                    markerId: placement.markerId,
+                    objectKey: placement.objectKey,
+                    requiredStep: placement.requiredStep,
+                    isFinalInteraction: true  // Toujours vrai dans le système simplifié
+                });
             }
         });
     }
+
 
     // Ajouter un nouvel objet au catalogue
     addObjectToCatalog(key, config) {

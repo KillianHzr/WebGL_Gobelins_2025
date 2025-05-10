@@ -454,53 +454,14 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
 
 
     useEffect(() => {
-        // Gestionnaire pour la progression des interactions
-        const handleInteractionProgress = (data) => {
-            // Si nous avons besoin de remettre l'objet en état d'attente d'interaction
-            // après avoir progressé à la prochaine étape d'interaction
-            if (data.markerId && data.requiredStep) {
-                // Rendre ça plus rapide - réduire le délai pour une meilleure expérience utilisateur
-                setTimeout(() => {
-                    const state = useStore.getState();
-
-                    // Remettre l'objet en attente de la prochaine interaction
-                    // sans modifier completedInteractions
-                    state.interaction.setCurrentStep(data.requiredStep);
-                    state.interaction.setWaitingForInteraction(true);
-
-                    // Mettre à jour les placements pour refléter la nouvelle interaction
-                    updatePlacements();
-
-                    // NOUVEAU: Émettre un événement pour informer que la prochaine étape est prête
-                    EventBus.trigger('next-interaction-ready', {
-                        markerId: data.markerId,
-                        requiredStep: data.requiredStep,
-                        currentInteractionIndex: data.currentInteractionIndex
-                    });
-                }, 50); // Plus rapide : 50ms au lieu de 100ms
-            }
-        };
-
-        // S'abonner à l'événement de progression d'interaction
-        const progressCleanup = EventBus.on('object:interaction:progress', handleInteractionProgress);
 
         // S'abonner à l'événement de complétion d'interaction
         const completeCleanup = EventBus.on('object:interaction:complete', (data) => {
-            // Si c'est l'interaction finale, on peut finaliser la séquence
-            if (data.isFinalInteraction) {
-                const state = useStore.getState();
-                // Marquer l'interaction comme complètement terminée
-                if (state.interaction.finalizeInteractionSequence) {
-                    state.interaction.finalizeInteractionSequence(data.requiredStep);
-                }
-
-                // Mettre à jour les placements
-                updatePlacements();
-            }
+            // Directement mettre à jour les placements
+            updatePlacements();
         });
 
         return () => {
-            progressCleanup();
             completeCleanup();
         };
     }, [updatePlacements]);

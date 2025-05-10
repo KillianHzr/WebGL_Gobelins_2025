@@ -249,14 +249,10 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         // Vérifier si l'interaction est attendue
         if (interaction?.waitingForInteraction && isWaitingForInteraction) {
-            // Mettrez à jour l'état pour indiquer que cette étape d'interaction est complétée
-            // Notez que nous ne marquons PAS encore l'interaction comme complètement terminée
-            // car il pourrait y avoir d'autres étapes
-
-            // Compléter cette étape d'interaction
+            // Compléter l'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
-                debugLog(`Interaction ${markerId} étape complétée via ${eventData.type || markerType}`);
+                debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
             }
 
             // Gérer les interfaces spécifiques si nécessaire
@@ -345,21 +341,15 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             return false;
         }
 
-        // Vérifications spéciales pour certains objets si nécessaire
-        if (markerId.includes('AnimalPaws') || (requiredStep && requiredStep.includes('fifthStop'))) {
-            // Logique existante pour les cas spéciaux...
-        }
-
         // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
         if (requiredStep) {
             const isCorrectStep = interaction?.currentStep === requiredStep &&
                 interaction?.waitingForInteraction;
 
-            // MODIFIÉ: Afficher le contour également si nous sommes dans une séquence d'interactions
-            return isWaitingForInteraction || alwaysVisible || isInInteractionSequence || (hovered && isCorrectStep);
+            return isWaitingForInteraction || alwaysVisible || (hovered && isCorrectStep);
         } else {
             // Comportement par défaut pour les objets sans requiredStep
-            return isWaitingForInteraction || alwaysVisible || isInInteractionSequence || hovered;
+            return isWaitingForInteraction || alwaysVisible || hovered;
         }
     }, [
         isMarkerHovered,
@@ -370,8 +360,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         isWaitingForInteraction,
         alwaysVisible,
         hovered,
-        markerId,
-        isInInteractionSequence // NOUVEAU: Ajout de la dépendance
+        markerId
     ]);
 
     // Handlers pour le survol du marqueur optimisés avec useCallback

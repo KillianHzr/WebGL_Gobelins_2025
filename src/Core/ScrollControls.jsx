@@ -916,26 +916,21 @@ function CameraController({children}) {
     }, [isAtEndOfScroll, timelinePositionRef.current]);
 
     useEffect(() => {
-        // Stocker la position avant la modification de l'état dans completeInteraction
-        const preInteractionCompleteSubscription = EventBus.on('pre-interaction-complete', (data) => {
-            // Sauvegarder la position actuelle
-            const currentPosition = timelinePositionRef.current;
-            console.log(`Sauvegarde de la position avant modification d'état: ${currentPosition}`);
-
-            // Stocker cette position dans une référence pour une utilisation ultérieure
-            savedInteractionPosition.current = currentPosition;
-        });
-
         // Écouter l'événement qui réactive le scroll
         const setAllowScrollSubscription = EventBus.on('interaction-complete-set-allow-scroll', (data) => {
-            // Rien à faire, tout est géré par les autres écouteurs d'événements
+            // Réactiver le scroll après un court délai
+            setTimeout(() => {
+                if (setAllowScroll) {
+                    setAllowScroll(true);
+                }
+            }, 500);
         });
 
         return () => {
-            preInteractionCompleteSubscription();
             setAllowScrollSubscription();
         };
     }, [setAllowScroll]);
+
 
     // Gestion de l'affichage du compte à rebours
     useEffect(() => {
@@ -1252,9 +1247,8 @@ function CameraController({children}) {
                 handledInteractions.current.delete(interactionId);
             }, 2000);  // Suffisamment long pour couvrir tous les événements en double potentiels
 
-            // Suite du traitement comme avant...
+            // Traitement simplifié pour la transition après l'interaction
             setTimeout(() => {
-                // Code existant pour gérer l'interaction...
                 const currentPosition = timelinePositionRef.current;
                 const stepId = interactionId.split('-')[0];
                 const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
@@ -1296,7 +1290,7 @@ function CameraController({children}) {
             }, 1000);
         };
 
-        // CRITICAL: Set up multiple event listeners to catch the completion event however it's emitted
+        // Set up multiple event listeners to catch the completion event however it's emitted
         const interactionCompleteSubscription1 = EventBus.on('INTERACTION_COMPLETE', handleInteractionComplete);
         const interactionCompleteSubscription2 = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
         const interactionCompleteSubscription3 = EventBus.on('marker:interaction:complete', handleInteractionComplete);
