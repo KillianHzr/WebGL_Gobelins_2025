@@ -7,6 +7,7 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
+import {FrontSide, LoopOnce} from "three";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = true;
@@ -74,7 +75,7 @@ export const StaticObject = React.memo(function StaticObject({
                         child.material.metalness = 0.2; // Légèrement métallique
 
                         // S'assurer que le matériau est configuré pour les ombres
-                        child.material.shadowSide = THREE.FrontSide;
+                        child.material.shadowSide = FrontSide;
                         child.material.needsUpdate = true;
                     }
                 } else {
@@ -137,7 +138,7 @@ export const StaticObject = React.memo(function StaticObject({
                     action.reset();
                     action.clampWhenFinished = animationClamp;
                     action.timeScale = animationTimeScale;
-                    action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce);
+                    action.setLoop(animationLoop ? LoopRepeat : LoopOnce);
 
                     // Démarrer l'animation
                     action.play();
@@ -234,37 +235,23 @@ export const StaticObject = React.memo(function StaticObject({
 
         const applyTextures = async () => {
             try {
-                await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
+                // Vérifier si c'est un objet de terrain (Ground)
+                if (isGroundObjectRef.current) {
+                    // CORRECTION: Pour les objets de type Ground, utiliser setupGroundWithPaths
+                    // au lieu de applyTexturesToModel ou applyGroundTexturesDirectly
+                    console.log(`[TextureManager] Objet de terrain détecté (${textureModelId}), application des textures spéciales avec chemins`);
+                    await textureManager.setupGroundWithPaths(objectRef.current);
+                } else {
+                    // Pour les autres objets, utiliser la méthode standard
+                    await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
+                }
 
-                // Vérifier si le composant est toujours monté avant de logger
                 if (isComponentMounted.current && isApplyingTextures) {
                     debugLog(`Textures appliquées à ${textureModelId}`);
                 }
 
-                // Après avoir appliqué les textures, vérifier si c'est un objet de sol
-                // et appliquer des optimisations spécifiques
-                if (isGroundObjectRef.current && objectRef.current) {
-                    objectRef.current.traverse((child) => {
-                        if (child.isMesh && child.material) {
-                            // Réappliquer les paramètres de matériau pour le sol
-                            child.castShadow = false;
-                            child.receiveShadow = true;
-
-                            // Optimiser le matériau pour une meilleure réception des ombres
-                            if (Array.isArray(child.material)) {
-                                child.material.forEach(mat => {
-                                    mat.roughness = 0.8;
-                                    mat.metalness = 0.2;
-                                    mat.needsUpdate = true;
-                                });
-                            } else {
-                                child.material.roughness = 0.8;
-                                child.material.metalness = 0.2;
-                                child.material.needsUpdate = true;
-                            }
-                        }
-                    });
-                }
+                // Les optimisations spécifiques pour le terrain sont déjà appliquées
+                // par setupGroundWithPaths, pas besoin de les réappliquer
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
                     console.error(`Erreur lors de l'application des textures:`, error);

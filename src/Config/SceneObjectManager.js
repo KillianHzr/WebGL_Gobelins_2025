@@ -904,7 +904,74 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
+    configureGround(groundObject) {
+        if (!groundObject) {
+            console.error("configureGround: objet terrain manquant");
+            return false;
+        }
 
+        console.log("Configuration du terrain:", groundObject.name || "sans nom");
+
+        if (textureManager) {
+            // Appeler la nouvelle méthode dans TextureManager
+            return textureManager.setupGroundWithPaths(groundObject);
+        }
+
+        return false;
+    }
+    findAndConfigureGround(scene) {
+        if (!scene) {
+            console.error("findAndConfigureGround: scène manquante");
+            return null;
+        }
+
+        let groundObject = null;
+
+        // Chercher l'objet Ground
+        scene.traverse((node) => {
+            // Recherche par nom
+            if (node.name === 'Ground' ||
+                node.name.toLowerCase().includes('ground') ||
+                node.name.toLowerCase().includes('terrain')) {
+                groundObject = node;
+            }
+
+            // Si c'est un mesh avec beaucoup de vertices et qu'il est à Y=0
+            // (caractéristiques typiques d'un terrain)
+            if (node.isMesh &&
+                node.geometry &&
+                node.geometry.attributes.position &&
+                node.geometry.attributes.position.count > 1000 &&
+                Math.abs(node.position.y) < 0.1) {
+
+                // Vérifier aussi si c'est large et plat
+                if (!node.geometry.boundingBox) {
+                    node.geometry.computeBoundingBox();
+                }
+
+                const box = node.geometry.boundingBox;
+                if (box) {
+                    const width = box.max.x - box.min.x;
+                    const depth = box.max.z - box.min.z;
+                    const height = box.max.y - box.min.y;
+
+                    // Un terrain est généralement beaucoup plus large que haut
+                    if (width > 50 && depth > 50 && height < 10) {
+                        groundObject = node;
+                    }
+                }
+            }
+        });
+
+        if (groundObject) {
+            console.log("Terrain trouvé, configuration automatique...");
+            this.configureGround(groundObject);
+            return groundObject;
+        } else {
+            console.warn("Aucun terrain trouvé dans la scène");
+            return null;
+        }
+    }
     // Appliquer les textures à un objet
     async applyTexturesToObject(placement, modelObject) {
         if (!placement || !modelObject) return;
@@ -914,16 +981,8 @@ class SceneObjectManager {
 
         // Traitement spécial pour le terrain (Ground)
         if (placement.objectKey === 'Ground') {
-            if (textureManager) {
-                // Utiliser la méthode spéciale pour le terrain
-                await textureManager.applyGroundTextures(modelObject);
-
-                // Analyser les vertex colors pour débogage (optionnel)
-                if (process.env.NODE_ENV === 'development') {
-                    textureManager.analyzeGroundVertexColors(modelObject);
-                }
-            }
-            return;
+            console.log("Détection de l'objet terrain dans applyTexturesToObject");
+            return this.configureGround(modelObject);
         }
 
         // Traitement standard pour les autres objets
@@ -973,6 +1032,8 @@ class SceneObjectManager {
         });
     }
 
+
+    
     // Récupérer uniquement les placements d'objets interactifs
     getInteractivePlacements(filters = {}) {
         return this.getPlacements({...filters, interactive: true});
