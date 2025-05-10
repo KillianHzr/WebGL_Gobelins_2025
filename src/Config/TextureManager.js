@@ -51,11 +51,11 @@ class TextureManager {
 
         // Paramètres d'optimisation
         this.optimizationConfig = {
-            mergeThreshold: 5,           // Nombre d'instances avant de considérer une fusion
-            maxTextureSize: 2048,        // Taille maximum de texture en pixels
+            mergeThreshold: 1,           // Nombre d'instances avant de considérer une fusion
+            maxTextureSize: 1024,        // Taille maximum de texture en pixels
             distanceThresholds: {        // Seuils de distance pour LOD
-                high: 50,
-                medium: 150,
+                high: 15,
+                medium: 25,
                 low: Infinity
             },
             instanceMergeDistance: 100,  // Distance max pour une fusion d'instance
@@ -562,6 +562,22 @@ class TextureManager {
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
+        });
+        this.addPlantTexture('MultipleLeaf', 'primary', {
+
+            roughness: 0.7,
+            metalness: 1.0,
+            envMapIntensity: 0.46,
+            castShadow: false,
+            receivedShadow: false,
+        });
+        this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
             metalness: 1.0,

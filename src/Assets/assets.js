@@ -47,7 +47,7 @@ const baseAssets = [
     {
         name: 'MultipleLeaf',
         type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
+        path: '/models/primary/MultipleLeaf.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -55,7 +55,7 @@ const baseAssets = [
     {
         name: 'AnimalPaws',
         type: 'gltf',
-        path: '/models/primary/AnimalPaws.gltf',
+        path: '/models/primary/AnimalPaws.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
