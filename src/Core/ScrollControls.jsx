@@ -138,7 +138,7 @@ function CameraController({children}) {
         if (!allowScroll && savedInteractionPosition.current !== null) {
             // Vérifier si la position de la timeline a changé
             if (Math.abs(timelinePositionRef.current - savedInteractionPosition.current) > 0.0001) {
-                console.log("Correction de position pendant l'attente d'interaction");
+                // console.log("Correction de position pendant l'attente d'interaction");
                 timelinePositionRef.current = savedInteractionPosition.current;
                 cameraAnimatorRef.current.setPosition(savedInteractionPosition.current);
             }
@@ -148,11 +148,11 @@ function CameraController({children}) {
     useEffect(() => {
         // Listen for chapter jump requests from the GUI
         const guiJumpSubscription = EventBus.on('gui-chapter-jump-initiated', (data) => {
-            console.log(`GUI a initié une transition vers le chapitre ${data.chapterName}`);
+            // console.log(`GUI a initié une transition vers le chapitre ${data.chapterName}`);
 
             // Check if we're currently in a transition
             if (isTransitioningRef.current) {
-                console.log("Transition en cours, réinitialisation forcée avant de démarrer une nouvelle transition");
+                // console.log("Transition en cours, réinitialisation forcée avant de démarrer une nouvelle transition");
                 // Force reset transition state
                 isTransitioningRef.current = false;
                 setChapterTransitioning(false);
@@ -167,7 +167,7 @@ function CameraController({children}) {
 
         // Listen for direct transition requests
         const directTransitionSubscription = EventBus.on('direct-transition-to-position', (data) => {
-            console.log(`Transition directe demandée vers la position: ${data.position}`);
+            // console.log(`Transition directe demandée vers la position: ${data.position}`);
 
             // Force reset transition state
             isTransitioningRef.current = false;
@@ -182,11 +182,11 @@ function CameraController({children}) {
         // Add a safety mechanism to detect and fix stuck transitions
         const checkInterval = setInterval(() => {
             if (isTransitioningRef.current) {
-                console.log("Vérification d'une transition potentiellement bloquée...");
+                // console.log("Vérification d'une transition potentiellement bloquée...");
                 // If a transition has been active for more than 5 seconds, it's probably stuck
                 setTimeout(() => {
                     if (isTransitioningRef.current) {
-                        console.log("Transition bloquée détectée, réinitialisation forcée");
+                        // console.log("Transition bloquée détectée, réinitialisation forcée");
                         isTransitioningRef.current = false;
                         setChapterTransitioning(false);
                         // Re-enable scrolling
@@ -209,7 +209,7 @@ function CameraController({children}) {
     useEffect(() => {
         // Réinitialiser la vélocité de défilement lorsque demandé par le GUI
         const velocityResetSubscription = EventBus.on('reset-scroll-velocity', () => {
-            console.log('Réinitialisation de la vélocité de défilement');
+            // console.log('Réinitialisation de la vélocité de défilement');
             // scrollVelocity.current = 0;
         });
 
@@ -255,7 +255,7 @@ function CameraController({children}) {
 
         // Si une transition est déjà en cours, ne pas en démarrer une nouvelle
         if (isProcessingTransition.current) {
-            console.log("Transition déjà en cours, mise en file d'attente:", targetPosition);
+            // console.log("Transition déjà en cours, mise en file d'attente:", targetPosition);
             return;
         }
 
@@ -277,7 +277,7 @@ function CameraController({children}) {
         // Récupérer la prochaine position cible
         const targetPosition = transitionQueue.current[0];
 
-        console.log("Démarrage de la transition vers la position:", targetPosition);
+        // console.log("Démarrage de la transition vers la position:", targetPosition);
 
         // NOUVEAU: Désactiver explicitement la correction de position pendant cette transition
         const savedInteractionPositionBackup = savedInteractionPosition.current;
@@ -347,7 +347,7 @@ function CameraController({children}) {
                 if (!isTransitioningRef.current && !chapterTransitioning) {
                     processTransitionQueue();
                 } else {
-                    console.log("Drapeaux de transition encore actifs, attente supplémentaire...");
+                    // console.log("Drapeaux de transition encore actifs, attente supplémentaire...");
                     setTimeout(() => {
                         // Forcer la réinitialisation des drapeaux si toujours actifs
                         isTransitioningRef.current = false;
@@ -362,7 +362,7 @@ function CameraController({children}) {
         const animate = (time) => {
             // Si une interruption forcée a été demandée, il faut terminer proprement
             if (!isTransitioningRef.current) {
-                console.log("Animation interrompue par une autre transition");
+                // console.log("Animation interrompue par une autre transition");
 
                 // S'assurer que nous ne laissons pas la caméra dans un état intermédiaire
                 timelinePositionRef.current = targetPosition;
@@ -391,7 +391,7 @@ function CameraController({children}) {
 
             // Log de progression tous les 10%
             if (Math.floor(progress * 10) !== Math.floor((progress - 0.01) * 10)) {
-                console.log(`Animation: ${Math.floor(progress * 100)}%`);
+                // console.log(`Animation: ${Math.floor(progress * 100)}%`);
             }
 
             // Mettre à jour progressivement la position de la timeline
@@ -405,7 +405,7 @@ function CameraController({children}) {
                 requestAnimationFrame(animate);
             } else {
                 // Animation terminée
-                console.log("Transition terminée avec succès");
+                // console.log("Transition terminée avec succès");
 
                 // Fixer la position finale exacte
                 timelinePositionRef.current = targetPosition;
@@ -433,7 +433,7 @@ function CameraController({children}) {
                     setAllowScroll(true);
                     setChapterTransitioning(false);
                     isTransitioningRef.current = false;
-                    console.log("Navigation réactivée, prêt pour la prochaine transition");
+                    // console.log("Navigation réactivée, prêt pour la prochaine transition");
 
                     // Terminer la transition actuelle et passer à la suivante
                     finishCurrentTransition();
@@ -456,7 +456,7 @@ function CameraController({children}) {
 
     // Fix for the jumpToChapter function
     const jumpToChapter = (index) => {
-        console.log(`Demande d'avancement correspondant à l'index: ${index}`);
+        // console.log(`Demande d'avancement correspondant à l'index: ${index}`);
 
         if (index >= 0 && index < ACTIVE_CHAPTERS.length) {
             const chapter = ACTIVE_CHAPTERS[index];
@@ -466,7 +466,7 @@ function CameraController({children}) {
 
             // Si une transition est déjà en cours, forcer sa réinitialisation
             if (isTransitioningRef.current || chapterTransitioning) {
-                console.log("Transition en cours, forçage de la réinitialisation");
+                // console.log("Transition en cours, forçage de la réinitialisation");
 
                 // Forcer la réinitialisation complète de toutes les transitions
                 EventBus.trigger('force-reset-all-transitions');
@@ -489,9 +489,9 @@ function CameraController({children}) {
                 // Calculer la position cible en ajoutant la distance
                 const targetPosition = currentPosition + distanceToMove;
 
-                console.log(`Position actuelle: ${currentPosition}`);
-                console.log(`Distance à parcourir: ${distanceToMove}`);
-                console.log(`Position cible: ${targetPosition}`);
+                // console.log(`Position actuelle: ${currentPosition}`);
+                // console.log(`Distance à parcourir: ${distanceToMove}`);
+                // console.log(`Position cible: ${targetPosition}`);
 
                 // NOUVEAU: Si nous étions en attente d'interaction, désactiver temporairement cet état
                 if (wasWaitingForInteraction) {
@@ -541,7 +541,7 @@ function CameraController({children}) {
 
     useEffect(() => {
         const forceResetTransitionsSubscription = EventBus.on('force-reset-all-transitions', () => {
-            console.log("Réinitialisation forcée de toutes les transitions");
+            // console.log("Réinitialisation forcée de toutes les transitions");
 
             // Vider la file d'attente
             transitionQueue.current = [];
@@ -570,7 +570,7 @@ function CameraController({children}) {
 
     useEffect(() => {
         const forceResetTransitionsSubscription = EventBus.on('force-reset-all-transitions', () => {
-            console.log("Réinitialisation forcée de toutes les transitions");
+            // console.log("Réinitialisation forcée de toutes les transitions");
 
             // Vider la file d'attente
             transitionQueue.current = [];
@@ -597,7 +597,7 @@ function CameraController({children}) {
         const resetTransitionFlags = () => {
             isTransitioningRef.current = false;
             setChapterTransitioning(false);
-            console.log("Transition flags manually reset");
+            // console.log("Transition flags manually reset");
         };
 
         // Register event listener for forced reset
@@ -610,12 +610,12 @@ function CameraController({children}) {
         const safetyInterval = setInterval(() => {
             if (isTransitioningRef.current) {
                 const transitionDuration = 3000; // 3 seconds is longer than any transition should take
-                console.log("Checking if transition is stuck...");
+                // console.log("Checking if transition is stuck...");
 
                 // If transition state doesn't change for 5 seconds, reset it
                 setTimeout(() => {
                     if (isTransitioningRef.current) {
-                        console.log("Transition appears stuck, forcing reset");
+                        // console.log("Transition appears stuck, forcing reset");
                         resetTransitionFlags();
 
                         // Re-enable scrolling as well
@@ -654,7 +654,7 @@ function CameraController({children}) {
 
         if (newChapterIndex !== currentChapter) {
             setCurrentChapter(newChapterIndex);
-            console.log(`Chapitre actuel mis à jour: ${newChapterIndex} (${ACTIVE_CHAPTERS[newChapterIndex].name})`);
+            // console.log(`Chapitre actuel mis à jour: ${newChapterIndex} (${ACTIVE_CHAPTERS[newChapterIndex].name})`);
 
             // Marquer les chapitres précédents comme complétés
             const updatedACTIVE_CHAPTERS = [...ACTIVE_CHAPTERS];
@@ -697,8 +697,8 @@ function CameraController({children}) {
         // Définir une distance maximale
         const TRIGGER_PROXIMITY = 2.0;
 
-        console.log("Current completed interactions:", completedInteractions);
-        console.log("Current interactions:", interactions);
+        // console.log("Current completed interactions:", completedInteractions);
+        // console.log("Current interactions:", interactions);
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
@@ -734,7 +734,7 @@ function CameraController({children}) {
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
                     if (!previousStepCompleted) {
-                        console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
+                        // console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
                         return false;
                     }
                 }
@@ -802,10 +802,10 @@ function CameraController({children}) {
 
         // Afficher le log uniquement si une interaction est déclenchée
         if (triggeredInteraction) {
-            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+            // console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            // console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            // console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            // console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
 
             // Mettre à jour le chapitre actuel en fonction de l'interaction
             updateCurrentChapter();
@@ -815,12 +815,12 @@ function CameraController({children}) {
     useEffect(() => {
         const checkInterval = setInterval(() => {
             if (isTransitioningRef.current || chapterTransitioning) {
-                console.log("Vérification des transitions potentiellement bloquées...");
+                // console.log("Vérification des transitions potentiellement bloquées...");
 
                 // Si une transition est active depuis plus de 3 secondes, elle est probablement bloquée
                 setTimeout(() => {
                     if (isTransitioningRef.current || chapterTransitioning) {
-                        console.log("Transition bloquée détectée, réinitialisation forcée");
+                        // console.log("Transition bloquée détectée, réinitialisation forcée");
 
                         // Déclencher l'événement de réinitialisation complète
                         EventBus.trigger('force-reset-all-transitions');
@@ -838,7 +838,7 @@ function CameraController({children}) {
     useEffect(() => {
         const interactionPositionSavedSubscription = EventBus.on('interaction-position-saved', (data) => {
             savedInteractionPosition.current = data.position;
-            console.log(`Position d'interaction sauvegardée: ${data.position} pour ${data.interactionId}`);
+            // console.log(`Position d'interaction sauvegardée: ${data.position} pour ${data.interactionId}`);
         });
 
         // Ne pas réinitialiser la position sauvegardée lors de l'interaction complétée
@@ -846,7 +846,7 @@ function CameraController({children}) {
         const interactionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, () => {
             // Ne pas réinitialiser savedInteractionPosition.current ici
             // Nous gardons la même position pour continuer à partir de là
-            console.log(`Interaction complétée, reprise du scroll à la position: ${timelinePositionRef.current}`);
+            // console.log(`Interaction complétée, reprise du scroll à la position: ${timelinePositionRef.current}`);
         });
 
         return () => {
@@ -906,7 +906,7 @@ function CameraController({children}) {
         // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
         if (isNowAtEnd && !hasTriggeredEndSwitch) {
             // Basculer entre End et Screen à la fin du scroll
-            console.log("Fin du scroll atteinte, exécution du switch End/Screen");
+            // console.log("Fin du scroll atteinte, exécution du switch End/Screen");
 
             // Si on est sur End, passer à Screen
             if (endGroupVisible && !screenGroupVisible) {
@@ -1005,7 +1005,7 @@ function CameraController({children}) {
     // Surveiller les changements de allowScroll pour réinitialiser la vélocité
     useEffect(() => {
         if (allowScroll && !previousAllowScrollRef.current) {
-            console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
+            // console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
             scrollVelocity.current = 0;
         }
         previousAllowScrollRef.current = allowScroll;
@@ -1028,7 +1028,7 @@ function CameraController({children}) {
         });
 
         setInteractions(interactionPoints);
-        console.log('Points d\'interaction chargés:', interactionPoints);
+        // console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
 
     // Fonction pour configurer les gestionnaires d'événements de défilement
@@ -1260,7 +1260,7 @@ function CameraController({children}) {
         const enableScrollSubscription = EventBus.on('enable-scroll-after-interaction', (data) => {
             // Option 1: Réactiver immédiatement
             if (setAllowScroll && !allowScroll) {
-                console.log(`Réactivation directe du scroll dans ScrollControls après interaction ${data.step}`);
+                // console.log(`Réactivation directe du scroll dans ScrollControls après interaction ${data.step}`);
                 setAllowScroll(true);
             }
         });
@@ -1279,7 +1279,7 @@ function CameraController({children}) {
 
             // Si cette interaction a déjà été traitée, ignorer
             if (handledInteractions.current.has(interactionId)) {
-                console.log(`Ignorer le traitement en double pour l'interaction: ${interactionId}`);
+                // console.log(`Ignorer le traitement en double pour l'interaction: ${interactionId}`);
                 return;
             }
 
@@ -1298,7 +1298,7 @@ function CameraController({children}) {
                 const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
 
                 if (distanceToMove === 0) {
-                    console.log(`Aucune transition de chapitre pour l'étape: ${stepId} (distance 0 ou "none" ou non définie)`);
+                    // console.log(`Aucune transition de chapitre pour l'étape: ${stepId} (distance 0 ou "none" ou non définie)`);
 
                     // Ajouter un événement explicite pour informer les autres systèmes
                     EventBus.trigger('no-transition-for-step', {
@@ -1315,11 +1315,11 @@ function CameraController({children}) {
 
                     return;
                 }
-                console.log(`Distance d'avancement choisie: ${distanceToMove} pour l'étape: ${stepId}`);
+                // console.log(`Distance d'avancement choisie: ${distanceToMove} pour l'étape: ${stepId}`);
 
                 // Calculer la position cible
                 const targetPosition = currentPosition + distanceToMove;
-                console.log(`Position cible: ${targetPosition}`);
+                // console.log(`Position cible: ${targetPosition}`);
 
                 // Effectuer la transition
                 smoothJumpTo(targetPosition);
@@ -1341,7 +1341,7 @@ function CameraController({children}) {
 
         // Clean up listeners on unmount
         return () => {
-            console.log("Cleaning up INTERACTION_COMPLETE handlers");
+            // console.log("Cleaning up INTERACTION_COMPLETE handlers");
             interactionCompleteSubscription1();
             interactionCompleteSubscription2();
             interactionCompleteSubscription3();

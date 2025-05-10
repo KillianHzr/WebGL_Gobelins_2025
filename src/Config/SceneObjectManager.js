@@ -93,8 +93,8 @@ class SceneObjectManager {
                     requiredStep: 'initialEndStop'
                 }],
                 defaultPlacement: {
-                    position: [-5.34293, 0, 8.95312],
-                    rotation: [0, 180 - 29.02382, 0],
+                    position: [-9.27704, 0, 13.95312],
+                    rotation: [0, 180 - 23.32893, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
                 }
@@ -174,8 +174,9 @@ class SceneObjectManager {
                     requiredStep: 'fifthStop'
                 }],
                 defaultPlacement: {
-                    position: [-6.921, 0.038, -55.531], rotation: [0, 24.64, 0], outlinePulse: false
-                }
+                    position: [-6.92739, 0.03838, -55.54513],
+                    rotation: [0, 24.64264, 0],
+                    scale: [0.13031, 0.13031, 0.13031],                }
             }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
             // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
 
@@ -340,6 +341,15 @@ class SceneObjectManager {
             //     scale: [1.000, 1.000, 1.000],
             //     interactive: true,
             //     useTextures: false,
+            //     interaction: {
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Immortaliser le moment",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'sixthStop'
+            //     },
             //     animations: {
             //         // Tester plusieurs variations possibles du nom de l'animation
             //         'action': {
@@ -356,10 +366,9 @@ class SceneObjectManager {
             //         }
             //     },
             //     defaultPlacements: [{
-            //         // position: [51.907, 0.0, -134.251], rotation: [0, -121.79, 0],
-            //         position: [57.62935, 0.1154, -133.0208],
-            //         rotation: [0.04812, 90 - 1.68127, 1.56843],
-            //         scale: [0.1, 0.1, 0.1],
+            //         position: [52.11705, 0, -129.83212],
+            // rotation: [-3.14159, 67.09271, -3.14159],
+            // scale: [0.07888, 0.07888, 0.07888],
             //         requiredStep: 'sixthStop',
             //     }]
             // },
@@ -421,12 +430,13 @@ class SceneObjectManager {
             //         text: "Allumer la radio",
             //         offset: 0.5,
             //         axis: "y",
-            //         interfaceToShow: "blackScreen"
+            //         interfaceToShow: "blackScreen",
+            //         requiredStep: 'seventhStop',
             //     },
             //     defaultPlacement: {
-            //         position: [51.907, 1.0, -134.251], // Position près du panneau de fin
-            //         rotation: [0, 0, 0],
-            //         requiredStep: 'seventhStop',
+            //         position: [59.06875, -0.01692, -130.29213],
+            // rotation: [0, -19.99978, 0],
+            // scale: [0.99746, 0.99746, 0.99746],
             //     }
             // }
             // seventhStop au click -> voile noir sur tout l'écran
