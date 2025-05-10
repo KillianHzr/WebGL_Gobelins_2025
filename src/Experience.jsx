@@ -128,13 +128,6 @@ export default function Experience() {
         // Ne procéder que si la scène est disponible et le composant monté
         if (!scene || !isMountedRef.current) return;
 
-        // Initialiser les lumières avec les valeurs du guiConfig si le mode debug n'est pas actif
-        if (!debug?.active) {
-            // Masquer le studio TheatreJS si présent
-            if (window.__theatreStudio) {
-                window.__theatreStudio.ui.hide();
-            }
-        }
 
         // Nettoyage lors du démontage
         return () => {

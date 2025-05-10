@@ -744,6 +744,7 @@ function CameraController({children}) {
             return true;
         };
 
+        console.log("liste des interactions:", interactions);
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {

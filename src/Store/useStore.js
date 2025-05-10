@@ -46,7 +46,6 @@ const useStore = create((set, get) => ({
         active: isDebugEnabled(),     // Enable debug features only if #debug in URL
         showStats: isDebugEnabled(),  // Show performance statistics
         showGui: isDebugEnabled(),    // Show control panel
-        showTheatre: isDebugEnabled() // Show Theatre.js Studio interface
     },
     setDebug: (debugSettings) => set(state => ({
         debug: {...state.debug, ...debugSettings}
@@ -64,10 +63,6 @@ const useStore = create((set, get) => ({
     setCameraInitialZoom: (zoom) => set({cameraInitialZoom: zoom}),
     currentZoomLevel: 0, // -3 to +3 range
     setCurrentZoomLevel: (level) => set({currentZoomLevel: level}),
-
-    // Theatre.js Studio instance
-    theatreStudio: null,
-    setTheatreStudio: (studio) => set({theatreStudio: studio}),
 
     // GUI instance (shared among all components)
     gui: null,
@@ -306,16 +301,7 @@ if (typeof window !== 'undefined') {
             showTheatre: debugEnabled
         });
 
-        // Gestion de l'interface Theatre.js si elle a été initialisée
-        if (window.__theatreStudio) {
-            if (debugEnabled) {
-                // Restaurer l'interface Theatre.js
-                window.__theatreStudio.ui.restore();
-            } else {
-                // Masquer l'interface Theatre.js
-                window.__theatreStudio.ui.hide();
-            }
-        }
+
     });
 
 }

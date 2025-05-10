@@ -118,35 +118,6 @@ const DebugInitializer = () => {
         console.log(`Profil "${profileName}" appliqué, tous les dossiers ont été mis à jour`);
     };
 
-    const toggleTheatreUI = (show) => {
-        if (window.__theatreStudio) {
-            try {
-                if (show) {
-                    console.log('Restoring Theatre.js UI');
-                    window.__theatreStudio.ui.restore();
-                } else {
-                    console.log('Hiding Theatre.js UI');
-                    window.__theatreStudio.ui.hide();
-                }
-
-                // Mettre à jour la configuration sans modifier l'état React
-                if (useStore.getState().debugConfig) {
-                    const updatedConfig = {...useStore.getState().debugConfig};
-                    if (!updatedConfig.theatre) updatedConfig.theatre = {};
-                    if (!updatedConfig.theatre.showUI) updatedConfig.theatre.showUI = {};
-                    updatedConfig.theatre.showUI.value = show;
-
-                    // Mettre à jour directement sans déclencher un re-rendu
-                    setDebugConfig(updatedConfig);
-                }
-            } catch (error) {
-                console.error('Error toggling Theatre.js UI:', error);
-            }
-        } else {
-            console.warn('Theatre.js instance not found');
-        }
-    };
-
     // Fonction toggleCameraMode améliorée pour assurer la stabilité
     const toggleCameraMode = (mode) => {
         try {

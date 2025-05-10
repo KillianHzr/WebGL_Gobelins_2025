@@ -347,14 +347,6 @@ const CameraSwitcher = () => {
             // Make the free camera the active camera in Three.js
             set({camera: freeCameraRef.current});
 
-            // Hide Theatre.js UI if it exists
-            if (window.__theatreStudio && window.__theatreStudio.ui) {
-                const studioUI = window.__theatreStudio.ui;
-                window.__wasTheatreUIVisible = !studioUI.isHidden;
-                if (window.__wasTheatreUIVisible) {
-                    studioUI.hide();
-                }
-            }
 
             // Disable scroll in ScrollControls
             const interaction = useStore.getState().interaction;
@@ -391,10 +383,6 @@ const CameraSwitcher = () => {
                 console.log("Re-enabling scroll for Theatre.js");
             }
 
-            // Restore Theatre.js UI if necessary
-            if (window.__theatreStudio && window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
-                window.__theatreStudio.ui.restore();
-            }
 
             // Force visibility of all forest objects
             if (hasInitiatedFirstSwitch.current) {
