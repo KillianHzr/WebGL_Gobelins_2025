@@ -2693,6 +2693,209 @@ class TextureManager {
     }
 
     /**
+     * Applique les textures de terrain en utilisant une image masque pour définir les chemins
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {String} maskImagePath - Chemin vers l'image masque en noir et blanc
+     * @returns {Promise} - Une promesse résolue quand les textures sont appliquées
+     */
+    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
+        if (!groundObject) {
+            console.error("applyGroundTexturesWithMask: objet terrain manquant");
+            return false;
+        }
+
+        console.log("Application des textures au terrain avec masque d'image:", groundObject.name || "sans nom");
+
+        // Vérifier si les textures nécessaires existent
+        if (!this.hasTextures('ForestGrass') || !this.hasTextures('ForestRoad')) {
+            console.log("Initialisation des textures de terrain");
+            this.initializeGroundTextures();
+        }
+
+        // Créer le matériau spécial pour le terrain
+        const material = this.createGroundMaterial();
+
+        // Appliquer le matériau à tous les mesh du terrain
+        let appliedCount = 0;
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // S'assurer que le mesh a des vertex colors initialisés à 0 (tout herbe)
+                this.ensureVertexColors(node);
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        // Charger l'image masque
+        try {
+            await this.applyMaskImageToGround(groundObject, maskImagePath);
+            console.log(`Masque de chemin appliqué et matériau configuré sur ${appliedCount} mesh(es)`);
+            return true;
+        } catch (error) {
+            console.error("Erreur lors de l'application du masque de chemin:", error);
+            return false;
+        }
+    }
+
+    /**
+     * Charge une image masque et l'applique aux vertex colors du terrain
+     * @param {Object} groundObject - L'objet terrain
+     * @param {String} maskImagePath - Chemin de l'image masque
+     */
+    async applyMaskImageToGround(groundObject, maskImagePath) {
+        // Charger l'image masque
+        return new Promise((resolve, reject) => {
+            // Créer un élément image pour charger le masque
+            const maskImage = new Image();
+            maskImage.crossOrigin = "Anonymous";
+
+            maskImage.onload = () => {
+                // Créer un canvas pour extraire les données de pixels
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                canvas.width = maskImage.width;
+                canvas.height = maskImage.height;
+
+                // Dessiner l'image sur le canvas
+                context.drawImage(maskImage, 0, 0);
+
+                // Obtenir les données de pixels
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+
+                console.log(`Masque chargé: ${canvas.width}x${canvas.height} pixels`);
+
+                // Appliquer le masque aux vertex colors du terrain
+                this.applyMaskToVertexColors(groundObject, pixels, canvas.width, canvas.height);
+
+                resolve(true);
+            };
+
+            maskImage.onerror = (error) => {
+                console.error(`Erreur de chargement du masque: ${maskImagePath}`, error);
+                reject(error);
+            };
+
+            // Démarrer le chargement de l'image
+            maskImage.src = maskImagePath;
+        });
+    }
+
+    /**
+     * Applique les données de pixels du masque aux vertex colors du terrain
+     * @param {Object} groundObject - L'objet terrain
+     * @param {Uint8ClampedArray} pixels - Données de pixels de l'image masque
+     * @param {Number} imageWidth - Largeur de l'image
+     * @param {Number} imageHeight - Hauteur de l'image
+     */
+    applyMaskToVertexColors(groundObject, pixels, imageWidth, imageHeight) {
+        // Trouver les dimensions du terrain pour la mise à l'échelle
+        let terrainBounds = null;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry) {
+                if (!node.geometry.boundingBox) {
+                    node.geometry.computeBoundingBox();
+                }
+
+                // Si c'est le premier mesh ou qu'il est plus grand que les précédents
+                if (!terrainBounds) {
+                    terrainBounds = node.geometry.boundingBox.clone();
+                } else {
+                    terrainBounds.union(node.geometry.boundingBox);
+                }
+            }
+        });
+
+        if (!terrainBounds) {
+            console.error("Impossible de déterminer les dimensions du terrain");
+            return;
+        }
+
+        // Calculer les dimensions et le centre du terrain
+        const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
+        const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
+
+        console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
+
+        // Appliquer le masque à chaque mesh du terrain
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position && node.geometry.attributes.color) {
+                const positions = node.geometry.attributes.position;
+                const colors = node.geometry.attributes.color;
+                const count = positions.count;
+
+                // Obtenir la transformation locale du mesh
+                const worldMatrix = new Matrix4();
+                node.updateMatrixWorld(true);
+                worldMatrix.copy(node.matrixWorld);
+
+                // Pour chaque vertex, calculer sa position UV dans l'image du masque
+                for (let i = 0; i < count; i++) {
+                    // Position du vertex dans le monde
+                    const vertex = new Vector3(
+                        positions.getX(i),
+                        positions.getY(i),
+                        positions.getZ(i)
+                    );
+
+                    // Transformer la position locale en position mondiale
+                    vertex.applyMatrix4(worldMatrix);
+
+                    // Convertir les coordonnées du terrain en coordonnées UV dans l'image
+                    // Normaliser la position par rapport aux limites du terrain
+                    const u = (vertex.x - terrainBounds.min.x) / terrainWidth;
+                    const v = (vertex.z - terrainBounds.min.z) / terrainDepth;
+
+                    // Convertir les coordonnées UV en indices de pixel dans l'image
+                    const pixelX = Math.floor(u * (imageWidth - 1));
+                    const pixelY = Math.floor((1 - v) * (imageHeight - 1)); // Inverser Y car l'image est retournée
+
+                    // S'assurer que les coordonnées sont dans les limites de l'image
+                    if (pixelX >= 0 && pixelX < imageWidth && pixelY >= 0 && pixelY < imageHeight) {
+                        // Calculer l'index dans le tableau de pixels (4 composantes par pixel: R,G,B,A)
+                        const pixelIndex = (pixelY * imageWidth + pixelX) * 4;
+
+                        // Extraire la valeur (blanc = chemin, noir = herbe)
+                        // Utiliser la luminance (0.299*R + 0.587*G + 0.114*B) pour convertir en niveau de gris
+                        const r = pixels[pixelIndex] / 255;
+                        const g = pixels[pixelIndex + 1] / 255;
+                        const b = pixels[pixelIndex + 2] / 255;
+                        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                        // Appliquer la valeur au canal R des vertex colors (R indique si c'est un chemin)
+                        colors.setX(i, luminance);
+
+                        // Garder les autres composantes telles quelles
+                        // const currentG = colors.getY(i);
+                        // const currentB = colors.getZ(i);
+                        // colors.setXYZ(i, luminance, currentG, currentB);
+                    }
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+            }
+        });
+
+        console.log("Masque de chemin appliqué avec succès aux vertex colors");
+    }
+    /**
+     * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
+     */
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
+        // Initialiser les textures si nécessaire
+        this.initializeGroundTextures();
+
+        // Appliquer les textures avec le masque
+        const result = await this.applyGroundTexturesWithMask(groundObject, maskImagePath);
+
+        return result;
+    }
+    /**
      * Créer un modèle fusionné à partir d'un groupe d'instances
      */
     createMergedModel(instances, modelId) {

@@ -68,299 +68,275 @@ class SceneObjectManager {
              * Effet: Rotation et zoom vers le panneau, narration par Célia
              * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
              */
-            'DirectionPanelStartInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.605, 0.605, 0.605],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'initialStartStop'
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'initialEndStop'
-                }],
-                defaultPlacement: {
-                    position: [-9.27704, 0, 13.95312],
-                    rotation: [0, 180 - 23.32893, 0],
-                    scale: [0.60463, 0.60463, 0.60463],
-                    outlinePulse: false,
-                }
-            },
+            // 'DirectionPanelStartInteractive': {
+            //     id: 'DirectionPanel',
+            //     path: '/models/primary/DirectionPanel.gltf',
+            //     scale: [0.605, 0.605, 0.605],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'initialStartStop'
+            //     }, {
+            //         type: INTERACTION_TYPES.LONG_PRESS,
+            //         text: "Quitter le panneau",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'initialEndStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-9.27704, 0, 13.95312],
+            //         rotation: [0, 180 - 23.32893, 0],
+            //         scale: [0.60463, 0.60463, 0.60463],
+            //         outlinePulse: false,
+            //     }
+            // },
+            // //
+            // // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
+            // // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+            // //
+            // // /**
+            // //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
+            // //  * Apprentissage du mouvement vertical
+            // //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
+            // //  * Effet: Animation de saut par-dessus l'obstacle
+            // //  */
+            // 'TrunkLargeInteractive': {
+            //     id: 'TrunkLarge',
+            //     path: '/models/forest/tree/ObstacleTree.glb',
+            //     scale: [1.000, 1.000, 1.000],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_UP,
+            //         text: "Observer le tronc",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'firstStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
+            //     }
+            // }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            // //
+            // // /**
+            // //  * SCÈNE 04 - RECHERCHE DES INDICES
+            // //  * Investigation environnementale avec découverte progressive
+            // //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+            // //  * Effet 1: Animation de secousse et déblayage des feuilles
+            // //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+            // //  * Effet 2: Analyse des empreintes avec explication par Célia
+            // //  */
+            // 'LeafErable': {
+            //     id: 'LeafErable',
+            //     path: '/models/primary/MultipleLeaf.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_RIGHT,
+            //         text: "Observer le tronc",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'thirdStop'
+            //     }],
+            //     defaultPlacement: {
+            //         scale: [1, 1, 1],
+            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            // 'AnimalPaws': {
+            //     id: 'AnimalPaws',
+            //     path: '/models/primary/AnimalPaws.glb',
+            //     scale: [0.184, 0.184, 0.184],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
             //
-            // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
-            // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "scanner",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fifthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-6.92739, 0.03838, -55.54513],
+            //         rotation: [0, 24.64264, 0],
+            //         scale: [0.13031, 0.13031, 0.13031],
+            //     }
+            // }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
             //
             // /**
-            //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
-            //  * Apprentissage du mouvement vertical
-            //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
-            //  * Effet: Animation de saut par-dessus l'obstacle
+            //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
+            //  * Puzzle spatial avec progression séquentielle
+            //  * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
+            //  * Effet: Animation de saut sur chaque pierre pour traverser la rivière
             //  */
-            'TrunkLargeInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/ObstacleTree.glb',
-                scale: [1.000, 1.000, 1.000],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Observer le tronc",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'firstStop'
-                }],
-                defaultPlacement: {
-                    position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
-                }
-            }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            // 'JumpRock1': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'eleventhStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock2': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater2.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'twelfthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock3': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'thirteenthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock4': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater2.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fourteenthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // }, /**
+            //  * SCÈNE 06 - OBSTACLE DE LA BRANCHE
+            //  * Apprentissage du mouvement vertical inverse
+            //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
+            //  * Effet: Animation de passage sous la branche
+            //  */
+            // 'ThinTrunkInteractive': {
+            //     id: 'TrunkLarge',
+            //     path: '/models/forest/tree/Obstacle2Tree.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_DOWN,
+            //         text: "Observer le tronc",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fourthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
+            //     }
+            // }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+            // 'BigRock': {
+            //     id: 'BigRock',
+            //     path: '/models/rock/BigRock.glb',
+            //     scale: [0.12371, 0.12371, 0.12371],
+            //     interactive: false,
+            //     useTextures: true, // animations: {
+            //     //     // Animation "move" qui sera jouée automatiquement
+            //     //     'Action.001.001': {
+            //     //         autoplay: true,            // Cette animation démarrera automatiquement
+            //     //         defaultLoop: true,         // Par défaut en boucle
+            //     //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
+            //     //         defaultTimeScale: 1.0      // Vitesse normale
+            //     //     },
+            //     // },
+            //     defaultPlacements: [{
+            //         position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
+            //     }]
+            // }, 'TreeStump': {
+            //     id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+            //     interactive: false, useTextures: true, defaultPlacements: [{
+            //         position: [-41.25625, 0.06409, -115.15076],
+            //         rotation: [-3.14159, 40.80581, -3.14159],
+            //         scale: [0.07507, 0.07507, 0.07507],
+            //     }]
+            // },
             //
             // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
+            //  * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
+            //  * Révélation principale et message environnemental
+            //  * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
+            //  *  - Explication du problème de pénurie d'eau
             //  */
-            'LeafErable': {
-                id: 'LeafErable',
-                path: '/models/primary/MultipleLeaf.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Observer le tronc",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'thirdStop'
-                }],
-                defaultPlacement: {
-                    scale: [1, 1, 1],
-                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-            'AnimalPaws': {
-                id: 'AnimalPaws',
-                path: '/models/primary/AnimalPaws.glb',
-                scale: [0.184, 0.184, 0.184],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fifthStop'
-                }],
-                defaultPlacement: {
-                    position: [-6.92739, 0.03838, -55.54513],
-                    rotation: [0, 24.64264, 0],
-                    scale: [0.13031, 0.13031, 0.13031],
-                }
-            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
-
-            /**
-             * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
-             * Puzzle spatial avec progression séquentielle
-             * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
-             * Effet: Animation de saut sur chaque pierre pour traverser la rivière
-             */
-            'JumpRock1': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'eleventhStop'
-                }],
-                defaultPlacement: {
-                    position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock2': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'twelfthStop'
-                }],
-                defaultPlacement: {
-                    position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock3': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'thirteenthStop'
-                }],
-                defaultPlacement: {
-                    position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock4': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fourteenthStop'
-                }],
-                defaultPlacement: {
-                    position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
-                }
-            }, /**
-             * SCÈNE 06 - OBSTACLE DE LA BRANCHE
-             * Apprentissage du mouvement vertical inverse
-             * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
-             * Effet: Animation de passage sous la branche
-             */
-            'ThinTrunkInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/Obstacle2Tree.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Observer le tronc",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fourthStop'
-                }],
-                defaultPlacement: {
-                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
-                }
-            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
-            'BigRock': {
-                id: 'BigRock',
-                path: '/models/rock/BigRock.glb',
-                scale: [0.12371, 0.12371, 0.12371],
-                interactive: false,
-                useTextures: true, // animations: {
-                //     // Animation "move" qui sera jouée automatiquement
-                //     'Action.001.001': {
-                //         autoplay: true,            // Cette animation démarrera automatiquement
-                //         defaultLoop: true,         // Par défaut en boucle
-                //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
-                //         defaultTimeScale: 1.0      // Vitesse normale
-                //     },
-                // },
-                defaultPlacements: [{
-                    position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
-                }]
-            }, 'TreeStump': {
-                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    position: [-41.25625, 0.06409, -115.15076],
-                    rotation: [-3.14159, 40.80581, -3.14159],
-                    scale: [0.07507, 0.07507, 0.07507],
-                }]
-            },
-
-            /**
-             * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
-             * Révélation principale et message environnemental
-             * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
-             *  - Explication du problème de pénurie d'eau
-             */
-
-
-
-
-            /**
-             * Scène 08: Découverte du vison mort
-             *  - Animation automatique d'éclairage révélant le vison
-             *  - CLICK "Immortalise le moment" pour prendre photo
-             *  - Flash d'appareil photo et transition vers scène suivante
-             */
-
-
-            'Vison': {
-                id: 'Vison',
-                path: '/models/primary/AnimalVisonMortV1.glb',
-                scale: [0.07888, 0.07888, 0.07888],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Immortaliser le moment",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "camera",
-                    chapterDistance: 0.01,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [52.11705, 0, -129.83212],
-                    rotation: [-3.14159, 67.09271, -3.14159],
-                    scale: [0.07888, 0.07888, 0.07888],
-                    outlinePulse: false,
-                }
-            },
-
-
+            //
+            //
+            //
+            //
+            // /**
+            //  * Scène 08: Découverte du vison mort
+            //  *  - Animation automatique d'éclairage révélant le vison
+            //  *  - CLICK "Immortalise le moment" pour prendre photo
+            //  *  - Flash d'appareil photo et transition vers scène suivante
+            //  */
+            //
+            //
             // 'Vison': {
             //     id: 'Vison',
             //     path: '/models/primary/AnimalVisonMortV1.glb',
@@ -372,99 +348,123 @@ class SceneObjectManager {
             //         text: "Immortaliser le moment",
             //         offset: 0.5,
             //         axis: "y",
-            //         interfaceToShow: "none",
+            //         interfaceToShow: "camera",
             //         chapterDistance: 0.01,
             //         requiredStep: 'sixthStop'
             //     }],
-            //     // animations: {
-            //     //     // Tester plusieurs variations possibles du nom de l'animation
-            //     //     'action': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action.001': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action.001.001': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, // Ajouter cette variante au cas où
-            //     //     '*': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }
-            //     // },
-            //     defaultPlacements: [{
+            //     defaultPlacement: {
             //         position: [52.11705, 0, -129.83212],
             //         rotation: [-3.14159, 67.09271, -3.14159],
             //         scale: [0.07888, 0.07888, 0.07888],
             //         outlinePulse: false,
-            //     }]
+            //     }
             // },
-            // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
-            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin + caché le groupe de mesh End + afficher le groupe de mesh Screen
-            /**
-             * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
-             * Scène 09: Clairière digitalisée avec panneau interactif
-             *  - CLICK "Récupérer votre facture" sur panneau directionnel digital
-             *  - Affichage de la facture écologique avec narration de Célia
-             *  - CLICK MAINTENU "Quitte le panneau" pour fermer l'interface
-             * Scène 10: Actualité fantasmée et CTA final
-             *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
-             *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
-             */
-            'DirectionPanelEndInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.605, 0.605, 0.605],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'tenthStop'
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'tenthStopEnd'
-                }],
-                defaultPlacement: {
-                    position: [51.907, 0.0, -134.251],
-                    rotation: [0, 90 - 29.02382, 0],
-                    scale: [0.60463, 0.60463, 0.60463],
-                    outlinePulse: false,
-                }
-            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-
-
-            'RadioInteractive': {
-                id: 'Radio',
-                path: '/models/primary/Radio.glb',
-                scale: [0.5, 0.5, 0.5],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-                    text: "Allumer la radio",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "blackScreen",
-                    requiredStep: 'seventhStop',
-                }],
-                defaultPlacement: {
-                    position: [59.06875, -0.01692, -130.29213],
-                    rotation: [0, -19.99978 - 90, 0],
-                    scale: [0.099746, 0.099746, 0.099746],
-                }
-            }
+            //
+            //
+            // // 'Vison': {
+            // //     id: 'Vison',
+            // //     path: '/models/primary/AnimalVisonMortV1.glb',
+            // //     scale: [0.07888, 0.07888, 0.07888],
+            // //     interactive: true,
+            // //     useTextures: true,
+            // //     interaction: [{
+            // //         type: INTERACTION_TYPES.CLICK,
+            // //         text: "Immortaliser le moment",
+            // //         offset: 0.5,
+            // //         axis: "y",
+            // //         interfaceToShow: "none",
+            // //         chapterDistance: 0.01,
+            // //         requiredStep: 'sixthStop'
+            // //     }],
+            // //     // animations: {
+            // //     //     // Tester plusieurs variations possibles du nom de l'animation
+            // //     //     'action': {
+            // //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            // //     //     }, 'Action': {
+            // //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            // //     //     }, 'Action.001': {
+            // //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            // //     //     }, 'Action.001.001': {
+            // //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            // //     //     }, // Ajouter cette variante au cas où
+            // //     //     '*': {
+            // //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            // //     //     }
+            // //     // },
+            // //     defaultPlacements: [{
+            // //         position: [52.11705, 0, -129.83212],
+            // //         rotation: [-3.14159, 67.09271, -3.14159],
+            // //         scale: [0.07888, 0.07888, 0.07888],
+            // //         outlinePulse: false,
+            // //     }]
+            // // },
+            // // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
+            // // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin + caché le groupe de mesh End + afficher le groupe de mesh Screen
+            // /**
+            //  * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
+            //  * Scène 09: Clairière digitalisée avec panneau interactif
+            //  *  - CLICK "Récupérer votre facture" sur panneau directionnel digital
+            //  *  - Affichage de la facture écologique avec narration de Célia
+            //  *  - CLICK MAINTENU "Quitte le panneau" pour fermer l'interface
+            //  * Scène 10: Actualité fantasmée et CTA final
+            //  *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
+            //  *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
+            //  */
+            // 'DirectionPanelEndInteractive': {
+            //     id: 'DirectionPanel',
+            //     path: '/models/primary/DirectionPanel.gltf',
+            //     scale: [0.605, 0.605, 0.605],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'tenthStop'
+            //     }, {
+            //         type: INTERACTION_TYPES.LONG_PRESS,
+            //         text: "Quitter le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'tenthStopEnd'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [51.907, 0.0, -134.251],
+            //         rotation: [0, 90 - 29.02382, 0],
+            //         scale: [0.60463, 0.60463, 0.60463],
+            //         outlinePulse: false,
+            //     }
+            // }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            // // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+            //
+            //
+            // 'RadioInteractive': {
+            //     id: 'Radio',
+            //     path: '/models/primary/Radio.glb',
+            //     scale: [0.5, 0.5, 0.5],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
+            //         text: "Allumer la radio",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "blackScreen",
+            //         requiredStep: 'seventhStop',
+            //     }],
+            //     defaultPlacement: {
+            //         position: [59.06875, -0.01692, -130.29213],
+            //         rotation: [0, -19.99978 - 90, 0],
+            //         scale: [0.099746, 0.099746, 0.099746],
+            //     }
+            // }
             // seventhStop au click -> voile noir sur tout l'écran
 
 
@@ -904,7 +904,7 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
-    configureGround(groundObject) {
+    configureGround(groundObject, useMaskImage = true) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
             return false;
@@ -913,12 +913,21 @@ class SceneObjectManager {
         console.log("Configuration du terrain:", groundObject.name || "sans nom");
 
         if (textureManager) {
-            // Appeler la nouvelle méthode dans TextureManager
-            return textureManager.setupGroundWithPaths(groundObject);
+            // Utiliser l'approche avec image masque ou l'approche avec points manuels
+            if (useMaskImage) {
+                // Utiliser l'image comme masque pour les chemins
+                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/path_mask.png');
+                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_road.png');
+                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
+            } else {
+                // Utiliser l'approche originale avec points manuels
+                return textureManager.setupGroundWithPaths(groundObject);
+            }
         }
 
         return false;
     }
+
     findAndConfigureGround(scene) {
         if (!scene) {
             console.error("findAndConfigureGround: scène manquante");
@@ -1033,7 +1042,7 @@ class SceneObjectManager {
     }
 
 
-    
+
     // Récupérer uniquement les placements d'objets interactifs
     getInteractivePlacements(filters = {}) {
         return this.getPlacements({...filters, interactive: true});

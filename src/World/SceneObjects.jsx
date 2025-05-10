@@ -237,10 +237,17 @@ export const StaticObject = React.memo(function StaticObject({
             try {
                 // Vérifier si c'est un objet de terrain (Ground)
                 if (isGroundObjectRef.current) {
-                    // CORRECTION: Pour les objets de type Ground, utiliser setupGroundWithPaths
-                    // au lieu de applyTexturesToModel ou applyGroundTexturesDirectly
-                    console.log(`[TextureManager] Objet de terrain détecté (${textureModelId}), application des textures spéciales avec chemins`);
-                    await textureManager.setupGroundWithPaths(objectRef.current);
+                    // Pour les objets de type Ground, utiliser l'approche avec image masque
+                    console.log(`[TextureManager] Objet de terrain détecté (${textureModelId}), application des textures avec masque de chemin`);
+
+                    // Vérifier si les textures du sol sont déjà initialisées
+                    if (!textureManager.hasTextures('ForestGrass') || !textureManager.hasTextures('ForestRoad')) {
+                        console.log(`[TextureManager] Initialisation des textures de terrain avant application`);
+                        textureManager.initializeGroundTextures();
+                    }
+
+                    // Utiliser la nouvelle méthode avec image masque
+                    await textureManager.setupGroundWithPathsMask(objectRef.current);
                 } else {
                     // Pour les autres objets, utiliser la méthode standard
                     await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
@@ -249,9 +256,6 @@ export const StaticObject = React.memo(function StaticObject({
                 if (isComponentMounted.current && isApplyingTextures) {
                     debugLog(`Textures appliquées à ${textureModelId}`);
                 }
-
-                // Les optimisations spécifiques pour le terrain sont déjà appliquées
-                // par setupGroundWithPaths, pas besoin de les réappliquer
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
                     console.error(`Erreur lors de l'application des textures:`, error);
