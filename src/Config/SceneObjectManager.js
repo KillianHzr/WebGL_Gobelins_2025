@@ -81,7 +81,7 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.00,
+                    chapterDistance: 0.01,
                     requiredStep: 'initialStartStop'
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
@@ -89,7 +89,7 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.1,
+                    chapterDistance: 0.01,
                     requiredStep: 'initialEndStop'
                 }],
                 defaultPlacement: {
@@ -118,11 +118,10 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_UP,
                     text: "Observer le tronc",
-                    color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.05,
+                    chapterDistance: 0.01,
                     requiredStep: 'firstStop'
                 }],
                 defaultPlacement: {
@@ -151,14 +150,11 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.0,
+                    chapterDistance: 0.01,
                     requiredStep: 'thirdStop'
-
                 }],
                 defaultPlacement: {
-                    position: [-6.905, 0.05, -55.498],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
+                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
                 }
             }, // thirdStop au drag -> déplacement de l'objet vers la droite
 
@@ -175,14 +171,11 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "scanner",
-                    chapterDistance: "none",
+                    chapterDistance: 0.01,
                     requiredStep: 'fifthStop'
-
                 }],
                 defaultPlacement: {
-                    position: [-6.921, 0.038, -55.531],
-                    rotation: [0, 24.64, 0],
-                    outlinePulse: false
+                    position: [-6.921, 0.038, -55.531], rotation: [0, 24.64, 0], outlinePulse: false
                 }
             }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
             // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
@@ -206,14 +199,14 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
+                    chapterDistance: 0.01,
                     requiredStep: 'eleventhStop'
                 }],
                 defaultPlacement: {
-                    position: [-30.164, 0, -75.977],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
+                    position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, // eleventhStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            },
+
             'JumpRock2': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
@@ -227,14 +220,14 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
+                    chapterDistance: 0.01,
                     requiredStep: 'twelfthStop'
                 }],
                 defaultPlacement: {
-                    position: [-30.137, 0, -76.954],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
+                    position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, // twelfthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            },
+
             'JumpRock3': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
@@ -248,14 +241,14 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
+                    chapterDistance: 0.01,
                     requiredStep: 'thirteenthStop'
                 }],
                 defaultPlacement: {
-                    position: [-31.319, 0, -76.848],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
+                    position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, // thirteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
+            },
+
             'JumpRock4': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
@@ -269,16 +262,13 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
+                    chapterDistance: 0.01,
                     requiredStep: 'fourteenthStop'
                 }],
                 defaultPlacement: {
-                    position: [-31.648, 0, -77.683],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false
+                    position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, // fourteenthStop au click -> progression dans la timeline pour animation de saut sur la pierre
-
-            /**
+            }, /**
              * SCÈNE 06 - OBSTACLE DE LA BRANCHE
              * Apprentissage du mouvement vertical inverse
              * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
@@ -296,11 +286,12 @@ class SceneObjectManager {
                     color: "#44aacc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none", requiredStep: 'fourthStop'
+                    interfaceToShow: "none",
+                    chapterDistance: 0.01,
+                    requiredStep: 'fourthStop'
                 }],
                 defaultPlacement: {
-                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
-                    outlinePulse: false
+                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
                 }
             }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
             'BigRock': {
@@ -393,9 +384,23 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK, text: "Lire le panneau", color: "#ffcc44", offset: 0.5, axis: "y",
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Lire le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
                     interfaceToShow: "none",
-                    requiredStep: 'tenthStop',
+                    chapterDistance: 0.01,
+                    requiredStep: 'tenthStop'
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Quitter le panneau",
+                    color: "#ffcc44",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.01,
+                    requiredStep: 'tenthStopEnd'
                 }],
                 defaultPlacement: {
                     position: [51.907, 0.0, -134.251],
@@ -416,7 +421,6 @@ class SceneObjectManager {
             //     interaction: {
             //         type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
             //         text: "Allumer la radio",
-            //         color: "#ffcc44",
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "blackScreen"
@@ -448,9 +452,7 @@ class SceneObjectManager {
 
         // Si un requiredStep est spécifié dans le placement, chercher l'interaction correspondante
         if (placement && placement.requiredStep) {
-            const matchingInteraction = objectConfig.interaction.find(
-                interaction => interaction.requiredStep === placement.requiredStep
-            );
+            const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === placement.requiredStep);
 
             if (matchingInteraction) {
                 return matchingInteraction;
@@ -487,15 +489,11 @@ class SceneObjectManager {
                 // Pour les interactions multiples (tableau)
                 if (Array.isArray(objectConfig.interaction)) {
                     // Trouver l'interaction correspondant à l'étape requise
-                    const matchingInteraction = objectConfig.interaction.find(
-                        interaction => interaction.requiredStep === stepId
-                    );
+                    const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === stepId);
 
                     if (matchingInteraction) {
                         // Vérifier explicitement les cas spéciaux
-                        if (matchingInteraction.chapterDistance === "none" ||
-                            matchingInteraction.chapterDistance === 0 ||
-                            matchingInteraction.chapterDistance === "0") {
+                        if (matchingInteraction.chapterDistance === "none" || matchingInteraction.chapterDistance === 0 || matchingInteraction.chapterDistance === "0") {
                             console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
                             return 0;
                         }
@@ -508,9 +506,7 @@ class SceneObjectManager {
                 // Pour une interaction unique (compatibilité descendante)
                 else if (objectConfig.interaction.requiredStep === stepId) {
                     // Vérifier explicitement les cas spéciaux
-                    if (objectConfig.interaction.chapterDistance === "none" ||
-                        objectConfig.interaction.chapterDistance === 0 ||
-                        objectConfig.interaction.chapterDistance === "0") {
+                    if (objectConfig.interaction.chapterDistance === "none" || objectConfig.interaction.chapterDistance === 0 || objectConfig.interaction.chapterDistance === "0") {
                         console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
                         return 0;
                     }
@@ -585,9 +581,7 @@ class SceneObjectManager {
                         const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
 
                         // Utiliser le texte de l'interaction actuelle
-                        let markerText = interaction.text ||
-                            config.defaultPlacement.markerText ||
-                            this._generateMarkerText(key, requiredStep, null);
+                        let markerText = interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
 
                         // Créer un placement pour cette interaction
                         this.addPlacement(key, config.defaultPlacement.position, {
@@ -609,9 +603,7 @@ class SceneObjectManager {
                     requiredStep = requiredStep || config.defaultPlacement.requiredStep || this._getNextStep();
 
                     const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-                    const markerText = config.interaction.text ||
-                        config.defaultPlacement.markerText ||
-                        this._generateMarkerText(key, requiredStep, null);
+                    const markerText = config.interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
 
                     // Créer un placement pour cette interaction
                     this.addPlacement(key, config.defaultPlacement.position, {
@@ -664,7 +656,7 @@ class SceneObjectManager {
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
-                console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`, 'background: #930; color: white; padding: 3px;');
+                console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`);
                 console.log(`Marqueur: ${placement.markerId}`);
                 console.log(`Objet: ${placement.objectKey}`);
                 console.log(`Étape requise: ${placement.requiredStep}`);
@@ -829,9 +821,7 @@ class SceneObjectManager {
                 }
 
                 // Fallback au placement par défaut ou génération automatique
-                requiredStep = requiredStep ||
-                    objectConfig.defaultPlacement?.requiredStep ||
-                    this._getNextStep();
+                requiredStep = requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
             }
 
             const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
@@ -841,9 +831,7 @@ class SceneObjectManager {
 
             if (!markerText) {
                 if (Array.isArray(objectConfig.interaction)) {
-                    const matchingInteraction = objectConfig.interaction.find(
-                        interaction => interaction.requiredStep === requiredStep
-                    );
+                    const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === requiredStep);
                     if (matchingInteraction) {
                         markerText = matchingInteraction.text;
                     } else if (objectConfig.interaction.length > 0) {
@@ -860,9 +848,7 @@ class SceneObjectManager {
             // Trouver l'interaction correspondante pour l'offset et l'axis
             let interactionForProps;
             if (Array.isArray(objectConfig.interaction)) {
-                interactionForProps = objectConfig.interaction.find(
-                    i => i.requiredStep === requiredStep
-                ) || objectConfig.interaction[0];
+                interactionForProps = objectConfig.interaction.find(i => i.requiredStep === requiredStep) || objectConfig.interaction[0];
             } else {
                 interactionForProps = objectConfig.interaction;
             }
@@ -872,16 +858,10 @@ class SceneObjectManager {
                 requiredStep: requiredStep,
                 onInteract: options.onInteract || null,
                 markerText: markerText,
-                markerOffset: options.markerOffset ||
-                    objectConfig.defaultPlacement?.markerOffset ||
-                    interactionForProps.offset,
-                markerAxis: options.markerAxis ||
-                    objectConfig.defaultPlacement?.markerAxis ||
-                    interactionForProps.axis,
+                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || interactionForProps.offset,
+                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || interactionForProps.axis,
                 markerType: options.markerType || interactionForProps.type,
-                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse :
-                    (objectConfig.defaultPlacement?.outlinePulse !== undefined ?
-                        objectConfig.defaultPlacement.outlinePulse : true),
+                outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
                 interacted: false,
                 interactionIndex: 0 // Pour suivre quelle interaction est actuellement active
             });
