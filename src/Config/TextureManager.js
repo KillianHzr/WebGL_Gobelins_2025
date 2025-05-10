@@ -93,19 +93,22 @@ class TextureManager {
     }
 
     initializeGroundTextures() {
-        console.log("Initialisation des textures spécifiques pour le terrain");
+        console.log("Initialisation des textures complètes pour le terrain");
 
-        // Définir les textures pour l'herbe et le chemin
+        // Définir les textures pour l'herbe avec toutes les maps
         this.addTextureMapping('ForestGrass', 'ground', 'ForestGrass', {
             roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.0
+            metalness: 0.05,
+            envMapIntensity: 0.2,
+            normalScale: 1.0
         });
 
+        // Définir les textures pour le chemin avec toutes les maps
         this.addTextureMapping('ForestRoad', 'ground', 'ForestRoad', {
             roughness: 0.9,
-            metalness: 0.05,
-            envMapIntensity: 0.0
+            metalness: 0.1,
+            envMapIntensity: 0.3,
+            normalScale: 1.2
         });
 
         // Configuration spéciale pour Ground qui utilise ForestGrass et ForestRoad
@@ -118,11 +121,15 @@ class TextureManager {
         this.materialProperties['Ground'] = {
             ...this.defaultMaterialProperties,
             isGround: true,
-            vertexColors: true
+            vertexColors: true,
+            roughness: 0.95,
+            metalness: 1.0,
+            envMapIntensity: 0.05
         };
 
-        console.log("Textures de terrain initialisées");
+        console.log("Textures de terrain initialisées avec toutes les maps disponibles");
     }
+
     applyGroundTexturesDirectly(groundObject) {
         if (!groundObject) {
             console.error("applyGroundTexturesDirectly: objet terrain manquant");
@@ -182,13 +189,26 @@ class TextureManager {
     /**
      * Créer un matériau spécifique pour le terrain
      */
+    // Correction de la méthode createGroundMaterial() dans TextureManager.js
+
     createGroundMaterial() {
         // Vérifier si le matériau existe déjà dans le pool
         if (this.materialPool['ground_special']) {
             return this.materialPool['ground_special'];
         }
 
-        console.log("Création d'un nouveau matériau pour le terrain");
+        console.log("Création d'un matériau avancé pour le terrain avec toutes les maps");
+
+        // Créer un matériau de base pour le terrain
+        const material = new MeshStandardMaterial({
+            name: 'ground_material',
+            vertexColors: true,
+            side: DoubleSide,
+            transparent: false,
+            roughness: 0.95,
+            metalness: 0.08,
+            envMapIntensity: 0.25
+        });
 
         // Précharger les textures
         Promise.all([
@@ -200,91 +220,170 @@ class TextureManager {
                 return;
             }
 
-            // Mettre à jour le matériau avec les textures chargées
-            if (this.materialPool['ground_special']) {
-                const material = this.materialPool['ground_special'];
+            console.log("Textures chargées pour le matériau de terrain:", {
+                grass: Object.keys(grassTextures),
+                road: Object.keys(roadTextures)
+            });
 
-                // Configurer le shader pour mélanger les textures
-                if (grassTextures.baseColor && roadTextures.baseColor) {
-                    // Définir les propriétés de shader personnalisé
-                    material.userData.isGroundMaterial = true;
-                    material.onBeforeCompile = (shader) => {
-                        // Ajouter les uniforms pour les deux textures
-                        shader.uniforms.grassMap = { value: grassTextures.baseColor };
-                        shader.uniforms.roadMap = { value: roadTextures.baseColor };
+            // Configurer le shader personnalisé pour mélanger les textures
+            material.userData.isGroundMaterial = true;
+            material.onBeforeCompile = (shader) => {
+                // Ajouter les uniforms pour toutes les textures
+                shader.uniforms.grassMap = { value: grassTextures.baseColor };
+                shader.uniforms.roadMap = { value: roadTextures.baseColor };
 
-                        // Modifier le vertex shader
-                        const vertexColorVarying = `
-                        varying vec3 vVertexColor;
-                    `;
-                        shader.vertexShader = shader.vertexShader.replace(
-                            '#include <common>',
-                            '#include <common>\n' + vertexColorVarying
-                        );
-
-                        shader.vertexShader = shader.vertexShader.replace(
-                            '#include <begin_vertex>',
-                            '#include <begin_vertex>\n\tvVertexColor = color.rgb;'
-                        );
-
-                        // Modifier le fragment shader
-                        const fragmentColorVarying = `
-                        varying vec3 vVertexColor;
-                        uniform sampler2D grassMap;
-                        uniform sampler2D roadMap;
-                    `;
-
-                        shader.fragmentShader = shader.fragmentShader.replace(
-                            '#include <common>',
-                            '#include <common>\n' + fragmentColorVarying
-                        );
-
-                        // Remplacer la méthode d'échantillonnage
-                        shader.fragmentShader = shader.fragmentShader.replace(
-                            'vec4 diffuseColor = vec4( diffuse, opacity );',
-                            `
-                        // Échantillonner les deux textures
-                        vec4 grassColor = texture2D(grassMap, vUv);
-                        vec4 roadColor = texture2D(roadMap, vUv);
-                        
-                        // Utiliser le canal R pour mélanger
-                        float roadFactor = vVertexColor.r;
-                        
-                        // Mélanger les textures
-                        vec4 diffuseColor = mix(grassColor, roadColor, roadFactor);
-                        diffuseColor.a = opacity;
-                        `
-                        );
-
-                        material.userData.shader = shader;
-                    };
-
-                    // Configurer les autres maps si disponibles
-                    if (grassTextures.normalOpenGL) {
-                        material.normalMap = grassTextures.normalOpenGL;
-                        this.configureTexture(material.normalMap, 'normalOpenGL');
-                        material.normalScale = { x: 1.0, y: 1.0 };
-                    }
-
-                    if (grassTextures.roughness) {
-                        material.roughnessMap = grassTextures.roughness;
-                        this.configureTexture(material.roughnessMap, 'roughness');
-                    }
-
-                    material.needsUpdate = true;
+                // Ajouter les maps normales si disponibles
+                if (grassTextures.normalOpenGL && roadTextures.normalOpenGL) {
+                    shader.uniforms.grassNormalMap = { value: grassTextures.normalOpenGL };
+                    shader.uniforms.roadNormalMap = { value: roadTextures.normalOpenGL };
                 }
-            }
-        });
 
-        // Créer un matériau de base pour le terrain
-        const material = new MeshStandardMaterial({
-            name: 'ground_material',
-            vertexColors: true,
-            side: DoubleSide,
-            transparent: false,
-            roughness: 0.9,
-            metalness: 0.1,
-            envMapIntensity: 0.2
+                // Ajouter les maps de rugosité si disponibles
+                if (grassTextures.roughness && roadTextures.roughness) {
+                    shader.uniforms.grassRoughnessMap = { value: grassTextures.roughness };
+                    shader.uniforms.roadRoughnessMap = { value: roadTextures.roughness };
+                }
+
+                // Ajouter les maps métalliques si disponibles
+                if (grassTextures.metalness && roadTextures.metalness) {
+                    shader.uniforms.grassMetallicMap = { value: grassTextures.metalness };
+                    shader.uniforms.roadMetallicMap = { value: roadTextures.metalness };
+                }
+
+                // Ajouter les maps de hauteur si disponibles
+                if (grassTextures.height && roadTextures.height) {
+                    shader.uniforms.grassHeightMap = { value: grassTextures.height };
+                    shader.uniforms.roadHeightMap = { value: roadTextures.height };
+                }
+
+                // Modifier le vertex shader pour transmettre les UVs et les couleurs de vertex
+                const vertexPars = `
+                varying vec2 vUv;
+                varying vec3 vVertexColor;
+            `;
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <common>',
+                    '#include <common>\n' + vertexPars
+                );
+
+                shader.vertexShader = shader.vertexShader.replace(
+                    '#include <begin_vertex>',
+                    '#include <begin_vertex>\n\tvUv = uv;\n\tvVertexColor = color.rgb;'
+                );
+
+                // Modifier le fragment shader pour mélanger les textures
+                const fragmentPars = `
+                varying vec2 vUv;
+                varying vec3 vVertexColor;
+                uniform sampler2D grassMap;
+                uniform sampler2D roadMap;
+                
+                // Maps supplémentaires
+                uniform sampler2D grassNormalMap;
+                uniform sampler2D roadNormalMap;
+                uniform sampler2D grassRoughnessMap;
+                uniform sampler2D roadRoughnessMap;
+                uniform sampler2D grassMetallicMap;
+                uniform sampler2D roadMetallicMap;
+                uniform sampler2D grassHeightMap;
+                uniform sampler2D roadHeightMap;
+            `;
+
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    '#include <common>',
+                    '#include <common>\n' + fragmentPars
+                );
+
+                // Remplacer la méthode d'échantillonnage
+                shader.fragmentShader = shader.fragmentShader.replace(
+                    'vec4 diffuseColor = vec4( diffuse, opacity );',
+                    `
+                // Échantillonner les textures couleur
+                vec4 grassColor = texture2D(grassMap, vUv);
+                vec4 roadColor = texture2D(roadMap, vUv);
+                
+                // Utiliser le canal R pour mélanger
+                float roadFactor = vVertexColor.r;
+                
+                // Mélanger les textures de couleur
+                vec4 diffuseColor = mix(grassColor, roadColor, roadFactor);
+                diffuseColor.a = opacity;
+                `
+                );
+
+                // Si nous avons des maps normales, les configurer
+                if (grassTextures.normalOpenGL && roadTextures.normalOpenGL) {
+                    const normalParsAdd = `
+                    // Mélanger les normales
+                    vec3 grassNormal = texture2D(grassNormalMap, vUv).rgb * 2.0 - 1.0;
+                    vec3 roadNormal = texture2D(roadNormalMap, vUv).rgb * 2.0 - 1.0;
+                    vec3 mixedNormal = mix(grassNormal, roadNormal, roadFactor);
+                    
+                    // Remplacer la normale
+                    normal = normalize(mixedNormal);
+                `;
+
+                    // Trouver un bon endroit pour insérer notre code de mélange de normales
+                    // (ceci est simplifié, dans un vrai shader il faudrait être plus précis)
+                    const normalMapPos = shader.fragmentShader.indexOf('#include <normal_fragment_maps>');
+                    if (normalMapPos > -1) {
+                        shader.fragmentShader = shader.fragmentShader.slice(0, normalMapPos) +
+                            normalParsAdd +
+                            shader.fragmentShader.slice(normalMapPos);
+                    }
+                }
+
+                // Si nous avons des maps de rugosité et métalliques, les configurer
+                if (grassTextures.roughness && roadTextures.roughness &&
+                    grassTextures.metalness && roadTextures.metalness) {
+
+                    // Trouver où remplacer la rugosité et la métallicité
+                    const roughnessPos = shader.fragmentShader.indexOf('roughnessFactor');
+                    if (roughnessPos > -1) {
+                        // Ajouter notre code après la déclaration mais avant son utilisation
+                        const roughnessAdd = `
+                        // Mélanger la rugosité
+                        float grassRoughness = texture2D(grassRoughnessMap, vUv).r;
+                        float roadRoughness = texture2D(roadRoughnessMap, vUv).r;
+                        roughnessFactor *= mix(grassRoughness, roadRoughness, roadFactor);
+                        
+                        // Mélanger la métallicité
+                        float grassMetallic = texture2D(grassMetallicMap, vUv).r;
+                        float roadMetallic = texture2D(roadMetallicMap, vUv).r;
+                        metalnessFactor *= mix(grassMetallic, roadMetallic, roadFactor);
+                    `;
+
+                        // Chercher un bon point d'insertion
+                        const insertPos = shader.fragmentShader.indexOf('material.roughness');
+                        if (insertPos > -1) {
+                            shader.fragmentShader = shader.fragmentShader.slice(0, insertPos) +
+                                roughnessAdd +
+                                shader.fragmentShader.slice(insertPos);
+                        }
+                    }
+                }
+
+                material.userData.shader = shader;
+            };
+
+            // Configurer les maps sur le matériau standard
+            if (grassTextures.normalOpenGL) {
+                material.normalMap = grassTextures.normalOpenGL;
+                this.configureTexture(material.normalMap, 'normalOpenGL');
+                material.normalScale = { x: 1.0, y: 1.0 };
+            }
+
+            if (grassTextures.roughness) {
+                material.roughnessMap = grassTextures.roughness;
+                this.configureTexture(material.roughnessMap, 'roughness');
+            }
+
+            if (grassTextures.metalness) {
+                material.metalnessMap = grassTextures.metalness;
+                this.configureTexture(material.metalnessMap, 'metalness');
+            }
+
+            material.needsUpdate = true;
         });
 
         // Stocker dans le pool
@@ -2714,7 +2813,7 @@ class TextureManager {
      * @param {String} maskImagePath - Chemin vers l'image masque en noir et blanc
      * @returns {Promise} - Une promesse résolue quand les textures sont appliquées
      */
-    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
+    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
         if (!groundObject) {
             console.error("applyGroundTexturesWithMask: objet terrain manquant");
             return false;
@@ -2761,13 +2860,16 @@ class TextureManager {
      * @param {String} maskImagePath - Chemin de l'image masque
      */
     async applyMaskImageToGround(groundObject, maskImagePath) {
-        // Charger l'image masque
         return new Promise((resolve, reject) => {
+            console.log(`Chargement du masque de chemin: ${maskImagePath}`);
+
             // Créer un élément image pour charger le masque
             const maskImage = new Image();
             maskImage.crossOrigin = "Anonymous";
 
             maskImage.onload = () => {
+                console.log(`Masque chargé: ${maskImage.width}x${maskImage.height} pixels`);
+
                 // Créer un canvas pour extraire les données de pixels
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -2782,11 +2884,111 @@ class TextureManager {
                 const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                 const pixels = imageData.data;
 
-                console.log(`Masque chargé: ${canvas.width}x${canvas.height} pixels`);
+                // Trouver les dimensions du terrain pour la mise à l'échelle
+                let terrainBounds = null;
+                let totalVertices = 0;
 
-                // Appliquer le masque aux vertex colors du terrain
-                this.applyMaskToVertexColors(groundObject, pixels, canvas.width, canvas.height);
+                groundObject.traverse((node) => {
+                    if (node.isMesh && node.geometry) {
+                        if (!node.geometry.boundingBox) {
+                            node.geometry.computeBoundingBox();
+                        }
 
+                        // Compter le total des vertices
+                        if (node.geometry.attributes.position) {
+                            totalVertices += node.geometry.attributes.position.count;
+                        }
+
+                        // Mettre à jour les limites du terrain
+                        if (!terrainBounds) {
+                            terrainBounds = node.geometry.boundingBox.clone();
+                        } else {
+                            terrainBounds.union(node.geometry.boundingBox);
+                        }
+                    }
+                });
+
+                if (!terrainBounds) {
+                    console.error("Impossible de déterminer les dimensions du terrain");
+                    reject(new Error("Dimensions du terrain non déterminées"));
+                    return;
+                }
+
+                // Calculer les dimensions du terrain
+                const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
+                const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
+
+                console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
+                console.log(`Total des vertices à traiter: ${totalVertices}`);
+
+                // Appliquer le masque à chaque mesh du terrain
+                let processedVertices = 0;
+                let lastReportedProgress = 0;
+
+                groundObject.traverse((node) => {
+                    if (node.isMesh && node.geometry && node.geometry.attributes.position && node.geometry.attributes.color) {
+                        const positions = node.geometry.attributes.position;
+                        const colors = node.geometry.attributes.color;
+                        const count = positions.count;
+
+                        // Obtenir la transformation du mesh
+                        const worldMatrix = new Matrix4();
+                        node.updateMatrixWorld(true);
+                        worldMatrix.copy(node.matrixWorld);
+
+                        // Pour chaque vertex
+                        for (let i = 0; i < count; i++) {
+                            // Position du vertex dans le monde
+                            const vertex = new Vector3(
+                                positions.getX(i),
+                                positions.getY(i),
+                                positions.getZ(i)
+                            );
+
+                            // Transformer la position locale en position mondiale
+                            vertex.applyMatrix4(worldMatrix);
+
+                            // Convertir les coordonnées en UV dans l'image
+                            const u = (vertex.x - terrainBounds.min.x) / terrainWidth;
+                            const v = (vertex.z - terrainBounds.min.z) / terrainDepth;
+
+                            // Convertir les coordonnées UV en indices de pixel
+                            const pixelX = Math.floor(u * (canvas.width - 1));
+                            const pixelY = Math.floor((1 - v) * (canvas.height - 1)); // Inverser Y
+
+                            // S'assurer que les coordonnées sont dans les limites
+                            if (pixelX >= 0 && pixelX < canvas.width && pixelY >= 0 && pixelY < canvas.height) {
+                                // Index dans le tableau de pixels (RGBA)
+                                const pixelIndex = (pixelY * canvas.width + pixelX) * 4;
+
+                                // Extraire la valeur (blanc = chemin, noir = herbe)
+                                const r = pixels[pixelIndex] / 255;
+                                const g = pixels[pixelIndex + 1] / 255;
+                                const b = pixels[pixelIndex + 2] / 255;
+
+                                // Calculer la luminance
+                                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                                // Appliquer la valeur au canal R
+                                colors.setX(i, luminance);
+                            }
+
+                            processedVertices++;
+
+                            // Afficher la progression
+                            const progress = Math.floor((processedVertices / totalVertices) * 100);
+                            if (progress > lastReportedProgress && progress % 10 === 0) {
+                                console.log(`Application du masque: ${progress}% (${processedVertices}/${totalVertices} vertices)`);
+                                lastReportedProgress = progress;
+                            }
+                        }
+
+                        // Marquer les couleurs comme modifiées
+                        colors.needsUpdate = true;
+                    }
+                });
+
+                console.log("Masque de chemin appliqué avec succès aux vertex colors");
                 resolve(true);
             };
 
@@ -2795,7 +2997,7 @@ class TextureManager {
                 reject(error);
             };
 
-            // Démarrer le chargement de l'image
+            // Démarrer le chargement
             maskImage.src = maskImagePath;
         });
     }
@@ -2902,14 +3104,61 @@ class TextureManager {
     /**
      * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
      */
-    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
-        // Initialiser les textures si nécessaire
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
+        // Initialiser les textures avec toutes les maps
         this.initializeGroundTextures();
 
-        // Appliquer les textures avec le masque
-        const result = await this.applyGroundTexturesWithMask(groundObject, maskImagePath);
+        console.log("Configuration du terrain avec masque de chemin et toutes les maps");
 
-        return result;
+        // Vérifier que les textures sont correctement configurées
+        if (!this.hasTextures('ForestGrass') || !this.hasTextures('ForestRoad')) {
+            console.error("Textures manquantes pour le terrain. Vérifiez les chemins.");
+            return false;
+        }
+
+        // Vérifier que tous les fichiers sont présents
+        const grassTextures = this.texturePaths['ForestGrass'];
+        const roadTextures = this.texturePaths['ForestRoad'];
+
+        console.log("Textures configurées:", {
+            grass: Object.keys(grassTextures),
+            road: Object.keys(roadTextures)
+        });
+
+        // Appliquer les textures avec le masque
+        try {
+            // Créer d'abord le matériau avancé qui utilise toutes les maps
+            const material = this.createGroundMaterial();
+
+            // Appliquer le matériau à tous les mesh du terrain
+            let appliedCount = 0;
+            groundObject.traverse((node) => {
+                if (node.isMesh) {
+                    // S'assurer que le mesh a des vertex colors initialisés
+                    this.ensureVertexColors(node);
+
+                    // Appliquer le matériau
+                    node.material = material;
+                    appliedCount++;
+
+                    // S'assurer que les UV2 sont configurés pour l'aoMap
+                    if (!node.geometry.attributes.uv2 && node.geometry.attributes.uv) {
+                        node.geometry.setAttribute('uv2', node.geometry.attributes.uv);
+                    }
+                }
+            });
+
+            console.log(`Matériau appliqué à ${appliedCount} mesh(es)`);
+
+            // Appliquer le masque d'image pour définir les vertex colors
+            await this.applyMaskImageToGround(groundObject, maskImagePath);
+
+            console.log("Configuration du terrain terminée avec succès");
+            return true;
+        } catch (error) {
+            console.error("Erreur lors de la configuration du terrain:", error);
+            return false;
+        }
     }
     /**
      * Créer un modèle fusionné à partir d'un groupe d'instances

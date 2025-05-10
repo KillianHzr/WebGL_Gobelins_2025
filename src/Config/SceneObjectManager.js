@@ -917,7 +917,7 @@ class SceneObjectManager {
             if (useMaskImage) {
                 // Utiliser l'image comme masque pour les chemins
                 // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/path_mask.png');
-                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_road.png');
+                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/path_mask.png');
                 // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
             } else {
                 // Utiliser l'approche originale avec points manuels
