@@ -317,23 +317,55 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
 
     // Gérer le survol de l'objet
+    // Dans EnhancedObjectMarker.jsx, modifions la fonction handlePointerEnter dans le composant EasyModelMarker
+
     const handlePointerEnter = useCallback(() => {
         console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
 
-        // Vérification spéciale pour AnimalPaws
-        if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-            // Récupérer les interactions complétées du store
-            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+        // Récupérer les interactions complétées du store
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
-            // Vérifier si LeafErable a été complété
-            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                key.includes('thirdStop') ||
-                key.includes('LeafErable')
-            );
+        // Vérifier si cet objet a plusieurs interactions et si cette interaction n'est pas la première
+        if (requiredStep) {
+            const objectKey = markerId.split('-')[0]; // Extraire la clé de l'objet du markerId
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
 
-            if (!leafErableCompleted) {
-                console.log('Survolage de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
-                return; // Ne pas mettre à jour l'état de hovering
+            if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
+                // Trouver l'index de l'interaction actuelle
+                const currentInteractionIndex = objectConfig.interaction.findIndex(
+                    interaction => interaction.requiredStep === requiredStep
+                );
+
+                // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
+                if (currentInteractionIndex > 0) {
+                    // Obtenir l'interaction précédente
+                    const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
+
+                    // Vérifier si l'interaction précédente a été complétée
+                    const previousStepCompleted = Object.keys(completedInteractions).some(key =>
+                        key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep
+                    );
+
+                    // Si l'interaction précédente n'a pas été complétée, ignorer le survol
+                    if (!previousStepCompleted) {
+                        console.log(`Survol de ${markerId} ignoré car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
+                        return; // Ne pas mettre à jour l'état de hovering
+                    }
+                }
+            }
+
+            // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
+            if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
+                // Vérifier si LeafErable a été complété
+                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirdStop') ||
+                    key.includes('LeafErable')
+                );
+
+                if (!leafErableCompleted) {
+                    console.log('Survol de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
             }
         }
 
@@ -346,7 +378,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             type: 'hover',
             text: markerText
         });
-    }, [markerId, markerText]);
+    }, [markerId, markerText, requiredStep]);
 
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {

@@ -699,19 +699,60 @@ function CameraController({children}) {
 
         console.log("Current completed interactions:", completedInteractions);
         console.log("Current interactions:", interactions);
+
+        // Fonction utilitaire pour vérifier les prérequis d'une interaction
+        const checkInteractionPrerequisites = (interaction) => {
+            // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
+            if (interaction.objectKey === 'AnimalPaws') {
+                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirdStop') || key.includes('LeafErable')
+                );
+
+                if (!leafErableCompleted) {
+                    return false;
+                }
+            }
+
+            // Vérification générique des prérequis basée sur la configuration des objets
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
+
+            if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
+                // Trouver l'index de l'interaction actuelle
+                const currentInteractionIndex = objectConfig.interaction.findIndex(
+                    config => config.requiredStep === interaction.id
+                );
+
+                // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
+                if (currentInteractionIndex > 0) {
+                    // Obtenir l'interaction précédente
+                    const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
+
+                    // Vérifier si l'interaction précédente a été complétée
+                    const previousStepCompleted = Object.keys(completedInteractions).some(key =>
+                        key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep
+                    );
+
+                    // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
+                    if (!previousStepCompleted) {
+                        console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
+                        return false;
+                    }
+                }
+            }
+
+            // Tous les prérequis sont satisfaits
+            return true;
+        };
+
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {
                 return;
             }
 
-            // Vérifications spécifiques de prérequis
-            if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
-
-                if (!leafErableCompleted) {
-                    return;
-                }
+            // Vérifier les prérequis avant de procéder
+            if (!checkInteractionPrerequisites(interaction)) {
+                return;
             }
 
             // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
