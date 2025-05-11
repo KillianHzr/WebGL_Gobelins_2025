@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import {useAnimations, useGLTF} from '@react-three/drei';
 import EasyModelMarker from './EasyModelMarker';
 import sceneObjectManager from '../Config/SceneObjectManager';
@@ -8,6 +8,7 @@ import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
 import {FrontSide, LoopOnce} from "three";
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = true;
@@ -206,11 +207,11 @@ export const StaticObject = React.memo(function StaticObject({
     }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
 
     // Mettre à jour le mixer d'animation à chaque frame si des animations sont en cours
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (mixer && animationState.current.isPlaying) {
             mixer.update(delta);
         }
-    });
+    }, 'animation');
 
     useEffect(() => {
         if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {

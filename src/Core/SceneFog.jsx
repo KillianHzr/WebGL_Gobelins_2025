@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import {useThree } from '@react-three/fiber';
 import { Color, Fog } from 'three';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 /**
  * Composant qui gère uniquement le brouillard (fog) dans la scène
@@ -118,7 +119,7 @@ const SceneFog = () => {
     }, [debug, gui, scene.fog]);
 
     // Mettre à jour le brouillard en fonction de la position de défilement
-    useFrame(() => {
+    useAnimationFrame(() => {
         if (!scene.fog || sequenceLength <= 0) return;
 
         // Récupérer la configuration actuelle
@@ -140,7 +141,8 @@ const SceneFog = () => {
         // Mettre à jour le brouillard
         scene.fog.near = currentNear;
         scene.fog.far = currentFar;
-    });
+    }, 'postProcess'); // Catégorie 'postProcess' car lié au rendu
+
 
     // Ce composant ne rend rien visuellement, il modifie uniquement scene.fog
     return null;

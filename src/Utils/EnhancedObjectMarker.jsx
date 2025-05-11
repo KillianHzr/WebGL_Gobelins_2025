@@ -1,12 +1,13 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import {EventBus} from './EventEmitter';
 import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
 import {useRayCaster} from "./RayCaster";
 import {MARKER_EVENTS} from './EventEmitter.jsx';
+import {useAnimationFrame} from "./AnimationManager.js";
 
 export const ModelMarker = React.memo(function ModelMarker({
                                                                objectRef,
@@ -495,7 +496,6 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
         calculateStablePosition();
     }, [objectRef.current, camera, calculateStablePosition]);
 
-    // Fonction à appeler dans useFrame pour mettre à jour les transitions et vérifier la visibilité
     const checkAndUpdate = useCallback((delta) => {
         if (!delta) delta = 0.016; // Delta par défaut si non fourni
 
@@ -654,7 +654,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             setFadeIn(false);
         }
     }, [hovered, keepVisible, isHovering]);
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (!markerRef.current) return;
 
         try {
@@ -671,9 +671,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                 checkAndUpdate(delta);
             }
         } catch (error) {
-            console.warn("Erreur dans useFrame du marqueur:", error);
+            console.warn("Erreur dans l'animation du marqueur:", error);
         }
-    });
+    }, 'ui');
 
     const handleLongPressStart = (e) => {
         stopAllPropagation(e);
@@ -911,7 +911,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
     }, []);
 
     // Animation continue pour les marqueurs et contrainte au viewport
-    useFrame((state, delta) => { // Assurez-vous de récupérer delta depuis les arguments
+    useAnimationFrame((state, delta) => { // Assurez-vous de récupérer delta depuis les arguments
         if (!markerRef.current) return;
 
         // Application de la position du marqueur
@@ -926,12 +926,12 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         if (animate) {
             checkAndUpdate(delta); // Correction - utiliser le nouveau nom de fonction
         }
-    });
+    }, 'ui');
 
     // Gérer les animations des marqueurs
 
     // Animation existante
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (!markerRef.current || !fadeIn || !animate) return;
 
         try {
@@ -986,7 +986,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         } catch (error) {
             console.warn("Erreur dans l'animation du marqueur:", error);
         }
-    });
+    }, 'ui');
 
     // Ne rien rendre si l'objet n'est pas survolé et keepVisible est false
     if (!hovered && !keepVisible && !isHovering) return null;

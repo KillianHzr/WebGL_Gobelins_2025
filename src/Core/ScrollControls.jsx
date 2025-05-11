@@ -1,11 +1,12 @@
 // ScrollControls.jsx - Système de chapitres avec CameraAnimator - Version modifiée
 import React, {useEffect, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import theatreStateJSON from '../../static/theatre/theatreState.json';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import CameraAnimator from './CameraAnimator';
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 const getChaptersWithDistances = () => {
     return [
         {id: 'firstStop', name: "Introduction", distance: getDistanceForChapter('firstStop'), completed: false},
@@ -856,7 +857,7 @@ function CameraController({children}) {
         };
     }, []);
 
-    useFrame(() => {
+    useAnimationFrame(() => {
         if (!camera || !cameraAnimatorRef.current) return;
 
         const cameraPosition = {
@@ -934,7 +935,7 @@ function CameraController({children}) {
                 setHasTriggeredEndSwitch(false);
             }, 3000);
         }
-    });
+    }, 'camera');
 
     useEffect(() => {
         // S'il n'est plus à la fin du scroll, réinitialiser hasTriggeredEndSwitch

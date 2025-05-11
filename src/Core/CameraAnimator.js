@@ -1,4 +1,4 @@
-// CameraAnimator.js
+// CameraAnimator.js - Version optimisée
 export default class CameraAnimator {
     constructor(theatreStateJSON, camera) {
         this.camera = camera;
@@ -10,6 +10,12 @@ export default class CameraAnimator {
 
         // État interne
         this.onUpdateCallbacks = [];
+
+        // Cache pour l'interpolation
+        this.lastInterpolation = {
+            position: null,
+            result: null
+        };
     }
 
     parseKeyframes(jsonData) {
@@ -32,30 +38,93 @@ export default class CameraAnimator {
     }
 
     extractKeyframeValues(keyframes) {
-        return keyframes.map(kf => ({
-            position: kf.position,
-            value: kf.value
-        })).sort((a, b) => a.position - b.position);
+        // Optimisation: trier une seule fois pendant l'extraction
+        return keyframes
+            .map(kf => ({
+                position: kf.position,
+                value: kf.value
+            }))
+            .sort((a, b) => a.position - b.position);
     }
 
     setPosition(pos) {
+        // Contraindre la position dans les limites
         this.position = Math.max(0, Math.min(this.timelineLength, pos));
-        this.updateCamera();
 
-        // Notifier les callbacks
-        this.onUpdateCallbacks.forEach(callback => callback(this.position));
+        // Mettre à jour la caméra avec la nouvelle position
+        const cameraState = this.updateCamera();
+
+        // Notifier les callbacks enregistrés
+        if (this.onUpdateCallbacks.length > 0) {
+            this.onUpdateCallbacks.forEach(callback => callback(this.position));
+        }
+
         return this.position;
     }
 
     onUpdate(callback) {
-        this.onUpdateCallbacks.push(callback);
-        // Retourner une fonction pour annuler l'abonnement
-        return () => {
-            this.onUpdateCallbacks = this.onUpdateCallbacks.filter(cb => cb !== callback);
-        };
+        if (typeof callback === 'function') {
+            this.onUpdateCallbacks.push(callback);
+
+            // Retourner une fonction pour annuler l'abonnement
+            return () => {
+                this.onUpdateCallbacks = this.onUpdateCallbacks.filter(cb => cb !== callback);
+            };
+        }
+        return null;
+    }
+
+    findKeyframesBracket(keyframes, position) {
+        // Si aucun keyframe, retourner null
+        if (!keyframes || keyframes.length === 0) return null;
+
+        // Si un seul keyframe, retourner ce keyframe comme début et fin
+        if (keyframes.length === 1) return [keyframes[0], keyframes[0]];
+
+        // Si position est avant le premier keyframe
+        if (position <= keyframes[0].position) return [keyframes[0], keyframes[0]];
+
+        // Si position est après le dernier keyframe
+        if (position >= keyframes[keyframes.length - 1].position) {
+            return [keyframes[keyframes.length - 1], keyframes[keyframes.length - 1]];
+        }
+
+        // Recherche binaire pour trouver les keyframes encadrants (plus efficace pour des grands tableaux)
+        let start = 0;
+        let end = keyframes.length - 1;
+
+        while (start <= end) {
+            const mid = Math.floor((start + end) / 2);
+
+            if (keyframes[mid].position <= position && keyframes[mid + 1].position >= position) {
+                return [keyframes[mid], keyframes[mid + 1]];
+            }
+
+            if (keyframes[mid].position > position) {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+
+        // Fallback: recherche linéaire si la recherche binaire échoue
+        for (let i = 0; i < keyframes.length - 1; i++) {
+            if (position >= keyframes[i].position && position <= keyframes[i + 1].position) {
+                return [keyframes[i], keyframes[i + 1]];
+            }
+        }
+
+        // En cas d'échec, retourner les premiers keyframes
+        return [keyframes[0], keyframes[0]];
     }
 
     interpolateLinear(keyframes, position) {
+        // Utiliser le cache si disponible pour la même position
+        if (this.lastInterpolation.position === position &&
+            this.lastInterpolation.keyframes === keyframes) {
+            return this.lastInterpolation.result;
+        }
+
         // Si aucun keyframe, retourner 0
         if (!keyframes || keyframes.length === 0) return 0;
 
@@ -63,24 +132,27 @@ export default class CameraAnimator {
         if (keyframes.length === 1) return keyframes[0].value;
 
         // Trouver les deux keyframes encadrant la position actuelle
-        let startFrame = keyframes[0];
-        let endFrame = keyframes[keyframes.length - 1];
+        const bracket = this.findKeyframesBracket(keyframes, position);
 
-        for (let i = 0; i < keyframes.length - 1; i++) {
-            if (position >= keyframes[i].position && position <= keyframes[i + 1].position) {
-                startFrame = keyframes[i];
-                endFrame = keyframes[i + 1];
-                break;
-            }
-        }
+        if (!bracket) return 0;
 
-        // Si position est avant le premier keyframe ou après le dernier
-        if (position <= startFrame.position) return startFrame.value;
-        if (position >= endFrame.position) return endFrame.value;
+        const [startFrame, endFrame] = bracket;
+
+        // Si les keyframes sont identiques, retourner la valeur directement
+        if (startFrame === endFrame) return startFrame.value;
 
         // Interpolation linéaire
         const t = (position - startFrame.position) / (endFrame.position - startFrame.position);
-        return startFrame.value + t * (endFrame.value - startFrame.value);
+        const result = startFrame.value + t * (endFrame.value - startFrame.value);
+
+        // Mettre à jour le cache
+        this.lastInterpolation = {
+            position,
+            keyframes,
+            result
+        };
+
+        return result;
     }
 
     updateCamera() {
@@ -93,15 +165,16 @@ export default class CameraAnimator {
         const rotY = this.interpolateLinear(this.keyframes.rotation.y, this.position);
         const rotZ = this.interpolateLinear(this.keyframes.rotation.z, this.position);
 
-        // Appliquer à la caméra
+        // Appliquer à la caméra seulement si des changements significatifs
+        const position = { x: posX, y: posY, z: posZ };
+        const rotation = { x: rotX, y: rotY, z: rotZ };
+
+        // Appliquer les valeurs à la caméra
         this.camera.position.set(posX, posY, posZ);
         this.camera.rotation.set(rotX, rotY, rotZ);
         this.camera.updateProjectionMatrix();
 
-        return {
-            position: { x: posX, y: posY, z: posZ },
-            rotation: { x: rotX, y: rotY, z: rotZ }
-        };
+        return { position, rotation };
     }
 
     // Obtenir la position actuelle

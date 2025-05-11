@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import {useThree } from '@react-three/fiber'
 import useStore from './Store/useStore'
 import ScrollControls from './Core/ScrollControls'
 import DebugInitializer from "./Utils/DebugInitializer.jsx";
@@ -23,6 +23,7 @@ import Flashlight from "./World/Flashlight.jsx";
 import SceneFog from "./Core/SceneFog.jsx";
 import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
+import {useAnimationFrame} from "./Utils/AnimationManager.js";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -92,60 +93,6 @@ export default function Experience() {
 
         debugLog('Renderer initialized with settings:', initialSettingsRef.current);
     }, [gl]);
-
-    // Fonction pour mesurer les performances
-    useFrame((state, delta) => {
-        if (!gl || !isMountedRef.current || !initialSettingsRef.current) return;
-
-        // Incrémenter le compteur de frames
-        frameCountRef.current++;
-
-        // Mesurer les FPS à intervalles réguliers
-        const now = performance.now();
-        if (now - lastFrameTimeRef.current >= 1000) {
-            const currentFPS = frameCountRef.current;
-            fpsRef.current = currentFPS;
-            frameCountRef.current = 0;
-            lastFrameTimeRef.current = now;
-
-            // Mettre à jour l'état des performances
-            setPerformanceStats(prev => ({
-                ...prev,
-                fps: currentFPS,
-                isLowPerformanceMode: lowPerformanceModeRef.current,
-                pixelRatio: gl.getPixelRatio()
-            }));
-
-            // Afficher les FPS en mode debug
-            if (debug && showFPS) {
-                console.log(`FPS: ${currentFPS}, Mode: ${lowPerformanceModeRef.current ? 'Basse performance' : 'Standard'}, PixelRatio: ${gl.getPixelRatio()}`);
-            }
-
-            // Adapter dynamiquement en fonction des FPS mesurés
-            if (currentFPS < 30 && !lowPerformanceModeRef.current) {
-                lowPerformanceModeRef.current = true;
-                applyLowPerformanceSettings();
-                setPerformanceStats(prev => ({
-                    ...prev,
-                    isLowPerformanceMode: true,
-                    lastOptimization: Date.now()
-                }));
-            }
-            else if (currentFPS > 50 && lowPerformanceModeRef.current) {
-                // Ne restaurer les paramètres que si les FPS sont stables pendant plus de 5 secondes
-                const timeSinceLastOptimization = Date.now() - (performanceStats.lastOptimization || 0);
-                if (timeSinceLastOptimization > 5000) {
-                    lowPerformanceModeRef.current = false;
-                    restoreHighPerformanceSettings();
-                    setPerformanceStats(prev => ({
-                        ...prev,
-                        isLowPerformanceMode: false,
-                        lastOptimization: Date.now()
-                    }));
-                }
-            }
-        }
-    });
 
     // Fonction pour appliquer les paramètres de basse performance
     const applyLowPerformanceSettings = () => {
