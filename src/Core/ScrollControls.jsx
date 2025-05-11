@@ -160,6 +160,8 @@ function CameraController({children}) {
 
             // Exposer la fonction jumpToChapter globalement
             window.jumpToChapter = jumpToChapter;
+            window.smoothJumpTo = smoothJumpTo;
+            window.doJumpToChapter = doJumpToChapter;
             window.CHAPTERS = ACTIVE_CHAPTERS;
 
             // Créer l'interface de progression
@@ -508,65 +510,65 @@ function CameraController({children}) {
                 return doJumpToChapter(distanceToMove);
             }
 
-            function doJumpToChapter(distance) {
-                // NOUVEAU: Sauvegarder l'état actuel avant toute opération
-                const wasWaitingForInteraction = isWaitingForInteraction;
 
-                // Récupérer la position actuelle comme point de départ
-                const currentPosition = timelinePositionRef.current;
-                // Calculer la position cible en ajoutant la distance
-                const targetPosition = currentPosition + distanceToMove;
-
-                // console.log(`Position actuelle: ${currentPosition}`);
-                // console.log(`Distance à parcourir: ${distanceToMove}`);
-                // console.log(`Position cible: ${targetPosition}`);
-
-                // NOUVEAU: Si nous étions en attente d'interaction, désactiver temporairement cet état
-                if (wasWaitingForInteraction) {
-                    setWaitingForInteraction(false);
-                }
-
-                // Désactiver le scroll pendant la transition
-                if (setAllowScroll) {
-                    setAllowScroll(false);
-                }
-
-                // Nettoyer les transitions précédentes si nécessaire
-                // Vider complètement la file d'attente existante
-                transitionQueue.current = [];
-                isProcessingTransition.current = false;
-                isTransitioningRef.current = false;
-                setChapterTransitioning(false);
-
-                // Notifier du début de la transition
-                EventBus.trigger('distance-transition-started', {
-                    startPosition: currentPosition, distance: distanceToMove, targetPosition: targetPosition
-                });
-
-                // NOUVEAU: Suspendre temporairement la correction de position
-                const savedInteractionPositionBackup = savedInteractionPosition.current;
-                savedInteractionPosition.current = null;
-
-                // Effectuer la transition fluide
-                smoothJumpTo(targetPosition);
-
-                // NOUVEAU: Restaurer l'état après un court délai
-                setTimeout(() => {
-                    // Si nous étions en attente d'interaction, rétablir cet état
-                    if (wasWaitingForInteraction) {
-                        // Mais avec la nouvelle position comme position d'interaction
-                        savedInteractionPosition.current = targetPosition;
-                    }
-                }, 200);
-
-                return true;
-            }
         } else {
             console.error(`Index de distance invalide: ${index}`);
             return false;
         }
     };
+    function doJumpToChapter(distance) {
+        // NOUVEAU: Sauvegarder l'état actuel avant toute opération
+        const wasWaitingForInteraction = isWaitingForInteraction;
 
+        // Récupérer la position actuelle comme point de départ
+        const currentPosition = timelinePositionRef.current;
+        // Calculer la position cible en ajoutant la distance
+        const targetPosition = currentPosition + distance;
+
+        // console.log(`Position actuelle: ${currentPosition}`);
+        // console.log(`Distance à parcourir: ${distanceToMove}`);
+        // console.log(`Position cible: ${targetPosition}`);
+
+        // NOUVEAU: Si nous étions en attente d'interaction, désactiver temporairement cet état
+        if (wasWaitingForInteraction) {
+            setWaitingForInteraction(false);
+        }
+
+        // Désactiver le scroll pendant la transition
+        if (setAllowScroll) {
+            setAllowScroll(false);
+        }
+
+        // Nettoyer les transitions précédentes si nécessaire
+        // Vider complètement la file d'attente existante
+        transitionQueue.current = [];
+        isProcessingTransition.current = false;
+        isTransitioningRef.current = false;
+        setChapterTransitioning(false);
+
+        // Notifier du début de la transition
+        EventBus.trigger('distance-transition-started', {
+            startPosition: currentPosition, distance: distance, targetPosition: targetPosition
+        });
+
+        // NOUVEAU: Suspendre temporairement la correction de position
+        const savedInteractionPositionBackup = savedInteractionPosition.current;
+        savedInteractionPosition.current = null;
+
+        // Effectuer la transition fluide
+        smoothJumpTo(targetPosition);
+
+        // NOUVEAU: Restaurer l'état après un court délai
+        setTimeout(() => {
+            // Si nous étions en attente d'interaction, rétablir cet état
+            if (wasWaitingForInteraction) {
+                // Mais avec la nouvelle position comme position d'interaction
+                savedInteractionPosition.current = targetPosition;
+            }
+        }, 200);
+
+        return true;
+    }
     useEffect(() => {
         const forceResetTransitionsSubscription = EventBus.on('force-reset-all-transitions', () => {
             // console.log("Réinitialisation forcée de toutes les transitions");

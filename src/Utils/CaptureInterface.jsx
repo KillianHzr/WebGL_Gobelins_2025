@@ -75,10 +75,10 @@ export default function CaptureInterface() {
 
         setIsVisible(false);
         setIsFlashing(true);
-
         setTimeout(() => {
             setIsButtonPressed(false);
             setIsFlashing(false);
+            window.doJumpToChapter(0.01)
 
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);

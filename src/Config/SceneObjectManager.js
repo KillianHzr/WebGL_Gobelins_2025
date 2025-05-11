@@ -119,7 +119,7 @@ class SceneObjectManager {
                     text: "Observer le tronc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none",
+                    interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
                     chapterDistance: 0.01,
                     requiredStep: 'firstStop'
                 }],
