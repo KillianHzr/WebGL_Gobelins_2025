@@ -66,7 +66,7 @@ const ResponsiveLanding = () => {
                 </div>
 
                 <div className="responsive-landing-project-logo">
-                    <img src="/images/logo-holder.png" alt="Project logo" />
+                    <img src="/images/LeLayon_Logo.svg" alt="Project logo" />
                 </div>
 
                 <button
