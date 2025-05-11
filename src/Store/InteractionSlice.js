@@ -45,6 +45,35 @@ export const createInteractionSlice = (set, get) => ({
             }
         })),
 
+        setShowScannerInterface: (show) => set(state => {
+            console.log(`Setting scanner interface to: ${show}`);
+            return {
+                interaction: {
+                    ...state.interaction,
+                    showScannerInterface: show
+                }
+            };
+        }),
+
+        setShowCaptureInterface: (show) => set(state => {
+            console.log(`Setting capture interface to: ${show}`);
+            return {
+                interaction: {
+                    ...state.interaction,
+                    showCaptureInterface: show
+                }
+            };
+        }),
+
+        setShowBlackscreenInterface: (show) => set(state => {
+            console.log(`Setting blackscreen interface to: ${show}`);
+            return {
+                interaction: {
+                    ...state.interaction,
+                    showBlackscreenInterface: show
+                }
+            };
+        }),
         // Compléter une interaction (version simplifiée)
         completeInteraction: () => {
             const state = get();

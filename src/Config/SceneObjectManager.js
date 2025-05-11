@@ -68,46 +68,46 @@ class SceneObjectManager {
              * Effet: Rotation et zoom vers le panneau, narration par Célia
              * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
              */
-            'DirectionPanelStartInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.605, 0.605, 0.605],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'initialStartStop'
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'initialEndStop'
-                }],
-                defaultPlacement: {
-                    position: [-9.27704, 0, 13.95312],
-                    rotation: [0, 180 - 23.32893, 0],
-                    scale: [0.60463, 0.60463, 0.60463],
-                    outlinePulse: false,
-                }
-            },
-            //
-            // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
-            // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-            //
-            // /**
-            //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
-            //  * Apprentissage du mouvement vertical
-            //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
-            //  * Effet: Animation de saut par-dessus l'obstacle
-            //  */
+            // 'DirectionPanelStartInteractive': {
+            //     id: 'DirectionPanel',
+            //     path: '/models/primary/DirectionPanel.gltf',
+            //     scale: [0.605, 0.605, 0.605],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'initialStartStop'
+            //     }, {
+            //         type: INTERACTION_TYPES.LONG_PRESS,
+            //         text: "Quitter le panneau",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'initialEndStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-9.27704, 0, 13.95312],
+            //         rotation: [0, 180 - 23.32893, 0],
+            //         scale: [0.60463, 0.60463, 0.60463],
+            //         outlinePulse: false,
+            //     }
+            // },
+            // //
+            // // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
+            // // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+            // //
+            // // /**
+            // //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
+            // //  * Apprentissage du mouvement vertical
+            // //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
+            // //  * Effet: Animation de saut par-dessus l'obstacle
+            // //  */
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
@@ -119,7 +119,7 @@ class SceneObjectManager {
                     text: "Observer le tronc",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none",
+                    interfaceToShow: "scanner",
                     chapterDistance: 0.01,
                     requiredStep: 'firstStop'
                 }],
@@ -127,197 +127,198 @@ class SceneObjectManager {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
                 }
             }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            // //
+            // // /**
+            // //  * SCÈNE 04 - RECHERCHE DES INDICES
+            // //  * Investigation environnementale avec découverte progressive
+            // //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+            // //  * Effet 1: Animation de secousse et déblayage des feuilles
+            // //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+            // //  * Effet 2: Analyse des empreintes avec explication par Célia
+            // //  */
+            // 'LeafErable': {
+            //     id: 'LeafErable',
+            //     path: '/models/primary/MultipleLeaf.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_RIGHT,
+            //         text: "Observer le tronc",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'thirdStop'
+            //     }],
+            //     defaultPlacement: {
+            //         scale: [1, 1, 1],
+            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            // 'AnimalPaws': {
+            //     id: 'AnimalPaws',
+            //     path: '/models/primary/AnimalPaws.glb',
+            //     scale: [0.184, 0.184, 0.184],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "scanner",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fifthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-6.92739, 0.03838, -55.54513],
+            //         rotation: [0, 24.64264, 0],
+            //         scale: [0.13031, 0.13031, 0.13031],
+            //     }
+            // }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
             //
             // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
+            //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
+            //  * Puzzle spatial avec progression séquentielle
+            //  * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
+            //  * Effet: Animation de saut sur chaque pierre pour traverser la rivière
             //  */
-            'LeafErable': {
-                id: 'LeafErable',
-                path: '/models/primary/MultipleLeaf.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Observer le tronc",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'thirdStop'
-                }],
-                defaultPlacement: {
-                    scale: [1, 1, 1],
-                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-            'AnimalPaws': {
-                id: 'AnimalPaws',
-                path: '/models/primary/AnimalPaws.glb',
-                scale: [0.184, 0.184, 0.184],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fifthStop'
-                }],
-                defaultPlacement: {
-                    position: [-6.92739, 0.03838, -55.54513],
-                    rotation: [0, 24.64264, 0],
-                    scale: [0.13031, 0.13031, 0.13031],
-                }
-            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
-
-            /**
-             * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
-             * Puzzle spatial avec progression séquentielle
-             * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
-             * Effet: Animation de saut sur chaque pierre pour traverser la rivière
-             */
-            'JumpRock1': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'eleventhStop'
-                }],
-                defaultPlacement: {
-                    position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock2': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'twelfthStop'
-                }],
-                defaultPlacement: {
-                    position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock3': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'thirteenthStop'
-                }],
-                defaultPlacement: {
-                    position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
-                }
-            },
-
-            'JumpRock4': {
-                id: 'RockWater',
-                path: '/models/rock/RockWater2.glb',
-                scale: [0.279, 0.279, 0.279],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fourteenthStop'
-                }],
-                defaultPlacement: {
-                    position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
-                }
-            }, /**
-             * SCÈNE 06 - OBSTACLE DE LA BRANCHE
-             * Apprentissage du mouvement vertical inverse
-             * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
-             * Effet: Animation de passage sous la branche
-             */
-            'ThinTrunkInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/Obstacle2Tree.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Observer le tronc",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'fourthStop'
-                }],
-                defaultPlacement: {
-                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
-                }
-            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
-            'BigRock': {
-                id: 'BigRock',
-                path: '/models/rock/BigRock.glb',
-                scale: [0.12371, 0.12371, 0.12371],
-                interactive: false,
-                useTextures: true, // animations: {
-                //     // Animation "move" qui sera jouée automatiquement
-                //     'Action.001.001': {
-                //         autoplay: true,            // Cette animation démarrera automatiquement
-                //         defaultLoop: true,         // Par défaut en boucle
-                //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
-                //         defaultTimeScale: 1.0      // Vitesse normale
-                //     },
-                // },
-                defaultPlacements: [{
-                    position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
-                }]
-            }, 'TreeStump': {
-                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    position: [-41.25625, 0.06409, -115.15076],
-                    rotation: [-3.14159, 40.80581, -3.14159],
-                    scale: [0.07507, 0.07507, 0.07507],
-                }]
-            },
+            // 'JumpRock1': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'eleventhStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock2': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater2.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'twelfthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock3': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'thirteenthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            //
+            // 'JumpRock4': {
+            //     id: 'RockWater',
+            //     path: '/models/rock/RockWater2.glb',
+            //     scale: [0.279, 0.279, 0.279],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Lire le panneau",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fourteenthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
+            //     }
+            // },
+            // /**
+            //  * SCÈNE 06 - OBSTACLE DE LA BRANCHE
+            //  * Apprentissage du mouvement vertical inverse
+            //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
+            //  * Effet: Animation de passage sous la branche
+            //  */
+            // 'ThinTrunkInteractive': {
+            //     id: 'TrunkLarge',
+            //     path: '/models/forest/tree/Obstacle2Tree.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_DOWN,
+            //         text: "Observer le tronc",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'fourthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
+            //     }
+            // }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+            // 'BigRock': {
+            //     id: 'BigRock',
+            //     path: '/models/rock/BigRock.glb',
+            //     scale: [0.12371, 0.12371, 0.12371],
+            //     interactive: false,
+            //     useTextures: true, // animations: {
+            //     //     // Animation "move" qui sera jouée automatiquement
+            //     //     'Action.001.001': {
+            //     //         autoplay: true,            // Cette animation démarrera automatiquement
+            //     //         defaultLoop: true,         // Par défaut en boucle
+            //     //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
+            //     //         defaultTimeScale: 1.0      // Vitesse normale
+            //     //     },
+            //     // },
+            //     defaultPlacements: [{
+            //         position: [-42.10441, 0.06409, -115.883], rotation: [-3.14159, -52.79977, -3.14159]
+            //     }]
+            // }, 'TreeStump': {
+            //     id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+            //     interactive: false, useTextures: true, defaultPlacements: [{
+            //         position: [-41.25625, 0.06409, -115.15076],
+            //         rotation: [-3.14159, 40.80581, -3.14159],
+            //         scale: [0.07507, 0.07507, 0.07507],
+            //     }]
+            // },
 
             /**
              * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
@@ -348,12 +349,13 @@ class SceneObjectManager {
                     text: "Immortaliser le moment",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "camera",
+                    interfaceToShow: "capture",
                     chapterDistance: 0.01,
                     requiredStep: 'sixthStop'
                 }],
                 defaultPlacement: {
-                    position: [52.11705, 0, -129.83212],
+                    // position: [52.11705, 0, -129.83212],
+                    position: [41.1708, 0, -141.38123], // position for testing without good camera path
                     rotation: [-3.14159, 67.09271, -3.14159],
                     scale: [0.07888, 0.07888, 0.07888],
                     outlinePulse: false,
@@ -436,7 +438,8 @@ class SceneObjectManager {
                     requiredStep: 'tenthStopEnd'
                 }],
                 defaultPlacement: {
-                    position: [51.907, 0.0, -134.251],
+                    // position: [51.907, 0.0, -134.251],
+                    position: [46.04188, -0.01742, -139.30914], // position for testing without good camera path
                     rotation: [0, 90 - 29.02382, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
@@ -460,7 +463,8 @@ class SceneObjectManager {
                     requiredStep: 'seventhStop',
                 }],
                 defaultPlacement: {
-                    position: [59.06875, -0.01692, -130.29213],
+                    // position: [59.06875, -0.01692, -130.29213],
+                    position: [49.27544, -0.01692, -135.38611], // position for testing without good camera path
                     rotation: [0, -19.99978 - 90, 0],
                     scale: [0.099746, 0.099746, 0.099746],
                 }
@@ -486,10 +490,17 @@ class SceneObjectManager {
 
         // Si un requiredStep est spécifié dans le placement, chercher l'interaction correspondante
         if (placement && placement.requiredStep) {
-            const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === placement.requiredStep);
+            const matchingInteraction = objectConfig.interaction.find(interaction =>
+                interaction.requiredStep === placement.requiredStep
+            );
 
             if (matchingInteraction) {
+                // Ajouter des logs pour le débogage
+                console.log(`Interaction trouvée pour ${placement.objectKey} (${placement.requiredStep}):`,
+                    matchingInteraction);
                 return matchingInteraction;
+            } else {
+                console.warn(`Aucune interaction trouvée pour ${placement.objectKey} avec requiredStep=${placement.requiredStep}`);
             }
         }
 
@@ -509,7 +520,38 @@ class SceneObjectManager {
         // Renvoyer l'interaction actuelle
         return objectConfig.interaction[currentIndex];
     }
+    getInteractiveObjectInterfaces() {
+        const interfaces = {};
 
+        // Parcourir tous les objets interactifs
+        Object.entries(this.objectCatalog).forEach(([key, config]) => {
+            if (config.interactive) {
+                // Vérifier les interactions et leurs interfaces
+                if (Array.isArray(config.interaction)) {
+                    config.interaction.forEach(interaction => {
+                        if (interaction.interfaceToShow) {
+                            if (!interfaces[key]) {
+                                interfaces[key] = [];
+                            }
+                            interfaces[key].push({
+                                step: interaction.requiredStep,
+                                interface: interaction.interfaceToShow
+                            });
+                        }
+                    });
+                } else if (config.interaction && config.interaction.interfaceToShow) {
+                    interfaces[key] = [{
+                        step: config.interaction.requiredStep,
+                        interface: config.interaction.interfaceToShow
+                    }];
+                }
+            }
+        });
+
+        // Logger les interfaces trouvées pour le débogage
+        console.log("Interfaces disponibles dans les objets interactifs:", interfaces);
+        return interfaces;
+    }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});

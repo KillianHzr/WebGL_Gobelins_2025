@@ -31,9 +31,9 @@ const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter =>
     chapter.distance !== undefined
 );
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 0.05;
 const DECELERATION = 0.05;
-const MIN_VELOCITY = 0.0001;
+const MIN_VELOCITY = 0.01;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
@@ -101,7 +101,52 @@ function CameraController({children}) {
 
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
+    useEffect(() => {
+        // Fonction pour gérer les événements d'interaction complète
+        const handleInteractionComplete = (data) => {
+            console.log('[EventListener] Interaction complète reçue:', data);
 
+            // Vérifier si une interface doit être affichée
+            if (data.interfaceToShow) {
+                console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
+
+                // Obtenir une référence fraîche au store
+                const store = useStore.getState();
+
+                // Afficher l'interface correspondante
+                switch (data.interfaceToShow) {
+                    case 'scanner':
+                        if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface scanner');
+                            store.interaction.setShowScannerInterface(true);
+                        }
+                        break;
+                    case 'capture':
+                        if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface capture');
+                            store.interaction.setShowCaptureInterface(true);
+                        }
+                        break;
+                    case 'blackScreen':
+                        if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface blackScreen');
+                            store.interaction.setShowBlackscreenInterface(true);
+                        }
+                        break;
+                    default:
+                        console.warn(`[EventListener] Type d'interface non reconnu: ${data.interfaceToShow}`);
+                }
+            }
+        };
+
+        // S'abonner aux événements d'interaction complète
+        const subscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
+
+        // Nettoyage de l'abonnement lors du démontage
+        return () => {
+            subscription();
+        };
+    }, []);
     // Initialiser l'animateur de caméra
     useEffect(() => {
         if (camera) {
@@ -128,24 +173,6 @@ function CameraController({children}) {
             cleanupUI();
         };
     }, [camera]);
-
-    const maintainCorrectPosition = () => {
-        // Si nous sommes en transition, ne rien faire
-        if (isTransitioningRef.current || chapterTransitioning || isProcessingTransition.current) {
-            return;
-        }
-
-        // Si nous attendons une interaction, maintenir la position sauvegardée
-        if (!allowScroll && savedInteractionPosition.current !== null) {
-            // Vérifier si la position de la timeline a changé
-            if (Math.abs(timelinePositionRef.current - savedInteractionPosition.current) > 0.0001) {
-                // console.log("Correction de position pendant l'attente d'interaction");
-                timelinePositionRef.current = savedInteractionPosition.current;
-                cameraAnimatorRef.current.setPosition(savedInteractionPosition.current);
-            }
-        }
-    };
-
     useEffect(() => {
         // Listen for chapter jump requests from the GUI
         const guiJumpSubscription = EventBus.on('gui-chapter-jump-initiated', (data) => {
