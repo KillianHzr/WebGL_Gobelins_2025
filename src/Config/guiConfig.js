@@ -74,6 +74,27 @@ const guiConfig = {
             }
         }
     },
+    // Ajouter cette section dans guiConfig.js
+    chapters: {
+        folder: "Chapitres",
+        controls: {
+            currentChapter: {
+                name: "Chapitre actuel",
+                default: 0,
+                options: {
+                    "Introduction": 0,
+                    "Forêt mystérieuse": 1,
+                    "Découverte": 2,
+                    "Créatures": 3,
+                    "Conclusion": 4
+                }
+            },
+            autoProgress: {
+                name: "Progression auto",
+                default: true
+            },
+        }
+    },
     // Nouvelle section pour les contrôles de visualisation générale
     visualization: {
         folder: "Visualisation",
@@ -176,7 +197,7 @@ const guiConfig = {
                     Cineon: 3,
                     ACESFilmic: 4
                 },
-                default: 2,
+                default: 4,
                 name: "Tone Mapping"
             },
             toneMappingExposure: {
@@ -184,7 +205,7 @@ const guiConfig = {
                 max: 5,
                 step: 0.01,
                 name: "Exposure",
-                default: 2.36
+                default: 0.36
             }
         }
     },

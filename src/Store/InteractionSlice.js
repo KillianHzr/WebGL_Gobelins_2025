@@ -1,3 +1,5 @@
+import {EventBus} from "../Utils/EventEmitter.jsx";
+
 /**
  * Tranche du store Zustand pour la gestion des interactions
  * Gère l'état des interactions disponibles et actives
@@ -9,8 +11,6 @@ export const createInteractionSlice = (set, get) => ({
         allowScroll: true,
         waitingForInteraction: false,
         completedInteractions: {},
-
-        // Objet de la scène qui est actuellement ciblé pour l'interaction
         interactionTarget: null,
 
         // Définir l'étape actuelle
@@ -45,7 +45,7 @@ export const createInteractionSlice = (set, get) => ({
             }
         })),
 
-        // Compléter une interaction (utilisé lorsqu'on détecte un clic sur un objet)
+        // Compléter une interaction (version simplifiée)
         completeInteraction: () => {
             const state = get();
             if (!state.interaction.waitingForInteraction) return;
@@ -53,29 +53,35 @@ export const createInteractionSlice = (set, get) => ({
             // Récupérer l'étape actuelle
             const currentStep = state.interaction.currentStep;
 
-            // Désactiver immédiatement l'attente d'interaction
+            // Mettre à jour l'état pour indiquer que l'interaction est terminée
             set(state => ({
                 interaction: {
                     ...state.interaction,
                     waitingForInteraction: false,
+                    currentStep: null,
                     interactionTarget: null,
-                    // S'assurer que completedInteractions existe
                     completedInteractions: {
-                        ...(state.interaction.completedInteractions || {}),
+                        ...state.interaction.completedInteractions,
                         [currentStep]: true
                     }
                 }
             }));
 
-            // Réactiver le défilement avec un léger délai
+            // Déclencher un événement pour que ScrollControls puisse réactiver le scroll
             setTimeout(() => {
-                set(state => ({
-                    interaction: {
-                        ...state.interaction,
-                        allowScroll: true
-                    }
-                }));
-            }, 500);
+                EventBus.trigger('interaction-complete-set-allow-scroll', {
+                    step: currentStep,
+                    timestamp: Date.now()
+                });
+
+                // Émettre l'événement principal INTERACTION_COMPLETE
+                console.log("Emitting INTERACTION_COMPLETE event from completeInteraction");
+                EventBus.trigger('INTERACTION_COMPLETE', {
+                    id: currentStep,
+                    type: 'direct',
+                    source: 'interaction-slice'
+                });
+            }, 50);
 
             return currentStep;
         }

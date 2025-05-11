@@ -6,8 +6,6 @@
 const guiFolderConfig = {
     // Configuration principale pour l'affichage des dossiers
     foldersVisibility: {
-        // Dossiers principaux
-        "Theatre.js": true,       // Contrôles Theatre.js
         "Visualisation": true,    // Contrôles de visualisation générale
         "Camera": true,           // Contrôles de caméra
         "Render": true,           // Nouveaux contrôles de rendu
@@ -80,8 +78,6 @@ const guiFolderConfig = {
             "Utils": true
         },
         "artist": {
-            // Profil pour les artistes
-            "Theatre.js": false,
             "Visualisation": false,
             "Camera": true,
             "Render": true,
@@ -116,8 +112,6 @@ const guiFolderConfig = {
             "Flashlight": false,
         },
         "developer": {
-            // Profil pour les développeurs
-            "Theatre.js": true,
             "Visualisation": true,
             "Camera": true,
             "Render": true,

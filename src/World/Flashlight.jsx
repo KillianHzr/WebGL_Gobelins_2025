@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useThree, useFrame } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 /**
  * Flashlight Component - World/Flashlight.jsx
@@ -203,7 +204,7 @@ export default function Flashlight() {
     }, [timelinePosition, sequenceLength, flashlightState, updateFlashlightState, normalIntensity, flashlightRef]);
 
     // Mettre à jour la position et la rotation à chaque frame
-    useFrame(() => {
+    useAnimationFrame(() => {
         if (flashlightRef.current && flashlightTargetRef.current) {
             // Position de la lampe par rapport à la caméra
             const offsetPosition = new THREE.Vector3(0.0, 0.0, 0.0);
@@ -220,7 +221,7 @@ export default function Flashlight() {
             flashlightTargetRef.current.position.copy(targetPosition);
             flashlightTargetRef.current.updateMatrixWorld();
         }
-    });
+    }, 'camera');
 
     // Définir les constantes de configuration
     const {
@@ -238,7 +239,7 @@ export default function Flashlight() {
     return (
         <spotLight
             ref={flashlightRef}
-            position={[0, 0, 0]} // Sera mise à jour dans useFrame
+            position={[0, 0, 0]}
             intensity={0} // Commencer avec une intensité de zéro
             angle={angle.default}
             penumbra={penumbra.default}

@@ -68,18 +68,23 @@ const StatsComponent = () => {
             if (!gl) return;
             const memory = gl.info.memory;
             const render = gl.info.render;
+            const programs = gl.info.programs.length;
+
+            // console.log("gl.info", gl.info);
+            // console.log("WebGL Programs:", gl.info.programs);
 
             glInfoPanel.textContent =
                 `=== Memory ===\n` +
-                `Programs: ${memory.programs}\n` +
+                `Programs: ${programs}\n` +
                 `Geometries: ${memory.geometries}\n` +
                 `Textures: ${memory.textures}\n\n` +
                 `=== Render ===\n` +
                 `Calls: ${render.calls}\n` +
                 `Triangles: ${render.triangles}\n` +
                 `Lines: ${render.lines}\n` +
-                `Points: ${render.points}`;
+                `Points: ${render.points}\n\n`;
         };
+
 
         let frameId;
         const animate = () => {

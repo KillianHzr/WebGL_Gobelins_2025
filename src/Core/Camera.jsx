@@ -1,9 +1,10 @@
+// Camera.jsx - Version modifiée sans Theatre.js
 import {useEffect, useRef} from 'react';
 import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import * as THREE from 'three';
-import {Mesh, SRGBColorSpace, TextureLoader} from 'three';
+import {SRGBColorSpace, TextureLoader} from 'three';
 
 export default function Camera() {
     const {camera, gl, scene} = useThree();
@@ -47,7 +48,6 @@ export default function Camera() {
                     // Configurer correctement l'espace de couleur
                     texture.colorSpace = SRGBColorSpace;
 
-
                     // Ajouter le mesh de fond à la scène
                     // scene.background = texture;
                 },
@@ -67,6 +67,7 @@ export default function Camera() {
         // Commencer à essayer de charger la texture
         tryLoadTexture(possibleBackgroundPaths);
     }, [scene]);
+
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
         // Appliquer les valeurs par défaut indépendamment du mode debug
@@ -104,82 +105,6 @@ export default function Camera() {
         }
 
     }, [gl, scene]);
-
-    // S'exécute à chaque frame pour s'assurer que les paramètres de rendu sont appliqués
-    // useFrame(() => {
-    //     // Vérifier et mettre à jour le tone mapping
-    //     if (renderSettingsRef.current.toneMapping !== undefined &&
-    //         gl.toneMapping !== renderSettingsRef.current.toneMapping) {
-    //         gl.toneMapping = renderSettingsRef.current.toneMapping;
-    //         scene.traverse((object) => {
-    //             if (object.isMesh && object.material) {
-    //                 object.material.needsUpdate = true;
-    //             }
-    //         });
-    //         gl.render(scene, camera);
-    //     }
-    //
-    //     if (renderSettingsRef.current.toneMappingExposure !== undefined &&
-    //         gl.toneMappingExposure !== renderSettingsRef.current.toneMappingExposure) {
-    //         gl.toneMappingExposure = renderSettingsRef.current.toneMappingExposure;
-    //         scene.traverse((object) => {
-    //             if (object.isMesh && object.material) {
-    //                 object.material.needsUpdate = true;
-    //             }
-    //         });
-    //         gl.render(scene, camera);
-    //     }
-    //
-    //     // Vérifier et mettre à jour les paramètres des ombres
-    //     if (gl.shadowMap) {
-    //         const currentShadowConfig = {
-    //             enabled: gl.shadowMap.enabled,
-    //             type: gl.shadowMap.type,
-    //             mapSize: gl.shadowMap.size?.width || 1024,
-    //             bias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.bias || 0,
-    //             normalBias: scene.children.find(obj => obj.isLight && obj.shadow)?.shadow?.normalBias || 0
-    //         };
-    //
-    //         const targetShadowConfig = renderSettingsRef.current;
-    //
-    //         if (currentShadowConfig.enabled !== targetShadowConfig.shadowMapEnabled ||
-    //             currentShadowConfig.type !== targetShadowConfig.shadowMapType ||
-    //             currentShadowConfig.mapSize !== targetShadowConfig.shadowMapSize ||
-    //             currentShadowConfig.bias !== targetShadowConfig.shadowBias ||
-    //             currentShadowConfig.normalBias !== targetShadowConfig.shadowNormalBias) {
-    //
-    //             gl.shadowMap.enabled = targetShadowConfig.shadowMapEnabled;
-    //             gl.shadowMap.type = targetShadowConfig.shadowMapType;
-    //
-    //             scene.traverse((object) => {
-    //                 if (object.isLight && object.shadow) {
-    //                     try {
-    //                         object.shadow.type = targetShadowConfig.shadowMapType;
-    //
-    //                         if (object.shadow.mapSize) {
-    //                             object.shadow.mapSize.width = targetShadowConfig.shadowMapSize;
-    //                             object.shadow.mapSize.height = targetShadowConfig.shadowMapSize;
-    //                         }
-    //
-    //                         object.shadow.bias = targetShadowConfig.shadowBias;
-    //                         object.shadow.normalBias = targetShadowConfig.shadowNormalBias;
-    //                         object.shadow.needsUpdate = true;
-    //
-    //                         if (object.shadow.map) {
-    //                             object.shadow.map.dispose();
-    //                             object.shadow.map = null;
-    //                         }
-    //                     } catch (error) {
-    //                         console.error('Erreur lors de la mise à jour des ombres:', error);
-    //                     }
-    //                 }
-    //             });
-    //
-    //             gl.shadowMap.needsUpdate = true;
-    //             gl.render(scene, camera);
-    //         }
-    //     }
-    // });
 
     useEffect(() => {
         // Sauvegarder les paramètres initiaux
@@ -227,7 +152,6 @@ export default function Camera() {
 
             shadowEnabledControl.onChange(value => {
                 renderSettingsRef.current.shadowMapEnabled = value;
-                // saveRenderSettings();
             });
 
             // Contrôle du type de shadow mapping
@@ -244,7 +168,6 @@ export default function Camera() {
 
             shadowTypeControl.onChange(value => {
                 renderSettingsRef.current.shadowMapType = Number(value);
-                // saveRenderSettings();
             });
 
             // Contrôle de la qualité des ombres
@@ -264,7 +187,6 @@ export default function Camera() {
 
             shadowQualityControl.onChange(value => {
                 renderSettingsRef.current.shadowMapSize = Number(value);
-                // saveRenderSettings();
             });
 
             // Contrôle du shadow bias
@@ -278,7 +200,6 @@ export default function Camera() {
 
             shadowBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowBias = value;
-                // saveRenderSettings();
             });
 
             // Contrôle du shadow normal bias
@@ -292,7 +213,6 @@ export default function Camera() {
 
             shadowNormalBiasControl.onChange(value => {
                 renderSettingsRef.current.shadowNormalBias = value;
-                // saveRenderSettings();
             });
 
             // Contrôle du tone mapping
@@ -310,7 +230,6 @@ export default function Camera() {
 
             toneMappingControl.onChange(value => {
                 renderSettingsRef.current.toneMapping = Number(value);
-                // saveRenderSettings();
             });
 
             // Contrôle de l'exposition
@@ -324,7 +243,6 @@ export default function Camera() {
 
             exposureControl.onChange(value => {
                 renderSettingsRef.current.toneMappingExposure = value;
-                // saveRenderSettings();
             });
 
             // Fermer les dossiers si configuré

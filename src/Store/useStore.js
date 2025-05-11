@@ -20,12 +20,32 @@ const useStore = create((set, get) => ({
     loaded: false,
     setLoaded: (loaded) => set({loaded}),
 
+
+    chapters: {
+        distances: {},
+        currentChapter: 0
+    },
+    setChapterDistance: (chapterId, distance) => set(state => ({
+        chapters: {
+            ...state.chapters,
+            distances: {
+                ...state.chapters.distances,
+                [chapterId]: distance
+            }
+        }
+    })),
+    setCurrentChapter: (index) => set(state => ({
+        chapters: {
+            ...state.chapters,
+            currentChapter: index
+        }
+    })),
+
     // Debug state - initially set based on URL hash
     debug: {
         active: isDebugEnabled(),     // Enable debug features only if #debug in URL
         showStats: isDebugEnabled(),  // Show performance statistics
         showGui: isDebugEnabled(),    // Show control panel
-        showTheatre: isDebugEnabled() // Show Theatre.js Studio interface
     },
     setDebug: (debugSettings) => set(state => ({
         debug: {...state.debug, ...debugSettings}
@@ -38,15 +58,11 @@ const useStore = create((set, get) => ({
     },
     // Camera state for zoom functionality
     camera: null,
-    setCamera: (camera) => set({ camera }),
+    setCamera: (camera) => set({camera}),
     cameraInitialZoom: null,
-    setCameraInitialZoom: (zoom) => set({ cameraInitialZoom: zoom }),
+    setCameraInitialZoom: (zoom) => set({cameraInitialZoom: zoom}),
     currentZoomLevel: 0, // -3 to +3 range
-    setCurrentZoomLevel: (level) => set({ currentZoomLevel: level }),
-
-    // Theatre.js Studio instance
-    theatreStudio: null,
-    setTheatreStudio: (studio) => set({theatreStudio: studio}),
+    setCurrentZoomLevel: (level) => set({currentZoomLevel: level}),
 
     // GUI instance (shared among all components)
     gui: null,
@@ -66,15 +82,14 @@ const useStore = create((set, get) => ({
     sequenceLength: 1,
 
 
-
     endGroupVisible: false,
     screenGroupVisible: true,
 
-    setEndGroupVisible: (visible) => set({ endGroupVisible: visible }),
-    setScreenGroupVisible: (visible) => set({ screenGroupVisible: visible }),
+    setEndGroupVisible: (visible) => set({endGroupVisible: visible}),
+    setScreenGroupVisible: (visible) => set({screenGroupVisible: visible}),
     // NOUVELLES ACTIONS POUR LA TRANSITION JOUR/NUIT
-    setTimelinePosition: (position) => set({ timelinePosition: position }),
-    setSequenceLength: (length) => set({ sequenceLength: length }),
+    setTimelinePosition: (position) => set({timelinePosition: position}),
+    setSequenceLength: (length) => set({sequenceLength: length}),
     updateFlashlightState: (newState) => set((state) => ({
         flashlight: {
             ...state.flashlight,
@@ -182,6 +197,7 @@ const useStore = create((set, get) => ({
         completedInteractions: {},
         showCaptureInterface: false,
         showScannerInterface: false,
+        showBlackscreenInterface: false,
 
         setShowCaptureInterface: (show) => set(state => ({
             interaction: {
@@ -194,6 +210,12 @@ const useStore = create((set, get) => ({
             interaction: {
                 ...state.interaction,
                 showScannerInterface: show
+            }
+        })),
+        setShowBlackscreenInterface: (show) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showBlackscreenInterface: show
             }
         })),
 
@@ -228,29 +250,30 @@ const useStore = create((set, get) => ({
 
             // Récupérer l'étape actuelle
             const currentStep = state.interaction.currentStep;
+            const currentStepBeforeComplete = get().interaction.currentStep;
 
-            // Désactiver immédiatement l'attente d'interaction
             set(state => ({
                 interaction: {
                     ...state.interaction,
                     waitingForInteraction: false,
-                    // S'assurer que completedInteractions existe
+                    currentStep: null,
+                    interactionTarget: null,
                     completedInteractions: {
-                        ...(state.interaction.completedInteractions || {}),
-                        [currentStep]: true
+                        ...state.interaction.completedInteractions,
+                        [currentStepBeforeComplete]: true
                     }
                 }
             }));
 
             // Réactiver le défilement avec un léger délai
-            setTimeout(() => {
-                set(state => ({
-                    interaction: {
-                        ...state.interaction,
-                        allowScroll: true
-                    }
-                }));
-            }, 500);
+            // setTimeout(() => {
+            //     set(state => ({
+            //         interaction: {
+            //             ...state.interaction,
+            //             allowScroll: true
+            //         }
+            //     }));
+            // }, 500);
 
             return currentStep;
         }
@@ -258,10 +281,10 @@ const useStore = create((set, get) => ({
 
     // Gestion des instances et des positions des arbres
     instanceGroups: {},
-    setInstanceGroups: (groups) => set({ instanceGroups: groups }),
+    setInstanceGroups: (groups) => set({instanceGroups: groups}),
 
     treePositions: null,
-    setTreePositions: (positions) => set({ treePositions: positions }),
+    setTreePositions: (positions) => set({treePositions: positions}),
 
     // Intégration des tranches
     ...createClickListenerSlice(set, get),
@@ -283,16 +306,7 @@ if (typeof window !== 'undefined') {
             showTheatre: debugEnabled
         });
 
-        // Gestion de l'interface Theatre.js si elle a été initialisée
-        if (window.__theatreStudio) {
-            if (debugEnabled) {
-                // Restaurer l'interface Theatre.js
-                window.__theatreStudio.ui.restore();
-            } else {
-                // Masquer l'interface Theatre.js
-                window.__theatreStudio.ui.hide();
-            }
-        }
+
     });
 
 }

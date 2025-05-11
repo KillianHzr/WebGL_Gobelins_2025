@@ -1,9 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import {OrbitControls, PerspectiveCamera} from '@react-three/drei';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
 import {EventBus} from './EventEmitter';
+import {useAnimationFrame} from "./AnimationManager.js";
 
 /**
  * Component that manages switching between TheatreJS camera and a free camera with ZQSD controls
@@ -347,14 +348,6 @@ const CameraSwitcher = () => {
             // Make the free camera the active camera in Three.js
             set({camera: freeCameraRef.current});
 
-            // Hide Theatre.js UI if it exists
-            if (window.__theatreStudio && window.__theatreStudio.ui) {
-                const studioUI = window.__theatreStudio.ui;
-                window.__wasTheatreUIVisible = !studioUI.isHidden;
-                if (window.__wasTheatreUIVisible) {
-                    studioUI.hide();
-                }
-            }
 
             // Disable scroll in ScrollControls
             const interaction = useStore.getState().interaction;
@@ -391,10 +384,6 @@ const CameraSwitcher = () => {
                 console.log("Re-enabling scroll for Theatre.js");
             }
 
-            // Restore Theatre.js UI if necessary
-            if (window.__theatreStudio && window.__theatreStudio.ui && window.__wasTheatreUIVisible) {
-                window.__theatreStudio.ui.restore();
-            }
 
             // Force visibility of all forest objects
             if (hasInitiatedFirstSwitch.current) {
@@ -430,9 +419,9 @@ const CameraSwitcher = () => {
     }, [cameraMode, mainCamera, set, scene]);
 
     // Update free camera position and rotation each frame
-    useFrame(() => {
+    useAnimationFrame(() => {
         if (cameraMode === 'Free Camera' && freeCameraRef.current) {
-            // Only process camera movement in free mode
+            // Seulement traiter les mouvements de caméra en mode libre
             const camera = freeCameraRef.current;
 
             // Process keyboard input for movement
@@ -526,7 +515,7 @@ const CameraSwitcher = () => {
                 camera.position.add(movement);
             }
         }
-    });
+    }, 'camera');
 
     return (
         <>

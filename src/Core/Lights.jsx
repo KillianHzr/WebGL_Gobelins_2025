@@ -1,6 +1,6 @@
 // Mise à jour du fichier Lights.jsx pour implémenter l'interface GUI visible dans l'image
 import React, {useEffect, useRef, useState} from 'react';
-import {useThree, useFrame} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
