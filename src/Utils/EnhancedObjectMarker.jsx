@@ -1059,7 +1059,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {"Clique"}
+                        {text}
                     </div>
                 </div>
             </Html>)}
@@ -1089,7 +1089,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {buttonHovered ? "Maintiens" : "Clique"}
+                        {text}
                     </div>
                     <div
                         className="marker-button-inner-progress"
@@ -1152,7 +1152,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                 </svg>
                             </div>
                             <div className="marker-drag-inner-text">
-                                {"Tire"}
+                                {text}
                             </div>
                         </div>
                     </div>
