@@ -31,9 +31,9 @@ const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter =>
     chapter.distance !== undefined
 );
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.05;
-const DECELERATION = 0.05;
-const MIN_VELOCITY = 0.01;
+const MAX_SCROLL_SPEED = 0.001;
+const DECELERATION = 0.95;
+const MIN_VELOCITY = 0.0001;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
