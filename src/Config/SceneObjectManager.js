@@ -108,25 +108,25 @@ class SceneObjectManager {
             // //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
             // //  * Effet: Animation de saut par-dessus l'obstacle
             // //  */
-            'TrunkLargeInteractive': {
-                id: 'TrunkLarge',
-                path: '/models/forest/tree/ObstacleTree.glb',
-                scale: [1.000, 1.000, 1.000],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Observer le tronc",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner",
-                    chapterDistance: 0.01,
-                    requiredStep: 'firstStop'
-                }],
-                defaultPlacement: {
-                    position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
-                }
-            }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            // 'TrunkLargeInteractive': {
+            //     id: 'TrunkLarge',
+            //     path: '/models/forest/tree/ObstacleTree.glb',
+            //     scale: [1.000, 1.000, 1.000],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_UP,
+            //         text: "Observer le tronc",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'firstStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
+            //     }
+            // }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
             // //
             // // /**
             // //  * SCÈNE 04 - RECHERCHE DES INDICES
@@ -136,26 +136,26 @@ class SceneObjectManager {
             // //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
             // //  * Effet 2: Analyse des empreintes avec explication par Célia
             // //  */
-            // 'LeafErable': {
-            //     id: 'LeafErable',
-            //     path: '/models/primary/MultipleLeaf.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_RIGHT,
-            //         text: "Observer le tronc",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.01,
-            //         requiredStep: 'thirdStop'
-            //     }],
-            //     defaultPlacement: {
-            //         scale: [1, 1, 1],
-            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
-            //     }
-            // },
+            'LeafErable': {
+                id: 'LeafErable',
+                path: '/models/primary/MultipleLeaf.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Observer le tronc",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.01,
+                    requiredStep: 'thirdStop'
+                }],
+                defaultPlacement: {
+                    scale: [1, 1, 1],
+                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
+                }
+            },
             // 'AnimalPaws': {
             //     id: 'AnimalPaws',
             //     path: '/models/primary/AnimalPaws.glb',
@@ -552,6 +552,75 @@ class SceneObjectManager {
         console.log("Interfaces disponibles dans les objets interactifs:", interfaces);
         return interfaces;
     }
+
+    handleThirdStopCompletion() {
+        console.log('*** Exécution de handleThirdStopCompletion ***');
+
+        // Trouver l'emplacement de LeafErable avec plus de détails de débogage
+        const leafPlacements = this.getPlacements({ objectKey: 'LeafErable' });
+        console.log('Placements LeafErable trouvés:', leafPlacements);
+
+        if (leafPlacements && leafPlacements.length > 0) {
+            const leafPlacement = leafPlacements[0];
+
+            // Obtenir la position actuelle
+            const currentPosition = [...leafPlacement.position];
+            console.log('Position actuelle de LeafErable:', currentPosition);
+
+            // Calculer la nouvelle position (décalage de 2.0 sur X et Z)
+            const newPosition = [
+                currentPosition[0] + 0.5,
+                currentPosition[1] + 0.1,
+                currentPosition[2] - 0.02
+            ];
+
+            console.log(`Déplacement de LeafErable de [${currentPosition}] à [${newPosition}]`);
+
+            // Récupérer l'identifiant du marqueur pour une mise à jour précise
+            let identifier;
+            if (leafPlacement.markerId) {
+                identifier = leafPlacement.markerId;
+                console.log('Mise à jour par markerId:', identifier);
+            } else {
+                // Si markerId n'est pas disponible, utiliser l'index de placement dans le tableau
+                const index = this.placements.findIndex(p =>
+                    p.objectKey === 'LeafErable' &&
+                    p.position[0] === currentPosition[0] &&
+                    p.position[2] === currentPosition[2]
+                );
+
+                if (index !== -1) {
+                    identifier = index;
+                    console.log('Mise à jour par index:', index);
+                } else {
+                    console.warn('Impossible de trouver un identifiant valide pour la mise à jour');
+                    return;
+                }
+            }
+
+            // Effectuer la mise à jour avec l'identifiant approprié
+            const updateResult = this.updatePlacement(identifier, {
+                position: newPosition
+            });
+
+            console.log('Résultat de la mise à jour:', updateResult);
+
+            // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
+            const updatedPlacements = this.getPlacements({ objectKey: 'LeafErable' });
+            if (updatedPlacements && updatedPlacements.length > 0) {
+                console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
+            }
+
+            // Émettre un événement pour informer les autres composants
+            EventBus.trigger('object-position-updated', {
+                objectKey: 'LeafErable',
+                oldPosition: currentPosition,
+                newPosition: newPosition
+            });
+        } else {
+            console.warn('Objet LeafErable non trouvé lors de la complétion de thirdStop');
+        }
+    }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});
@@ -730,6 +799,15 @@ class SceneObjectManager {
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
+            console.log('Événement INTERACTION_COMPLETE reçu:', data);
+
+            // Vérifier directement si c'est l'étape thirdStop, indépendamment du placement
+            if (data.requiredStep === 'thirdStop' ||
+                (data.id && data.id.includes('thirdStop'))) {
+                console.log('Détection directe de thirdStop dans INTERACTION_COMPLETE');
+                this.handleThirdStopCompletion();
+            }
+
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
                 console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`);
@@ -752,11 +830,35 @@ class SceneObjectManager {
                     markerId: placement.markerId,
                     objectKey: placement.objectKey,
                     requiredStep: placement.requiredStep,
-                    isFinalInteraction: true  // Toujours vrai dans le système simplifié
+                    isFinalInteraction: true
                 });
+
+                // Cas spécial pour thirdStop - Déplacer l'objet LeafErable
+                if (placement.requiredStep === 'thirdStop') {
+                    console.log('thirdStop completion détectée via placement.requiredStep');
+                    this.handleThirdStopCompletion();
+                }
+            }
+        });
+
+        // Écouter aussi l'événement object:interaction:complete
+        EventBus.on('leaf-erable-move-requested', (data) => {
+            console.log('Événement leaf-erable-move-requested reçu:', data);
+            this.handleThirdStopCompletion();
+        });
+
+
+        // Ajouter un écouteur spécifique pour INTERACTION_COMPLETE provenant du store
+        EventBus.on('INTERACTION_COMPLETE', (data) => {
+            console.log('Événement INTERACTION_COMPLETE direct reçu:', data);
+            // Vérifier si c'est l'étape thirdStop
+            if (data.id === 'thirdStop' || (typeof data.id === 'string' && data.id.includes('thirdStop'))) {
+                console.log('thirdStop completion détectée via INTERACTION_COMPLETE direct');
+                this.handleThirdStopCompletion();
             }
         });
     }
+
 
 
     // Ajouter un nouvel objet au catalogue
