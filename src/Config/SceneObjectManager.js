@@ -123,7 +123,7 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.LONG_PRESS,
+                    type: INTERACTION_TYPES.DRAG_UP,
                     text: "Observer le tronc",
                     offset: -0.5,
                     axis: "y",
@@ -136,14 +136,14 @@ class SceneObjectManager {
                 }
             }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
             //
-            // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
-            //  */
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
             'LeafErable': {
                 id: 'LeafErable',
                 path: '/models/primary/MultipleLeaf.glb',
