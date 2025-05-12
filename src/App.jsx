@@ -123,7 +123,7 @@ export default function App() {
                     setShowExperience(true);
 
                     // Focus on canvas after showing it
-                    setTimeout(() => {
+                    // setTimeout(() => {
                         if (canvasRef.current) {
                             canvasRef.current.focus();
                         }
@@ -133,7 +133,7 @@ export default function App() {
                             narrationManager.playNarration('Scene01_Mission');
                             console.log("Lecture de la narration Scene01_Mission après transition");
                         }, 2000);
-                    }, 100);
+                    // }, 100);
 
                     // Remove this listener as it's no longer needed
                     narrationEndedListener();
@@ -156,7 +156,7 @@ export default function App() {
                     setShowExperience(true);
 
                     // Focus on canvas after showing it
-                    setTimeout(() => {
+                    // setTimeout(() => {
                         if (canvasRef.current) {
                             canvasRef.current.focus();
                         }
@@ -166,7 +166,7 @@ export default function App() {
                             narrationManager.playNarration('Scene01_Mission');
                             console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
                         }, 2000);
-                    }, 100);
+                    // }, 100);
                 }
             }, defaultDuration);
         }, 800); // This should match when the black screen is at full opacity

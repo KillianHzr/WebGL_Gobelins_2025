@@ -204,9 +204,7 @@ function CameraController({children}) {
             setChapterTransitioning(false);
 
             // Execute the transition
-            setTimeout(() => {
                 smoothJumpTo(data.position);
-            }, 50);
         });
 
         // Add a safety mechanism to detect and fix stuck transitions
@@ -372,20 +370,20 @@ function CameraController({children}) {
             transitionQueue.current.shift();
 
             // Attendre un petit délai avant de traiter la transition suivante
-            setTimeout(() => {
+            // setTimeout(() => {
                 // Vérifier à nouveau si nous pouvons traiter la file d'attente
                 if (!isTransitioningRef.current && !chapterTransitioning) {
                     processTransitionQueue();
                 } else {
                     // console.log("Drapeaux de transition encore actifs, attente supplémentaire...");
-                    setTimeout(() => {
+                    // setTimeout(() => {
                         // Forcer la réinitialisation des drapeaux si toujours actifs
                         isTransitioningRef.current = false;
                         setChapterTransitioning(false);
                         processTransitionQueue();
-                    }, 300);
+                    // }, 300);
                 }
-            }, 200);
+            // }, 200);
         };
 
         // Fonction d'animation qui sera appelée à chaque frame
@@ -459,7 +457,7 @@ function CameraController({children}) {
                 }
 
                 // Réinitialiser les états après un court délai
-                setTimeout(() => {
+                // setTimeout(() => {
                     setAllowScroll(true);
                     setChapterTransitioning(false);
                     isTransitioningRef.current = false;
@@ -467,7 +465,7 @@ function CameraController({children}) {
 
                     // Terminer la transition actuelle et passer à la suivante
                     finishCurrentTransition();
-                }, 100);
+                // }, 100);
             }
         };
 
@@ -502,9 +500,9 @@ function CameraController({children}) {
                 EventBus.trigger('force-reset-all-transitions');
 
                 // Attendre que la réinitialisation prenne effet
-                setTimeout(() => {
+                // setTimeout(() => {
                     doJumpToChapter(distanceToMove);
-                }, 200);
+                // }, 200);
                 return true;
             } else {
                 return doJumpToChapter(distanceToMove);
@@ -559,13 +557,13 @@ function CameraController({children}) {
         smoothJumpTo(targetPosition);
 
         // NOUVEAU: Restaurer l'état après un court délai
-        setTimeout(() => {
+        // setTimeout(() => {
             // Si nous étions en attente d'interaction, rétablir cet état
             if (wasWaitingForInteraction) {
                 // Mais avec la nouvelle position comme position d'interaction
                 savedInteractionPosition.current = targetPosition;
             }
-        }, 200);
+        // }, 200);
 
         return true;
     }

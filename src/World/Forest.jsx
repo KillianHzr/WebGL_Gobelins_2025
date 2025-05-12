@@ -637,11 +637,9 @@ export default function Forest() {
                 // Simuler un worker asynchrone pour les opérations lourdes
                 availableWorker.busy = true;
 
-                setTimeout(() => {
                     const simplifiedGeometry = createSimplifiedGeometry(geometry, detailLevel, objectId);
                     availableWorker.busy = false;
                     resolve(simplifiedGeometry);
-                }, 0);
             } else {
                 // Aucun worker disponible, exécuter dans le thread principal
                 const simplifiedGeometry = createSimplifiedGeometry(geometry, detailLevel, objectId);

@@ -110,17 +110,17 @@ export const createInteractionSlice = (set, get) => ({
 
                     // Alternative: émettre un événement spécifique pour demander le déplacement
                     console.log("Émission d'un événement spécifique pour le déplacement");
-                    setTimeout(() => {
+                    // setTimeout(() => {
                         EventBus.trigger('leaf-erable-move-requested', {
                             step: currentStep,
                             timestamp: Date.now()
                         });
-                    }, 50);
+                    // }, 50);
                 }
             }
 
             // Déclencher un événement pour que ScrollControls puisse réactiver le scroll
-            setTimeout(() => {
+            // setTimeout(() => {
                 EventBus.trigger('interaction-complete-set-allow-scroll', {
                     step: currentStep,
                     timestamp: Date.now()
@@ -133,7 +133,7 @@ export const createInteractionSlice = (set, get) => ({
                     type: 'direct',
                     source: 'interaction-slice'
                 });
-            }, 50);
+            // }, 50);
 
             return currentStep;
         }
