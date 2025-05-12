@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 
@@ -9,6 +9,9 @@ import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 const EndingLanding = ({ onLearnMore }) => {
     const containerRef = useRef(null);
     const blocksRef = useRef([]);
+    const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
+    const [isScrolling, setIsScrolling] = useState(false);
+    const arrowRefs = useRef({});
 
     // Register GSAP plugins
     useEffect(() => {
@@ -24,24 +27,88 @@ const EndingLanding = ({ onLearnMore }) => {
         const handleWheel = (e) => {
             e.preventDefault();
 
-            if (!containerRef.current) return;
+            if (!containerRef.current || isScrolling) return;
 
             const direction = e.deltaY > 0 ? 1 : -1;
             const blocks = blocksRef.current;
 
             // Find the current visible block
             const scrollTop = containerRef.current.scrollTop;
-            const currentBlockIndex = Math.round(scrollTop / window.innerHeight);
+            const visibleBlockIndex = Math.round(scrollTop / window.innerHeight);
 
             // Calculate target block
-            const targetBlockIndex = Math.max(0, Math.min(blocks.length - 1, currentBlockIndex + direction));
+            const targetBlockIndex = Math.max(0, Math.min(blocks.length - 1, visibleBlockIndex + direction));
 
-            // Scroll to target block
-            gsap.to(containerRef.current, {
-                scrollTo: { y: targetBlockIndex * window.innerHeight, autoKill: true },
-                duration: 0.8,
-                ease: 'power2.out'
-            });
+            // Determine if we're scrolling between the last two blocks
+            const isScrollingBetweenLastBlocks =
+                (visibleBlockIndex === blocks.length - 2 && targetBlockIndex === blocks.length - 1) ||
+                (visibleBlockIndex === blocks.length - 1 && targetBlockIndex === blocks.length - 2);
+
+            // Check if the user is trying to scroll backwards (not on last blocks)
+            const isScrollingBackwards = direction < 0 && !isScrollingBetweenLastBlocks;
+
+            // Check if we're scrolling TO the penultimate block
+            const isScrollingToPenultimateBlock = targetBlockIndex === blocks.length - 2;
+
+            // Only proceed if:
+            // 1. We're actually changing blocks, AND
+            // 2. We're either scrolling forward OR between the last two blocks
+            if (targetBlockIndex !== visibleBlockIndex && !isScrollingBackwards) {
+                // Set scrolling state to true
+                setIsScrolling(true);
+
+                // Update the current block index
+                setCurrentBlockIndex(targetBlockIndex);
+
+                // Get the arrow element for the current block
+                const currentArrow = arrowRefs.current[`arrow-${visibleBlockIndex}`];
+
+                // Fade out the current arrow
+                if (currentArrow) {
+                    gsap.to(currentArrow, {
+                        opacity: 0,
+                        duration: 0.3,
+                        ease: "power1.out"
+                    });
+                }
+
+                // Scroll to target block
+                gsap.to(containerRef.current, {
+                    scrollTo: { y: targetBlockIndex * window.innerHeight, autoKill: true },
+                    duration: 0.8,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        // Reset opacity of new arrow
+                        const newArrow = arrowRefs.current[`arrow-${targetBlockIndex}`];
+                        if (newArrow) {
+                            gsap.to(newArrow, {
+                                opacity: 1,
+                                duration: 0.3
+                            });
+                        }
+
+                        // Set scroll delay based on target block
+                        let scrollDelay;
+
+                        if (isScrollingBetweenLastBlocks) {
+                            scrollDelay = 0; // No delay between last blocks
+                        } else if (isScrollingToPenultimateBlock) {
+                            scrollDelay = 1000; // 1 second delay for penultimate block
+                            console.log("Setting 1s delay for penultimate block");
+                        } else {
+                            scrollDelay = 4000; // Default 4 seconds
+                        }
+
+                        console.log(`Scroll delay: ${scrollDelay}ms for block index ${targetBlockIndex}`);
+
+                        // After appropriate delay, allow scrolling again
+                        setTimeout(() => {
+                            setIsScrolling(false);
+                            console.log("Scroll unlocked");
+                        }, scrollDelay);
+                    }
+                });
+            }
         };
 
         // Add wheel event listener to container
@@ -55,7 +122,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 container.removeEventListener('wheel', handleWheel);
             }
         };
-    }, []);
+    }, [isScrolling]);
 
     // Add block to refs
     const addToRefs = (el) => {
@@ -64,8 +131,59 @@ const EndingLanding = ({ onLearnMore }) => {
         }
     };
 
+    // Add arrow ref
+    const addArrowRef = (index, el) => {
+        if (el) {
+            arrowRefs.current[`arrow-${index}`] = el;
+        }
+    };
+
     const handleLearnMore = () => {
         if (onLearnMore) onLearnMore();
+    };
+
+    // Render a scroll indicator if needed
+    const renderScrollIndicator = (blockIndex) => {
+        // Don't show on the last block or second-to-last block
+        if (blockIndex === blocksRef.current.length - 1 ||
+            blockIndex === blocksRef.current.length - 2) return null;
+
+        // Show only on the current block
+        if (blockIndex !== currentBlockIndex) return null;
+
+        // For first block, show arrow immediately
+        if (blockIndex === 0) {
+            return (
+                <div
+                    className={`scroll-indicator scroll-indicator-${blockIndex}`}
+                    ref={(el) => addArrowRef(blockIndex, el)}
+                >
+                    <div className="scroll-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275t.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062"/>
+                        </svg>
+                    </div>
+                </div>
+            );
+        }
+
+        // For other blocks, show dots when scrolling, then arrow
+        return (
+            <div
+                className={`scroll-indicator scroll-indicator-${blockIndex}`}
+                ref={(el) => addArrowRef(blockIndex, el)}
+            >
+                {isScrolling ? (
+                    <div className="loading-dots">...</div>
+                ) : (
+                    <div className="scroll-arrow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275t.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062"/>
+                        </svg>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -83,6 +201,7 @@ const EndingLanding = ({ onLearnMore }) => {
                         La ballade qui a tout changé
                     </p>
                 </div>
+                {renderScrollIndicator(0)}
             </div>
 
             {/* Block 2 - The AI Myth */}
@@ -103,6 +222,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 <div className="ending-asset ending-asset-right first-asset">
                     <img src="/images/Assets_1.png" alt="AI Myth illustration" />
                 </div>
+                {renderScrollIndicator(1)}
             </div>
 
             {/* Block 3 - Environmental Impact */}
@@ -123,6 +243,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 <div className="ending-asset ending-asset-left second-asset">
                     <img src="/images/Assets_2.png" alt="Environmental impact illustration" />
                 </div>
+                {renderScrollIndicator(2)}
             </div>
 
             {/* Block 4 - Digital Rights */}
@@ -143,6 +264,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 <div className="ending-asset ending-asset-right third-asset">
                     <img src="/images/Assets_3.png" alt="Digital rights illustration" />
                 </div>
+                {renderScrollIndicator(3)}
             </div>
 
             {/* Block 5 - Call to Action */}
@@ -161,6 +283,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 <div className="ending-asset fourth-asset">
                     <img src="/images/Assets_4.png" alt="AI Myth illustration" />
                 </div>
+                {/* No arrow indicator for the second-to-last block */}
             </div>
 
             {/* Block 6 - Credits */}
