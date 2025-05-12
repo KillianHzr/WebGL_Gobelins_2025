@@ -10,6 +10,13 @@ const guiConfig = {
         width: 300,
         closeFolders: true
     },
+    interface: {
+        folder: "Interface",
+        skipIntro: {
+            name: "Sauter Intro/Loading",
+            default: true
+        }
+    },
     theatre: {
         folder: "Theatre.js",
         showUI: {

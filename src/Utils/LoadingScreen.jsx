@@ -1,22 +1,39 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import LoadingManager from './LoadingManager';
 import DesktopLanding from './DesktopLanding';
+import useStore from '../Store/useStore';
 
 /**
  * LoadingScreen component
  * Displays a loading progress bar and transitions to landing page when complete
  */
 const LoadingScreen = ({ onComplete }) => {
+    const { debug } = useStore();  // Récupérer l'état debug du store
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadingFadeOut, setLoadingFadeOut] = useState(false);
-    const [showLanding, setShowLanding] = useState(true); // Always render landing behind loading
-    const [landingEnabled, setLandingEnabled] = useState(false); // Control if landing is interactive
+    const [showLanding, setShowLanding] = useState(!debug?.skipIntro); // Condition basée sur skipIntro
+    const [landingEnabled, setLandingEnabled] = useState(false);
     const [blackScreenTransition, setBlackScreenTransition] = useState(false);
     const [displayProgress, setDisplayProgress] = useState(0);
     const animationFrameRef = useRef(null);
 
-    // Callback for when loading is complete
+    // Si on doit sauter l'intro, on appelle onComplete immédiatement
+    useEffect(() => {
+        if (debug?.skipIntro && onComplete) {
+            console.log("Debug mode: skipping intro and loading screen");
+            onComplete();
+        }
+    }, [debug, onComplete]);
+
+    // Callback pour quand le chargement est terminé
     const handleLoadingComplete = useCallback(() => {
+        if (debug?.skipIntro) {
+            // Si on doit sauter l'intro, ne pas afficher l'écran de chargement
+            console.log("Loading complete, skipping landing page due to debug mode");
+            if (onComplete) onComplete();
+            return;
+        }
+
         console.log("Loading complete, transitioning to landing page");
 
         if (animationFrameRef.current) {
@@ -24,18 +41,16 @@ const LoadingScreen = ({ onComplete }) => {
         }
 
         setDisplayProgress(100);
-
         setLoadingFadeOut(true);
 
         setTimeout(() => {
             setLandingEnabled(true);
             setLoadingComplete(true);
         }, 1000);
-    }, []);
+    }, [debug, onComplete]);
 
     const handleEnterExperience = useCallback(() => {
         console.log("Entering experience - starting first fade to black");
-
         setBlackScreenTransition(true);
 
         setTimeout(() => {
@@ -109,6 +124,11 @@ const LoadingScreen = ({ onComplete }) => {
 
     // Format the displayed percentage
     const formattedPercentage = Math.round(displayProgress);
+
+    // Si on est en mode debug avec skipIntro, ne rien afficher
+    if (debug?.skipIntro) {
+        return null;
+    }
 
     return (
         <>

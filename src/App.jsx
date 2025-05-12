@@ -14,7 +14,7 @@ import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 
 export default function App() {
-    const { loaded, setLoaded, endingLandingVisible } = useStore()
+    const { loaded, setLoaded, endingLandingVisible, debug } = useStore()
     const assetManagerRef = useRef(null)
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
@@ -24,6 +24,25 @@ export default function App() {
     const [showEndingLanding, setShowEndingLanding] = useState(false)
     const canvasRef = useRef(null)
     const narrationEndedRef = useRef(false)
+
+    // Si nous sommes en mode debug avec skipIntro, afficher directement l'expérience
+    useEffect(() => {
+        if (debug?.skipIntro) {
+            console.log("Debug mode: showing experience immediately");
+            setShowExperience(true);
+
+            // Mettre canvasRef visible immédiatement aussi
+            if (canvasRef.current) {
+                canvasRef.current.style.visibility = 'visible';
+                canvasRef.current.focus();
+            }
+
+            // On peut aussi déclencher directement la narration Scene01_Mission si nécessaire
+            setTimeout(() => {
+                narrationManager.playNarration('Scene01_Mission');
+            }, 500);
+        }
+    }, [debug]);
 
     // Check viewport width on mount and resize
     useEffect(() => {
@@ -124,15 +143,15 @@ export default function App() {
 
                     // Focus on canvas after showing it
                     // setTimeout(() => {
-                        if (canvasRef.current) {
-                            canvasRef.current.focus();
-                        }
+                    if (canvasRef.current) {
+                        canvasRef.current.focus();
+                    }
 
-                        // Play the next narration after showing the 3D scene
-                        setTimeout(() => {
-                            narrationManager.playNarration('Scene01_Mission');
-                            console.log("Lecture de la narration Scene01_Mission après transition");
-                        }, 2000);
+                    // Play the next narration after showing the 3D scene
+                    setTimeout(() => {
+                        narrationManager.playNarration('Scene01_Mission');
+                        console.log("Lecture de la narration Scene01_Mission après transition");
+                    }, 2000);
                     // }, 100);
 
                     // Remove this listener as it's no longer needed
@@ -157,15 +176,15 @@ export default function App() {
 
                     // Focus on canvas after showing it
                     // setTimeout(() => {
-                        if (canvasRef.current) {
-                            canvasRef.current.focus();
-                        }
+                    if (canvasRef.current) {
+                        canvasRef.current.focus();
+                    }
 
-                        // Play the next narration after showing the 3D scene
-                        setTimeout(() => {
-                            narrationManager.playNarration('Scene01_Mission');
-                            console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
-                        }, 2000);
+                    // Play the next narration after showing the 3D scene
+                    setTimeout(() => {
+                        narrationManager.playNarration('Scene01_Mission');
+                        console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
+                    }, 2000);
                     // }, 100);
                 }
             }, defaultDuration);
@@ -200,7 +219,7 @@ export default function App() {
             />
 
             {/* Loading Screen and Desktop Landing */}
-            {!showExperience && (
+            {!showExperience && !debug?.skipIntro && (
                 <LoadingScreen onComplete={handleEnterExperience} />
             )}
 

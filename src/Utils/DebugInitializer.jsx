@@ -507,6 +507,46 @@ const DebugInitializer = () => {
         }
     }, []);
 
+    // Setup des contrôles d'interface
+    const setupInterfaceControls = useCallback((gui) => {
+        const interfaceFolder = gui.addFolder('Interface');
+
+        // Paramètres d'interface avec valeurs par défaut basées uniquement sur l'URL actuelle
+        const interfaceSettings = {
+            skipIntro: window.location.hash === '#debug' // Cochée si exactement #debug, décochée sinon
+        };
+
+        // Créer le contrôle pour activer/désactiver l'affichage de l'intro
+        interfaceFolder.add(interfaceSettings, 'skipIntro')
+            .name(guiConfig.interface.skipIntro.name)
+            .onChange(value => {
+                // Mettre à jour uniquement le hash de l'URL
+                if (typeof window !== 'undefined') {
+                    const url = new URL(window.location.href);
+
+                    // Si skipIntro est activé, définir le hash à #debug exactement
+                    if (value) {
+                        url.hash = '#debug';
+                    } else {
+                        // Si on veut voir l'intro, mettre #debugWithIntro
+                        url.hash = '#debugWithIntro';
+                    }
+
+                    window.history.replaceState({}, '', url);
+
+                    // Informer l'utilisateur qu'un rechargement est nécessaire pour appliquer le changement
+                    console.log(`Intro mode updated: ${value ? 'skipping' : 'showing'} intro. Reload page to apply changes.`);
+                    // Option: ajouter une notification visuelle indiquant qu'un rechargement est nécessaire
+                }
+            });
+
+        if (guiConfig.gui.closeFolders) {
+            interfaceFolder.close();
+        }
+
+        return interfaceSettings;
+    }, []);
+
     // Setup des points d'interaction
     const setupInteractionPoints = useCallback((gui) => {
         const interactionPointsFolder = gui.addFolder('Points d\'interaction');
@@ -673,6 +713,7 @@ const DebugInitializer = () => {
             // Configurer les différentes sections
             setupVisualizationControls(gui);
             setupEndingControls(gui);
+            setupInterfaceControls(gui);
             setupInteractionPoints(gui);
             setupChaptersControls(gui);
 
@@ -698,6 +739,7 @@ const DebugInitializer = () => {
         applyProfile,
         setupVisualizationControls,
         setupEndingControls,
+        setupInterfaceControls,
         setupInteractionPoints,
         setupChaptersControls,
         jumpToChapter,

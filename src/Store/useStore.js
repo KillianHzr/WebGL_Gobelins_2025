@@ -10,8 +10,18 @@ import {CameraSlice} from "./CameraSlice.js";
 const isDebugEnabled = () => {
     // Check if running in browser environment
     if (typeof window !== 'undefined') {
-        // Check if URL hash contains #debug
-        return window.location.hash.includes('#debug');
+        // Debug est activé si le hash contient #debug ou #debugWithIntro
+        return window.location.hash === '#debug' || window.location.hash === '#debugWithIntro';
+    }
+    return false;
+}
+
+// Function to check if intro should be skipped
+const shouldSkipIntro = () => {
+    // Check if running in browser environment
+    if (typeof window !== 'undefined') {
+        // Skip intro uniquement si le hash est exactement #debug (pas #debugWithIntro)
+        return window.location.hash === '#debug';
     }
     return false;
 }
@@ -47,9 +57,10 @@ const useStore = create((set, get) => ({
 
     // Debug state - initially set based on URL hash
     debug: {
-        active: isDebugEnabled(),     // Enable debug features only if #debug in URL
+        active: isDebugEnabled(),     // Enable debug features if #debug or #debugWithIntro in URL
         showStats: isDebugEnabled(),  // Show performance statistics
         showGui: isDebugEnabled(),    // Show control panel
+        skipIntro: shouldSkipIntro(),
     },
     setDebug: (debugSettings) => set(state => ({
         debug: {...state.debug, ...debugSettings}
@@ -287,18 +298,17 @@ const useStore = create((set, get) => ({
 if (typeof window !== 'undefined') {
     window.addEventListener('hashchange', () => {
         const debugEnabled = isDebugEnabled();
+        const skipIntroEnabled = shouldSkipIntro();
 
         // Mise à jour du mode debug
         useStore.getState().setDebug({
             active: debugEnabled,
             showStats: debugEnabled,
             showGui: debugEnabled,
-            showTheatre: debugEnabled
+            showTheatre: debugEnabled,
+            skipIntro: skipIntroEnabled
         });
-
-
     });
-
 }
 
 export default useStore

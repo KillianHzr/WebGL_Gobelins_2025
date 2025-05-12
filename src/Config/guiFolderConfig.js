@@ -64,6 +64,7 @@ const guiFolderConfig = {
             // Profil minimal pour une interface épurée
             "Theatre.js": true,
             "Visualisation": true,
+            "Interface": true,
             "Camera": false,
             "Render": false,
             "Controls": false,
@@ -79,6 +80,7 @@ const guiFolderConfig = {
         },
         "artist": {
             "Visualisation": false,
+            "Interface": true,
             "Camera": true,
             "Render": true,
             "Controls": false,
@@ -97,6 +99,7 @@ const guiFolderConfig = {
         "empty": {
             "Theatre.js": false,
             "Visualisation": false,
+            "Interface": false,
             "Camera": false,
             "Render": false,
             "Controls": false,
@@ -113,6 +116,7 @@ const guiFolderConfig = {
         },
         "developer": {
             "Visualisation": true,
+            "Interface": true,
             "Camera": true,
             "Render": true,
             "Controls": true,
@@ -132,6 +136,7 @@ const guiFolderConfig = {
             // Profil pour tester les performances
             "Theatre.js": false,
             "Visualisation": true,
+            "Interface": true,
             "Camera": false,
             "Render": true,
             "Controls": false,
