@@ -362,8 +362,8 @@ class SceneObjectManager {
                     requiredStep: 'sixthStop'
                 }],
                 defaultPlacement: {
-                    // position: [52.11705, 0, -129.83212],
-                    position: [41.1708, 0, -141.38123], // position for testing without good camera path
+                    position: [52.11705, 0, -129.83212],
+                    // position: [41.1708, 0, -141.38123], // position for testing without good camera path
                     rotation: [-3.14159, 67.09271, -3.14159],
                     scale: [0.07888, 0.07888, 0.07888],
                     outlinePulse: false,
@@ -446,8 +446,8 @@ class SceneObjectManager {
                     requiredStep: 'tenthStopEnd'
                 }],
                 defaultPlacement: {
-                    // position: [51.907, 0.0, -134.251],
-                    position: [46.04188, -0.01742, -139.30914], // position for testing without good camera path
+                    position: [51.907, 0.0, -134.251],
+                    // position: [46.04188, -0.01742, -139.30914], // position for testing without good camera path
                     rotation: [0, 90 - 29.02382, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
@@ -471,8 +471,8 @@ class SceneObjectManager {
                     requiredStep: 'seventhStop',
                 }],
                 defaultPlacement: {
-                    // position: [59.06875, -0.01692, -130.29213],
-                    position: [49.27544, -0.01692, -135.38611], // position for testing without good camera path
+                    position: [59.06875, -0.01692, -130.29213],
+                    // position: [49.27544, -0.01692, -135.38611], // position for testing without good camera path
                     rotation: [0, -19.99978 - 90, 0],
                     scale: [0.099746, 0.099746, 0.099746],
                 }
