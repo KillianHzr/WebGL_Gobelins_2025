@@ -11,6 +11,13 @@ const LOD_CONFIG = {
     MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 2, MIN_DETAIL_PERCENTAGE: 0.1, DEBUG_LOD: false
 };
 
+const TRUNK_SWITCH_CONFIG = {
+    SWITCH_DISTANCE: 35,      // Distance à laquelle basculer entre TrunkThin et TrunkThinPlane
+    SWITCH_RANGE: 7,         // Plage de variation pour créer une transition plus progressive
+    CHUNK_SIZE: 10,           // Taille de chunk plus petite spécifique pour TrunkThin/TrunkThinPlane
+    DEBUG_SWITCH: false       // Activer les logs de débogage pour ce switch
+};
+
 // Configuration du chargement progressif
 const LOADING_CONFIG = {
     // Nombre maximum d'objets à charger par lot
@@ -467,6 +474,11 @@ export default function Forest() {
 
             // Ajouter les instances au groupe approprié et à la liste des instances
             instances.forEach(instance => {
+                // Si c'est un TrunkThinPlane, le cacher initialement
+                if (objectId === 'TrunkThinPlane') {
+                    instance.visible = false;
+                }
+
                 targetGroup.add(instance);
                 lodInstancesRef.current.push(instance);
             });
@@ -553,6 +565,17 @@ export default function Forest() {
             instancedMesh.userData.maxDistance = maxDistance;
             instancedMesh.userData.chunkCenter = chunkCenter;
             instancedMesh.userData.objectId = objectId;
+            instancedMesh.userData.chunkId = chunkId;
+
+            // Pour TrunkThin, calculer un seuil personnalisé
+            if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
+                // Extraire chunkX et chunkZ du chunkId
+                const parts = chunkId.split('_');
+                const chunkX = parts.length > 1 ? parseInt(parts[1]) : 0;
+                const chunkZ = parts.length > 2 ? parseInt(parts[2]) : 0;
+
+                instancedMesh.userData.customSwitchThreshold = getChunkCustomThreshold(chunkId, chunkX, chunkZ);
+            }
 
             // Calculer la sphère englobante pour le frustum culling
             const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
@@ -579,6 +602,35 @@ export default function Forest() {
         }
 
         return instances;
+    };
+
+    const getChunkHash = (chunkId, x, z) => {
+        // Utiliser un simple algorithme de hachage pour générer une valeur pseudo-aléatoire mais stable
+        let hash = 0;
+        for (let i = 0; i < chunkId.length; i++) {
+            hash = (hash << 5) - hash + chunkId.charCodeAt(i);
+            hash |= 0; // Convertir en entier 32 bits
+        }
+        // Ajouter l'influence des coordonnées pour plus de variation
+        hash += x * 73 + z * 151;
+        return hash;
+    };
+
+    const getChunkCustomThreshold = (chunkId, chunkX, chunkZ) => {
+        const hash = getChunkHash(chunkId, chunkX, chunkZ);
+        // Générer une variation entre -SWITCH_RANGE/2 et +SWITCH_RANGE/2
+        const variation = (hash % TRUNK_SWITCH_CONFIG.SWITCH_RANGE) - (TRUNK_SWITCH_CONFIG.SWITCH_RANGE / 2);
+        return TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE + variation;
+    };
+
+    const resetProcessingFlags = () => {
+        lodInstancesRef.current.forEach(instance => {
+            if (instance.userData &&
+                (instance.userData.objectId === 'TrunkThin' ||
+                    instance.userData.objectId === 'TrunkThinPlane')) {
+                instance.userData.processed = false;
+            }
+        });
     };
 
     // Version asynchrone pour la création de géométrie simplifiée
@@ -746,6 +798,9 @@ export default function Forest() {
         }
         frameSkipRef.current = 0;
 
+        // Réinitialiser les flags de traitement
+        resetProcessingFlags();
+
         if (camera && lodInstancesRef.current.length > 0) {
             const cameraPosition = camera.position;
 
@@ -753,7 +808,43 @@ export default function Forest() {
             projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
-            // Mettre à jour la visibilité des LOD pour tous les meshes instanciés
+            // Créer deux Maps pour stocker les objets TrunkThin et TrunkThinPlane par position
+            const trunkThinMap = new Map();
+            const trunkThinPlaneMap = new Map();
+
+            // Premier passage: identifier et indexer tous les TrunkThin et TrunkThinPlane
+            lodInstancesRef.current.forEach(instance => {
+                if (!instance.userData) return;
+
+                const objectId = instance.userData.objectId;
+
+                // Ignorer les objets autres que TrunkThin et TrunkThinPlane
+                if (objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') return;
+
+                // Créer une clé basée sur la position pour identifier les paires
+                const posKey = instance.userData.chunkCenter ?
+                    `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
+
+                if (!posKey) return;
+
+                // Stocker l'instance dans la map appropriée avec le seuil personnalisé
+                if (objectId === 'TrunkThin') {
+                    // Calculer un seuil personnalisé pour ce chunk si ce n'est pas déjà fait
+                    if (!instance.userData.customSwitchThreshold && instance.userData.chunkId) {
+                        const [_, chunkX, chunkZ] = instance.userData.chunkId.split('_').map(Number);
+                        instance.userData.customSwitchThreshold = getChunkCustomThreshold(
+                            instance.userData.chunkId,
+                            chunkX || 0,
+                            chunkZ || 0
+                        );
+                    }
+                    trunkThinMap.set(posKey, instance);
+                } else if (objectId === 'TrunkThinPlane') {
+                    trunkThinPlaneMap.set(posKey, instance);
+                }
+            });
+
+            // Deuxième passage: mettre à jour la visibilité de tous les objets
             lodInstancesRef.current.forEach(instance => {
                 if (!instance.userData) return;
 
@@ -766,21 +857,79 @@ export default function Forest() {
                 // Vérifier d'abord le frustum culling (optimisation majeure)
                 const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
 
-                if (visible) {
-                    // Vérifier si ce niveau LOD doit être visible en fonction de la distance
-                    const minDistance = instance.userData.minDistance || 0;
-                    const maxDistance = instance.userData.maxDistance || Infinity;
+                const objectId = instance.userData.objectId;
 
-                    // Définir la visibilité en fonction de la distance
-                    instance.visible = (distance >= minDistance && distance < maxDistance);
+                // Logique spéciale pour TrunkThin et TrunkThinPlane
+                if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
+                    // Créer la clé de position
+                    const posKey = `${chunkCenter.x.toFixed(2)}_${chunkCenter.y.toFixed(2)}_${chunkCenter.z.toFixed(2)}`;
+
+                    if (visible) {
+                        if (objectId === 'TrunkThin') {
+                            // Utiliser le seuil personnalisé si disponible
+                            const switchThreshold = instance.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+
+                            // TrunkThin est visible si la distance est inférieure au seuil personnalisé
+                            instance.visible = distance < switchThreshold;
+
+                            // Si on a un TrunkThinPlane correspondant, mettre à jour sa visibilité
+                            const planeInstance = trunkThinPlaneMap.get(posKey);
+                            if (planeInstance) {
+                                planeInstance.visible = visible && distance >= switchThreshold;
+                            }
+
+                            // Logging de débogage
+                            if (TRUNK_SWITCH_CONFIG.DEBUG_SWITCH && Math.random() < 0.001) {
+                                console.log(`${objectId} à distance=${distance.toFixed(1)}, visible=${instance.visible}, ` +
+                                    `seuil personnalisé=${switchThreshold.toFixed(1)}`);
+                            }
+                        } else if (objectId === 'TrunkThinPlane') {
+                            // Trouver le TrunkThin correspondant pour obtenir son seuil
+                            const thinInstance = trunkThinMap.get(posKey);
+                            const switchThreshold = thinInstance?.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+
+                            // TrunkThinPlane est visible si la distance est supérieure ou égale au seuil
+                            instance.visible = distance >= switchThreshold;
+
+                            // Si on a déjà traité son TrunkThin correspondant, on skip, sinon on met à jour
+                            if (thinInstance && !thinInstance.userData.processed) {
+                                thinInstance.visible = visible && distance < switchThreshold;
+                                thinInstance.userData.processed = true; // Marquer comme traité
+                            }
+
+                            // Logging de débogage
+                            if (TRUNK_SWITCH_CONFIG.DEBUG_SWITCH && Math.random() < 0.001) {
+                                console.log(`${objectId} à distance=${distance.toFixed(1)}, visible=${instance.visible}, ` +
+                                    `seuil personnalisé=${switchThreshold.toFixed(1)}`);
+                            }
+                        }
+                    } else {
+                        // Pas dans le frustum, cacher
+                        instance.visible = false;
+                    }
                 } else {
-                    // Pas dans le frustum de vue, le cacher
-                    instance.visible = false;
+                    // Logique standard pour les autres objets
+                    if (visible) {
+                        // Vérifier si ce niveau LOD doit être visible en fonction de la distance
+                        const minDistance = instance.userData.minDistance || 0;
+                        const maxDistance = instance.userData.maxDistance || Infinity;
+
+                        // Définir la visibilité en fonction de la distance
+                        instance.visible = (distance >= minDistance && distance < maxDistance);
+                    } else {
+                        // Pas dans le frustum de vue, le cacher
+                        instance.visible = false;
+                    }
                 }
 
-                // Logging de débogage pour les premières instances
-                if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001) {
-                    // console.log(`LOD update for ${instance.name}: ` + `distance=${distance.toFixed(1)}, ` + `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` + `visible=${instance.visible}, in frustum=${visible}`);
+                // Logging de débogage pour les instances standard
+                if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001 && objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') {
+                    const minDistance = instance.userData.minDistance || 0;
+                    const maxDistance = instance.userData.maxDistance || Infinity;
+                    console.log(`LOD update for ${instance.name}: ` +
+                        `distance=${distance.toFixed(1)}, ` +
+                        `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` +
+                        `visible=${instance.visible}, in frustum=${visible}`);
                 }
             });
         }
