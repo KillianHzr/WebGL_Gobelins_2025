@@ -123,8 +123,6 @@ export default function Forest() {
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Add keyboard event listener
-        window.addEventListener('keydown', handleKeyPress);
 
 
         const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
@@ -145,7 +143,6 @@ export default function Forest() {
         // Nettoyer les ressources
         return () => {
             cleanupResources();
-            window.removeEventListener('keydown', handleKeyPress);
             endGroupUnsubscribe();
             screenGroupUnsubscribe();
         };

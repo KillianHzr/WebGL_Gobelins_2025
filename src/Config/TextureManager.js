@@ -539,6 +539,12 @@ class TextureManager {
             metalness: 0.7,
             envMapIntensity: 0.08
         });
+
+        // this.addPlantTexture('TrunkThinPlane', 'forest/tree', {
+        //     roughness: 0.81,
+        //     metalness: 0.7,
+        //     envMapIntensity: 0.08
+        // });
         this.addTextureMapping('TreeNaked', 'forest/tree', null, {
             roughness: 1.0,
             metalness: 0.59,
