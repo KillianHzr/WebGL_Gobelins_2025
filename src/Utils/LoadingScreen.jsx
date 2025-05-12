@@ -34,7 +34,7 @@ const LoadingScreen = ({ onComplete }) => {
     }, []);
 
     const handleEnterExperience = useCallback(() => {
-        console.log("Entering experience");
+        console.log("Entering experience - starting first fade to black");
 
         setBlackScreenTransition(true);
 
