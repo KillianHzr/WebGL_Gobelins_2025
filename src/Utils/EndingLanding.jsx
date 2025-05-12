@@ -291,7 +291,7 @@ const EndingLanding = ({ onLearnMore }) => {
                 <div className="ending-block-content">
                     <div className="ending-credits-container">
                         <div className="ending-project-logo-small">
-                            <img src="/images/loader.webp" alt="Gobelins Logo" />
+                            <img src="/images/loader.gif" alt="Gobelins Logo" />
                         </div>
                         <div className="ending-credits">
                             <div className="ending-credits-names">

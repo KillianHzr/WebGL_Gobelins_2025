@@ -125,7 +125,7 @@ const LoadingScreen = ({ onComplete }) => {
                 <div className={`loading-screen ${loadingFadeOut ? 'fade-out' : ''}`}>
                     <div className="loading-content">
                         <div className="loading-logo">
-                            <img src="/images/loader.webp" alt="Gobelins Logo" />
+                            <img src="/images/loader.gif" alt="Gobelins Logo" />
                         </div>
                         <div className="loading-progress-container">
                             <div
