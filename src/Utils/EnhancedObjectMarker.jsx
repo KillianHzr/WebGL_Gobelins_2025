@@ -681,7 +681,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressStartTime.current = Date.now();
         setIsLongPressing(true);
-        setLongPressFeedback(0); // Réinitialiser la progression au début
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {

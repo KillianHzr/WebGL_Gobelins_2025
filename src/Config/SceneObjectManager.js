@@ -115,7 +115,7 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
+                    type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Observer le tronc",
                     offset: -0.5,
                     axis: "y",
