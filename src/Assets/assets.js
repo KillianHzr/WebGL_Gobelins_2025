@@ -133,6 +133,13 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },{
+        name: 'TrunkThinPlane',
+        type: 'gltf',
+        path: '/models/forest/tree/TreeThinPlane.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'TreeStump',

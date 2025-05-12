@@ -151,43 +151,6 @@ export default function Forest() {
         };
     }, [scene, camera, assetManager]);
 
-    const handleKeyPress = (event) => {
-        if (event.key === 'e' || event.key === 'E') {
-            // Obtenir l'état actuel
-            const currentVisibility = useStore.getState().endGroupVisible;
-            const newVisibility = !currentVisibility;
-
-            // console.log(`Touche E pressée - Visibilité du groupe "End": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
-
-            // 1. Mettre à jour l'état dans le store
-            useStore.getState().setEndGroupVisible(newVisibility);
-
-            // 2. Mettre à jour directement la référence du DOM
-            if (endGroupRef.current) {
-                endGroupRef.current.visible = newVisibility;
-            }
-
-            // 3. Émettre un événement unique avec le nouvel état
-            EventBus.trigger('end-group-visibility-changed', newVisibility);
-        }
-
-        if (event.key === 's' || event.key === 'S') {
-            // Même logique pour le groupe Screen
-            const currentVisibility = useStore.getState().screenGroupVisible;
-            const newVisibility = !currentVisibility;
-
-            // console.log(`Touche S pressée - Visibilité du groupe "Screen": ${currentVisibility ? 'visible' : 'caché'} -> ${newVisibility ? 'visible' : 'caché'}`);
-
-            useStore.getState().setScreenGroupVisible(newVisibility);
-
-            if (screenGroupRef.current) {
-                screenGroupRef.current.visible = newVisibility;
-            }
-
-            EventBus.trigger('screen-group-visibility-changed', newVisibility);
-        }
-    };
-
     useEffect(() => {
         // Synchroniser les objets Three.js avec l'état du store
         if (endGroupRef.current) {

@@ -3150,7 +3150,7 @@ class TextureManager {
                             const vertex = new Vector3(
                                 positions.getX(i),
                                 positions.getY(i),
-                                positions.getZ(i)
+                                positions.getZ(i),
                             );
 
                             // Transformer la position locale en position mondiale
