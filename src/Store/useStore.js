@@ -4,6 +4,7 @@ import {createInteractionSlice} from './InteractionSlice'
 import {createClickListenerSlice} from './clickListenerSlice'
 import {createNarrationSlice} from './NarrationSlice'
 import {createEndingLandingSlice} from "./EndingLandingSlice.js";
+import {CameraSlice} from "./CameraSlice.js";
 
 // Function to check if debug is enabled in URL
 const isDebugEnabled = () => {
@@ -21,6 +22,8 @@ const useStore = create((set, get) => ({
     loaded: false,
     setLoaded: (loaded) => set({loaded}),
 
+    // Camera GLB model and animation
+    ...CameraSlice(set, get),
 
     chapters: {
         distances: {},
@@ -260,17 +263,6 @@ const useStore = create((set, get) => ({
                     }
                 }
             }));
-
-            // Réactiver le défilement avec un léger délai
-            // setTimeout(() => {
-            //     set(state => ({
-            //         interaction: {
-            //             ...state.interaction,
-            //             allowScroll: true
-            //         }
-            //     }));
-            // }, 500);
-
 
             return currentStep;
         }

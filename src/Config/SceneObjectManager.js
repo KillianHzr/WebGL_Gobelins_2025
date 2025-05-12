@@ -52,6 +52,14 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
+            'Camera': {
+                id: 'Camera',
+                path: '/models/Camera.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: false,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            },
             // 'WaterPlane': {
             //     id: 'WaterPlane',
             //     path: '/models/forest/river/River.glb',

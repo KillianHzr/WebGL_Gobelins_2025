@@ -1197,7 +1197,7 @@ class TextureManager {
                     },
                     undefined,
                     (error) => {
-                        console.error(`Erreur lors du chargement de la texture ${texturePath}:`, error);
+                        // console.error(`Erreur lors du chargement de la texture ${texturePath}:`, error);
                         reject(error);
                     }
                 );
@@ -1227,12 +1227,12 @@ class TextureManager {
                         }
                     })
                     .catch(error => {
-                        console.warn(`Échec du chargement de la texture ${textureType} pour ${modelId}:`, error);
+                        // console.warn(`Échec du chargement de la texture ${textureType} pour ${modelId}:`, error);
                     });
 
                 promises.push(promise);
             } else {
-                console.warn(`Chemin de texture invalide pour ${modelId}.${textureType}:`, texturePath);
+                // console.warn(`Chemin de texture invalide pour ${modelId}.${textureType}:`, texturePath);
             }
         }
 

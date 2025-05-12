@@ -7,6 +7,13 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },{
+        name: 'Camera',
+        type: 'gltf',
+        path: '/models/Camera.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'MapInstance',

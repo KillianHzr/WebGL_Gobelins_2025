@@ -170,8 +170,8 @@ export default class CameraAnimator {
         const rotation = { x: rotX, y: rotY, z: rotZ };
 
         // Appliquer les valeurs à la caméra
-        this.camera.position.set(posX, posY, posZ);
-        this.camera.rotation.set(rotX, rotY, rotZ);
+        this.camera.position.set(posZ, 0, posY);
+        this.camera.rotation.set(rotX - Math.PI / 2 , rotY, rotZ);
         this.camera.updateProjectionMatrix();
 
         return { position, rotation };
