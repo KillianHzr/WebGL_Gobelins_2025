@@ -272,7 +272,7 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
             <NarrationTriggers/>
-            <CameraSwitcher/>
+            {/*<CameraSwitcher/>*/}
             <SceneFog />
 
             {debug && <Stats />}
