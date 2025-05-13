@@ -1,19 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import useStore from '../Store/useStore';
 import { Howler } from 'howler';
 
 /**
  * MainLayout component
  * Persistent layout that shows after loading completes
- * Contains school logo and audio button with volume control
+ * Contains school logo and audio button
  */
 const MainLayout = () => {
     const { audio, audio: { muted, setVolume } } = useStore();
-    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-    const [volumeValue, setVolumeValue] = useState(Howler.volume() || 1);
-
-    const containerRef = useRef(null);
-    const timeoutRef = useRef(null);
+    const volumeValue = Howler.volume() || 1;
 
     // Handler for audio button click
     const handleAudioToggle = () => {
@@ -26,45 +22,6 @@ const MainLayout = () => {
         useStore.getState().audio.muted = newMutedState;
     };
 
-    // Handler for volume slider change
-    const handleVolumeChange = (e) => {
-        const newVolume = parseFloat(e.target.value);
-        setVolumeValue(newVolume);
-
-        if (newVolume === 0 && !muted) {
-            useStore.getState().audio.muted = true;
-        }
-        else if (newVolume > 0 && muted) {
-            useStore.getState().audio.muted = false;
-        }
-
-        Howler.volume(newVolume);
-        setVolume(newVolume);
-    };
-
-    // Mouse enter handler with persistent state
-    const handleMouseEnter = () => {
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-        }
-        setShowVolumeSlider(true);
-    };
-
-    // Mouse leave handler with delay
-    const handleMouseLeave = () => {
-        setShowVolumeSlider(false);
-    };
-
-    // Clean up timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-            }
-        };
-    }, []);
-
     return (
         <div className="main-layout">
             {/* School logo in top-left */}
@@ -72,27 +29,8 @@ const MainLayout = () => {
                 <img src="/images/logo-small.svg" alt="Layon Logo" />
             </div>
 
-            {/* Audio controls container */}
-            <div
-                ref={containerRef}
-                className={`main-layout-audio-controls ${showVolumeSlider ? 'show-volume' : ''}`}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-            >
-                {/* Volume slider */}
-                <div className="main-layout-volume-slider">
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={volumeValue}
-                        onChange={handleVolumeChange}
-                        aria-label="Volume control"
-                    />
-                </div>
-
-                {/* Audio button */}
+            {/* Audio button */}
+            <div className="main-layout-audio-controls">
                 <button
                     className="main-layout-audio-button"
                     onClick={handleAudioToggle}
