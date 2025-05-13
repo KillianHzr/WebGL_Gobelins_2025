@@ -7,14 +7,32 @@ import {useAnimationFrame} from "../Utils/AnimationManager.js";
 import {CameraAnimatorGLB} from './CameraAnimatorGLB';
 
 const getChaptersWithDistances = () => {
-    return [
-        {id: 'firstStop', name: "Introduction", distance: getDistanceForChapter('firstStop'), completed: false},
-        {id: 'secondStop', name: "Forêt mystérieuse", distance: getDistanceForChapter('secondStop'), completed: false},
-        {id: 'thirdStop', name: "Découverte", distance: getDistanceForChapter('thirdStop'), completed: false},
-        {id: 'fourthStop', name: "Créatures", distance: getDistanceForChapter('fourthStop'), completed: false},
-        {id: 'fifthStop', name: "Exploration", distance: getDistanceForChapter('fifthStop'), completed: false},
-        {id: 'sixthStop', name: "Conclusion", distance: getDistanceForChapter('sixthStop'), completed: false}
-    ];
+    return [{
+        id: 'firstStop',
+        name: "Introduction",
+        distance: getDistanceForChapter('firstStop'),
+        completed: false
+    }, {
+        id: 'secondStop',
+        name: "Forêt mystérieuse",
+        distance: getDistanceForChapter('secondStop'),
+        completed: false
+    }, {
+        id: 'thirdStop',
+        name: "Découverte",
+        distance: getDistanceForChapter('thirdStop'),
+        completed: false
+    }, {
+        id: 'fourthStop',
+        name: "Créatures",
+        distance: getDistanceForChapter('fourthStop'),
+        completed: false
+    }, {
+        id: 'fifthStop',
+        name: "Exploration",
+        distance: getDistanceForChapter('fifthStop'),
+        completed: false
+    }, {id: 'sixthStop', name: "Conclusion", distance: getDistanceForChapter('sixthStop'), completed: false}];
 };
 
 // Fonction pour récupérer la distance pour un chapitre donné
@@ -24,11 +42,7 @@ const getDistanceForChapter = (chapterId) => {
 
 // Utilisation de la fonction pour initialiser les chapitres
 const CHAPTERS = getChaptersWithDistances();
-const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter =>
-    chapter.distance !== 0 &&
-    chapter.distance !== "none" &&
-    chapter.distance !== undefined
-);
+const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
@@ -178,7 +192,10 @@ function CameraController({children}) {
             window.CHAPTERS = ACTIVE_CHAPTERS;
 
             // Créer l'interface de progression
-            createProgressUI();
+            if (!debug) {
+
+                createProgressUI();
+            }
 
             // Configurer le scroll
             setupScrollHandlers();
@@ -305,9 +322,7 @@ function CameraController({children}) {
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirdStop') || key.includes('LeafErable')
-                );
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
 
                 if (!leafErableCompleted) {
                     return false;
@@ -319,9 +334,7 @@ function CameraController({children}) {
 
             if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
                 // Trouver l'index de l'interaction actuelle
-                const currentInteractionIndex = objectConfig.interaction.findIndex(
-                    config => config.requiredStep === interaction.id
-                );
+                const currentInteractionIndex = objectConfig.interaction.findIndex(config => config.requiredStep === interaction.id);
 
                 // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
                 if (currentInteractionIndex > 0) {
@@ -329,9 +342,7 @@ function CameraController({children}) {
                     const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
 
                     // Vérifier si l'interaction précédente a été complétée
-                    const previousStepCompleted = Object.keys(completedInteractions).some(key =>
-                        key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep
-                    );
+                    const previousStepCompleted = Object.keys(completedInteractions).some(key => key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep);
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
                     if (!previousStepCompleted) {
@@ -465,75 +476,6 @@ function CameraController({children}) {
         };
     }, []);
 
-    // Gestion des éléments d'interface pour les interactions
-    useEffect(() => {
-        // Créer l'élément d'instruction pour les interactions si nécessaire
-        if (!document.getElementById('interaction-instruction')) {
-            const instruction = document.createElement('div');
-            instruction.id = 'interaction-instruction';
-            instruction.style.position = 'fixed';
-            instruction.style.top = '50%';
-            instruction.style.left = '50%';
-            instruction.style.transform = 'translate(-50%, -50%)';
-            instruction.style.padding = '15px 30px';
-            instruction.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            instruction.style.color = 'white';
-            instruction.style.fontFamily = 'sans-serif';
-            instruction.style.fontSize = '18px';
-            instruction.style.fontWeight = 'bold';
-            instruction.style.borderRadius = '8px';
-            instruction.style.display = 'none';
-            instruction.style.zIndex = '100';
-            instruction.style.textAlign = 'center';
-            instruction.textContent = 'Interagir pour continuer';
-            document.body.appendChild(instruction);
-        }
-
-        // Créer le bouton d'interaction si nécessaire
-        if (!document.getElementById('interaction-button') && isWaitingForInteraction) {
-            const button = document.createElement('button');
-            button.id = 'interaction-button';
-            button.style.position = 'fixed';
-            button.style.top = '60%';
-            button.style.left = '50%';
-            button.style.transform = 'translate(-50%, -50%)';
-            button.style.padding = '15px 30px';
-            button.style.backgroundColor = '#4383f5';
-            button.style.color = 'white';
-            button.style.border = 'none';
-            button.style.borderRadius = '8px';
-            button.style.fontSize = '18px';
-            button.style.fontWeight = 'bold';
-            button.style.cursor = 'pointer';
-            button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-            button.style.transition = 'all 0.3s ease';
-            button.style.zIndex = '100';
-            button.textContent = 'Continuer';
-
-            button.addEventListener('mouseover', () => {
-                button.style.backgroundColor = '#306ad6';
-            });
-
-            button.addEventListener('mouseout', () => {
-                button.style.backgroundColor = '#4383f5';
-            });
-
-            button.addEventListener('click', completeInteraction);
-
-            document.body.appendChild(button);
-            setShowInteractionButton(true);
-        } else if (document.getElementById('interaction-button') && !isWaitingForInteraction) {
-            const button = document.getElementById('interaction-button');
-            button.remove();
-            setShowInteractionButton(false);
-        }
-
-        return () => {
-            if (document.getElementById('interaction-button')) {
-                document.getElementById('interaction-button').remove();
-            }
-        };
-    }, [isWaitingForInteraction, completeInteraction]);
 
     useEffect(() => {
         // Function that will be called when an interaction is completed
@@ -565,8 +507,7 @@ function CameraController({children}) {
 
                     // Ajouter un événement explicite pour informer les autres systèmes
                     EventBus.trigger('no-transition-for-step', {
-                        stepId: stepId,
-                        reason: 'zero-distance'
+                        stepId: stepId, reason: 'zero-distance'
                     });
 
                     // Réactiver le défilement après un court délai
@@ -1114,15 +1055,16 @@ function CameraController({children}) {
         if (canvasElement) {
             // Note: Ces gestionnaires sont définis dans setupScrollHandlers,
             // nous devrions idéalement les stocker dans des refs pour un nettoyage précis
-            canvasElement.removeEventListener('wheel', () => {});
-            canvasElement.removeEventListener('touchstart', () => {});
-            canvasElement.removeEventListener('touchmove', () => {});
+            canvasElement.removeEventListener('wheel', () => {
+            });
+            canvasElement.removeEventListener('touchstart', () => {
+            });
+            canvasElement.removeEventListener('touchmove', () => {
+            });
         }
     };
 
-    return (
-        <>
-            {children}
-        </>
-    );
+    return (<>
+        {children}
+    </>);
 }

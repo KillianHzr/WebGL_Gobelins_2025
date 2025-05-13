@@ -17,7 +17,7 @@ export default function ScannerInterface() {
     const scanTimerRef = useRef(null);
     const scanStartTimeRef = useRef(null);
     const scanSoundIdRef = useRef(null);
-    const scanDuration = 7000; // 7 seconds scan time
+    const scanDuration = 3000; // 3 seconds scan time
 
     // Monitor state changes to determine when to display the interface
     useEffect(() => {
