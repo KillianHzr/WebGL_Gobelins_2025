@@ -5,6 +5,7 @@ import guiConfig from '../Config/guiConfig';
 import * as THREE from 'three';
 import { SRGBColorSpace, TextureLoader } from 'three';
 import { EventBus } from '../Utils/EventEmitter.jsx';
+import GuiConfig from "../Config/guiConfig";
 
 export default function Camera() {
     const { camera, gl, scene } = useThree();
@@ -118,9 +119,10 @@ export default function Camera() {
                 // Copier les propriétés de la caméra GLB vers la caméra Three.js
                 if (glbCamera.isCamera) {
                     // Si c'est une vraie caméra, on copie les propriétés
-                    camera.fov = glbCamera.fov;
-                    camera.near = glbCamera.near;
-                    camera.far = glbCamera.far;
+                    camera.fov = glbCamera.fov*1.2; // Ajuster le champ de vision
+                    camera.near = 0.1;
+                    camera.far = GuiConfig.scene.fog.far.default + 3;
+                    camera.zoom = glbCamera.zoom;
                     camera.aspect = glbCamera.aspect;
                     camera.updateProjectionMatrix();
                 }

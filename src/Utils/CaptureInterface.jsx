@@ -95,18 +95,19 @@ export default function CaptureInterface() {
         }
 
         setIsVisible(false);
-            setIsFlashing(true);
+        setIsFlashing(true);
+        toggleSceneGroups();
+
         setTimeout(() => {
 
             // Toggle scene groups when the flash effect starts
-            toggleSceneGroups();
 
 
             setIsButtonPressed(false);
             setIsFlashing(false);
 
             // Jump to chapter and complete interaction
-            window.doJumpToChapter(0.01)
+            window.doJumpToChapter(0.6)
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);
             }

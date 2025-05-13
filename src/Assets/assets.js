@@ -42,6 +42,13 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    }, {
+        name: 'DirectionPanelDigital',
+        type: 'gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'Vison',

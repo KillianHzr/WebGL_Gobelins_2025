@@ -24,7 +24,7 @@ const NarrationTriggers = () => {
 
     // Map pour associer les objets interactifs à leurs narrations
     const objectNarrationMap = {
-        'DirectionPanelEndInteractive': 'Scene02_PanneauInformation',
+        'DirectionPanelStartInteractive': 'Scene02_PanneauInformation',
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
         'LeafErable': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
@@ -149,7 +149,48 @@ const NarrationTriggers = () => {
                         return; // Sortir sans déclencher d'interaction
                     }
                 }
+// Après le bloc de vérification pour AnimalPaws
+// Vérification spécifique pour JumpRock2
+                if (objectKey === 'JumpRock2') {
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    const rock1Completed = Object.keys(completedInteractions).some(key =>
+                        key.includes('eleventhStop') ||
+                        key.includes('JumpRock1')
+                    );
 
+                    if (!rock1Completed) {
+                        console.log('JumpRock2 interaction ignorée car JumpRock1 n\'a pas encore été complété');
+                        return;
+                    }
+                }
+
+// Vérification spécifique pour JumpRock3
+                if (objectKey === 'JumpRock3') {
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    const rock2Completed = Object.keys(completedInteractions).some(key =>
+                        key.includes('twelfthStop') ||
+                        key.includes('JumpRock2')
+                    );
+
+                    if (!rock2Completed) {
+                        console.log('JumpRock3 interaction ignorée car JumpRock2 n\'a pas encore été complété');
+                        return;
+                    }
+                }
+
+// Vérification spécifique pour JumpRock4
+                if (objectKey === 'JumpRock4') {
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    const rock3Completed = Object.keys(completedInteractions).some(key =>
+                        key.includes('thirteenthStop') ||
+                        key.includes('JumpRock3')
+                    );
+
+                    if (!rock3Completed) {
+                        console.log('JumpRock4 interaction ignorée car JumpRock3 n\'a pas encore été complété');
+                        return;
+                    }
+                }
                 // Si on a trouvé un objectKey correspondant à une narration, la jouer
                 if (objectKey && objectNarrationMap[objectKey]) {
                     const narrationId = objectNarrationMap[objectKey];

@@ -196,119 +196,119 @@ class TemplateManager {
                 group: 'end'
             },
             'BranchEucalyptus_1': {
-                id: 'BranchEucalyptusEnd',
+                id: 'BranchEucalyptus',
                 path: '/models/forest/branch/BranchEucalyptus.glb',
                 priority: 5,
                 useTextures: true,
                 group: 'end'
             },
             'BUSH003': {
-                id: 'BushEnd',
+                id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
                 priority: 6,
                 useTextures: true,
                 group: 'end'
             },
             'BranchFig_1': {
-                id: 'BranchFigEnd',
+                id: 'BranchFig',
                 path: '/models/forest/branch/BranchFig.glb',
                 priority: 7,
                 useTextures: true,
                 group: 'end'
             },
             'BushBlueberry_1': {
-                id: 'BushBlueberryEnd',
+                id: 'BushBlueberry',
                 path: '/models/forest/bush/BushBlueberry.glb',
                 priority: 8,
                 useTextures: true,
                 group: 'end'
             },
             'BushRaspberry_1': {
-                id: 'BushRaspberryEnd',
+                id: 'BushRaspberry',
                 path: '/models/forest/bush/BushRaspberry.glb',
                 priority: 9,
                 useTextures: true,
                 group: 'end'
             },
             'BushTrunk002_1': {
-                id: 'BushTrunkEnd',
+                id: 'BushTrunk',
                 path: '/models/forest/bush/BushTrunk.glb',
                 priority: 10,
                 useTextures: true,
                 group: 'end'
             },
             'Strawberry002_1': {
-                id: 'BushStrawberryEnd',
+                id: 'BushStrawberry',
                 path: '/models/forest/bush/BushStrawberry.glb',
                 priority: 11,
                 useTextures: true,
                 group: 'end'
             },
             'FlowerBell001_1': {
-                id: 'FlowerBellEnd',
+                id: 'FlowerBell',
                 path: '/models/forest/flower/FlowerBell.glb',
                 priority: 12,
                 useTextures: true,
                 group: 'end'
             },
             'Clover_1': {
-                id: 'FlowerCloverEnd',
+                id: 'FlowerClover',
                 path: '/models/forest/flower/FlowerClover.glb',
                 priority: 13,
                 useTextures: true,
                 group: 'end'
             },
             'MushwoomDuo_1': {
-                id: 'MushroomDuoEnd',
+                id: 'MushroomDuo',
                 path: '/models/forest/mushroom/MushroomDuo.glb',
                 priority: 14,
                 useTextures: true,
                 group: 'end'
             },
             'MushwoomSolo_1': {
-                id: 'MushroomSoloEnd',
+                id: 'MushroomSolo',
                 path: '/models/forest/mushroom/MushroomSolo.glb',
                 priority: 15,
                 useTextures: true,
                 group: 'end'
             },
             'PlantClematis_1': {
-                id: 'PlantClematisEnd',
+                id: 'PlantClematis',
                 path: '/models/forest/plant/PlanClematis.glb',
                 priority: 16,
                 useTextures: true,
                 group: 'end'
             },
             'PlantIvy002_1': {
-                id: 'PlantIvyEnd',
+                id: 'PlantIvy',
                 path: '/models/forest/plant/PlantIvy.glb',
                 priority: 17,
                 useTextures: true,
                 group: 'end'
             },
             'PlantMiscanthus_1': {
-                id: 'PlantMiscanthusEnd',
+                id: 'PlantMiscanthus',
                 path: '/models/forest/plant/PlantMiscanthus.glb',
                 priority: 18,
                 useTextures: true,
                 group: 'end'
             },
             'PlantPuccinellia_1': {
-                id: 'PlantPuccinelliaEnd',
+                id: 'PlantPuccinellia',
                 path: '/models/forest/plant/PlantPuccinellia.glb',
                 priority: 19,
                 useTextures: true,
                 group: 'end'
             },
             'PlantReed_1': {
-                id: 'PlantReedEnd',
+                id: 'PlantReed',
                 path: '/models/forest/plant/PlantReed.glb',
                 priority: 20,
                 useTextures: true,
                 group: 'end'
             },
             'BranchTree002_1': {
-                id: 'BranchTreeEnd',
+                id: 'BranchTree',
                 path: '/models/forest/branch/BranchTree.glb',
                 priority: 20,
                 useTextures: true,
@@ -320,35 +320,35 @@ class TemplateManager {
                 id: 'ScreenOld',
                 path: '/models/digital/screen/ScreenOld.glb',
                 priority: 21,
-                useTextures: true,
+                useTextures: false,
                 group: 'screen'
             },
             'Screen_4': {
                 id: 'Screen',
                 path: '/models/digital/screen/Screen.glb',
                 priority: 22,
-                useTextures: true,
+                useTextures: false,
                 group: 'screen'
             },
             'Retopo_TRONC001_2': {
                 id: 'TreeNakedDigital',
                 path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1,
-                useTextures: true,
+                useTextures: false,
                 group: 'screen'
             },
             'Retopo_GROS_TRONC001_1': {
                 id: 'TrunkLargeDigital',
                 path: '/models/forest/tree/TrunkLarge.gltf',
                 priority: 2,
-                useTextures: true,
+                useTextures: false,
                 group: 'screen'
             },
             'Retopo_TRONC_FIN_2': {
                 id: 'TrunkThinDigital',
                 path: '/models/forest/tree/ThinTrunk.gltf',
                 priority: 3,
-                useTextures: true,
+                useTextures: false,
                 group: 'screen'
             },
 

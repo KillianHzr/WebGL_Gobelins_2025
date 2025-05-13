@@ -12,7 +12,7 @@ const LOD_CONFIG = {
 };
 
 const TRUNK_SWITCH_CONFIG = {
-    SWITCH_DISTANCE: 35, SWITCH_RANGE: 7, CHUNK_SIZE: 20, DEBUG_SWITCH: false
+    SWITCH_DISTANCE: 3000, SWITCH_RANGE: 7, CHUNK_SIZE: 20, DEBUG_SWITCH: false
 };
 
 // Optimized loading configuration

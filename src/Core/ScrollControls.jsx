@@ -45,10 +45,10 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 1;
-const DECELERATION = 0.95;
-const MIN_VELOCITY = 0.01;
-const BASE_SENSITIVITY = 0.01;
+const MAX_SCROLL_SPEED = 0.01;
+const DECELERATION = 0.85;
+const MIN_VELOCITY = 0.001;
+const BASE_SENSITIVITY = 0.001;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 // Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
@@ -313,7 +313,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 5.0;
+        const TRIGGER_PROXIMITY = 2.8;
 
         // console.log("Current completed interactions:", completedInteractions);
         // console.log("Current interactions:", interactions);
@@ -328,7 +328,45 @@ function CameraController({children}) {
                     return false;
                 }
             }
+// Dans la fonction checkInteractionPrerequisites, après le bloc pour AnimalPaws
+// Cas spécifique pour JumpRock2
+            if (interaction.objectKey === 'JumpRock2') {
+                const rock1Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('eleventhStop') ||
+                    key.includes('JumpRock1')
+                );
 
+                if (!rock1Completed) {
+                    // console.log(`Interaction JumpRock2 ignorée car JumpRock1 n'a pas encore été complété`);
+                    return false;
+                }
+            }
+
+// Cas spécifique pour JumpRock3
+            if (interaction.objectKey === 'JumpRock3') {
+                const rock2Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('twelfthStop') ||
+                    key.includes('JumpRock2')
+                );
+
+                if (!rock2Completed) {
+                    // console.log(`Interaction JumpRock3 ignorée car JumpRock2 n'a pas encore été complété`);
+                    return false;
+                }
+            }
+
+// Cas spécifique pour JumpRock4
+            if (interaction.objectKey === 'JumpRock4') {
+                const rock3Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirteenthStop') ||
+                    key.includes('JumpRock3')
+                );
+
+                if (!rock3Completed) {
+                    // console.log(`Interaction JumpRock4 ignorée car JumpRock3 n'a pas encore été complété`);
+                    return false;
+                }
+            }
             // Vérification générique des prérequis basée sur la configuration des objets
             const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
 

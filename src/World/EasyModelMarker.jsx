@@ -393,6 +393,46 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
+            // Dans la fonction handlePointerEnter
+// Après le bloc pour AnimalPaws
+            if (markerId.includes('JumpRock2') || markerId.includes('twelfthStop')) {
+                // Vérifier si JumpRock1 a été complété
+                const rock1Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('eleventhStop') ||
+                    key.includes('JumpRock1')
+                );
+
+                if (!rock1Completed) {
+                    console.log('Survol de JumpRock2 ignoré car JumpRock1 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
+
+            if (markerId.includes('JumpRock3') || markerId.includes('thirteenthStop')) {
+                // Vérifier si JumpRock2 a été complété
+                const rock2Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('twelfthStop') ||
+                    key.includes('JumpRock2')
+                );
+
+                if (!rock2Completed) {
+                    console.log('Survol de JumpRock3 ignoré car JumpRock2 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
+
+            if (markerId.includes('JumpRock4') || markerId.includes('fourteenthStop')) {
+                // Vérifier si JumpRock3 a été complété
+                const rock3Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirteenthStop') ||
+                    key.includes('JumpRock3')
+                );
+
+                if (!rock3Completed) {
+                    console.log('Survol de JumpRock4 ignoré car JumpRock3 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
         }
 
         setHovered(true);
