@@ -69,7 +69,7 @@ const MainLayout = () => {
         <div className="main-layout">
             {/* School logo in top-left */}
             <div className="main-layout-logo">
-                <img src="/images/logotype-Layon.png" alt="Layon Logo" />
+                <img src="/images/logo-small.svg" alt="Layon Logo" />
             </div>
 
             {/* Audio controls container */}
