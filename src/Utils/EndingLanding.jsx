@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { narrationManager } from './NarrationManager';
+import { EventBus } from './EventEmitter';
 
 /**
  * EndingLanding component
@@ -12,6 +14,14 @@ const EndingLanding = ({ onLearnMore }) => {
     const [currentBlockIndex, setCurrentBlockIndex] = useState(0);
     const [isScrolling, setIsScrolling] = useState(false);
     const arrowRefs = useRef({});
+    const narrationEndedListenerRef = useRef(null);
+
+    // Map pour associer les blocks aux narrations
+    const blockNarrationMap = {
+        1: 'Scene99_Message1', // Block 2 - The AI Myth
+        2: 'Scene99_Message2', // Block 3 - Environmental Impact
+        3: 'Scene99_Message3'  // Block 4 - Digital Rights
+    };
 
     // Register GSAP plugins
     useEffect(() => {
@@ -87,25 +97,79 @@ const EndingLanding = ({ onLearnMore }) => {
                             });
                         }
 
-                        // Set scroll delay based on target block
-                        let scrollDelay;
+                        // Vérifier si ce bloc a une narration associée
+                        const narrationId = blockNarrationMap[targetBlockIndex];
 
-                        if (isScrollingBetweenLastBlocks) {
-                            scrollDelay = 0; // No delay between last blocks
-                        } else if (isScrollingToPenultimateBlock) {
-                            scrollDelay = 1000; // 1 second delay for penultimate block
-                            console.log("Setting 1s delay for penultimate block");
-                        } else {
-                            scrollDelay = 4000; // Default 4 seconds
-                        }
+                        if (narrationId) {
+                            console.log(`Bloc ${targetBlockIndex} atteint, narration associée: ${narrationId}`);
 
-                        console.log(`Scroll delay: ${scrollDelay}ms for block index ${targetBlockIndex}`);
+                            // Nettoyer les écouteurs précédents si existants
+                            if (narrationEndedListenerRef.current) {
+                                narrationEndedListenerRef.current();
+                            }
 
-                        // After appropriate delay, allow scrolling again
-                        setTimeout(() => {
+                            // Configurer un écouteur pour la fin de narration
+                            narrationEndedListenerRef.current = EventBus.on('narration-ended', (data) => {
+                                if (data && data.narrationId === narrationId) {
+                                    console.log(`Narration ${narrationId} terminée`);
+
+                                    setIsScrolling(false);
+                                    console.log("Défilement débloqué après narration");
+
+                                    // Nettoyer cet écouteur
+                                    if (narrationEndedListenerRef.current) {
+                                        narrationEndedListenerRef.current();
+                                        narrationEndedListenerRef.current = null;
+                                    }
+                                }
+                            });
+
+                            setTimeout(() => {
+                                console.log(`Lecture de la narration: ${narrationId}`);
+
+                                // Sauvegarder l'état d'affichage des sous-titres
+                                const subtitleElement = document.getElementById('narration-subtitle');
+                                let originalDisplayStyle = null;
+
+                                if (subtitleElement) {
+                                    originalDisplayStyle = subtitleElement.style.display;
+                                    subtitleElement.style.display = 'none'; // Cacher les sous-titres
+                                }
+
+                                // Jouer la narration
+                                narrationManager.playNarration(narrationId);
+
+                                // Configurer un fallback au cas où l'événement de fin n'est pas déclenché
+                                // On estime une durée de narration maximale de 30 secondes
+                                setTimeout(() => {
+                                    if (isScrolling) {
+                                        console.log(`Fallback: déblocage du défilement après timeout pour ${narrationId}`);
+                                        setIsScrolling(false);
+                                    }
+
+                                    // Restaurer l'état d'affichage des sous-titres
+                                    if (subtitleElement && originalDisplayStyle !== null) {
+                                        subtitleElement.style.display = originalDisplayStyle;
+                                    }
+                                }, 30000);
+                            }, 200);
+                        } else if (isScrollingBetweenLastBlocks) {
+                            // Pas de délai entre les derniers blocs s'il n'y a pas de narration
                             setIsScrolling(false);
-                            console.log("Scroll unlocked");
-                        }, scrollDelay);
+                            console.log("Défilement débloqué immédiatement (dernier bloc sans narration)");
+                        } else if (isScrollingToPenultimateBlock) {
+                            // 1 seconde de délai pour le bloc avant-dernier s'il n'a pas de narration
+                            setTimeout(() => {
+                                setIsScrolling(false);
+                                console.log("Défilement débloqué après 1s (avant-dernier bloc)");
+                            }, 1000);
+                        } else {
+                            // Délai par défaut pour les blocs sans narration
+                            setTimeout(() => {
+                                setIsScrolling(false);
+                                console.log("Défilement débloqué après le délai par défaut");
+                            }, 1000);
+                        }
                     }
                 });
             }
@@ -120,6 +184,11 @@ const EndingLanding = ({ onLearnMore }) => {
         return () => {
             if (container) {
                 container.removeEventListener('wheel', handleWheel);
+            }
+
+            // Nettoyer l'écouteur de fin de narration
+            if (narrationEndedListenerRef.current) {
+                narrationEndedListenerRef.current();
             }
         };
     }, [isScrolling]);
@@ -151,41 +220,19 @@ const EndingLanding = ({ onLearnMore }) => {
         // Show only on the current block
         if (blockIndex !== currentBlockIndex) return null;
 
-        // For first block, show arrow immediately
-        if (blockIndex === 0) {
-            return (
-                <div
-                    className={`scroll-indicator scroll-indicator-${blockIndex}`}
-                    ref={(el) => addArrowRef(blockIndex, el)}
-                >
-                    <div className="scroll-arrow">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275t.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062"/>
-                        </svg>
-                    </div>
-                </div>
-            );
-        }
-
-        // For other blocks, show dots when scrolling, then arrow
+        // Show custom animated arrow for all blocks
         return (
             <div
                 className={`scroll-indicator scroll-indicator-${blockIndex}`}
                 ref={(el) => addArrowRef(blockIndex, el)}
             >
-                {isScrolling ? (
-                    <div className="loading-dots">...</div>
-                ) : (
-                    <div className="scroll-arrow">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
-                            <path fill="currentColor" d="M12 14.975q-.2 0-.375-.062T11.3 14.7l-4.6-4.6q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l3.9 3.9l3.9-3.9q.275-.275.7-.275t.7.275t.275.7t-.275.7l-4.6 4.6q-.15.15-.325.213t-.375.062"/>
-                        </svg>
-                    </div>
-                )}
+                <div className={`custom-arrow ${isScrolling ? '' : 'active'}`}>
+                    <div className="arrow-line line-left"></div>
+                    <div className="arrow-line line-right"></div>
+                </div>
             </div>
         );
     };
-
     return (
         <div className="ending-landing" ref={containerRef}>
             {/* Block 1 - Project Introduction */}

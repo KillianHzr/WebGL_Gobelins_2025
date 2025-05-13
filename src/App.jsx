@@ -130,19 +130,27 @@ export default function App() {
 
         // Set up the black screen transition first
         setTimeout(() => {
-            console.log("Black screen transition in progress - preparing to play Scene00_Radio");
+            console.log("Black screen transition in progress - preparing to play Scene00_Radio1");
 
             // Set up a listener for the narration ended event
             const narrationEndedListener = EventBus.on('narration-ended', (data) => {
-                if (data && data.narrationId === 'Scene00_Radio') {
-                    console.log("Scene00_Radio narration completed, proceeding to 3D scene");
+                if (data && data.narrationId === 'Scene00_Radio1') {
+                    console.log("Scene00_Radio1 narration completed, playing Scene00_Radio2 after delay");
+
+                    // Attendre 1 seconde avant de jouer Scene00_Radio2
+                    setTimeout(() => {
+                        narrationManager.playNarration('Scene00_Radio2');
+                        console.log("Lecture de la narration Scene00_Radio2");
+                    }, 500);
+                }
+                else if (data && data.narrationId === 'Scene00_Radio2') {
+                    console.log("Scene00_Radio2 narration completed, proceeding to 3D scene");
                     narrationEndedRef.current = true;
 
                     // Transition to 3D scene after narration ends
                     setShowExperience(true);
 
                     // Focus on canvas after showing it
-                    // setTimeout(() => {
                     if (canvasRef.current) {
                         canvasRef.current.focus();
                     }
@@ -152,30 +160,25 @@ export default function App() {
                         narrationManager.playNarration('Scene01_Mission');
                         console.log("Lecture de la narration Scene01_Mission après transition");
                     }, 2000);
-                    // }, 100);
-
-                    // Remove this listener as it's no longer needed
-                    narrationEndedListener();
                 }
             });
 
-            // Play the Scene00_Radio narration
-            narrationManager.playNarration('Scene00_Radio');
-            console.log("Lecture de la narration Scene00_Radio pendant l'écran noir");
+            // Play the Scene00_Radio1 narration
+            narrationManager.playNarration('Scene00_Radio1');
+            console.log("Lecture de la narration Scene00_Radio1 pendant l'écran noir");
 
-            // Fallback in case the narration-ended event isn't fired
-            // Get the audio duration if possible or use a default value (e.g., 30 seconds)
-            const defaultDuration = 30000; // 30 seconds in ms
+            // Fallback in case the narration-ended events aren't fired
+            // Augmenter la durée pour tenir compte des deux narrations + délai
+            const defaultDuration = 60000; // 60 seconds in ms
             setTimeout(() => {
                 if (!narrationEndedRef.current) {
-                    console.log("Fallback: Scene00_Radio didn't fire ended event, proceeding anyway");
+                    console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
                     narrationEndedRef.current = true;
 
                     // Transition to 3D scene after the fallback duration
                     setShowExperience(true);
 
                     // Focus on canvas after showing it
-                    // setTimeout(() => {
                     if (canvasRef.current) {
                         canvasRef.current.focus();
                     }
@@ -185,7 +188,6 @@ export default function App() {
                         narrationManager.playNarration('Scene01_Mission');
                         console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
                     }, 2000);
-                    // }, 100);
                 }
             }, defaultDuration);
         }, 800); // This should match when the black screen is at full opacity

@@ -292,26 +292,58 @@
   transition: opacity 0.3s ease;
 }
 
-.loading-dots {
-  font-size: 24px;
-  animation: pulse 1.5s infinite;
-  letter-spacing: 3px;
+/* Custom animated arrow */
+.custom-arrow {
+  position: relative;
+  height: 36px;
+  width: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Removed bounce animation from here */
 }
 
-.scroll-arrow {
-  animation: bounce 1s infinite;
+/* Add bounce animation only when active (arrow state) */
+.custom-arrow.active {
+  animation: bounce 3s infinite;
+  animation-delay: 1s; /* Start bouncing 1s after transformation */
 }
 
-.scroll-arrow svg {
+.arrow-line {
+  position: absolute;
+  height: 2px;
+  width: 20px;
+  background-color: #F9FEFF;
+  border-radius: 1px;
+  transition: transform 0.4s ease-out;
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
 }
 
-@keyframes pulse {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
+.line-left, .line-right {
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
 }
 
+/* Line state (during scrolling) */
+.line-left {
+  transform: translate(-50%, -50%) rotate(0deg) translateX(-6px);
+}
+
+.line-right {
+  transform: translate(-50%, -50%) rotate(0deg) translateX(6px);
+}
+
+/* Arrow state (when scrolling is allowed) */
+.custom-arrow.active .line-left {
+  transform: translate(-50%, -50%) rotate(45deg) translateX(-2px) translateY(8px);
+}
+
+.custom-arrow.active .line-right {
+  transform: translate(-50%, -50%) rotate(-45deg) translateX(2px) translateY(8px);
+}
+
+/* Keep bounce animation */
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-10px); }

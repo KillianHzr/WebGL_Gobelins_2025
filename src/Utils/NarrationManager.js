@@ -338,7 +338,8 @@ class NarrationManager {
     async getNarrationList() {
         // Liste statique pour l'instant
         return [
-            { id: 'Scene00_Radio', label: 'Radio (Introduction)' },
+            { id: 'Scene00_Radio1', label: 'Radio 1 (Introduction)' },
+            { id: 'Scene00_Radio2', label: 'Radio 2 (Introduction)' },
             { id: 'Scene01_Mission', label: 'Mission (Scène 1)' },
             { id: 'Scene02_PanneauInformation', label: 'Panneau d\'information (Scène 2)' },
             { id: 'Scene03_SautAuDessusDeLArbre', label: 'Saut au-dessus de l\'arbre (Scène 3)' },
@@ -348,7 +349,10 @@ class NarrationManager {
             { id: 'Scene07_RemplissageDeLaGourde', label: 'Remplissage de la gourde (Scène 7)' },
             { id: 'Scene08_DecouverteDuVisonMort', label: 'Découverte du vison mort (Scène 8)' },
             { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' },
-            { id: 'SceneGenerique', label: 'Générique de fin' }
+            { id: 'SceneGenerique', label: 'Générique de fin' },
+            { id: 'Scene99_Message1', label: 'Message 1 (Conclusion)' },
+            { id: 'Scene99_Message2', label: 'Message 2 (Conclusion)' },
+            { id: 'Scene99_Message3', label: 'Message 3 (Conclusion)' },
         ];
     }
 
