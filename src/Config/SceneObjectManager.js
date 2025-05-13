@@ -84,7 +84,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -92,7 +92,7 @@ class SceneObjectManager {
                     requiredStep: 'initialStartStop'
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -124,7 +124,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
@@ -152,7 +152,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -172,7 +172,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -202,7 +202,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -223,7 +223,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Tire",
 
                     offset: 0.5,
                     axis: "y",
@@ -244,7 +244,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -265,7 +265,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -291,7 +291,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -354,7 +354,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Immortaliser le moment",
+                    text: "Clique",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "capture",
@@ -428,7 +428,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -437,7 +437,7 @@ class SceneObjectManager {
                     requiredStep: 'tenthStop'
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
+                    text: "Maintiens",
 
                     offset: 0.5,
                     axis: "y",
@@ -464,7 +464,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-                    text: "Allumer la radio",
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "blackScreen",
