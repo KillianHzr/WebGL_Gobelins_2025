@@ -61,6 +61,26 @@ export default function CaptureInterface() {
         }
     };
 
+    // Function to toggle scene groups visibility
+    const toggleSceneGroups = () => {
+
+        // todo: changer la référence direct en reférecence dans le store
+        // Apply directly to references if available
+        if (window.endGroupRef && window.endGroupRef.current) {
+            window.endGroupRef.current.visible = false;
+        }
+
+        if (window.screenGroupRef && window.screenGroupRef.current) {
+            window.screenGroupRef.current.visible = true;
+        }
+
+        // Emit events to notify other components
+        EventBus.trigger('end-group-visibility-changed', false);
+        EventBus.trigger('screen-group-visibility-changed', true);
+
+        console.log('Scene groups toggled: endGroup=off, screenGroup=on');
+    };
+
     // Gérer le clic sur le bouton de capture
     const handleCaptureClick = () => {
         audioManager.playSound('capture');
@@ -75,6 +95,7 @@ export default function CaptureInterface() {
 
         setIsVisible(false);
         setIsFlashing(true);
+        toggleSceneGroups();
         // setTimeout(() => {
             setIsButtonPressed(false);
             setIsFlashing(false);

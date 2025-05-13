@@ -8,36 +8,23 @@ import {textureManager} from '../Config/TextureManager';
 
 // -------------------- OPTIMIZED LOD PARAMETERS --------------------
 const LOD_CONFIG = {
-    MAX_DETAIL_DISTANCE: 60,
-    MIN_DETAIL_DISTANCE: 90,
-    LOD_LEVELS: 1,
-    MIN_DETAIL_PERCENTAGE: 0.15,
-    DEBUG_LOD: false
+    MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 1, MIN_DETAIL_PERCENTAGE: 0.15, DEBUG_LOD: false
 };
 
 const TRUNK_SWITCH_CONFIG = {
-    SWITCH_DISTANCE: 40,
-    SWITCH_RANGE: 7,
-    CHUNK_SIZE: 20,
-    DEBUG_SWITCH: false
+    SWITCH_DISTANCE: 35, SWITCH_RANGE: 7, CHUNK_SIZE: 20, DEBUG_SWITCH: false
 };
 
 // Optimized loading configuration
 const LOADING_CONFIG = {
-    BATCH_SIZE: 10,
-    BATCH_DELAY: 20,
-    PRIORITY_RADIUS: 100,
-    MAX_WORKERS: 2,
-    ENABLE_GEOMETRY_CACHE: true,
-    CHUNK_SIZE: 60
+    BATCH_SIZE: 10, BATCH_DELAY: 20, PRIORITY_RADIUS: 100, MAX_WORKERS: 2, ENABLE_GEOMETRY_CACHE: true, CHUNK_SIZE: 60
 };
 // ----------------------------------------------------------------------
 
 // Improved geometry cache with better memory management
 const GeometryCache = {
-    cache: new Map(),
-    materials: new Map(), // New: Global material cache for strict reuse
-    stats: { hits: 0, misses: 0 },
+    cache: new Map(), materials: new Map(), // New: Global material cache for strict reuse
+    stats: {hits: 0, misses: 0},
 
     getKey(objectId, detailLevel) {
         return `${objectId}_lod_${detailLevel.toFixed(2)}`;
@@ -45,8 +32,7 @@ const GeometryCache = {
 
     has(objectId, detailLevel) {
         const result = this.cache.has(this.getKey(objectId, detailLevel));
-        if (result) this.stats.hits++;
-        else this.stats.misses++;
+        if (result) this.stats.hits++; else this.stats.misses++;
         return result;
     },
 
@@ -63,9 +49,7 @@ const GeometryCache = {
         if (!this.materials.has(objectId)) {
             // Create a new material if it doesn't exist
             const material = textureManager.getMaterial(objectId, {
-                aoIntensity: 0.0,
-                alphaTest: 1.0,
-                ...properties
+                aoIntensity: 0.0, alphaTest: 1.0, ...properties
             });
 
             // Important: Optimize material for instance rendering
@@ -110,6 +94,15 @@ const OBJECT_TYPE_GROUPS = {
 
 // Get group for object type for better batching
 const getObjectTypeGroup = (objectId) => {
+    // D'abord, vérifier si l'objet a un groupe spécifique dans templateManager
+    const templateManagerGroup = templateManager.getGroupFromObjectId(objectId);
+
+    // Si l'objet est spécifiquement dans le groupe 'end' ou 'screen', retourner ce groupe
+    if (templateManagerGroup === 'end' || templateManagerGroup === 'screen') {
+        return templateManagerGroup;
+    }
+
+    // Sinon, utiliser la classification existante pour le batching
     for (const [groupName, types] of Object.entries(OBJECT_TYPE_GROUPS)) {
         if (types.includes(objectId)) return groupName;
     }
@@ -150,10 +143,7 @@ export default function Forest() {
 
     // NEW: Track instance statistics
     const instanceStatsRef = useRef({
-        totalInstances: 0,
-        visibleInstances: 0,
-        instancedMeshes: 0,
-        lastUpdate: 0
+        totalInstances: 0, visibleInstances: 0, instancedMeshes: 0, lastUpdate: 0
     });
 
     // Function to toggle group visibility
@@ -188,11 +178,21 @@ export default function Forest() {
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
+        // Update the store with the default visibility states
+        setEndGroupVisible(true);
+        setScreenGroupVisible(false);
+
+        // Trigger events to notify other components about initial visibility
+        EventBus.trigger('end-group-visibility-changed', true);
+        EventBus.trigger('screen-group-visibility-changed', false);
+
+        console.log('Default scene group visibility set: endGroup=visible, screenGroup=hidden');
+
         const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
-            // console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
         const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
-            // console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+            console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
         });
 
         // Initialize worker pool
@@ -201,7 +201,7 @@ export default function Forest() {
         // Load forest data
         initForestLoading();
 
-        forceGroupVisibility(true);
+        // forceGroupVisibility(true);
 
         // Clean up resources
         return () => {
@@ -211,17 +211,23 @@ export default function Forest() {
         };
     }, [scene, camera, assetManager]);
 
+
     useEffect(() => {
-        // Synchronize Three.js objects with store state
-        if (endGroupRef.current) {
-            endGroupRef.current.visible = endGroupVisible;
-        }
+        // Exposer les références des groupes au niveau global pour l'accès externe
+        window.endGroupRef = endGroupRef;
+        window.screenGroupRef = screenGroupRef;
+        window.endGroupRef.current.visible = true;
+        window.screenGroupRef.current.visible = false;
 
-        if (screenGroupRef.current) {
-            screenGroupRef.current.visible = screenGroupVisible;
-        }
+        console.log('Références de groupe exposées:', {
+            endGroupRef: endGroupRef.current, screenGroupRef: screenGroupRef.current
+        });
+
+        return () => {
+            delete window.endGroupRef;
+            delete window.screenGroupRef;
+        };
     }, [endGroupVisible, screenGroupVisible]);
-
     const forceGroupVisibility = (force = true) => {
         // Update store
         useStore.getState().setEndGroupVisible(force);
@@ -440,9 +446,7 @@ export default function Forest() {
                 const distanceToCamera = chunk.center.distanceTo(cameraPosition);
 
                 queue.push({
-                    ...chunk,
-                    distanceToCamera,
-                    priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
+                    ...chunk, distanceToCamera, priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
                 });
             });
         });
@@ -531,14 +535,7 @@ export default function Forest() {
                 }
 
                 // Create LOD instanced meshes for this object type
-                const objectInstances = await createLodInstancedMeshesForObjects(
-                    objectId,
-                    model,
-                    positions,
-                    preloadedTextures,
-                    center,
-                    chunkId
-                );
+                const objectInstances = await createLodInstancedMeshesForObjects(objectId, model, positions, preloadedTextures, center, chunkId);
 
                 instances.push(...objectInstances);
             }
@@ -550,7 +547,7 @@ export default function Forest() {
             if (objectGroup === 'screen' || chunk.chunkId.includes('Screen')) {
                 targetGroup = screenGroupRef.current;
             }
-            // Objects with "End" in their ID go to "End" group
+// Objects with "End" in their ID go to "End" group
             else if (objectGroup === 'end' || chunk.chunkId.includes('End')) {
                 targetGroup = endGroupRef.current;
             }
@@ -602,8 +599,7 @@ export default function Forest() {
 
         // OPTIMIZATION: Use global material cache for strict reuse
         const material = GeometryCache.getMaterial(objectId, {
-            aoIntensity: 0.0,
-            alphaTest: 1.0
+            aoIntensity: 0.0, alphaTest: 1.0
         });
 
         if (!material) {
@@ -647,11 +643,7 @@ export default function Forest() {
 
             // OPTIMIZATION: Use existing material reference
             // Create instanced mesh with efficient parameters
-            const instancedMesh = new THREE.InstancedMesh(
-                levelGeometry,
-                material,
-                positions.length
-            );
+            const instancedMesh = new THREE.InstancedMesh(levelGeometry, material, positions.length);
 
             // OPTIMIZATION: Set renderOrder by distance to reduce overdraw
             instancedMesh.renderOrder = -minDistance;
@@ -726,9 +718,7 @@ export default function Forest() {
 
     const resetProcessingFlags = () => {
         lodInstancesRef.current.forEach(instance => {
-            if (instance.userData &&
-                (instance.userData.objectId === 'TrunkThin' ||
-                    instance.userData.objectId === 'TrunkThinPlane')) {
+            if (instance.userData && (instance.userData.objectId === 'TrunkThin' || instance.userData.objectId === 'TrunkThinPlane')) {
                 instance.userData.processed = false;
             }
         });
@@ -903,8 +893,7 @@ export default function Forest() {
                 if (objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') return;
 
                 // Create key based on position to identify pairs
-                const posKey = instance.userData.chunkCenter ?
-                    `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
+                const posKey = instance.userData.chunkCenter ? `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
 
                 if (!posKey) return;
 
@@ -913,11 +902,7 @@ export default function Forest() {
                     // Calculate custom threshold for this chunk if not already done
                     if (!instance.userData.customSwitchThreshold && instance.userData.chunkId) {
                         const [_, chunkX, chunkZ] = instance.userData.chunkId.split('_').map(Number);
-                        instance.userData.customSwitchThreshold = getChunkCustomThreshold(
-                            instance.userData.chunkId,
-                            chunkX || 0,
-                            chunkZ || 0
-                        );
+                        instance.userData.customSwitchThreshold = getChunkCustomThreshold(instance.userData.chunkId, chunkX || 0, chunkZ || 0);
                     }
                     trunkThinMap.set(posKey, instance);
                 } else if (objectId === 'TrunkThinPlane') {

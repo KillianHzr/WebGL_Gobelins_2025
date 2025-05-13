@@ -45,9 +45,9 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 1;
 const DECELERATION = 0.95;
-const MIN_VELOCITY = 0.001;
+const MIN_VELOCITY = 0.01;
 const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
@@ -101,7 +101,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
+    const END_SCROLL_THRESHOLD = 1; // 98% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -875,39 +875,7 @@ function CameraController({children}) {
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
-        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
-        if (isNowAtEnd !== isAtEndOfScroll) {
-            setIsAtEndOfScroll(isNowAtEnd);
-        }
 
-        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
-        if (isNowAtEnd && !hasTriggeredEndSwitch) {
-            // Basculer entre End et Screen à la fin du scroll
-            // Si on est sur End, passer à Screen
-            if (endGroupVisible && !screenGroupVisible) {
-                setEndGroupVisible(false);
-                setScreenGroupVisible(true);
-
-                // Mettre à jour directement les références DOM
-                if (window.endGroupRef && window.endGroupRef.current) {
-                    window.endGroupRef.current.visible = false;
-                }
-                if (window.screenGroupRef && window.screenGroupRef.current) {
-                    window.screenGroupRef.current.visible = true;
-                }
-
-                // Émettre les événements
-                EventBus.trigger('end-group-visibility-changed', false);
-                EventBus.trigger('screen-group-visibility-changed', true);
-            }
-
-            setHasTriggeredEndSwitch(true);
-
-            // Réinitialiser le déclencheur après un délai
-            setTimeout(() => {
-                setHasTriggeredEndSwitch(false);
-            }, 3000);
-        }
     }, 'camera');
 
     // Fonction pour configurer les gestionnaires d'événements de défilement
