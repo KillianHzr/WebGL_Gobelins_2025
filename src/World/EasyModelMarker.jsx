@@ -223,6 +223,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         };
     }, [markerId, requiredStep]);
     // Gérer l'interaction avec le marqueur - optimisé avec useCallback
+    // Correction dans la fonction handleMarkerInteraction du fichier EasyModelMarker.jsx
+
     const handleMarkerInteraction = useCallback((eventData = {}) => {
         debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
 
@@ -250,26 +252,49 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
             // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
+                // Important : Obtenir l'état actuel du store directement
+                // au lieu d'utiliser une référence potentiellement obsolète
+                debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
+
+                // Obtenir une référence fraîche au store
                 const store = useStore.getState();
 
                 // Afficher l'interface correspondante basée sur le type
                 switch (interfaceToShow) {
                     case 'scanner':
-                        if (store.interaction && store.interaction.setShowScannerInterface) {
+                        debugLog(`Affichage de l'interface scanner`);
+                        if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
                             store.interaction.setShowScannerInterface(true);
+                        } else {
+                            console.error("L'interface scanner n'est pas disponible dans le store");
                         }
                         break;
                     case 'capture':
-                        if (store.interaction && store.interaction.setShowCaptureInterface) {
+                        debugLog(`Affichage de l'interface capture`);
+                        if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
                             store.interaction.setShowCaptureInterface(true);
+                        } else {
+                            console.error("L'interface capture n'est pas disponible dans le store");
                         }
                         break;
                     case 'blackScreen':
-                        if (store.interaction && store.interaction.setShowBlackscreenInterface) {
+                        debugLog(`Affichage de l'interface blackScreen`);
+                        if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
                             store.interaction.setShowBlackscreenInterface(true);
+                        } else {
+                            console.error("L'interface blackScreen n'est pas disponible dans le store");
                         }
                         break;
+                    default:
+                        console.warn(`Type d'interface non reconnu: ${interfaceToShow}`);
                 }
+
+                // Émettre un événement pour signaler l'affichage d'une interface
+                EventBus.trigger('interface-display-requested', {
+                    interfaceType: interfaceToShow,
+                    markerId: markerId,
+                    requiredStep: requiredStep
+                });
             }
 
             // Si une animation post-interaction est définie, la déclencher
@@ -298,7 +323,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                 id: markerId,
                 type: markerType,
-                requiredStep: requiredStep // Important: ajouter le requiredStep dans l'événement
+                requiredStep: requiredStep,
+                interfaceToShow: interfaceToShow // Ajouter l'interface à afficher dans l'événement
             });
         } catch (error) {
             console.error(`Error triggering interaction complete event for ${markerId}:`, error);
@@ -312,7 +338,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         interfaceToShow,
         onInteract,
         postInteractionAnimation,
-        requiredStep // Important: ajouter requiredStep comme dépendance
+        requiredStep
     ]);
 
 

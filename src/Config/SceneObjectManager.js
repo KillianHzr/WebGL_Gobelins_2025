@@ -52,6 +52,14 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
+            'Camera': {
+                id: 'Camera',
+                path: '/models/Camera.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: false,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            },
             // 'WaterPlane': {
             //     id: 'WaterPlane',
             //     path: '/models/forest/river/River.glb',
@@ -76,7 +84,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -84,7 +92,7 @@ class SceneObjectManager {
                     requiredStep: 'initialStartStop'
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -116,10 +124,10 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none",
+                    interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
                     chapterDistance: 0.01,
                     requiredStep: 'firstStop'
                 }],
@@ -128,14 +136,14 @@ class SceneObjectManager {
                 }
             }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
             //
-            // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
-            //  */
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
             'LeafErable': {
                 id: 'LeafErable',
                 path: '/models/primary/MultipleLeaf.glb',
@@ -144,7 +152,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -164,7 +172,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -194,7 +202,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -215,7 +223,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Tire",
 
                     offset: 0.5,
                     axis: "y",
@@ -236,7 +244,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -257,7 +265,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -268,7 +276,8 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
                 }
-            }, /**
+            },
+            /**
              * SCÈNE 06 - OBSTACLE DE LA BRANCHE
              * Apprentissage du mouvement vertical inverse
              * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
@@ -282,7 +291,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Observer le tronc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -345,15 +354,16 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Immortaliser le moment",
+                    text: "Clique",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "camera",
+                    interfaceToShow: "capture",
                     chapterDistance: 0.01,
                     requiredStep: 'sixthStop'
                 }],
                 defaultPlacement: {
                     position: [52.11705, 0, -129.83212],
+                    // position: [41.1708, 0, -141.38123], // position for testing without good camera path
                     rotation: [-3.14159, 67.09271, -3.14159],
                     scale: [0.07888, 0.07888, 0.07888],
                     outlinePulse: false,
@@ -418,7 +428,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
+                    text: "Clique",
 
                     offset: 0.5,
                     axis: "y",
@@ -427,7 +437,7 @@ class SceneObjectManager {
                     requiredStep: 'tenthStop'
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Quitter le panneau",
+                    text: "Maintiens",
 
                     offset: 0.5,
                     axis: "y",
@@ -437,6 +447,7 @@ class SceneObjectManager {
                 }],
                 defaultPlacement: {
                     position: [51.907, 0.0, -134.251],
+                    // position: [46.04188, -0.01742, -139.30914], // position for testing without good camera path
                     rotation: [0, 90 - 29.02382, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
@@ -453,7 +464,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-                    text: "Allumer la radio",
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "blackScreen",
@@ -461,6 +472,7 @@ class SceneObjectManager {
                 }],
                 defaultPlacement: {
                     position: [59.06875, -0.01692, -130.29213],
+                    // position: [49.27544, -0.01692, -135.38611], // position for testing without good camera path
                     rotation: [0, -19.99978 - 90, 0],
                     scale: [0.099746, 0.099746, 0.099746],
                 }
@@ -486,10 +498,17 @@ class SceneObjectManager {
 
         // Si un requiredStep est spécifié dans le placement, chercher l'interaction correspondante
         if (placement && placement.requiredStep) {
-            const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === placement.requiredStep);
+            const matchingInteraction = objectConfig.interaction.find(interaction =>
+                interaction.requiredStep === placement.requiredStep
+            );
 
             if (matchingInteraction) {
+                // Ajouter des logs pour le débogage
+                console.log(`Interaction trouvée pour ${placement.objectKey} (${placement.requiredStep}):`,
+                    matchingInteraction);
                 return matchingInteraction;
+            } else {
+                console.warn(`Aucune interaction trouvée pour ${placement.objectKey} avec requiredStep=${placement.requiredStep}`);
             }
         }
 
@@ -509,7 +528,107 @@ class SceneObjectManager {
         // Renvoyer l'interaction actuelle
         return objectConfig.interaction[currentIndex];
     }
+    getInteractiveObjectInterfaces() {
+        const interfaces = {};
 
+        // Parcourir tous les objets interactifs
+        Object.entries(this.objectCatalog).forEach(([key, config]) => {
+            if (config.interactive) {
+                // Vérifier les interactions et leurs interfaces
+                if (Array.isArray(config.interaction)) {
+                    config.interaction.forEach(interaction => {
+                        if (interaction.interfaceToShow) {
+                            if (!interfaces[key]) {
+                                interfaces[key] = [];
+                            }
+                            interfaces[key].push({
+                                step: interaction.requiredStep,
+                                interface: interaction.interfaceToShow
+                            });
+                        }
+                    });
+                } else if (config.interaction && config.interaction.interfaceToShow) {
+                    interfaces[key] = [{
+                        step: config.interaction.requiredStep,
+                        interface: config.interaction.interfaceToShow
+                    }];
+                }
+            }
+        });
+
+        // Logger les interfaces trouvées pour le débogage
+        console.log("Interfaces disponibles dans les objets interactifs:", interfaces);
+        return interfaces;
+    }
+
+    handleThirdStopCompletion() {
+        console.log('*** Exécution de handleThirdStopCompletion ***');
+
+        // Trouver l'emplacement de LeafErable avec plus de détails de débogage
+        const leafPlacements = this.getPlacements({ objectKey: 'LeafErable' });
+        console.log('Placements LeafErable trouvés:', leafPlacements);
+
+        if (leafPlacements && leafPlacements.length > 0) {
+            const leafPlacement = leafPlacements[0];
+
+            // Obtenir la position actuelle
+            const currentPosition = [...leafPlacement.position];
+            console.log('Position actuelle de LeafErable:', currentPosition);
+
+            // Calculer la nouvelle position (décalage de 2.0 sur X et Z)
+            const newPosition = [
+                currentPosition[0] + 0.5,
+                currentPosition[1] + 0.1,
+                currentPosition[2] - 0.02
+            ];
+
+            console.log(`Déplacement de LeafErable de [${currentPosition}] à [${newPosition}]`);
+
+            // Récupérer l'identifiant du marqueur pour une mise à jour précise
+            let identifier;
+            if (leafPlacement.markerId) {
+                identifier = leafPlacement.markerId;
+                console.log('Mise à jour par markerId:', identifier);
+            } else {
+                // Si markerId n'est pas disponible, utiliser l'index de placement dans le tableau
+                const index = this.placements.findIndex(p =>
+                    p.objectKey === 'LeafErable' &&
+                    p.position[0] === currentPosition[0] &&
+                    p.position[2] === currentPosition[2]
+                );
+
+                if (index !== -1) {
+                    identifier = index;
+                    console.log('Mise à jour par index:', index);
+                } else {
+                    console.warn('Impossible de trouver un identifiant valide pour la mise à jour');
+                    return;
+                }
+            }
+
+            // Effectuer la mise à jour avec l'identifiant approprié
+            const updateResult = this.updatePlacement(identifier, {
+                position: newPosition
+            });
+
+            console.log('Résultat de la mise à jour:', updateResult);
+
+            // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
+            const updatedPlacements = this.getPlacements({ objectKey: 'LeafErable' });
+            if (updatedPlacements && updatedPlacements.length > 0) {
+                console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
+            }
+
+            // Émettre un événement pour informer les autres composants
+            EventBus.trigger('object-position-updated', {
+                objectKey: 'LeafErable',
+                oldPosition: currentPosition,
+                newPosition: newPosition
+            });
+        } else {
+            console.warn('Objet LeafErable non trouvé lors de la complétion de thirdStop');
+        }
+    }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});
@@ -688,6 +807,15 @@ class SceneObjectManager {
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
+            console.log('Événement INTERACTION_COMPLETE reçu:', data);
+
+            // Vérifier directement si c'est l'étape thirdStop, indépendamment du placement
+            if (data.requiredStep === 'thirdStop' ||
+                (data.id && data.id.includes('thirdStop'))) {
+                console.log('Détection directe de thirdStop dans INTERACTION_COMPLETE');
+                this.handleThirdStopCompletion();
+            }
+
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
                 console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`);
@@ -710,11 +838,35 @@ class SceneObjectManager {
                     markerId: placement.markerId,
                     objectKey: placement.objectKey,
                     requiredStep: placement.requiredStep,
-                    isFinalInteraction: true  // Toujours vrai dans le système simplifié
+                    isFinalInteraction: true
                 });
+
+                // Cas spécial pour thirdStop - Déplacer l'objet LeafErable
+                if (placement.requiredStep === 'thirdStop') {
+                    console.log('thirdStop completion détectée via placement.requiredStep');
+                    this.handleThirdStopCompletion();
+                }
+            }
+        });
+
+        // Écouter aussi l'événement object:interaction:complete
+        EventBus.on('leaf-erable-move-requested', (data) => {
+            console.log('Événement leaf-erable-move-requested reçu:', data);
+            this.handleThirdStopCompletion();
+        });
+
+
+        // Ajouter un écouteur spécifique pour INTERACTION_COMPLETE provenant du store
+        EventBus.on('INTERACTION_COMPLETE', (data) => {
+            console.log('Événement INTERACTION_COMPLETE direct reçu:', data);
+            // Vérifier si c'est l'étape thirdStop
+            if (data.id === 'thirdStop' || (typeof data.id === 'string' && data.id.includes('thirdStop'))) {
+                console.log('thirdStop completion détectée via INTERACTION_COMPLETE direct');
+                this.handleThirdStopCompletion();
             }
         });
     }
+
 
 
     // Ajouter un nouvel objet au catalogue

@@ -7,6 +7,13 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },{
+        name: 'Camera',
+        type: 'gltf',
+        path: '/models/Camera.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'MapInstance',
@@ -123,6 +130,13 @@ const baseAssets = [
         name: 'TrunkThin',
         type: 'gltf',
         path: '/models/forest/tree/ThinTrunk.gltf',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },{
+        name: 'TrunkThinPlane',
+        type: 'gltf',
+        path: '/models/forest/tree/TreeThinPlane.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

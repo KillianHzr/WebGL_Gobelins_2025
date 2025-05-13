@@ -72,8 +72,6 @@
 
                 &-progress {
                     position: absolute;
-                    width: 72px;
-                    height: 72px;
                     display: flex;
                     padding: 8px;
                     flex-direction: column;
@@ -86,7 +84,7 @@
                     border: 1px solid #F9FEFF;
                     background: transparent;
                     pointer-events: none;
-                    transition: width 0.2s ease-in-out, height 0.2s ease-in-out;
+                    //transition: width 0.2s ease-in-out, height 0.2s ease-in-out;
                 }
 
                 &-hovered {

@@ -27,10 +27,7 @@ export default function ForestSceneWrapper() {
             console.log("ForestSceneWrapper :: Assets loaded, checking models...");
             alreadyCheckedRef.current = true;
 
-            // Attendre un peu plus longtemps avant la première vérification
-            setTimeout(() => {
                 checkAssets();
-            }, 500);
         };
 
         // Fonction plus robuste pour vérifier si un modèle spécifique est réellement accessible
@@ -93,7 +90,7 @@ export default function ForestSceneWrapper() {
                     console.log("ForestSceneWrapper :: AssetManager not found");
                     if (assetCheckAttemptsRef.current < maxRetryAttempts) {
                         setIsRetrying(true);
-                        setTimeout(checkAssets, 500);
+                        checkAssets
                         return;
                     }
                 }

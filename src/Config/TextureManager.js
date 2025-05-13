@@ -539,6 +539,12 @@ class TextureManager {
             metalness: 0.7,
             envMapIntensity: 0.08
         });
+
+        // this.addPlantTexture('TrunkThinPlane', 'forest/tree', {
+        //     roughness: 0.81,
+        //     metalness: 0.7,
+        //     envMapIntensity: 0.08
+        // });
         this.addTextureMapping('TreeNaked', 'forest/tree', null, {
             roughness: 1.0,
             metalness: 0.59,
@@ -1197,7 +1203,7 @@ class TextureManager {
                     },
                     undefined,
                     (error) => {
-                        console.error(`Erreur lors du chargement de la texture ${texturePath}:`, error);
+                        // console.error(`Erreur lors du chargement de la texture ${texturePath}:`, error);
                         reject(error);
                     }
                 );
@@ -1227,12 +1233,12 @@ class TextureManager {
                         }
                     })
                     .catch(error => {
-                        console.warn(`Échec du chargement de la texture ${textureType} pour ${modelId}:`, error);
+                        // console.warn(`Échec du chargement de la texture ${textureType} pour ${modelId}:`, error);
                     });
 
                 promises.push(promise);
             } else {
-                console.warn(`Chemin de texture invalide pour ${modelId}.${textureType}:`, texturePath);
+                // console.warn(`Chemin de texture invalide pour ${modelId}.${textureType}:`, texturePath);
             }
         }
 
@@ -3150,7 +3156,7 @@ class TextureManager {
                             const vertex = new Vector3(
                                 positions.getX(i),
                                 positions.getY(i),
-                                positions.getZ(i)
+                                positions.getZ(i),
                             );
 
                             // Transformer la position locale en position mondiale

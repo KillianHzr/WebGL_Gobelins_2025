@@ -681,7 +681,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressStartTime.current = Date.now();
         setIsLongPressing(true);
-        setLongPressFeedback(0); // Réinitialiser la progression au début
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {
@@ -1059,7 +1058,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {"Clique"}
+                        {text}
                     </div>
                 </div>
             </Html>)}
@@ -1089,7 +1088,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     }}
                 >
                     <div className="marker-button-inner-text">
-                        {buttonHovered ? "Maintiens" : "Clique"}
+                        {text}
                     </div>
                     <div
                         className="marker-button-inner-progress"
@@ -1152,7 +1151,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                 </svg>
                             </div>
                             <div className="marker-drag-inner-text">
-                                {"Tire"}
+                                {text}
                             </div>
                         </div>
                     </div>

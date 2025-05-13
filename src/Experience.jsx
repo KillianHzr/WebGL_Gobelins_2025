@@ -67,7 +67,7 @@ export default function Experience() {
 
         // Limiter la résolution pour de meilleures performances
         const devicePixelRatio = window.devicePixelRatio || 1;
-        const optimalPixelRatio = Math.min(devicePixelRatio, 2);
+        const optimalPixelRatio = Math.min(devicePixelRatio * 0.5, 2);
         gl.setPixelRatio(optimalPixelRatio);
 
         // Sauvegarder les paramètres initiaux
@@ -272,7 +272,7 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
             <NarrationTriggers/>
-            <CameraSwitcher/>
+            {/*<CameraSwitcher/>*/}
             <SceneFog />
 
             {debug && <Stats />}

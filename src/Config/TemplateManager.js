@@ -25,6 +25,13 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
+            'Retopo_TRONC_FIN_plane': {
+                id: 'TrunkThinPlane',
+                path: '/models/forest/tree/TreeThinPlance.glb',
+                priority: 3,
+                useTextures: false,
+                group: 'regular'
+            },
             'Trunk': {
                 id: 'TreeStump',
                 path: '/models/forest/tree/TreeStump.gltf',

@@ -10,16 +10,39 @@ import { EventBus, EventEmitterProvider } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
 import LoadingScreen from './Utils/LoadingScreen'
 import MainLayout from './Utils/MainLayout'
+import EndingLanding from './Utils/EndingLanding';
+import { narrationManager } from './Utils/NarrationManager'
 
 export default function App() {
-    const { loaded, setLoaded } = useStore()
+    const { loaded, setLoaded, endingLandingVisible, debug } = useStore()
     const assetManagerRef = useRef(null)
     const [assetsLoaded, setAssetsLoaded] = useState(false)
     const [isAssetManagerInitialized, setIsAssetManagerInitialized] = useState(false)
     const [isDesktopView, setIsDesktopView] = useState(false)
     const [showExperience, setShowExperience] = useState(false)
     const [showMainLayout, setShowMainLayout] = useState(false)
+    const [showEndingLanding, setShowEndingLanding] = useState(false)
     const canvasRef = useRef(null)
+    const narrationEndedRef = useRef(false)
+
+    // Si nous sommes en mode debug avec skipIntro, afficher directement l'expérience
+    useEffect(() => {
+        if (debug?.skipIntro) {
+            console.log("Debug mode: showing experience immediately");
+            setShowExperience(true);
+
+            // Mettre canvasRef visible immédiatement aussi
+            if (canvasRef.current) {
+                canvasRef.current.style.visibility = 'visible';
+                canvasRef.current.focus();
+            }
+
+            // On peut aussi déclencher directement la narration Scene01_Mission si nécessaire
+            setTimeout(() => {
+                narrationManager.playNarration('Scene01_Mission');
+            }, 500);
+        }
+    }, [debug]);
 
     // Check viewport width on mount and resize
     useEffect(() => {
@@ -33,6 +56,28 @@ export default function App() {
 
         return () => window.removeEventListener('resize', checkViewport);
     }, []);
+
+    // Subscribe to ending landing visibility changes
+    useEffect(() => {
+        // Set initial state
+        setShowEndingLanding(endingLandingVisible || false);
+
+        // Subscribe to store changes
+        const unsubscribe = useStore.subscribe(
+            state => state.endingLandingVisible,
+            visible => {
+                setShowEndingLanding(visible);
+                // When showing ending, hide the experience
+                if (visible && canvasRef.current) {
+                    canvasRef.current.style.visibility = 'hidden';
+                } else if (!visible && canvasRef.current && showExperience) {
+                    canvasRef.current.style.visibility = 'visible';
+                }
+            }
+        );
+
+        return unsubscribe;
+    }, [endingLandingVisible, showExperience]);
 
     // Only initialize asset manager when in desktop view
     useEffect(() => {
@@ -77,20 +122,79 @@ export default function App() {
 
     // Callback when user clicks "Découvre ta mission" button
     const handleEnterExperience = () => {
-        console.log("User entered experience - preparing 3D content");
+        console.log("User entered experience - preparing transition");
+        narrationEndedRef.current = false;
 
-        // Set a flag to show the 3D content after a delay that matches the black screen animation
+        // Set a flag to show the black screen transition
+        setShowExperience(false);
+
+        // Set up the black screen transition first
         setTimeout(() => {
-            console.log("Black screen transition in progress - preparing 3D content");
-            setShowExperience(true);
+            console.log("Black screen transition in progress - preparing to play Scene00_Radio");
 
-            // Focus on canvas after showing it
-            setTimeout(() => {
-                if (canvasRef.current) {
-                    canvasRef.current.focus();
+            // Set up a listener for the narration ended event
+            const narrationEndedListener = EventBus.on('narration-ended', (data) => {
+                if (data && data.narrationId === 'Scene00_Radio') {
+                    console.log("Scene00_Radio narration completed, proceeding to 3D scene");
+                    narrationEndedRef.current = true;
+
+                    // Transition to 3D scene after narration ends
+                    setShowExperience(true);
+
+                    // Focus on canvas after showing it
+                    // setTimeout(() => {
+                    if (canvasRef.current) {
+                        canvasRef.current.focus();
+                    }
+
+                    // Play the next narration after showing the 3D scene
+                    setTimeout(() => {
+                        narrationManager.playNarration('Scene01_Mission');
+                        console.log("Lecture de la narration Scene01_Mission après transition");
+                    }, 2000);
+                    // }, 100);
+
+                    // Remove this listener as it's no longer needed
+                    narrationEndedListener();
                 }
-            }, 100);
+            });
+
+            // Play the Scene00_Radio narration
+            narrationManager.playNarration('Scene00_Radio');
+            console.log("Lecture de la narration Scene00_Radio pendant l'écran noir");
+
+            // Fallback in case the narration-ended event isn't fired
+            // Get the audio duration if possible or use a default value (e.g., 30 seconds)
+            const defaultDuration = 30000; // 30 seconds in ms
+            setTimeout(() => {
+                if (!narrationEndedRef.current) {
+                    console.log("Fallback: Scene00_Radio didn't fire ended event, proceeding anyway");
+                    narrationEndedRef.current = true;
+
+                    // Transition to 3D scene after the fallback duration
+                    setShowExperience(true);
+
+                    // Focus on canvas after showing it
+                    // setTimeout(() => {
+                    if (canvasRef.current) {
+                        canvasRef.current.focus();
+                    }
+
+                    // Play the next narration after showing the 3D scene
+                    setTimeout(() => {
+                        narrationManager.playNarration('Scene01_Mission');
+                        console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
+                    }, 2000);
+                    // }, 100);
+                }
+            }, defaultDuration);
         }, 800); // This should match when the black screen is at full opacity
+    };
+
+    // Handle the "learn more" button click in ending landing
+    const handleLearnMore = () => {
+        // Open the Gobelins website in a new tab
+        window.open('https://www.gobelins.fr/', '_blank');
     };
 
     // Show MainLayout when loading is complete (on landing page)
@@ -115,12 +219,17 @@ export default function App() {
             />
 
             {/* Loading Screen and Desktop Landing */}
-            {!showExperience && (
+            {!showExperience && !debug?.skipIntro && (
                 <LoadingScreen onComplete={handleEnterExperience} />
             )}
 
             {/* Main Layout - only show after assets are loaded */}
             {showMainLayout && <MainLayout />}
+
+            {/* Ending Landing - shows when triggered */}
+            {showEndingLanding && (
+                <EndingLanding onLearnMore={handleLearnMore} />
+            )}
 
             {/* Interfaces - only show when experience is visible */}
             {showExperience && (
@@ -150,6 +259,9 @@ export default function App() {
                 tabIndex={0}
             >
                 <Canvas
+                    style={{
+                        backgroundColor: '#000',
+                    }}
                     gl={{ preserveDrawingBuffer: true }}
                     shadows
                 >

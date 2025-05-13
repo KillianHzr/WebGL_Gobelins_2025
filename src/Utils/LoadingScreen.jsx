@@ -1,41 +1,85 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import LoadingManager from './LoadingManager';
 import DesktopLanding from './DesktopLanding';
+import useStore from '../Store/useStore';
 
 /**
  * LoadingScreen component
  * Displays a loading progress bar and transitions to landing page when complete
  */
 const LoadingScreen = ({ onComplete }) => {
+    const { debug } = useStore();  // Récupérer l'état debug du store
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadingFadeOut, setLoadingFadeOut] = useState(false);
-    const [showLanding, setShowLanding] = useState(true); // Always render landing behind loading
-    const [landingEnabled, setLandingEnabled] = useState(false); // Control if landing is interactive
+    const [showLanding, setShowLanding] = useState(!debug?.skipIntro); // Condition basée sur skipIntro
+    const [landingEnabled, setLandingEnabled] = useState(false);
     const [blackScreenTransition, setBlackScreenTransition] = useState(false);
     const [displayProgress, setDisplayProgress] = useState(0);
     const animationFrameRef = useRef(null);
 
-    // Callback for when loading is complete
+    // Messages de chargement rotatifs
+    const loadingMessages = [
+        "Localisation du vison...",
+    ];
+    const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+    const messageTimerRef = useRef(null);
+
+    // Rotation des messages de chargement toutes les 2 secondes
+    useEffect(() => {
+        if (!loadingComplete) {
+            messageTimerRef.current = setInterval(() => {
+                setCurrentMessageIndex(prevIndex =>
+                    (prevIndex + 1) % loadingMessages.length
+                );
+            }, 2000);
+        }
+
+        return () => {
+            if (messageTimerRef.current) {
+                clearInterval(messageTimerRef.current);
+            }
+        };
+    }, [loadingComplete, loadingMessages.length]);
+
+    // Si on doit sauter l'intro, on appelle onComplete immédiatement
+    useEffect(() => {
+        if (debug?.skipIntro && onComplete) {
+            console.log("Debug mode: skipping intro and loading screen");
+            onComplete();
+        }
+    }, [debug, onComplete]);
+
+    // Callback pour quand le chargement est terminé
     const handleLoadingComplete = useCallback(() => {
+        if (debug?.skipIntro) {
+            // Si on doit sauter l'intro, ne pas afficher l'écran de chargement
+            console.log("Loading complete, skipping landing page due to debug mode");
+            if (onComplete) onComplete();
+            return;
+        }
+
         console.log("Loading complete, transitioning to landing page");
 
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
         }
 
-        setDisplayProgress(100);
+        // Nettoyer le timer de rotation des messages
+        if (messageTimerRef.current) {
+            clearInterval(messageTimerRef.current);
+        }
 
+        setDisplayProgress(100);
         setLoadingFadeOut(true);
 
         setTimeout(() => {
             setLandingEnabled(true);
             setLoadingComplete(true);
         }, 1000);
-    }, []);
+    }, [debug, onComplete]);
 
     const handleEnterExperience = useCallback(() => {
-        console.log("Entering experience");
-
+        console.log("Entering experience - starting first fade to black");
         setBlackScreenTransition(true);
 
         setTimeout(() => {
@@ -110,6 +154,11 @@ const LoadingScreen = ({ onComplete }) => {
     // Format the displayed percentage
     const formattedPercentage = Math.round(displayProgress);
 
+    // Si on est en mode debug avec skipIntro, ne rien afficher
+    if (debug?.skipIntro) {
+        return null;
+    }
+
     return (
         <>
             {/* Desktop landing page - always rendered behind loading */}
@@ -125,7 +174,7 @@ const LoadingScreen = ({ onComplete }) => {
                 <div className={`loading-screen ${loadingFadeOut ? 'fade-out' : ''}`}>
                     <div className="loading-content">
                         <div className="loading-logo">
-                            <img src="/images/loader.webp" alt="Gobelins Logo" />
+                            <img src="/images/loader.gif" alt="Gobelins Logo" />
                         </div>
                         <div className="loading-progress-container">
                             <div
@@ -133,7 +182,9 @@ const LoadingScreen = ({ onComplete }) => {
                                 style={{ width: `${formattedPercentage}%` }}
                             ></div>
                         </div>
-                        <div className="loading-percentage">{formattedPercentage}%</div>
+                        <div className="loading-percentage">
+                            {loadingMessages[currentMessageIndex]}
+                        </div>
                     </div>
                 </div>
             )}
