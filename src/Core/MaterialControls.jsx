@@ -20,6 +20,49 @@ export default function MaterialControls() {
     const originalMeshStates = useRef({});  // Pour stocker l'état original des meshes
     const [materialsReady, setMaterialsReady] = useState(false);
 
+    // Options pour les propriétés avec valeurs discrètes
+    const sideOptions = {
+        'Front': THREE.FrontSide,
+        'Back': THREE.BackSide,
+        'Double': THREE.DoubleSide
+    };
+
+    const blendingOptions = {
+        'Normal': THREE.NormalBlending,
+        'Additive': THREE.AdditiveBlending,
+        'Subtractive': THREE.SubtractiveBlending,
+        'Multiply': THREE.MultiplyBlending,
+        'Custom': THREE.CustomBlending
+    };
+
+    const depthPackingOptions = {
+        'None': THREE.NoDepthPacking,
+        'Basic': THREE.BasicDepthPacking,
+        'RGBA': THREE.RGBADepthPacking
+    };
+
+    const stencilFuncOptions = {
+        'Never': THREE.NeverStencilFunc,
+        'Less': THREE.LessStencilFunc,
+        'Equal': THREE.EqualStencilFunc,
+        'LessEqual': THREE.LessEqualStencilFunc,
+        'Greater': THREE.GreaterStencilFunc,
+        'NotEqual': THREE.NotEqualStencilFunc,
+        'GreaterEqual': THREE.GreaterEqualStencilFunc,
+        'Always': THREE.AlwaysStencilFunc
+    };
+
+    const stencilOpOptions = {
+        'Zero': THREE.ZeroStencilOp,
+        'Keep': THREE.KeepStencilOp,
+        'Replace': THREE.ReplaceStencilOp,
+        'Increment': THREE.IncrementStencilOp,
+        'Decrement': THREE.DecrementStencilOp,
+        'IncrementWrap': THREE.IncrementWrapStencilOp,
+        'DecrementWrap': THREE.DecrementWrapStencilOp,
+        'Invert': THREE.InvertStencilOp
+    };
+
     // Fonction pour collecter tous les matériaux et meshes de la scène
     const collectAllMaterials = () => {
         const materials = new Map();
@@ -32,7 +75,10 @@ export default function MaterialControls() {
             if (!originalMeshStates.current[object.uuid]) {
                 originalMeshStates.current[object.uuid] = {
                     castShadow: object.castShadow,
-                    receiveShadow: object.receiveShadow
+                    receiveShadow: object.receiveShadow,
+                    renderOrder: object.renderOrder,
+                    visible: object.visible,
+                    frustumCulled: object.frustumCulled
                 };
             }
 
@@ -53,16 +99,120 @@ export default function MaterialControls() {
                 const modelId = extractModelId(object.name);
 
                 if (material && material.uuid && !materials.has(material.uuid)) {
-                    // Sauvegarder l'état original
+                    // Sauvegarder l'état original de manière exhaustive
                     if (!originalMaterialStates.current[material.uuid]) {
-                        originalMaterialStates.current[material.uuid] = {
-                            // color: material.color ? material.color.clone() : null,
-                            roughness: material.roughness,
-                            metalness: material.metalness,
+                        const originalState = {
+                            // Propriétés de base
+                            wireframe: material.wireframe,
                             transparent: material.transparent,
                             opacity: material.opacity,
-                            wireframe: material.wireframe
+                            side: material.side,
+                            depthWrite: material.depthWrite,
+                            depthTest: material.depthTest,
+                            alphaTest: material.alphaTest,
+                            blending: material.blending,
+                            vertexColors: material.vertexColors,
+                            visible: material.visible,
+                            toneMapped: material.toneMapped,
+                            dithering: material.dithering,
+                            flatShading: material.flatShading,
+                            fog: material.fog,
+
+                            // PBR Properties
+                            roughness: material.roughness,
+                            metalness: material.metalness,
+
+                            // Stencil properties
+                            stencilWrite: material.stencilWrite,
+                            stencilWriteMask: material.stencilWriteMask,
+                            stencilRef: material.stencilRef,
+                            stencilFunc: material.stencilFunc,
+                            stencilFail: material.stencilFail,
+                            stencilZFail: material.stencilZFail,
+                            stencilZPass: material.stencilZPass,
+
+                            // Mapping intensities
+                            envMapIntensity: material.envMapIntensity,
+                            aoMapIntensity: material.aoMapIntensity,
+                            normalMapType: material.normalMapType,
+                            displacementScale: material.displacementScale,
+                            displacementBias: material.displacementBias,
+
+                            // MeshPhysicalMaterial
+                            clearcoat: material.clearcoat,
+                            clearcoatRoughness: material.clearcoatRoughness,
+                            reflectivity: material.reflectivity,
+                            ior: material.ior,
+                            sheen: material.sheen,
+                            sheenRoughness: material.sheenRoughness,
+                            transmission: material.transmission,
+                            thickness: material.thickness,
+                            attenuationDistance: material.attenuationDistance,
+                            anisotropy: material.anisotropy,
+                            anisotropyRotation: material.anisotropyRotation,
+                            iridescence: material.iridescence,
+                            iridescenceIOR: material.iridescenceIOR,
+                            iridescenceThicknessRange: material.iridescenceThicknessRange?.slice(),
+
+                            // MeshPhongMaterial
+                            shininess: material.shininess,
+                            specularMapIntensity: material.specularMapIntensity,
+                            combine: material.combine,
+
+                            // MeshLambertMaterial / MeshToonMaterial / etc.
+                            emissiveIntensity: material.emissiveIntensity,
+                            lightMapIntensity: material.lightMapIntensity,
+                            bumpScale: material.bumpScale,
+                            refractionRatio: material.refractionRatio,
+
+                            // LineBasicMaterial, PointsMaterial
+                            size: material.size,
+                            sizeAttenuation: material.sizeAttenuation,
+                            linewidth: material.linewidth,
+                            linecap: material.linecap,
+                            linejoin: material.linejoin,
+
+                            // Colors and vector values cloned to avoid reference issues
+                            color: material.color ? material.color.clone() : undefined,
+                            emissive: material.emissive ? material.emissive.clone() : undefined,
+                            specular: material.specular ? material.specular.clone() : undefined,
+                            sheenColor: material.sheenColor ? material.sheenColor.clone() : undefined,
+                            attenuationColor: material.attenuationColor ? material.attenuationColor.clone() : undefined,
+                            normalScale: material.normalScale ? new THREE.Vector2(material.normalScale.x, material.normalScale.y) : undefined
                         };
+
+                        // Store texture references and their settings
+                        originalState.textures = {};
+                        const textureProps = [
+                            'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap',
+                            'displacementMap', 'envMap', 'lightMap', 'alphaMap', 'bumpMap', 'clearcoatMap',
+                            'clearcoatNormalMap', 'clearcoatRoughnessMap', 'transmissionMap', 'thicknessMap',
+                            'sheenColorMap', 'sheenRoughnessMap', 'specularMap', 'specularIntensityMap',
+                            'iridescenceMap', 'iridescenceThicknessMap', 'anisotropyMap', 'matcap'
+                        ];
+
+                        textureProps.forEach(prop => {
+                            if (material[prop]) {
+                                originalState.textures[prop] = {
+                                    uuid: material[prop].uuid,
+                                    repeat: material[prop].repeat ? material[prop].repeat.clone() : undefined,
+                                    offset: material[prop].offset ? material[prop].offset.clone() : undefined,
+                                    center: material[prop].center ? material[prop].center.clone() : undefined,
+                                    rotation: material[prop].rotation,
+                                    wrapS: material[prop].wrapS,
+                                    wrapT: material[prop].wrapT,
+                                    encoding: material[prop].encoding,
+                                    flipY: material[prop].flipY,
+                                    premultiplyAlpha: material[prop].premultiplyAlpha,
+                                    format: material[prop].format,
+                                    minFilter: material[prop].minFilter,
+                                    magFilter: material[prop].magFilter,
+                                    anisotropy: material[prop].anisotropy
+                                };
+                            }
+                        });
+
+                        originalMaterialStates.current[material.uuid] = originalState;
                     }
 
                     // Utiliser le modelId extrait
@@ -108,14 +258,56 @@ export default function MaterialControls() {
         if (!originalState) return;
 
         try {
-            // Restaurer les propriétés si elles existent
-            // if (originalState.color && material.color) material.color.copy(originalState.color);
+            // Restaurer toutes les propriétés scalaires
+            Object.entries(originalState).forEach(([key, value]) => {
+                // Ignorer les propriétés spéciales (couleurs, vecteurs, textures)
+                if (key === 'color' || key === 'emissive' || key === 'specular' ||
+                    key === 'sheenColor' || key === 'attenuationColor' ||
+                    key === 'normalScale' || key === 'textures') {
+                    return;
+                }
 
-            if (originalState.roughness !== undefined) material.roughness = originalState.roughness;
-            if (originalState.metalness !== undefined) material.metalness = originalState.metalness;
-            if (originalState.transparent !== undefined) material.transparent = originalState.transparent;
-            if (originalState.opacity !== undefined) material.opacity = originalState.opacity;
-            if (originalState.wireframe !== undefined) material.wireframe = originalState.wireframe;
+                // Restaurer la propriété si elle existe
+                if (material[key] !== undefined) {
+                    material[key] = value;
+                }
+            });
+
+            // Restaurer les couleurs
+            if (originalState.color && material.color) material.color.copy(originalState.color);
+            if (originalState.emissive && material.emissive) material.emissive.copy(originalState.emissive);
+            if (originalState.specular && material.specular) material.specular.copy(originalState.specular);
+            if (originalState.sheenColor && material.sheenColor) material.sheenColor.copy(originalState.sheenColor);
+            if (originalState.attenuationColor && material.attenuationColor) material.attenuationColor.copy(originalState.attenuationColor);
+
+            // Restaurer les vecteurs
+            if (originalState.normalScale && material.normalScale) {
+                material.normalScale.x = originalState.normalScale.x;
+                material.normalScale.y = originalState.normalScale.y;
+            }
+
+            // Restaurer les paramètres des textures
+            if (originalState.textures) {
+                Object.entries(originalState.textures).forEach(([textureName, textureState]) => {
+                    const texture = material[textureName];
+                    if (!texture) return;
+
+                    if (textureState.repeat && texture.repeat) texture.repeat.copy(textureState.repeat);
+                    if (textureState.offset && texture.offset) texture.offset.copy(textureState.offset);
+                    if (textureState.center && texture.center) texture.center.copy(textureState.center);
+                    if (textureState.rotation !== undefined) texture.rotation = textureState.rotation;
+                    if (textureState.wrapS !== undefined) texture.wrapS = textureState.wrapS;
+                    if (textureState.wrapT !== undefined) texture.wrapT = textureState.wrapT;
+                    if (textureState.encoding !== undefined) texture.encoding = textureState.encoding;
+                    if (textureState.flipY !== undefined) texture.flipY = textureState.flipY;
+                    if (textureState.premultiplyAlpha !== undefined) texture.premultiplyAlpha = textureState.premultiplyAlpha;
+                    if (textureState.minFilter !== undefined) texture.minFilter = textureState.minFilter;
+                    if (textureState.magFilter !== undefined) texture.magFilter = textureState.magFilter;
+                    if (textureState.anisotropy !== undefined) texture.anisotropy = textureState.anisotropy;
+
+                    texture.needsUpdate = true;
+                });
+            }
 
             material.needsUpdate = true;
         } catch (error) {
@@ -134,8 +326,11 @@ export default function MaterialControls() {
         try {
             if (originalState.castShadow !== undefined) mesh.castShadow = originalState.castShadow;
             if (originalState.receiveShadow !== undefined) mesh.receiveShadow = originalState.receiveShadow;
+            if (originalState.renderOrder !== undefined) mesh.renderOrder = originalState.renderOrder;
+            if (originalState.visible !== undefined) mesh.visible = originalState.visible;
+            if (originalState.frustumCulled !== undefined) mesh.frustumCulled = originalState.frustumCulled;
         } catch (error) {
-            console.warn(`Error resetting shadow properties for mesh ${mesh.name}:`, error);
+            console.warn(`Error resetting mesh properties for ${mesh.name}:`, error);
         }
     };
 
@@ -195,6 +390,50 @@ export default function MaterialControls() {
                     }
                 }
 
+                // Ajouter des dossiers communs pour les opérations globales
+                const globalSettingsFolder = materialsFolder.addFolder("Global Settings");
+                const globalMaterialControls = {
+                    wireframe: false,
+                    flatShading: false,
+                    transparent: false,
+                    opacity: 1.0,
+                    side: THREE.FrontSide,
+                    envMapIntensity: 1.0,
+
+                    // Actions globales
+                    applyToAllMaterials: () => {
+                        allMaterials.forEach(material => {
+                            if (material.wireframe !== undefined) material.wireframe = globalMaterialControls.wireframe;
+                            if (material.flatShading !== undefined) material.flatShading = globalMaterialControls.flatShading;
+                            if (material.transparent !== undefined) material.transparent = globalMaterialControls.transparent;
+                            if (material.opacity !== undefined) material.opacity = globalMaterialControls.opacity;
+                            if (material.side !== undefined) material.side = globalMaterialControls.side;
+                            if (material.envMapIntensity !== undefined) material.envMapIntensity = globalMaterialControls.envMapIntensity;
+                            material.needsUpdate = true;
+                        });
+                    },
+
+                    resetAllMaterials: () => {
+                        allMaterials.forEach(material => {
+                            resetMaterial(material);
+                        });
+                    }
+                };
+
+                // Ajouter les contrôles globaux
+                globalSettingsFolder.add(globalMaterialControls, 'wireframe').name('Global Wireframe');
+                globalSettingsFolder.add(globalMaterialControls, 'flatShading').name('Global Flat Shading');
+                globalSettingsFolder.add(globalMaterialControls, 'transparent').name('Global Transparency');
+                globalSettingsFolder.add(globalMaterialControls, 'opacity', 0, 1, 0.01).name('Global Opacity');
+                globalSettingsFolder.add(globalMaterialControls, 'side', sideOptions).name('Global Side');
+                globalSettingsFolder.add(globalMaterialControls, 'envMapIntensity', 0, 5, 0.1).name('Global EnvMap Intensity');
+
+                // Boutons d'action
+                globalSettingsFolder.add(globalMaterialControls, 'applyToAllMaterials').name('Apply To All Materials');
+                globalSettingsFolder.add(globalMaterialControls, 'resetAllMaterials').name('Reset All Materials');
+
+                globalSettingsFolder.close();
+
                 // Créer un sous-dossier pour chaque matériau unique
                 allMaterials.forEach((material) => {
                     // Utiliser le nom de l'objet pour le dossier
@@ -204,54 +443,91 @@ export default function MaterialControls() {
                         foldersRef.current[material.uuid] = materialFolder;
                         materialFolder.close();
 
-                        // État du matériau
+                        // État du matériau - inclure toutes les propriétés possibles
                         const materialControls = {
-                            // Contrôles de base
-                            // color: '#' + (material.color ? material.color.getHexString() : 'ffffff'),
+                            // Propriétés de base
                             wireframe: material.wireframe || false,
+                            transparent: material.transparent || false,
+                            opacity: material.opacity !== undefined ? material.opacity : 1.0,
+                            side: material.side !== undefined ? material.side : THREE.FrontSide,
+                            depthWrite: material.depthWrite !== undefined ? material.depthWrite : true,
+                            depthTest: material.depthTest !== undefined ? material.depthTest : true,
+                            alphaTest: material.alphaTest !== undefined ? material.alphaTest : 0.0,
+                            blending: material.blending !== undefined ? material.blending : THREE.NormalBlending,
+                            vertexColors: material.vertexColors || false,
+                            toneMapped: material.toneMapped !== undefined ? material.toneMapped : true,
+                            dithering: material.dithering || false,
+                            flatShading: material.flatShading || false,
+                            fog: material.fog !== undefined ? material.fog : true,
 
-                            // Autres propriétés selon le type de matériau
-                            ...(material.roughness !== undefined ? {roughness: material.roughness} : {}),
-                            ...(material.metalness !== undefined ? {metalness: material.metalness} : {}),
-                            ...(material.opacity !== undefined ? {opacity: material.opacity} : {}),
+                            // Standard/PBR material properties
+                            color: material.color ? '#' + material.color.getHexString() : '#ffffff',
+                            roughness: material.roughness !== undefined ? material.roughness : 0.5,
+                            metalness: material.metalness !== undefined ? material.metalness : 0.0,
+                            envMapIntensity: material.envMapIntensity !== undefined ? material.envMapIntensity : 1.0,
 
-                            // Contrôle de l'environment mapping
-                            ...(material.envMapIntensity !== undefined ? {
-                                envMapIntensity: material.envMapIntensity
-                            } : {}),
+                            // Ambient Occlusion
+                            aoMapIntensity: material.aoMapIntensity !== undefined ? material.aoMapIntensity : 1.0,
 
-                            // Propriétés de shadow pour les meshes associés
-                            castShadow: material._meshRefs && material._meshRefs.length > 0
+                            // Emissive properties
+                            emissive: material.emissive ? '#' + material.emissive.getHexString() : '#000000',
+                            emissiveIntensity: material.emissiveIntensity !== undefined ? material.emissiveIntensity : 1.0,
+
+                            // Mapping properties
+                            normalScale: material.normalScale ? material.normalScale.x : 1.0,
+                            bumpScale: material.bumpScale !== undefined ? material.bumpScale : 1.0,
+                            displacementScale: material.displacementScale !== undefined ? material.displacementScale : 1.0,
+                            displacementBias: material.displacementBias !== undefined ? material.displacementBias : 0.0,
+
+                            // Clearcoat (MeshPhysicalMaterial)
+                            clearcoat: material.clearcoat !== undefined ? material.clearcoat : 0.0,
+                            clearcoatRoughness: material.clearcoatRoughness !== undefined ? material.clearcoatRoughness : 0.0,
+                            reflectivity: material.reflectivity !== undefined ? material.reflectivity : 0.5,
+
+                            // Transmission (for glass-like materials)
+                            transmission: material.transmission !== undefined ? material.transmission : 0.0,
+                            ior: material.ior !== undefined ? material.ior : 1.5,
+                            thickness: material.thickness !== undefined ? material.thickness : 0.0,
+                            attenuationColor: material.attenuationColor ? '#' + material.attenuationColor.getHexString() : '#ffffff',
+                            attenuationDistance: material.attenuationDistance !== undefined ? material.attenuationDistance : 0.0,
+
+                            // Sheen (Fabric-like materials)
+                            sheen: material.sheen !== undefined ? material.sheen : 0.0,
+                            sheenColor: material.sheenColor ? '#' + material.sheenColor.getHexString() : '#ffffff',
+                            sheenRoughness: material.sheenRoughness !== undefined ? material.sheenRoughness : 0.0,
+
+                            // Anisotropy (for brushed metals)
+                            anisotropy: material.anisotropy !== undefined ? material.anisotropy : 0.0,
+                            anisotropyRotation: material.anisotropyRotation !== undefined ? material.anisotropyRotation : 0.0,
+
+                            // Iridescence (for surfaces like soap bubbles, butterfly wings)
+                            iridescence: material.iridescence !== undefined ? material.iridescence : 0.0,
+                            iridescenceIOR: material.iridescenceIOR !== undefined ? material.iridescenceIOR : 1.3,
+
+                            // MeshPhongMaterial / MeshLambertMaterial
+                            shininess: material.shininess !== undefined ? material.shininess : 30,
+                            specular: material.specular ? '#' + material.specular.getHexString() : '#111111',
+
+                            // Shadows
+                            castShadow: material._meshRefs?.length > 0
                                 ? meshesMap.get(material._meshRefs[0])?.castShadow || false
                                 : false,
-                            receiveShadow: material._meshRefs && material._meshRefs.length > 0
+                            receiveShadow: material._meshRefs?.length > 0
                                 ? meshesMap.get(material._meshRefs[0])?.receiveShadow || false
                                 : false,
 
-                            // Fonction de réinitialisation
+                            // Reset button action
                             reset: () => {
                                 resetMaterial(material);
+                                material._meshRefs?.forEach(meshUuid => resetMeshShadowProperties(meshUuid, meshesMap));
 
-                                // Réinitialiser les propriétés de shadow pour tous les meshes associés
-                                if (material._meshRefs && material._meshRefs.length > 0) {
-                                    material._meshRefs.forEach(meshUuid => {
-                                        resetMeshShadowProperties(meshUuid, meshesMap);
-                                    });
+                                // Update GUI controllers
+                                for (const key in materialControls) {
+                                    const controller = materialFolder.__controllers.find(c => c.property === key);
+                                    if (controller) controller.updateDisplay();
                                 }
 
-                                // Mettre à jour les contrôleurs
-                                // Mise à jour des contrôleurs existants...
-
-                                // Mise à jour du contrôleur d'environment mapping
-                                if (material.envMapIntensity !== undefined) {
-                                    materialControls.envMapIntensity = material.envMapIntensity;
-                                    const envMapController = materialFolder.__controllers.find(c => c.property === 'envMapIntensity');
-                                    if (envMapController) {
-                                        envMapController.updateDisplay();
-                                    }
-                                }
-
-                                // Forcer un rendu
+                                // Force re-render
                                 if (gl && gl.render && scene) {
                                     const camera = scene.getObjectByProperty('isCamera', true) ||
                                         scene.children.find(child => child.isCamera);
@@ -260,18 +536,76 @@ export default function MaterialControls() {
                             }
                         };
 
-                        // Ajouter les contrôleurs pour ce matériau
-                        // materialFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
-                        //     try {
-                        //         material.color.set(value);
-                        //         material.needsUpdate = true;
-                        //     } catch (error) {
-                        //         console.warn(`Error updating color for ${material._objectName}:`, error);
-                        //     }
-                        // });
+                        // Créer des sous-dossiers pour organiser les contrôles
+                        const basicFolder = materialFolder.addFolder('Basic Properties');
+                        const pbrFolder = materialFolder.addFolder('PBR Properties');
+                        const advancedFolder = materialFolder.addFolder('Advanced Properties');
+                        const texturesFolder = materialFolder.addFolder('Textures');
+                        const specialFolder = materialFolder.addFolder('Special Effects');
 
+                        // ---- BASIC PROPERTIES ----
+                        // Couleur de base si disponible
+                        if (material.color) {
+                            basicFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
+                                try {
+                                    material.color.set(value);
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating color for ${material._objectName}:`, error);
+                                }
+                            });
+                        }
+
+                        // Wireframe, transparency, side
+                        basicFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
+                            try {
+                                material.wireframe = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        basicFolder.add(materialControls, 'transparent').name('Transparent').onChange(value => {
+                            try {
+                                material.transparent = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating transparency for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        basicFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
+                            try {
+                                material.opacity = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        basicFolder.add(materialControls, 'side', sideOptions).name('Side').onChange(value => {
+                            try {
+                                material.side = parseInt(value);
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating side for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        basicFolder.add(materialControls, 'flatShading').name('Flat Shading').onChange(value => {
+                            try {
+                                material.flatShading = value;
+                                material.needsUpdate = true;
+                            } catch (error) {
+                                console.warn(`Error updating flatShading for ${material._objectName}:`, error);
+                            }
+                        });
+
+                        // ---- PBR PROPERTIES ----
+                        // Roughness et metalness pour les materials PBR
                         if (material.roughness !== undefined) {
-                            materialFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
+                            pbrFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
                                 try {
                                     material.roughness = value;
                                     material.needsUpdate = true;
@@ -282,7 +616,7 @@ export default function MaterialControls() {
                         }
 
                         if (material.metalness !== undefined) {
-                            materialFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
+                            pbrFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
                                 try {
                                     material.metalness = value;
                                     material.needsUpdate = true;
@@ -291,9 +625,10 @@ export default function MaterialControls() {
                                 }
                             });
                         }
-                        // Ajouter le contrôleur pour l'environment mapping
+
+                        // Environment mapping
                         if (material.envMapIntensity !== undefined) {
-                            materialFolder.add(materialControls, 'envMapIntensity', 0, 2, 0.01)
+                            pbrFolder.add(materialControls, 'envMapIntensity', 0, 5, 0.05)
                                 .name('EnvMap Intensity')
                                 .onChange(value => {
                                     try {
@@ -305,31 +640,552 @@ export default function MaterialControls() {
                                     }
                                 });
                         }
-                        // if (material.opacity !== undefined) {
-                        //     materialFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
-                        //         try {
-                        //             // Activer la transparence si l'opacité est < 1
-                        //             material.transparent = value < 1;
-                        //             material.opacity = value;
-                        //             material.needsUpdate = true;
-                        //         } catch (error) {
-                        //             console.warn(`Error updating opacity for ${material._objectName}:`, error);
-                        //         }
-                        //     });
-                        // }
 
-                        materialFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
-                            try {
-                                material.wireframe = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                        // Ambient occlusion mapping
+                        if (material.aoMapIntensity !== undefined) {
+                            pbrFolder.add(materialControls, 'aoMapIntensity', 0, 5, 0.05)
+                                .name('AO Intensity')
+                                .onChange(value => {
+                                    try {
+                                        material.aoMapIntensity = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating aoMapIntensity for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // Emissive properties
+                        if (material.emissive) {
+                            pbrFolder.addColor(materialControls, 'emissive')
+                                .name('Emissive Color')
+                                .onChange(value => {
+                                    try {
+                                        material.emissive.set(value);
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating emissive for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            if (material.emissiveIntensity !== undefined) {
+                                pbrFolder.add(materialControls, 'emissiveIntensity', 0, 5, 0.05)
+                                    .name('Emissive Intensity')
+                                    .onChange(value => {
+                                        try {
+                                            material.emissiveIntensity = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating emissiveIntensity for ${material._objectName}:`, error);
+                                        }
+                                    });
+                            }
+                        }
+
+                        // Normal mapping scale
+                        if (material.normalScale) {
+                            pbrFolder.add(materialControls, 'normalScale', 0, 5, 0.05)
+                                .name('Normal Scale')
+                                .onChange(value => {
+                                    try {
+                                        if (material.normalScale) {
+                                            material.normalScale.x = value;
+                                            material.normalScale.y = value;
+                                        } else {
+                                            material.normalScale = new THREE.Vector2(value, value);
+                                        }
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating normalScale for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // Displacement mapping
+                        if (material.displacementScale !== undefined) {
+                            pbrFolder.add(materialControls, 'displacementScale', 0, 5, 0.05)
+                                .name('Displ. Scale')
+                                .onChange(value => {
+                                    try {
+                                        material.displacementScale = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating displacementScale for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        if (material.displacementBias !== undefined) {
+                            pbrFolder.add(materialControls, 'displacementBias', -1, 1, 0.01)
+                                .name('Displ. Bias')
+                                .onChange(value => {
+                                    try {
+                                        material.displacementBias = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating displacementBias for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // Bump scaling
+                        if (material.bumpScale !== undefined) {
+                            pbrFolder.add(materialControls, 'bumpScale', 0, 5, 0.05)
+                                .name('Bump Scale')
+                                .onChange(value => {
+                                    try {
+                                        material.bumpScale = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating bumpScale for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // MeshPhongMaterial properties
+                        if (material.shininess !== undefined) {
+                            pbrFolder.add(materialControls, 'shininess', 0, 100, 1)
+                                .name('Shininess')
+                                .onChange(value => {
+                                    try {
+                                        material.shininess = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating shininess for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        if (material.specular) {
+                            pbrFolder.addColor(materialControls, 'specular')
+                                .name('Specular Color')
+                                .onChange(value => {
+                                    try {
+                                        material.specular.set(value);
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating specular for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // ---- ADVANCED PROPERTIES ----
+                        // Depth and blending settings
+                        advancedFolder.add(materialControls, 'depthWrite')
+                            .name('Depth Write')
+                            .onChange(value => {
+                                try {
+                                    material.depthWrite = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating depthWrite for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'depthTest')
+                            .name('Depth Test')
+                            .onChange(value => {
+                                try {
+                                    material.depthTest = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating depthTest for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'alphaTest', 0, 1, 0.01)
+                            .name('Alpha Test')
+                            .onChange(value => {
+                                try {
+                                    material.alphaTest = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating alphaTest for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'blending', blendingOptions)
+                            .name('Blending Mode')
+                            .onChange(value => {
+                                try {
+                                    material.blending = parseInt(value);
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating blending for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        // Render settings
+                        advancedFolder.add(materialControls, 'vertexColors')
+                            .name('Vertex Colors')
+                            .onChange(value => {
+                                try {
+                                    material.vertexColors = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating vertexColors for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'toneMapped')
+                            .name('Tone Mapped')
+                            .onChange(value => {
+                                try {
+                                    material.toneMapped = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating toneMapped for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'dithering')
+                            .name('Dithering')
+                            .onChange(value => {
+                                try {
+                                    material.dithering = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating dithering for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        advancedFolder.add(materialControls, 'fog')
+                            .name('Affected by Fog')
+                            .onChange(value => {
+                                try {
+                                    material.fog = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating fog for ${material._objectName}:`, error);
+                                }
+                            });
+
+                        // ---- SPECIAL EFFECTS FOLDER ----
+                        // MeshPhysicalMaterial - Clearcoat
+                        if (material.clearcoat !== undefined) {
+                            specialFolder.add(materialControls, 'clearcoat', 0, 1, 0.01)
+                                .name('Clearcoat')
+                                .onChange(value => {
+                                    try {
+                                        material.clearcoat = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating clearcoat for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            specialFolder.add(materialControls, 'clearcoatRoughness', 0, 1, 0.01)
+                                .name('Clearcoat Roughness')
+                                .onChange(value => {
+                                    try {
+                                        material.clearcoatRoughness = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating clearcoatRoughness for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // MeshPhysicalMaterial - Transmission (glass-like)
+                        if (material.transmission !== undefined) {
+                            specialFolder.add(materialControls, 'transmission', 0, 1, 0.01)
+                                .name('Transmission')
+                                .onChange(value => {
+                                    try {
+                                        material.transmission = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating transmission for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            specialFolder.add(materialControls, 'ior', 1, 2.33, 0.01)
+                                .name('IOR')
+                                .onChange(value => {
+                                    try {
+                                        material.ior = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating ior for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            specialFolder.add(materialControls, 'thickness', 0, 5, 0.01)
+                                .name('Thickness')
+                                .onChange(value => {
+                                    try {
+                                        material.thickness = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating thickness for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            if (material.attenuationDistance !== undefined) {
+                                specialFolder.add(materialControls, 'attenuationDistance', 0, 1000, 1)
+                                    .name('Attenuation Dist.')
+                                    .onChange(value => {
+                                        try {
+                                            material.attenuationDistance = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating attenuationDistance for ${material._objectName}:`, error);
+                                        }
+                                    });
+                            }
+
+                            if (material.attenuationColor) {
+                                specialFolder.addColor(materialControls, 'attenuationColor')
+                                    .name('Attenuation Color')
+                                    .onChange(value => {
+                                        try {
+                                            material.attenuationColor.set(value);
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating attenuationColor for ${material._objectName}:`, error);
+                                        }
+                                    });
+                            }
+                        }
+
+                        // MeshPhysicalMaterial - Sheen (fabric-like)
+                        if (material.sheen !== undefined) {
+                            specialFolder.add(materialControls, 'sheen', 0, 1, 0.01)
+                                .name('Sheen')
+                                .onChange(value => {
+                                    try {
+                                        material.sheen = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating sheen for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            if (material.sheenColor) {
+                                specialFolder.addColor(materialControls, 'sheenColor')
+                                    .name('Sheen Color')
+                                    .onChange(value => {
+                                        try {
+                                            material.sheenColor.set(value);
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating sheenColor for ${material._objectName}:`, error);
+                                        }
+                                    });
+                            }
+
+                            specialFolder.add(materialControls, 'sheenRoughness', 0, 1, 0.01)
+                                .name('Sheen Roughness')
+                                .onChange(value => {
+                                    try {
+                                        material.sheenRoughness = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating sheenRoughness for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // MeshPhysicalMaterial - Anisotropy (brushed metal)
+                        if (material.anisotropy !== undefined) {
+                            specialFolder.add(materialControls, 'anisotropy', 0, 1, 0.01)
+                                .name('Anisotropy')
+                                .onChange(value => {
+                                    try {
+                                        material.anisotropy = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating anisotropy for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            specialFolder.add(materialControls, 'anisotropyRotation', 0, Math.PI * 2, 0.01)
+                                .name('Anisotropy Rotation')
+                                .onChange(value => {
+                                    try {
+                                        material.anisotropyRotation = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating anisotropyRotation for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // MeshPhysicalMaterial - Iridescence (butterfly wings, soap bubbles)
+                        if (material.iridescence !== undefined) {
+                            specialFolder.add(materialControls, 'iridescence', 0, 1, 0.01)
+                                .name('Iridescence')
+                                .onChange(value => {
+                                    try {
+                                        material.iridescence = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating iridescence for ${material._objectName}:`, error);
+                                    }
+                                });
+
+                            specialFolder.add(materialControls, 'iridescenceIOR', 1, 2.33, 0.01)
+                                .name('Iridescence IOR')
+                                .onChange(value => {
+                                    try {
+                                        material.iridescenceIOR = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating iridescenceIOR for ${material._objectName}:`, error);
+                                    }
+                                });
+                        }
+
+                        // ---- TEXTURE MAPPING ----
+                        // Créer une liste de toutes les propriétés de textures possibles
+                        const textureProps = [
+                            {name: 'map', desc: 'Base Color Map'},
+                            {name: 'normalMap', desc: 'Normal Map'},
+                            {name: 'roughnessMap', desc: 'Roughness Map'},
+                            {name: 'metalnessMap', desc: 'Metalness Map'},
+                            {name: 'aoMap', desc: 'Ambient Occlusion Map'},
+                            {name: 'emissiveMap', desc: 'Emissive Map'},
+                            {name: 'displacementMap', desc: 'Displacement Map'},
+                            {name: 'alphaMap', desc: 'Alpha Map'},
+                            {name: 'bumpMap', desc: 'Bump Map'},
+                            {name: 'lightMap', desc: 'Light Map'},
+                            {name: 'clearcoatMap', desc: 'Clearcoat Map'},
+                            {name: 'clearcoatNormalMap', desc: 'Clearcoat Normal Map'},
+                            {name: 'clearcoatRoughnessMap', desc: 'Clearcoat Rough. Map'},
+                            {name: 'transmissionMap', desc: 'Transmission Map'},
+                            {name: 'thicknessMap', desc: 'Thickness Map'},
+                            {name: 'sheenColorMap', desc: 'Sheen Color Map'},
+                            {name: 'sheenRoughnessMap', desc: 'Sheen Rough. Map'},
+                            {name: 'specularMap', desc: 'Specular Map'},
+                            {name: 'specularIntensityMap', desc: 'Specular Int. Map'},
+                            {name: 'iridescenceMap', desc: 'Iridescence Map'},
+                            {name: 'iridescenceThicknessMap', desc: 'Iridescence Thick. Map'},
+                            {name: 'anisotropyMap', desc: 'Anisotropy Map'},
+                            {name: 'matcap', desc: 'MatCap Map'},
+                            {name: 'envMap', desc: 'Environment Map'}
+                        ];
+
+                        // Pour chaque texture présente dans le matériau, créer des contrôles
+                        textureProps.forEach(({name, desc}) => {
+                            if (material[name]) {
+                                const texture = material[name];
+                                const textureFolder = texturesFolder.addFolder(desc);
+
+                                // Créer un contrôle pour activer/désactiver la texture
+                                const textureControls = {
+                                    enabled: true,
+                                    repeatX: texture.repeat ? texture.repeat.x : 1,
+                                    repeatY: texture.repeat ? texture.repeat.y : 1,
+                                    offsetX: texture.offset ? texture.offset.x : 0,
+                                    offsetY: texture.offset ? texture.offset.y : 0,
+                                    rotation: texture.rotation || 0,
+                                    flipY: texture.flipY !== undefined ? texture.flipY : true
+                                };
+
+                                // Enable/disable texture
+                                textureFolder.add(textureControls, 'enabled')
+                                    .name('Enabled')
+                                    .onChange(value => {
+                                        try {
+                                            if (!value) {
+                                                // Store current texture to re-enable later
+                                                material._tempTextures = material._tempTextures || {};
+                                                material._tempTextures[name] = material[name];
+                                                material[name] = null;
+                                            } else if (material._tempTextures && material._tempTextures[name]) {
+                                                // Restore saved texture
+                                                material[name] = material._tempTextures[name];
+                                            }
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error toggling ${name} for ${material._objectName}:`, error);
+                                        }
+                                    });
+
+                                // Texture repeat controls
+                                if (texture.repeat) {
+                                    textureFolder.add(textureControls, 'repeatX', 0.1, 10, 0.1)
+                                        .name('Repeat X')
+                                        .onChange(value => {
+                                            try {
+                                                texture.repeat.x = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} repeatX for ${material._objectName}:`, error);
+                                            }
+                                        });
+
+                                    textureFolder.add(textureControls, 'repeatY', 0.1, 10, 0.1)
+                                        .name('Repeat Y')
+                                        .onChange(value => {
+                                            try {
+                                                texture.repeat.y = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} repeatY for ${material._objectName}:`, error);
+                                            }
+                                        });
+                                }
+
+                                // Texture offset controls
+                                if (texture.offset) {
+                                    textureFolder.add(textureControls, 'offsetX', -1, 1, 0.01)
+                                        .name('Offset X')
+                                        .onChange(value => {
+                                            try {
+                                                texture.offset.x = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} offsetX for ${material._objectName}:`, error);
+                                            }
+                                        });
+
+                                    textureFolder.add(textureControls, 'offsetY', -1, 1, 0.01)
+                                        .name('Offset Y')
+                                        .onChange(value => {
+                                            try {
+                                                texture.offset.y = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} offsetY for ${material._objectName}:`, error);
+                                            }
+                                        });
+                                }
+
+                                // Texture rotation
+                                textureFolder.add(textureControls, 'rotation', 0, Math.PI * 2, 0.01)
+                                    .name('Rotation')
+                                    .onChange(value => {
+                                        try {
+                                            texture.rotation = value;
+                                            texture.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating ${name} rotation for ${material._objectName}:`, error);
+                                        }
+                                    });
+
+                                // Texture flip Y
+                                textureFolder.add(textureControls, 'flipY')
+                                    .name('Flip Y')
+                                    .onChange(value => {
+                                        try {
+                                            texture.flipY = value;
+                                            texture.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating ${name} flipY for ${material._objectName}:`, error);
+                                        }
+                                    });
+
+                                textureFolder.close(); // Fermer le dossier de texture par défaut
                             }
                         });
 
+                        // ---- SHADOW PROPERTIES ----
                         // Ajouter les contrôleurs pour les propriétés de shadow
                         if (material._meshRefs && material._meshRefs.length > 0) {
-                            materialFolder.add(materialControls, 'castShadow').name('Cast Shadow').onChange(value => {
+                            const shadowFolder = materialFolder.addFolder('Shadow Properties');
+
+                            shadowFolder.add(materialControls, 'castShadow').name('Cast Shadow').onChange(value => {
                                 try {
                                     // Appliquer à tous les meshes associés à ce matériau
                                     material._meshRefs.forEach(meshUuid => {
@@ -343,7 +1199,7 @@ export default function MaterialControls() {
                                 }
                             });
 
-                            materialFolder.add(materialControls, 'receiveShadow').name('Receive Shadow').onChange(value => {
+                            shadowFolder.add(materialControls, 'receiveShadow').name('Receive Shadow').onChange(value => {
                                 try {
                                     // Appliquer à tous les meshes associés à ce matériau
                                     material._meshRefs.forEach(meshUuid => {
@@ -359,10 +1215,19 @@ export default function MaterialControls() {
                                     console.warn(`Error updating receive shadow for ${material._objectName}:`, error);
                                 }
                             });
+
+                            shadowFolder.close(); // Fermer le dossier d'ombres par défaut
                         }
 
                         // Ajouter un bouton de réinitialisation
                         materialFolder.add(materialControls, 'reset').name('Reset Material');
+
+                        // Fermer tous les sous-dossiers par défaut
+                        basicFolder.close();
+                        pbrFolder.close();
+                        advancedFolder.close();
+                        texturesFolder.close();
+                        specialFolder.close();
                     }
                 });
 
@@ -372,7 +1237,7 @@ export default function MaterialControls() {
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 10000); // Augmenté à 2 secondes pour plus de fiabilité
+        }, 10000); // Augmenté à 10 secondes pour plus de fiabilité
 
         // Nettoyage
         return () => {

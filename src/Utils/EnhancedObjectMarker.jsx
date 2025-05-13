@@ -1,19 +1,19 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import * as THREE from 'three';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import {Html} from '@react-three/drei';
 import {EventBus} from './EventEmitter';
 import {audioManager} from './AudioManager';
 import useStore from '../Store/useStore';
 import {useRayCaster} from "./RayCaster";
 import {MARKER_EVENTS} from './EventEmitter.jsx';
+import {useAnimationFrame} from "./AnimationManager.js";
 
 export const ModelMarker = React.memo(function ModelMarker({
                                                                objectRef,
                                                                children,
                                                                id,
                                                                markerType = INTERACTION_TYPES.CLICK,
-                                                               markerColor = "#44ff44",
                                                                markerText = "Interagir",
                                                                markerScale = 1,
                                                                onInteract,
@@ -40,6 +40,7 @@ export const ModelMarker = React.memo(function ModelMarker({
 
     // État pour mémoriser si le marqueur doit rester visible
     const [keepMarkerVisible, setKeepMarkerVisible] = useState(false);
+    // const [isInInteractionSequence, setIsInInteractionSequence] = useState(false);
 
     // État pour suivre si l'interaction a été complétée
     const [interactionCompleted, setInteractionCompleted] = useState(false);
@@ -57,15 +58,19 @@ export const ModelMarker = React.memo(function ModelMarker({
     const effectiveMarkerType = interactionType || markerType;
 
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
-    const shouldShowMarker = (// Ne pas montrer si l'étape actuelle a déjà été complétée
-        (interaction?.currentStep !== lastCompletedStep || !interactionCompleted) &&
+    const shouldShowMarker = (
+        // Ne pas montrer si l'étape a déjà été complétée
+        !interactionCompleted &&
 
-        // Conditions standards d'affichage
-        (isHovered || isMarkerHovered) && showMarkerOnHover && (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)));
+        // Conditions standards d'affichage (simplifié)
+        ((isHovered || isMarkerHovered) &&
+            showMarkerOnHover &&
+            (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+    );
 
     // Gérer le clic sur l'objet
     const handleObjectInteraction = () => {
-        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
+        if (interactionCompleted) return;
 
         if (onInteract) {
             onInteract();
@@ -73,8 +78,6 @@ export const ModelMarker = React.memo(function ModelMarker({
 
         // Marquer l'interaction comme complétée
         setInteractionCompleted(true);
-        setLastCompletedStep(interaction?.currentStep);
-        setKeepMarkerVisible(false);
 
         // Jouer l'animation après l'interaction si spécifiée
         if (postInteractionAnimation) {
@@ -88,9 +91,25 @@ export const ModelMarker = React.memo(function ModelMarker({
         }
     };
 
+
+    // // NOUVEAU: Écouter l'événement de complétion de séquence d'interactions
+    // useEffect(() => {
+    //     const handleSequenceComplete = (data) => {
+    //         if (data.step === requiredStep) {
+    //             console.log(`[ModelMarker] Sequence d'interaction ${requiredStep} complètement terminée`);
+    //             // Une fois que toute la séquence est terminée, on peut masquer le marqueur
+    //             setIsInInteractionSequence(false);
+    //             setKeepMarkerVisible(false);
+    //         }
+    //     };
+    //
+    //     const cleanup = EventBus.on('interaction-sequence-complete', handleSequenceComplete);
+    //     return cleanup;
+    // }, [requiredStep]);
+
     // Dans ModelMarker, modifiez les gestionnaires d'événements pour qu'ils gèrent correctement les états du composant
     const handleMarkerPointerEnter = (e) => {
-        console.log('[ModelMarker] Marker pointer enter', id);
+        // console.log('[ModelMarker] Marker pointer enter', id);
         // Arrêter complètement la propagation
         if (e) {
             e.stopPropagation();
@@ -116,7 +135,7 @@ export const ModelMarker = React.memo(function ModelMarker({
     };
 
     const handleMarkerPointerLeave = (e) => {
-        console.log('[ModelMarker] Marker pointer leave', id);
+        // console.log('[ModelMarker] Marker pointer leave', id);
         // Arrêter complètement la propagation
         if (e) {
             e.stopPropagation();
@@ -133,12 +152,25 @@ export const ModelMarker = React.memo(function ModelMarker({
             onPointerLeave(e);
         }
     };
-
+    // useEffect(() => {
+    //     const handleNextInteractionReady = (data) => {
+    //         if (data.markerId === id) {
+    //             // console.log(`[ModelMarker] Prêt pour la prochaine interaction ${id}`);
+    //             // Mettre à jour les états directement
+    //             setIsInInteractionSequence(true);
+    //             setInteractionCompleted(false);
+    //             setKeepMarkerVisible(true);
+    //         }
+    //     };
+    //
+    //     const cleanup = EventBus.on('next-interaction-ready', handleNextInteractionReady);
+    //     return cleanup;
+    // }, [id]);
     // Écouter l'événement d'interaction complète
     useEffect(() => {
         const handleInteractionComplete = (data) => {
             if (data.id === id) {
-                console.log(`[ModelMarker] Interaction ${id} marquée comme complétée pour l'étape ${interaction?.currentStep}`);
+                // console.log(`[ModelMarker] Interaction ${id} marquée comme complétée pour l'étape ${interaction?.currentStep}`);
 
                 // Stocker l'étape qui vient d'être complétée
                 setInteractionCompleted(true);
@@ -164,32 +196,41 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Si l'étape d'interaction a changé et est différente de la dernière étape complétée,
         // réinitialiser l'état pour permettre une nouvelle interaction
         if (interaction && interaction.currentStep !== lastCompletedStep && interaction.waitingForInteraction) {
-            console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
+            // console.log(`[ModelMarker] Nouvelle étape d'interaction détectée: ${interaction.currentStep}, réinitialisation de l'état`);
             setInteractionCompleted(false);
         }
     }, [interaction?.currentStep, interaction?.waitingForInteraction, lastCompletedStep]);
 
     // S'abonner aux événements de pointeur via le système RayCaster
     useEffect(() => {
-        // Ne pas ajouter d'écouteurs si l'interaction est déjà complétée pour l'étape actuelle
-        if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
-
         // Utiliser la référence à l'objet ou au groupe
         const targetRef = objectRef || groupRef;
 
         if (targetRef.current) {
-            console.log(`[ModelMarker] Ajout des écouteurs pour l'étape ${interaction?.currentStep}`);
+            // SUPPRIMÉ: la condition qui empêche l'ajout d'écouteurs pour les prochaines interactions
+            // AJOUTÉ: log pour indiquer l'ajout d'écouteurs
+            // console.log(`[ModelMarker] Ajout des écouteurs pour ${id}, étape ${interaction?.currentStep}`);
 
-            // Ajouter des écouteurs pour le survol
+            // Ajouter des écouteurs pour le survol - modification de la logique pour gérer les interactions séquentielles
             const removeEnterListener = addPointerEnterListener(targetRef.current.uuid, (intersection, event, object) => {
-                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
-                console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
+                // Permettre le hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) {
+                    // console.log('[EnhancedObjectMarker] Hover ignoré - interaction complétée');
+                    return;
+                }
+
+                // console.log('[EnhancedObjectMarker] Pointer enter via raycaster', object);
                 setHovered(true);
             });
 
             const removeLeaveListener = addPointerLeaveListener(targetRef.current.uuid, (event) => {
-                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) return;
-                console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
+                // Permettre le leave hover même si une interaction précédente a été complétée mais que nous sommes dans une séquence
+                if (interactionCompleted && interaction?.currentStep === lastCompletedStep) {
+                    // console.log('[EnhancedObjectMarker] Leave hover ignoré - interaction complétée');
+                    return;
+                }
+
+                // console.log('[EnhancedObjectMarker] Pointer leave via raycaster');
                 setHovered(false);
 
                 // IMPORTANT: Si ni le modèle ni le marqueur ne sont survolés, nous devons nous assurer que le marqueur est caché
@@ -203,8 +244,17 @@ export const ModelMarker = React.memo(function ModelMarker({
                 removeLeaveListener();
             };
         }
-    }, [objectRef, addPointerEnterListener, addPointerLeaveListener, interactionCompleted, interaction?.currentStep, lastCompletedStep, isMarkerHovered]);
-
+    }, [
+        objectRef,
+        groupRef,
+        id,
+        addPointerEnterListener,
+        addPointerLeaveListener,
+        interactionCompleted,
+        interaction?.currentStep,
+        lastCompletedStep,
+        isMarkerHovered,
+    ]);
 
     return (<group ref={groupRef} {...props}>
         {React.Children.map(children, child => React.cloneElement(child, {
@@ -214,7 +264,6 @@ export const ModelMarker = React.memo(function ModelMarker({
         {shouldShowMarker && (<EnhancedObjectMarker
             objectRef={objectRef || groupRef}
             markerType={effectiveMarkerType}
-            color={markerColor}
             scale={markerScale}
             text={markerText}
             onClick={handleObjectInteraction}
@@ -447,7 +496,6 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
         calculateStablePosition();
     }, [objectRef.current, camera, calculateStablePosition]);
 
-    // Fonction à appeler dans useFrame pour mettre à jour les transitions et vérifier la visibilité
     const checkAndUpdate = useCallback((delta) => {
         if (!delta) delta = 0.016; // Delta par défaut si non fourni
 
@@ -488,7 +536,7 @@ export const useOptimalMarkerPosition = (objectRef, options = {}) => {
                     const currentPos = new THREE.Vector3(initialPosition.current.x, initialPosition.current.y, initialPosition.current.z);
 
                     const visible = isInViewport(currentPos);
-                    setIsVisible(visible);
+                    // setIsVisible(visible);
 
                     if (!visible) {
                         calculateStablePosition();
@@ -535,7 +583,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                                                                           objectRef,
                                                                           markerType = INTERACTION_TYPES.CLICK,
                                                                           hovered,
-                                                                          color = "#44ff44",
                                                                           scale = 1,
                                                                           text = "Interagir",
                                                                           onClick,
@@ -607,7 +654,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             setFadeIn(false);
         }
     }, [hovered, keepVisible, isHovering]);
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (!markerRef.current) return;
 
         try {
@@ -624,9 +671,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                 checkAndUpdate(delta);
             }
         } catch (error) {
-            console.warn("Erreur dans useFrame du marqueur:", error);
+            console.warn("Erreur dans l'animation du marqueur:", error);
         }
-    });
+    }, 'ui');
 
     const handleLongPressStart = (e) => {
         stopAllPropagation(e);
@@ -634,7 +681,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressStartTime.current = Date.now();
         setIsLongPressing(true);
-        setLongPressFeedback(0); // Réinitialiser la progression au début
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {
@@ -713,7 +759,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
 
         if (markerType.includes('drag')) {
-            console.log(`[EnhancedObjectMarker] Cette interaction nécessite un glissement (${markerType}), pas un simple clic`);
+            // console.log(`[EnhancedObjectMarker] Cette interaction nécessite un glissement (${markerType}), pas un simple clic`);
             return;
         }
 
@@ -864,7 +910,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
     }, []);
 
     // Animation continue pour les marqueurs et contrainte au viewport
-    useFrame((state, delta) => { // Assurez-vous de récupérer delta depuis les arguments
+    useAnimationFrame((state, delta) => { // Assurez-vous de récupérer delta depuis les arguments
         if (!markerRef.current) return;
 
         // Application de la position du marqueur
@@ -879,12 +925,12 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         if (animate) {
             checkAndUpdate(delta); // Correction - utiliser le nouveau nom de fonction
         }
-    });
+    }, 'ui');
 
     // Gérer les animations des marqueurs
 
     // Animation existante
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (!markerRef.current || !fadeIn || !animate) return;
 
         try {
@@ -939,7 +985,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         } catch (error) {
             console.warn("Erreur dans l'animation du marqueur:", error);
         }
-    });
+    }, 'ui');
 
     // Ne rien rendre si l'objet n'est pas survolé et keepVisible est false
     if (!hovered && !keepVisible && !isHovering) return null;
@@ -991,7 +1037,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                 <div
                     className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
                     onMouseEnter={(e) => {
-                        console.log('Button hover enter');
+                        // console.log('Button hover enter');
                         stopAllPropagation(e);
                         setButtonHovered(true);
                         if (typeof onPointerEnter === 'function') {
@@ -999,7 +1045,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         }
                     }}
                     onMouseLeave={(e) => {
-                        console.log('Button hover leave');
+                        // console.log('Button hover leave');
                         stopAllPropagation(e);
                         setButtonHovered(false);
                         if (typeof onPointerLeave === 'function') {
@@ -1029,13 +1075,13 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     onTouchStart={handleLongPressStart}
                     onTouchEnd={handleLongPressCancel}
                     onMouseEnter={(e) => {
-                        console.log('Button hover enter');
+                        // console.log('Button hover enter');
                         stopAllPropagation(e);
                         setButtonHovered(true);
                         if (onPointerEnter) onPointerEnter(e);
                     }}
                     onMouseLeave={(e) => {
-                        console.log('Button hover leave');
+                        // console.log('Button hover leave');
                         stopAllPropagation(e);
                         setButtonHovered(false);
                         if (onPointerLeave) onPointerLeave(e);
@@ -1070,7 +1116,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         onMouseDown={handleDragStart}
                         onTouchStart={handleDragStart}
                         onMouseEnter={(e) => {
-                            console.log('Button hover enter');
+                            // console.log('Button hover enter');
                             stopAllPropagation(e);
                             setButtonHovered(true);
                             if (typeof onPointerEnter === 'function') {
@@ -1078,7 +1124,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                             }
                         }}
                         onMouseLeave={(e) => {
-                            console.log('Button hover leave');
+                            // console.log('Button hover leave');
                             stopAllPropagation(e);
                             setButtonHovered(false);
                             if (typeof onPointerLeave === 'function') {

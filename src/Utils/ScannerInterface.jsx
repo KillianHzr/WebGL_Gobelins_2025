@@ -176,6 +176,8 @@ export default function ScannerInterface() {
 
         if (interaction?.completeInteraction) {
             interaction.completeInteraction();
+            window.doJumpToChapter(0.01)
+
         }
     };
 
@@ -274,7 +276,7 @@ export default function ScannerInterface() {
                                 onTouchEnd={handleScanButtonUp}
                             >
                                 <div className="scanner-interface-scan-button-inner-text">
-                                    Scan les traces
+                                    Scan
                                 </div>
                                 <div
                                     className="scanner-interface-scan-button-inner-progress"

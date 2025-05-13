@@ -7,11 +7,18 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },{
+        name: 'Camera',
+        type: 'gltf',
+        path: '/models/Camera.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'MapInstance',
         type: 'gltf',
-        path: '/models/MapInstance.glb',
+        path: '/models/MapGrass.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -47,7 +54,7 @@ const baseAssets = [
     {
         name: 'MultipleLeaf',
         type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
+        path: '/models/primary/MultipleLeaf.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -55,7 +62,7 @@ const baseAssets = [
     {
         name: 'AnimalPaws',
         type: 'gltf',
-        path: '/models/primary/AnimalPaws.gltf',
+        path: '/models/primary/AnimalPaws.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -123,6 +130,13 @@ const baseAssets = [
         name: 'TrunkThin',
         type: 'gltf',
         path: '/models/forest/tree/ThinTrunk.gltf',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },{
+        name: 'TrunkThinPlane',
+        type: 'gltf',
+        path: '/models/forest/tree/TreeThinPlane.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

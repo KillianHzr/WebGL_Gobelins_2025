@@ -75,10 +75,10 @@ export default function CaptureInterface() {
 
         setIsVisible(false);
         setIsFlashing(true);
-
-        setTimeout(() => {
+        // setTimeout(() => {
             setIsButtonPressed(false);
             setIsFlashing(false);
+            window.doJumpToChapter(0.01)
 
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);
@@ -93,7 +93,7 @@ export default function CaptureInterface() {
             if (interaction?.completeInteraction) {
                 interaction.completeInteraction();
             }
-        }, 1000);
+        // }, 1000);
     };
 
     if (!isVisible && !isFlashing && !showNotification) return null;
@@ -159,7 +159,7 @@ export default function CaptureInterface() {
                                 <div
                                     className="camera-interface-capture-button-inner-text"
                                 >
-                                    Prend la photo
+                                    Capture
                                 </div>
                             </div>
                         </div>

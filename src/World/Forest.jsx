@@ -5,36 +5,32 @@ import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import useStore from '../Store/useStore';
 import templateManager from '../Config/TemplateManager';
 import {textureManager} from '../Config/TextureManager';
-import {sRGBEncoding} from "@react-three/drei/helpers/deprecated.js";
-import {MeshStandardMaterial} from "three";
 
 // -------------------- CONFIGURABLE LOD PARAMETERS --------------------
 const LOD_CONFIG = {
-    MAX_DETAIL_DISTANCE: 60,
-    MIN_DETAIL_DISTANCE: 90,
-    LOD_LEVELS: 2,
-    MIN_DETAIL_PERCENTAGE: 0.1,
-    DEBUG_LOD: false
+    MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 2, MIN_DETAIL_PERCENTAGE: 0.1, DEBUG_LOD: false
 };
 
-// Nouveau: Configuration du chargement progressif
+const TRUNK_SWITCH_CONFIG = {
+    SWITCH_DISTANCE: 35,      // Distance à laquelle basculer entre TrunkThin et TrunkThinPlane
+    SWITCH_RANGE: 7,         // Plage de variation pour créer une transition plus progressive
+    CHUNK_SIZE: 10,           // Taille de chunk plus petite spécifique pour TrunkThin/TrunkThinPlane
+    DEBUG_SWITCH: false       // Activer les logs de débogage pour ce switch
+};
+
+// Configuration du chargement progressif
 const LOADING_CONFIG = {
     // Nombre maximum d'objets à charger par lot
-    BATCH_SIZE: 5,
-    // Délai entre les lots (ms)
-    BATCH_DELAY: 20,
-    // Rayon autour de la caméra pour la priorisation
-    PRIORITY_RADIUS: 100,
-    // Nombre maximum de threads WebWorker pour la géométrie
-    MAX_WORKERS: 2,
-    // Active le cache de géométrie
-    ENABLE_GEOMETRY_CACHE: true,
-    // Taille du chunk pour le regroupement des instances
+    BATCH_SIZE: 5, // Délai entre les lots (ms)
+    BATCH_DELAY: 20, // Rayon autour de la caméra pour la priorisation
+    PRIORITY_RADIUS: 100, // Nombre maximum de threads WebWorker pour la géométrie
+    MAX_WORKERS: 2, // Active le cache de géométrie
+    ENABLE_GEOMETRY_CACHE: true, // Taille du chunk pour le regroupement des instances
     CHUNK_SIZE: 40
 };
 // ----------------------------------------------------------------------
 
-// Nouveau: Cache de géométrie partagé entre les instances
+// Cache de géométrie partagé entre les instances
 const GeometryCache = {
     cache: new Map(),
 
@@ -67,8 +63,18 @@ const GeometryCache = {
 export default function Forest() {
     const {scene, camera} = useThree();
     const forestRef = useRef(new THREE.Group());
+    const endGroupRef = useRef(new THREE.Group());  // Groupe pour les objets "End"
+    const screenGroupRef = useRef(new THREE.Group()); // Groupe pour les écrans
     const assetManager = window.assetManager;
     const eventEmitter = useEventEmitter();
+
+
+    const endGroupVisible = useStore(state => state.endGroupVisible);
+    const screenGroupVisible = useStore(state => state.screenGroupVisible);
+    const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
+    const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
+    const toggleEndGroupVisible = useStore(state => state.toggleEndGroupVisible);
+    const toggleScreenGroupVisible = useStore(state => state.toggleScreenGroupVisible);
 
     // Refs pour stocker les données et l'état
     const objectPositionsRef = useRef(null);
@@ -79,7 +85,7 @@ export default function Forest() {
     const frameSkipRef = useRef(0);
     const FRAME_SKIP = 2;
 
-    // Nouveaux refs pour le chargement prioritaire
+    // Refs pour le chargement prioritaire
     const loadingQueueRef = useRef([]);
     const isLoadingRef = useRef(false);
     const loadedChunksRef = useRef(new Set());
@@ -89,41 +95,109 @@ export default function Forest() {
     const frustumRef = useRef(new THREE.Frustum());
     const projScreenMatrixRef = useRef(new THREE.Matrix4());
 
-    useEffect(() => {
-        console.log('Forest: Component mounted');
-        console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` +
-            `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` +
-            `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
+    // Fonction pour basculer la visibilité d'un groupe
+    const toggleGroupVisibility = (groupRef, currentVisibility, setVisibility) => {
+        const newVisibility = !currentVisibility;
+        if (groupRef.current) {
+            groupRef.current.visible = newVisibility;
+        }
+        setVisibility(newVisibility);
+        return newVisibility;
+    };
 
-        // Créer le groupe principal
+    useEffect(() => {
+        // console.log('Forest: Component mounted');
+        // console.log(`LOD Configuration: Max detail at ${LOD_CONFIG.MAX_DETAIL_DISTANCE} units, ` + `Min detail at ${LOD_CONFIG.MIN_DETAIL_DISTANCE} units, ` + `Using ${LOD_CONFIG.LOD_LEVELS} levels`);
+
+        // Create the main group and subgroups
         const forestGroup = new THREE.Group();
         forestGroup.name = 'Forest';
+
+        // Create the group for "End" objects
+        const endGroup = new THREE.Group();
+        endGroup.name = 'EndObjects';
+        endGroup.visible = endGroupVisible; // Use store value
+        forestGroup.add(endGroup);
+        endGroupRef.current = endGroup;
+
+        // Create the group for screens
+        const screenGroup = new THREE.Group();
+        screenGroup.name = 'ScreenObjects';
+        screenGroup.visible = screenGroupVisible; // Use store value
+        forestGroup.add(screenGroup);
+        screenGroupRef.current = screenGroup;
+
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Nouveau: Initialiser le pool de workers
+
+
+        const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
+            // // console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+        });
+        const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
+            // // console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
+        });
+
+        // Initialiser le pool de workers
         initializeWorkerPool();
 
         // Charger les données de la forêt
         initForestLoading();
 
+
+        forceGroupVisibility(true);
         // Nettoyer les ressources
         return () => {
             cleanupResources();
+            endGroupUnsubscribe();
+            screenGroupUnsubscribe();
         };
     }, [scene, camera, assetManager]);
 
-    // Nouveau: Initialiser le pool de workers pour la création de géométrie
+    useEffect(() => {
+        // Synchroniser les objets Three.js avec l'état du store
+        if (endGroupRef.current) {
+            endGroupRef.current.visible = endGroupVisible;
+            // console.log(`Groupe "End" visibilité synchronisée: ${endGroupVisible ? 'visible' : 'caché'}`);
+        }
+
+        if (screenGroupRef.current) {
+            screenGroupRef.current.visible = screenGroupVisible;
+            // console.log(`Groupe "Screen" visibilité synchronisée: ${screenGroupVisible ? 'visible' : 'caché'}`);
+        }
+    }, [endGroupVisible, screenGroupVisible]);
+    const forceGroupVisibility = (force = true) => {
+        // console.log(`Force visibility appelé avec: ${force ? 'visible' : 'caché'}`);
+
+        // Mettre à jour le store
+        useStore.getState().setEndGroupVisible(force);
+        useStore.getState().setScreenGroupVisible(force);
+
+        // Appliquer directement aux références
+        if (endGroupRef.current) {
+            endGroupRef.current.visible = force;
+        }
+
+        if (screenGroupRef.current) {
+            screenGroupRef.current.visible = force;
+        }
+
+        // Émettre les événements
+        EventBus.trigger('end-group-visibility-changed', force);
+        EventBus.trigger('screen-group-visibility-changed', force);
+    };
+
+    // Initialiser le pool de workers pour la création de géométrie
     const initializeWorkerPool = () => {
         // On pourrait implémenter ici un pool de Web Workers pour la création de géométrie
         // Mais pour la simplicité, nous allons simuler le comportement
         workerPoolRef.current = Array(LOADING_CONFIG.MAX_WORKERS).fill(null).map(() => ({
-            busy: false,
-            id: Math.random().toString(36).substring(7)
+            busy: false, id: Math.random().toString(36).substring(7)
         }));
     };
 
-    // Nouveau: Fonction principale de chargement de la forêt
+    // Fonction principale de chargement de la forêt
     const initForestLoading = async () => {
         try {
             // 1. Charger les positions d'abord
@@ -160,38 +234,31 @@ export default function Forest() {
     // Optimisé: Chargement des positions
     const loadObjectPositions = async () => {
         try {
-            console.log('Loading object positions from JSON...');
+            // console.log('Loading object positions from JSON...');
 
             // Essayer les chemins possibles
-            const paths = [
-                './data/treePositions.json',
-                '/data/treePositions.json',
-                '../data/treePositions.json',
-                'treePositions.json'
-            ];
+            const paths = ['./data/treePositions.json', '/data/treePositions.json', '../data/treePositions.json', 'treePositions.json'];
 
             // Promise.race pour prendre le premier chemin qui fonctionne
-            const fetchPromises = paths.map(path =>
-                fetch(path)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`Path ${path} failed`);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log(`Successfully loaded from ${path}`);
-                        return data;
-                    })
-                    .catch(err => {
-                        console.log(`Path ${path} failed:`, err.message);
-                        return null;
-                    })
-            );
+            const fetchPromises = paths.map(path => fetch(path)
+                .then(response => {
+                    if (!response.ok) throw new Error(`Path ${path} failed`);
+                    return response.json();
+                })
+                .then(data => {
+                    // console.log(`Successfully loaded from ${path}`);
+                    return data;
+                })
+                .catch(err => {
+                    // console.log(`Path ${path} failed:`, err.message);
+                    return null;
+                }));
 
             // Ajouter un fallback pour le store
             const storePromise = new Promise(resolve => {
                 const storePositions = useStore.getState().treePositions;
                 if (storePositions) {
-                    console.log('Using positions from store');
+                    // console.log('Using positions from store');
                     resolve(storePositions);
                 } else {
                     resolve(null);
@@ -203,7 +270,7 @@ export default function Forest() {
             const validResult = results.find(result => result !== null);
 
             if (validResult) {
-                console.log('Object positions loaded successfully');
+                // console.log('Object positions loaded successfully');
                 return validResult;
             }
 
@@ -227,7 +294,7 @@ export default function Forest() {
             const requiredAssetsInfo = templateManager.getRequiredAssets();
             const requiredAssetNames = requiredAssetsInfo.map(asset => asset.name);
 
-            console.log(`Loading ${requiredAssetNames.length} models...`);
+            // console.log(`Loading ${requiredAssetNames.length} models...`);
 
             // Créer un objet de promesses pour chaque asset
             const modelPromises = requiredAssetNames.map(assetName => {
@@ -235,7 +302,7 @@ export default function Forest() {
                     // Vérifier si le modèle est déjà chargé
                     const model = assetManager.getItem(assetName);
                     if (model) {
-                        resolve({ name: assetName, model });
+                        resolve({name: assetName, model});
                         return;
                     }
 
@@ -244,7 +311,7 @@ export default function Forest() {
                         if (loadedName === assetName) {
                             // Désabonner pour éviter les fuites de mémoire
                             assetManager.off('assetLoaded', onAssetLoaded);
-                            resolve({ name: assetName, model: loadedModel });
+                            resolve({name: assetName, model: loadedModel});
                         }
                     };
 
@@ -263,11 +330,11 @@ export default function Forest() {
 
             // Convertir en objet
             const modelObject = {};
-            loadedModels.forEach(({ name, model }) => {
+            loadedModels.forEach(({name, model}) => {
                 modelObject[name] = model;
             });
 
-            console.log('All models loaded successfully:', Object.keys(modelObject));
+            // console.log('All models loaded successfully:', Object.keys(modelObject));
             return modelObject;
         } catch (error) {
             console.error('Error loading models:', error);
@@ -275,7 +342,7 @@ export default function Forest() {
         }
     };
 
-    // Nouveau: Préparation de la file d'attente de chargement
+    // Préparation de la file d'attente de chargement
     const prepareLoadingQueue = (positions) => {
         if (!positions || !camera) return;
 
@@ -285,9 +352,7 @@ export default function Forest() {
 
         // Créer des chunks pour chaque type d'objet
         Object.keys(positions).forEach(objectId => {
-            if (objectId === templateManager.undefinedCategory ||
-                !positions[objectId] ||
-                positions[objectId].length === 0) {
+            if (objectId === templateManager.undefinedCategory || !positions[objectId] || positions[objectId].length === 0) {
                 return;
             }
 
@@ -306,11 +371,7 @@ export default function Forest() {
                         chunkZ,
                         chunkId,
                         positions: [],
-                        center: new THREE.Vector3(
-                            (chunkX + 0.5) * CHUNK_SIZE,
-                            0,
-                            (chunkZ + 0.5) * CHUNK_SIZE
-                        )
+                        center: new THREE.Vector3((chunkX + 0.5) * CHUNK_SIZE, 0, (chunkZ + 0.5) * CHUNK_SIZE)
                     };
                 }
 
@@ -323,9 +384,7 @@ export default function Forest() {
                 const distanceToCamera = chunk.center.distanceTo(cameraPosition);
 
                 queue.push({
-                    ...chunk,
-                    distanceToCamera,
-                    priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
+                    ...chunk, distanceToCamera, priority: distanceToCamera <= LOADING_CONFIG.PRIORITY_RADIUS ? 1 : 0
                 });
             });
         });
@@ -336,11 +395,11 @@ export default function Forest() {
             return a.distanceToCamera - b.distanceToCamera;
         });
 
-        console.log(`Prepared loading queue with ${queue.length} chunks, sorted by distance`);
+        // console.log(`Prepared loading queue with ${queue.length} chunks, sorted by distance`);
         loadingQueueRef.current = queue;
     };
 
-    // Nouveau: Lancement du chargement progressif
+    // Lancement du chargement progressif
     const startProgressiveLoading = () => {
         if (isLoadingRef.current || loadingQueueRef.current.length === 0) return;
 
@@ -348,12 +407,12 @@ export default function Forest() {
         processNextBatch();
     };
 
-    // Nouveau: Traitement d'un lot de chunks
+    // Traitement d'un lot de chunks
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
 
         if (queue.length === 0) {
-            console.log('Progressive loading complete');
+            // console.log('Progressive loading complete');
             isLoadingRef.current = false;
 
             // Déclencher l'événement quand tout est chargé
@@ -364,16 +423,14 @@ export default function Forest() {
 
         // Prendre un lot de chunks à traiter
         const batch = queue.splice(0, LOADING_CONFIG.BATCH_SIZE);
-        console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
+        // // console.log(`Processing batch of ${batch.length} chunks, ${queue.length} remaining`);
 
         // Précharger les textures pour les types d'objets du lot
         const objectTypes = [...new Set(batch.map(chunk => chunk.objectId))];
         const preloadedTextures = await preloadTexturesForModels(objectTypes);
 
         // Traiter chaque chunk du lot en parallèle
-        await Promise.all(batch.map(chunk =>
-            createChunkInstances(chunk, preloadedTextures)
-        ));
+        await Promise.all(batch.map(chunk => createChunkInstances(chunk, preloadedTextures)));
 
         // Planifier le prochain lot après un court délai
         setTimeout(() => {
@@ -381,9 +438,9 @@ export default function Forest() {
         }, LOADING_CONFIG.BATCH_DELAY);
     };
 
-    // Nouveau: Création des instances pour un chunk
+    // Création des instances pour un chunk avec répartition dans les groupes
     const createChunkInstances = async (chunk, preloadedTextures) => {
-        const { objectId, chunkId, positions, center } = chunk;
+        const {objectId, chunkId, positions, center} = chunk;
 
         // Vérifier si ce chunk a déjà été traité
         if (loadedChunksRef.current.has(chunkId)) {
@@ -402,18 +459,27 @@ export default function Forest() {
             }
 
             // Créer les instances LOD pour ce chunk
-            const instances = await createLodInstancedMeshesForChunk(
-                objectId,
-                model,
-                positions,
-                preloadedTextures,
-                center,
-                chunkId
-            );
+            const instances = await createLodInstancedMeshesForChunk(objectId, model, positions, preloadedTextures, center, chunkId);
 
-            // Ajouter les instances au groupe de la forêt et à la liste des instances
+            // Déterminer à quel groupe l'objet appartient
+            let targetGroup = forestRef.current;
+
+            if (objectId.includes('Screen') || objectId === 'ScreenOld' || objectId === 'Screen') {
+                // Les écrans vont dans le groupe des écrans
+                targetGroup = screenGroupRef.current;
+            } else if (objectId.includes('End')) {
+                // Les objets avec "End" dans leur ID vont dans le groupe "End"
+                targetGroup = endGroupRef.current;
+            }
+
+            // Ajouter les instances au groupe approprié et à la liste des instances
             instances.forEach(instance => {
-                forestRef.current.add(instance);
+                // Si c'est un TrunkThinPlane, le cacher initialement
+                if (objectId === 'TrunkThinPlane') {
+                    instance.visible = false;
+                }
+
+                targetGroup.add(instance);
                 lodInstancesRef.current.push(instance);
             });
 
@@ -422,13 +488,7 @@ export default function Forest() {
         }
     };
 
-    // Modifié: Création des instances LOD pour un chunk spécifique
-    /**
-     * Extrait optimisé de Forest.jsx qui concerne la création des instances et l'application des textures
-     * Cette version utilise le TextureManagerOptimized pour éviter les duplications de textures
-     */
-
-// Modifié: Création des instances LOD pour un chunk spécifique
+    // Création des instances LOD pour un chunk spécifique
     const createLodInstancedMeshesForChunk = async (objectId, model, positions, preloadedTextures, chunkCenter, chunkId) => {
         if (!positions || positions.length === 0) {
             return [];
@@ -452,8 +512,7 @@ export default function Forest() {
         // OPTIMISATION: Au lieu de créer un nouveau matériau chaque fois,
         // utiliser le gestionnaire de textures optimisé pour obtenir un matériau réutilisable
         const material = textureManager.getMaterial(objectId, {
-            aoIntensity: 0.7,
-            alphaTest: 1.0
+            aoIntensity: 0.0, alphaTest: 1.0
         });
 
         // Créer les instances LOD
@@ -470,13 +529,9 @@ export default function Forest() {
             const detailLevel = level === 0 ? 1.0 : 1.0 - (level / (lodLevels - 1));
 
             // Calculer la plage de distance pour ce niveau LOD
-            const minDistance = level === 0 ? 0 :
-                LOD_CONFIG.MAX_DETAIL_DISTANCE +
-                (level - 1) / (lodLevels - 1) * distanceRange;
+            const minDistance = level === 0 ? 0 : LOD_CONFIG.MAX_DETAIL_DISTANCE + (level - 1) / (lodLevels - 1) * distanceRange;
 
-            const maxDistance = level === lodLevels - 1 ? Infinity :
-                LOD_CONFIG.MAX_DETAIL_DISTANCE +
-                level / (lodLevels - 1) * distanceRange;
+            const maxDistance = level === lodLevels - 1 ? Infinity : LOD_CONFIG.MAX_DETAIL_DISTANCE + level / (lodLevels - 1) * distanceRange;
 
             // Vérifier le cache de géométrie ou créer une géométrie simplifiée
             let levelGeometry;
@@ -497,11 +552,8 @@ export default function Forest() {
 
             // OPTIMISATION: Utilisation du même matériau de référence partagé
             // au lieu de créer une copie avec material.clone()
-            const instancedMesh = new THREE.InstancedMesh(
-                levelGeometry,
-                material,  // Réutilisation du même matériau - pas de clone()
-                positions.length
-            );
+            const instancedMesh = new THREE.InstancedMesh(levelGeometry, material,  // Réutilisation du même matériau - pas de clone()
+                positions.length);
 
             instancedMesh.name = `${objectId}_lod${level}_chunk${chunkId}`;
             instancedMesh.castShadow = true;
@@ -513,12 +565,20 @@ export default function Forest() {
             instancedMesh.userData.maxDistance = maxDistance;
             instancedMesh.userData.chunkCenter = chunkCenter;
             instancedMesh.userData.objectId = objectId;
+            instancedMesh.userData.chunkId = chunkId;
+
+            // Pour TrunkThin, calculer un seuil personnalisé
+            if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
+                // Extraire chunkX et chunkZ du chunkId
+                const parts = chunkId.split('_');
+                const chunkX = parts.length > 1 ? parseInt(parts[1]) : 0;
+                const chunkZ = parts.length > 2 ? parseInt(parts[2]) : 0;
+
+                instancedMesh.userData.customSwitchThreshold = getChunkCustomThreshold(chunkId, chunkX, chunkZ);
+            }
 
             // Calculer la sphère englobante pour le frustum culling
-            const boundingSphere = new THREE.Sphere(
-                chunkCenter.clone(),
-                LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2)
-            );
+            const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
             instancedMesh.userData.boundingSphere = boundingSphere;
 
             // Définir les matrices d'instance
@@ -537,16 +597,43 @@ export default function Forest() {
             instances.push(instancedMesh);
 
             if (LOD_CONFIG.DEBUG_LOD) {
-                console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` +
-                    `Detail ${(detailLevel * 100).toFixed(0)}% ` +
-                    `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
+                // console.log(`Created LOD level ${level} for ${objectId} chunk ${chunkId}: ` + `Detail ${(detailLevel * 100).toFixed(0)}% ` + `Range ${minDistance.toFixed(1)} - ${maxDistance === Infinity ? 'Infinity' : maxDistance.toFixed(1)} units`);
             }
         }
 
         return instances;
     };
 
-    // Nouveau: Version asynchrone pour la création de géométrie simplifiée
+    const getChunkHash = (chunkId, x, z) => {
+        // Utiliser un simple algorithme de hachage pour générer une valeur pseudo-aléatoire mais stable
+        let hash = 0;
+        for (let i = 0; i < chunkId.length; i++) {
+            hash = (hash << 5) - hash + chunkId.charCodeAt(i);
+            hash |= 0; // Convertir en entier 32 bits
+        }
+        // Ajouter l'influence des coordonnées pour plus de variation
+        hash += x * 73 + z * 151;
+        return hash;
+    };
+
+    const getChunkCustomThreshold = (chunkId, chunkX, chunkZ) => {
+        const hash = getChunkHash(chunkId, chunkX, chunkZ);
+        // Générer une variation entre -SWITCH_RANGE/2 et +SWITCH_RANGE/2
+        const variation = (hash % TRUNK_SWITCH_CONFIG.SWITCH_RANGE) - (TRUNK_SWITCH_CONFIG.SWITCH_RANGE / 2);
+        return TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE + variation;
+    };
+
+    const resetProcessingFlags = () => {
+        lodInstancesRef.current.forEach(instance => {
+            if (instance.userData &&
+                (instance.userData.objectId === 'TrunkThin' ||
+                    instance.userData.objectId === 'TrunkThinPlane')) {
+                instance.userData.processed = false;
+            }
+        });
+    };
+
+    // Version asynchrone pour la création de géométrie simplifiée
     const createSimplifiedGeometryAsync = (geometry, detailLevel, objectId) => {
         return new Promise(resolve => {
             // Pour les détails maximaux, pas besoin de simplifier
@@ -562,11 +649,9 @@ export default function Forest() {
                 // Simuler un worker asynchrone pour les opérations lourdes
                 availableWorker.busy = true;
 
-                setTimeout(() => {
                     const simplifiedGeometry = createSimplifiedGeometry(geometry, detailLevel, objectId);
                     availableWorker.busy = false;
                     resolve(simplifiedGeometry);
-                }, 0);
             } else {
                 // Aucun worker disponible, exécuter dans le thread principal
                 const simplifiedGeometry = createSimplifiedGeometry(geometry, detailLevel, objectId);
@@ -575,7 +660,7 @@ export default function Forest() {
         });
     };
 
-    // Fonction de création de géométrie simplifiée (non modifiée)
+    // Fonction de création de géométrie simplifiée
     const createSimplifiedGeometry = (geometry, detailLevel, objectId) => {
         if (!geometry) return null;
 
@@ -589,12 +674,10 @@ export default function Forest() {
 
         // Calculer le ratio de triangles à conserver
         // Interpolation linéaire entre MIN_DETAIL_PERCENTAGE et 1.0
-        const ratio = LOD_CONFIG.MIN_DETAIL_PERCENTAGE +
-            (1.0 - LOD_CONFIG.MIN_DETAIL_PERCENTAGE) * detailLevel;
+        const ratio = LOD_CONFIG.MIN_DETAIL_PERCENTAGE + (1.0 - LOD_CONFIG.MIN_DETAIL_PERCENTAGE) * detailLevel;
 
         if (LOD_CONFIG.DEBUG_LOD) {
-            console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` +
-                `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
+            // console.log(`Creating simplified geometry for ${objectId} at detail level ${detailLevel.toFixed(2)}, ` + `keeping ${(ratio * 100).toFixed(1)}% of triangles`);
         }
 
         // Si la géométrie a un buffer d'index (triangles)
@@ -639,8 +722,7 @@ export default function Forest() {
             }
 
             // Mettre à jour l'attribut de position
-            clonedGeometry.setAttribute('position',
-                new THREE.BufferAttribute(newPositions, 3));
+            clonedGeometry.setAttribute('position', new THREE.BufferAttribute(newPositions, 3));
 
             // Mettre à jour les autres attributs (normales, UVs, etc.)
             if (clonedGeometry.attributes.normal) {
@@ -652,8 +734,7 @@ export default function Forest() {
                         newNormals[i + k] = normals[baseIndex + k];
                     }
                 }
-                clonedGeometry.setAttribute('normal',
-                    new THREE.BufferAttribute(newNormals, 3));
+                clonedGeometry.setAttribute('normal', new THREE.BufferAttribute(newNormals, 3));
             }
 
             if (clonedGeometry.attributes.uv) {
@@ -665,8 +746,7 @@ export default function Forest() {
                         newUVs[i + k] = uvs[baseIndex + k];
                     }
                 }
-                clonedGeometry.setAttribute('uv',
-                    new THREE.BufferAttribute(newUVs, 2));
+                clonedGeometry.setAttribute('uv', new THREE.BufferAttribute(newUVs, 2));
             }
         }
 
@@ -681,7 +761,7 @@ export default function Forest() {
     const preloadTexturesForModels = async (modelIds) => {
         if (!textureManager) return {};
 
-        console.log('Preloading textures for all models...');
+        // // console.log('Preloading textures for all models...');
         const loadedTextures = {};
 
         // Load textures for each model in parallel
@@ -691,7 +771,7 @@ export default function Forest() {
                     const textures = await textureManager.preloadTexturesForModel(modelId);
                     if (textures) {
                         loadedTextures[modelId] = textures;
-                        console.log(`Textures preloaded for ${modelId}`);
+                        // // console.log(`Textures preloaded for ${modelId}`);
                     }
                 } catch (error) {
                     console.warn(`Error preloading textures for ${modelId}:`, error);
@@ -718,17 +798,53 @@ export default function Forest() {
         }
         frameSkipRef.current = 0;
 
+        // Réinitialiser les flags de traitement
+        resetProcessingFlags();
+
         if (camera && lodInstancesRef.current.length > 0) {
             const cameraPosition = camera.position;
 
             // Mettre à jour le frustum pour le culling
-            projScreenMatrixRef.current.multiplyMatrices(
-                camera.projectionMatrix,
-                camera.matrixWorldInverse
-            );
+            projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
-            // Mettre à jour la visibilité des LOD pour tous les meshes instanciés
+            // Créer deux Maps pour stocker les objets TrunkThin et TrunkThinPlane par position
+            const trunkThinMap = new Map();
+            const trunkThinPlaneMap = new Map();
+
+            // Premier passage: identifier et indexer tous les TrunkThin et TrunkThinPlane
+            lodInstancesRef.current.forEach(instance => {
+                if (!instance.userData) return;
+
+                const objectId = instance.userData.objectId;
+
+                // Ignorer les objets autres que TrunkThin et TrunkThinPlane
+                if (objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') return;
+
+                // Créer une clé basée sur la position pour identifier les paires
+                const posKey = instance.userData.chunkCenter ?
+                    `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
+
+                if (!posKey) return;
+
+                // Stocker l'instance dans la map appropriée avec le seuil personnalisé
+                if (objectId === 'TrunkThin') {
+                    // Calculer un seuil personnalisé pour ce chunk si ce n'est pas déjà fait
+                    if (!instance.userData.customSwitchThreshold && instance.userData.chunkId) {
+                        const [_, chunkX, chunkZ] = instance.userData.chunkId.split('_').map(Number);
+                        instance.userData.customSwitchThreshold = getChunkCustomThreshold(
+                            instance.userData.chunkId,
+                            chunkX || 0,
+                            chunkZ || 0
+                        );
+                    }
+                    trunkThinMap.set(posKey, instance);
+                } else if (objectId === 'TrunkThinPlane') {
+                    trunkThinPlaneMap.set(posKey, instance);
+                }
+            });
+
+            // Deuxième passage: mettre à jour la visibilité de tous les objets
             lodInstancesRef.current.forEach(instance => {
                 if (!instance.userData) return;
 
@@ -741,20 +857,75 @@ export default function Forest() {
                 // Vérifier d'abord le frustum culling (optimisation majeure)
                 const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
 
-                if (visible) {
-                    // Vérifier si ce niveau LOD doit être visible en fonction de la distance
-                    const minDistance = instance.userData.minDistance || 0;
-                    const maxDistance = instance.userData.maxDistance || Infinity;
+                const objectId = instance.userData.objectId;
 
-                    // Définir la visibilité en fonction de la distance
-                    instance.visible = (distance >= minDistance && distance < maxDistance);
+                // Logique spéciale pour TrunkThin et TrunkThinPlane
+                if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
+                    // Créer la clé de position
+                    const posKey = `${chunkCenter.x.toFixed(2)}_${chunkCenter.y.toFixed(2)}_${chunkCenter.z.toFixed(2)}`;
+
+                    if (visible) {
+                        if (objectId === 'TrunkThin') {
+                            // Utiliser le seuil personnalisé si disponible
+                            const switchThreshold = instance.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+
+                            // TrunkThin est visible si la distance est inférieure au seuil personnalisé
+                            instance.visible = distance < switchThreshold;
+
+                            // Si on a un TrunkThinPlane correspondant, mettre à jour sa visibilité
+                            const planeInstance = trunkThinPlaneMap.get(posKey);
+                            if (planeInstance) {
+                                planeInstance.visible = visible && distance >= switchThreshold;
+                            }
+
+                            // Logging de débogage
+                            if (TRUNK_SWITCH_CONFIG.DEBUG_SWITCH && Math.random() < 0.001) {
+                                console.log(`${objectId} à distance=${distance.toFixed(1)}, visible=${instance.visible}, ` +
+                                    `seuil personnalisé=${switchThreshold.toFixed(1)}`);
+                            }
+                        } else if (objectId === 'TrunkThinPlane') {
+                            // Trouver le TrunkThin correspondant pour obtenir son seuil
+                            const thinInstance = trunkThinMap.get(posKey);
+                            const switchThreshold = thinInstance?.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+
+                            // TrunkThinPlane est visible si la distance est supérieure ou égale au seuil
+                            instance.visible = distance >= switchThreshold;
+
+                            // Si on a déjà traité son TrunkThin correspondant, on skip, sinon on met à jour
+                            if (thinInstance && !thinInstance.userData.processed) {
+                                thinInstance.visible = visible && distance < switchThreshold;
+                                thinInstance.userData.processed = true; // Marquer comme traité
+                            }
+
+                            // Logging de débogage
+                            if (TRUNK_SWITCH_CONFIG.DEBUG_SWITCH && Math.random() < 0.001) {
+                                console.log(`${objectId} à distance=${distance.toFixed(1)}, visible=${instance.visible}, ` +
+                                    `seuil personnalisé=${switchThreshold.toFixed(1)}`);
+                            }
+                        }
+                    } else {
+                        // Pas dans le frustum, cacher
+                        instance.visible = false;
+                    }
                 } else {
-                    // Pas dans le frustum de vue, le cacher
-                    instance.visible = false;
+                    // Logique standard pour les autres objets
+                    if (visible) {
+                        // Vérifier si ce niveau LOD doit être visible en fonction de la distance
+                        const minDistance = instance.userData.minDistance || 0;
+                        const maxDistance = instance.userData.maxDistance || Infinity;
+
+                        // Définir la visibilité en fonction de la distance
+                        instance.visible = (distance >= minDistance && distance < maxDistance);
+                    } else {
+                        // Pas dans le frustum de vue, le cacher
+                        instance.visible = false;
+                    }
                 }
 
-                // Logging de débogage pour les premières instances
-                if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001) {
+                // Logging de débogage pour les instances standard
+                if (LOD_CONFIG.DEBUG_LOD && Math.random() < 0.001 && objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') {
+                    const minDistance = instance.userData.minDistance || 0;
+                    const maxDistance = instance.userData.maxDistance || Infinity;
                     console.log(`LOD update for ${instance.name}: ` +
                         `distance=${distance.toFixed(1)}, ` +
                         `range=${minDistance?.toFixed(1) || 0}-${maxDistance === Infinity ? 'Infinity' : maxDistance?.toFixed(1)}, ` +
@@ -804,6 +975,7 @@ export default function Forest() {
             GeometryCache.clear();
         }
     };
+
 
     return null;
 }

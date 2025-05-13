@@ -10,11 +10,96 @@ const guiConfig = {
         width: 300,
         closeFolders: true
     },
+    interface: {
+        folder: "Interface",
+        skipIntro: {
+            name: "Sauter Intro/Loading",
+            default: true
+        }
+    },
     theatre: {
         folder: "Theatre.js",
         showUI: {
             name: "Afficher UI Theatre",
             default: true
+        }
+    },
+    flashlight: {
+        folder: 'Flashlight',
+        intensity: {
+            default: 2.5,
+            min: 0.1,
+            max: 10.0,
+            step: 0.1
+        },
+        color: {
+            default: '#fff4ad'
+        },
+        angle: {
+            default: Math.PI / 5,
+            min: Math.PI / 12,
+            max: Math.PI / 2,
+            step: 0.01
+        },
+        penumbra: {
+            default: 0.66,
+            min: 0,
+            max: 1,
+            step: 0.01
+        },
+        distance: {
+            default: 4,
+            min: 1,
+            max: 50,
+            step: 0.5
+        },
+        decay: {
+            default: 1.0,
+            min: 0,
+            max: 2,
+            step: 0.1
+        },
+        shadows: {
+            enabled: {
+                default: true
+            },
+            mapSize: {
+                default: 512,
+                options: [256, 512, 1024, 2048, 4096]
+            },
+            bias: {
+                default: -0.001,
+                min: -0.01,
+                max: 0.01,
+                step: 0.0001
+            },
+            normalBias: {
+                default: 0,
+                min: -0.05,
+                max: 0.05,
+                step: 0.001
+            }
+        }
+    },
+    // Ajouter cette section dans guiConfig.js
+    chapters: {
+        folder: "Chapitres",
+        controls: {
+            currentChapter: {
+                name: "Chapitre actuel",
+                default: 0,
+                options: {
+                    "Introduction": 0,
+                    "Forêt mystérieuse": 1,
+                    "Découverte": 2,
+                    "Créatures": 3,
+                    "Conclusion": 4
+                }
+            },
+            autoProgress: {
+                name: "Progression auto",
+                default: true
+            },
         }
     },
     // Nouvelle section pour les contrôles de visualisation générale
@@ -26,7 +111,7 @@ const guiConfig = {
         },
         showInstances: {
             name: "Afficher Instances",
-            default: false
+            default: true
         },
         showInteractive: {
             name: "Afficher Interactifs",
@@ -119,7 +204,7 @@ const guiConfig = {
                     Cineon: 3,
                     ACESFilmic: 4
                 },
-                default: 2,
+                default: 4,
                 name: "Tone Mapping"
             },
             toneMappingExposure: {
@@ -127,7 +212,7 @@ const guiConfig = {
                 max: 5,
                 step: 0.01,
                 name: "Exposure",
-                default: 2.36
+                default: 0.36
             }
         }
     },
@@ -241,34 +326,61 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-        background: {
-            color: "#000000",
-            name: "Background",
-            default: "#000000"
-        },
+
         fog: {
             enabled: {
                 name: "Fog",
                 default: true
             },
             color: {
-                color: "#1e356b",
+                color: "#ffffff",
                 name: "Fog Color",
-                default: "#1e356b"
+                default: "#1E6B31"
             },
             near: {
                 min: 0,
-                max: 10,
+                max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 0
+                default: 7.5
             },
             far: {
                 min: 0,
-                max: 50,
+                max: 100,
                 step: 0.1,
                 name: "Fog Far",
-                default: 20
+                default: 15
+            },
+            transition: {
+                folder: "Fog Transition",
+                startPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "Start Point",
+                    default: 0.0
+                },
+                endPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "End Point",
+                    default: 0.5
+                },
+                initialNear: {
+                    min: 20,
+                    max: 200,
+                    step: 1,
+                    name: "Initial Near",
+                    default: 7.5
+                },
+                initialFar: {
+                    min: 30,
+                    max: 250,
+                    step: 1,
+                    name: "Initial Far",
+                    default: 25
+                }
             }
         }
     },
@@ -307,14 +419,14 @@ const guiConfig = {
                 min: -0.1,
                 max: 0.1,
                 step: 0.0001,
-                default: 0
+                default: 0.0025
             },
             normalBias: {
                 name: "Normal Bias",
                 min: -1.0,
                 max: 1.0,
                 step: 0.001,
-                default: 0.1
+                default: 0.0812
             }
         },
         toneMapping: {

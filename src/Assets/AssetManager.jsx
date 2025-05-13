@@ -231,9 +231,9 @@ const AssetManager = React.forwardRef((props, ref) => {
             }
 
             // Assurez-vous que l'événement ready est déclenché même si l'AssetManager est déjà initialisé
-            setTimeout(() => {
+            // setTimeout(() => {
                 EventBus.trigger('ready');
-            }, 0);
+            // }, 0);
 
             return;
         }
