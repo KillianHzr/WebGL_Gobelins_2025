@@ -164,11 +164,11 @@ function CameraController({children}) {
                 //     model.animations.length);
 
                 // Créer l'animateur GLB avec le modèle complet
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.003');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.005');
             } else {
                 // console.log('Utilisation du format standard du modèle');
                 // Ancienne méthode
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.003');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.005');
             }
 
             // Vérifier si l'initialisation a fonctionné
