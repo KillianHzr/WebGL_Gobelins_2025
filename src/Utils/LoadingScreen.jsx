@@ -17,6 +17,30 @@ const LoadingScreen = ({ onComplete }) => {
     const [displayProgress, setDisplayProgress] = useState(0);
     const animationFrameRef = useRef(null);
 
+    // Messages de chargement rotatifs
+    const loadingMessages = [
+        "Localisation du vison...",
+    ];
+    const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+    const messageTimerRef = useRef(null);
+
+    // Rotation des messages de chargement toutes les 2 secondes
+    useEffect(() => {
+        if (!loadingComplete) {
+            messageTimerRef.current = setInterval(() => {
+                setCurrentMessageIndex(prevIndex =>
+                    (prevIndex + 1) % loadingMessages.length
+                );
+            }, 2000);
+        }
+
+        return () => {
+            if (messageTimerRef.current) {
+                clearInterval(messageTimerRef.current);
+            }
+        };
+    }, [loadingComplete, loadingMessages.length]);
+
     // Si on doit sauter l'intro, on appelle onComplete immédiatement
     useEffect(() => {
         if (debug?.skipIntro && onComplete) {
@@ -38,6 +62,11 @@ const LoadingScreen = ({ onComplete }) => {
 
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
+        }
+
+        // Nettoyer le timer de rotation des messages
+        if (messageTimerRef.current) {
+            clearInterval(messageTimerRef.current);
         }
 
         setDisplayProgress(100);
@@ -153,7 +182,9 @@ const LoadingScreen = ({ onComplete }) => {
                                 style={{ width: `${formattedPercentage}%` }}
                             ></div>
                         </div>
-                        <div className="loading-percentage">{formattedPercentage}%</div>
+                        <div className="loading-percentage">
+                            {loadingMessages[currentMessageIndex]}
+                        </div>
                     </div>
                 </div>
             )}
