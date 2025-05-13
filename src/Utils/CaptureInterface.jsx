@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import useStore from '../Store/useStore';
-import { audioManager } from './AudioManager';
+import {audioManager} from './AudioManager';
+import {EventBus} from '../Utils/EventEmitter'; // Import EventBus
 
 export default function CaptureInterface() {
     const [isVisible, setIsVisible] = useState(false);
@@ -94,18 +95,23 @@ export default function CaptureInterface() {
         }
 
         setIsVisible(false);
-        setIsFlashing(true);
-        toggleSceneGroups();
-        // setTimeout(() => {
+            setIsFlashing(true);
+        setTimeout(() => {
+
+            // Toggle scene groups when the flash effect starts
+            toggleSceneGroups();
+
+
             setIsButtonPressed(false);
             setIsFlashing(false);
-            window.doJumpToChapter(0.01)
 
+            // Jump to chapter and complete interaction
+            window.doJumpToChapter(0.01)
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);
             }
 
-            setShowNotification(true);
+            // setShowNotification(true);
 
             setTimeout(() => {
                 setShowNotification(false);
@@ -114,7 +120,8 @@ export default function CaptureInterface() {
             if (interaction?.completeInteraction) {
                 interaction.completeInteraction();
             }
-        // }, 1000);
+        }, 1000);
+
     };
 
     if (!isVisible && !isFlashing && !showNotification) return null;
@@ -139,7 +146,7 @@ export default function CaptureInterface() {
                             {/* Nouvel indicateur de zoom */}
                             <div
                                 className="camera-viewport-zoom-indicator"
-                                style={{ top: `${zoomIndicatorPosition}%` }}
+                                style={{top: `${zoomIndicatorPosition}%`}}
                             ></div>
                             {/* Bouton de zoom + */}
                             <div
@@ -190,7 +197,7 @@ export default function CaptureInterface() {
 
             {/* Effet de flash */}
             {isFlashing && (
-                <div className="camera-flash" />
+                <div className="camera-flash"/>
             )}
 
             {/* Notification */}
