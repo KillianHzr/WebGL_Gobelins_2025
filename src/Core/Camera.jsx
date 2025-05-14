@@ -119,7 +119,7 @@ export default function Camera() {
                 // Copier les propriétés de la caméra GLB vers la caméra Three.js
                 if (glbCamera.isCamera) {
                     // Si c'est une vraie caméra, on copie les propriétés
-                    camera.fov = glbCamera.fov*1.2; // Ajuster le champ de vision
+                    camera.fov = glbCamera.fov*1.1; // Ajuster le champ de vision
                     camera.near = 0.1;
                     camera.far = GuiConfig.scene.fog.far.default + 3;
                     camera.zoom = glbCamera.zoom;
