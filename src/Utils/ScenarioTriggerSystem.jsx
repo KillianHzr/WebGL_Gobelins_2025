@@ -13,7 +13,7 @@ const SCENARIO_CONFIG = {
     'Scene02_PanneauInformation': {
         markerId: 'DirectionPanelEndInteractive',
         objectKey: 'DirectionPanelEndInteractive',
-        triggerType: MARKER_EVENTS.MARKER_CLICK,
+        triggerType: 'interaction:detected',
         narrationId: 'Scene02_PanneauInformation',
         cameraAnimation: {
             enabled: true,
@@ -25,23 +25,17 @@ const SCENARIO_CONFIG = {
 
     // Scène 03 - Saut au-dessus de l'arbre
     'Scene03_SautAuDessusDeLArbre': {
-        markerId: 'firstStop-marker',          // Match your marker ID from logs
-        objectKey: 'TrunkLargeInteractive',    // Match your object key
-        triggerType: MARKER_EVENTS.INTERACTION_COMPLETE,   // DRAG_UP creates this event
+        markerId: 'firstStop-marker',
+        objectKey: 'TrunkLargeInteractive',
+        triggerType: 'interaction:detected',
         narrationId: 'Scene03_SautAuDessusDeLArbre',
-        // postInteractionAnimation: {
-        //     name: 'jump-animation',
-        //     options: { duration: 1.5, height: 2 }
-        // }
     },
 
-
-    // Scène 04 - Recherche des indices (Part 1)
     // Scène 04 - Recherche des indices (Part 1)
     'Scene04_RechercheDesIndices_part1': {
-        markerId: 'thirdStop-marker',           // Based on your progression
+        markerId: 'thirdStop-marker',
         objectKey: 'LeafErable',
-        triggerType: MARKER_EVENTS.INTERACTION_COMPLETE,
+        triggerType: 'interaction:detected',
         narrationId: 'Scene04_RechercheDesIndices_part1',
         postInteractionAnimation: {
             name: 'leaf-scatter',
@@ -57,7 +51,7 @@ const SCENARIO_CONFIG = {
     'Scene04_RechercheDesIndices_part2': {
         markerId: 'fifthStop-marker',
         objectKey: 'AnimalPaws',
-        triggerType: MARKER_EVENTS.MARKER_HOVER,
+        triggerType: 'interaction:detected',
         requiresPrevious: 'Scene04_RechercheDesIndices_part1',
         narrationId: 'Scene04_RechercheDesIndices_part2',
         interface: 'scanner',
@@ -81,7 +75,7 @@ const SCENARIO_CONFIG = {
     'Scene05_SautAu-DessusDeLaRiviere': {
         markerId: 'JumpRock1',
         objectKey: 'JumpRock1',
-        triggerType: MARKER_EVENTS.INTERACTION_COMPLETE,
+        triggerType: 'interaction:detected',
         narrationId: 'Scene05_SautAu-DessusDeLaRiviere',
         // Séquence de sauts successifs
         nextInteractions: [
@@ -99,13 +93,39 @@ const SCENARIO_CONFIG = {
     'Scene06_PassageEn-DessousDeLaBranche': {
         markerId: 'ThinTrunkInteractive',
         objectKey: 'ThinTrunkInteractive',
-        triggerType: MARKER_EVENTS.INTERACTION_COMPLETE,
+        triggerType: 'interaction:detected',
         narrationId: 'Scene06_PassageEn-DessousDeLaBranche',
         postInteractionAnimation: {
             name: 'duck-animation',
             options: { duration: 1.0 }
         }
-    }
+    },
+
+    // Scène 08 - Découverte du vison mort
+    'Scene08_DecouverteDuVisonMort': {
+        markerId: 'sixthStop-marker',
+        objectKey: 'Vison',
+        triggerType: 'interaction:detected',
+        narrationId: 'Scene08_DecouverteDuVisonMort',
+        interface: 'capture',
+        postInteractionAnimation: {
+            name: 'camera-flash',
+            options: { duration: 1.0 }
+        }
+    },
+
+    // Scène 09 - Facture
+    'Scene09_ClairiereDigitalisee': {
+        markerId: 'tenthStop-marker',
+        objectKey: 'DirectionPanelEndInteractive',
+        triggerType: 'interaction:detected',
+        narrationId: 'Scene09_ClairiereDigitalisee',
+        cameraAnimation: {
+            enabled: true,
+            lookAt: true,
+            zoom: true
+        }
+    },
 };
 
 /**
@@ -201,7 +221,6 @@ const ScenarioTriggerSystem = () => {
     };
 
     // Configurer les écouteurs d'événements au montage
-    // Configurer les écouteurs d'événements au montage
     useEffect(() => {
         // Créer une map pour accéder rapidement aux scènes par markerId
         const markerToSceneMap = {};
@@ -217,15 +236,15 @@ const ScenarioTriggerSystem = () => {
             }
         });
 
-        // Debug logs to help troubleshoot
-        // console.log('ScenarioTriggerSystem: Config chargé avec les marqueurs:', {
-        //     scenes: Object.keys(SCENARIO_CONFIG),
-        //     markers: Object.keys(markerToSceneMap),
-        //     objects: Object.keys(objectKeyToSceneMap)
-        // });
+        console.log('ScenarioTriggerSystem: Config chargé avec les marqueurs et déclencheurs:', {
+            scenes: Object.keys(SCENARIO_CONFIG),
+            triggers: Object.values(SCENARIO_CONFIG).map(config => config.triggerType),
+            markers: Object.keys(markerToSceneMap),
+            objects: Object.keys(objectKeyToSceneMap)
+        });
 
         // Fonction de gestion des événements de marqueur
-        const handleMarkerEvent = (eventType, data) => {
+        const handleEvent = (eventType, data) => {
             console.log(`Événement ${eventType} reçu:`, data);
 
             // Identifier la scène concernée
@@ -236,10 +255,26 @@ const ScenarioTriggerSystem = () => {
                 sceneId = markerToSceneMap[data.id];
                 console.log(`Scène trouvée par markerId: ${sceneId}`);
             }
+            // Chercher par markerId dans data.markerId (pour les nouveaux événements)
+            else if (data.markerId && markerToSceneMap[data.markerId]) {
+                sceneId = markerToSceneMap[data.markerId];
+                console.log(`Scène trouvée par data.markerId: ${sceneId}`);
+            }
             // Chercher par objectKey
             else if (data.objectKey && objectKeyToSceneMap[data.objectKey]) {
                 sceneId = objectKeyToSceneMap[data.objectKey];
                 console.log(`Scène trouvée par objectKey: ${sceneId}`);
+            }
+            // Chercher par requiredStep
+            else if (data.requiredStep) {
+                // Chercher par correspondance directe avec requiredStep
+                Object.entries(SCENARIO_CONFIG).forEach(([id, config]) => {
+                    if (config.markerId && config.markerId.includes(data.requiredStep) ||
+                        (config.objectKey && config.requiredStep === data.requiredStep)) {
+                        sceneId = id;
+                        console.log(`Scène trouvée par requiredStep: ${sceneId}`);
+                    }
+                });
             }
             // Chercher dans les substrings (pour les marqueurs avec ID composés)
             else if (data.id) {
@@ -307,17 +342,21 @@ const ScenarioTriggerSystem = () => {
         // S'abonner aux événements pertinents avec gestion des erreurs
         try {
             const listeners = [
-                EventBus.on(MARKER_EVENTS.MARKER_CLICK, (data) => handleMarkerEvent(MARKER_EVENTS.MARKER_CLICK, data)),
-                EventBus.on(MARKER_EVENTS.MARKER_HOVER, (data) => handleMarkerEvent(MARKER_EVENTS.MARKER_HOVER, data)),
-                EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => handleMarkerEvent(MARKER_EVENTS.INTERACTION_COMPLETE, data)),
-                EventBus.on('marker:pointer:enter', (data) => handleMarkerEvent('marker:pointer:enter', data)),
+                // Événements d'interaction standards
+                EventBus.on(MARKER_EVENTS.MARKER_CLICK, (data) => handleEvent(MARKER_EVENTS.MARKER_CLICK, data)),
+                EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => handleEvent(MARKER_EVENTS.INTERACTION_COMPLETE, data)),
+
+                // NOUVEAU: S'abonner au nouvel événement d'interaction détectée automatiquement
+                EventBus.on('interaction:detected', (data) => handleEvent('interaction:detected', data)),
+
+                // Conserver l'événement pour les actions d'interface
                 EventBus.on('interface-action', handleInterfaceEvent)
             ];
 
             // Stocker les références pour le nettoyage
             eventListenersRef.current = listeners;
 
-            // console.log('ScenarioTriggerSystem: Écouteurs d\'événements configurés');
+            console.log('ScenarioTriggerSystem: Écouteurs d\'événements configurés');
         } catch (error) {
             console.error('Erreur lors de la configuration des écouteurs pour le scénario:', error);
         }
