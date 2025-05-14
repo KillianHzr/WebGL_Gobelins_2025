@@ -5,6 +5,7 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 import {CameraAnimatorGLB} from './CameraAnimatorGLB';
+import THREE from "@tweenjs/tween.js";
 
 const getChaptersWithDistances = () => {
     return [{

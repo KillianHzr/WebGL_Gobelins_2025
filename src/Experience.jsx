@@ -24,6 +24,7 @@ import SceneFog from "./Core/SceneFog.jsx";
 import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
 import {useAnimationFrame} from "./Utils/AnimationManager.js";
+import FreeCamera from "./Core/FreeCamera.jsx";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -272,12 +273,13 @@ export default function Experience() {
             <DebugInitializer/>
             <AudioManagerComponent/>
             <NarrationTriggers/>
-            {/*<CameraSwitcher/>*/}
-            <SceneFog />
+
+            <CameraSwitcher/>
+            {/*<SceneFog />*/}
 
             {debug && <Stats />}
             {debug && <Debug />}
-
+            <FreeCamera />
             <Camera/>
             <Controls/>
             <Lights/>

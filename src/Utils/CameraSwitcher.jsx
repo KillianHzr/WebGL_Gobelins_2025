@@ -17,10 +17,8 @@ const CameraSwitcher = () => {
     const lastKnownMode = useRef('theatre');
 
     // Get camera mode from store
-    const cameraMode = useStore(state =>
-        state.visualization?.cameraMode ||
-        (getDebugConfigValue ? getDebugConfigValue('visualization.cameraMode.value', 'theatre') : 'theatre')
-    );
+    const cameraMode = useStore(state => state.cameraMode || 'default');
+
 
     // References for cameras and controls
     const freeCameraRef = useRef(null);
@@ -212,7 +210,7 @@ const CameraSwitcher = () => {
 
         // Add wheel event handler to prevent scrolling in free mode
         const handleWheel = (e) => {
-            if (cameraMode === 'Free Camera') {
+            if (cameraMode === 'Free Camera' || cameraMode === 'free' || cameraMode === 'Caméra libre (ZQSD)') {
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -327,7 +325,7 @@ const CameraSwitcher = () => {
         console.log(`CameraSwitcher: Camera mode is now ${cameraMode}`);
         lastKnownMode.current = cameraMode;
 
-        if (cameraMode === 'Free Camera') {
+        if (cameraMode === 'Free Camera' || cameraMode === 'free' || cameraMode === 'Caméra libre (ZQSD)') {
             // Switch to the free camera
             console.log('Switching to free camera mode');
 
@@ -357,16 +355,12 @@ const CameraSwitcher = () => {
             }
 
             // Update the store with the new mode
-            const store = useStore.getState();
-            if (store.visualization) {
-                store.visualization.cameraMode = 'Free Camera';
-            } else {
-                store.visualization = {cameraMode: 'Free Camera'};
-            }
+            useStore.getState().setCameraMode('free');
+
 
             // Update debug config
-            if (typeof store.updateDebugConfig === 'function') {
-                store.updateDebugConfig('visualization.cameraMode.value', 'Free Camera');
+            if (typeof updateDebugConfig === 'function') {
+                updateDebugConfig('visualization.cameraMode.value', 'Free Camera');
             }
         } else {
             // Switch back to TheatreJS camera

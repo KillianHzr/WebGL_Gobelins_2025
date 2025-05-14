@@ -128,23 +128,56 @@ const DebugInitializer = () => {
     // Fonction pour basculer le mode de caméra
     const toggleCameraMode = useCallback((mode) => {
         try {
-            // Récupérer l'état actuel
+            // Obtenir l'état actuel
             const store = useStore.getState();
+            const currentMode = store.cameraMode || 'default';
 
-            // S'assurer que visualization existe
-            if (!store.visualization) {
-                store.visualization = {cameraMode: mode};
+            // Ne rien faire si on essaie de passer au même mode
+            if (mode === currentMode) {
+                return;
+            }
+
+            // Afficher un message approprié
+            if (mode === 'free') {
+                console.log(`Passage au mode caméra libre`);
+            } else if (currentMode === 'free') {
+                console.log(`Désactivation du mode caméra libre, passage au mode ${mode}`);
             } else {
-                store.visualization.cameraMode = mode;
+                console.log(`Changement de mode caméra: ${currentMode} -> ${mode}`);
+            }
+
+            // Utiliser la fonction dédiée du CameraSlice si disponible
+            if (typeof store.setCameraMode === 'function') {
+                store.setCameraMode(mode);
+            } else {
+                console.warn('setCameraMode n\'est pas disponible dans le store');
+
+                // Fallback - mettre à jour directement
+                useStore.getState().setCameraMode(mode);
+
+
+                // Émettre manuellement l'événement
+                EventBus.trigger('camera-mode-changed', { mode });
             }
 
             // Mettre à jour le paramètre dans la configuration de debug
-            safeUpdateConfig('visualization.cameraMode.value', mode);
+            safeUpdateConfig('camera.mode.value', mode);
 
-            // Émettre un événement pour informer d'autres composants
-            EventBus.trigger('camera-mode-changed', {mode});
+            // Gérer les actions supplémentaires nécessaires pour chaque mode
+            const interaction = store.interaction;
+            if (mode === 'free') {
+                // Désactiver le défilement automatique en mode caméra libre
+                if (interaction && typeof interaction.setAllowScroll === 'function') {
+                    interaction.setAllowScroll(false);
+                }
+            } else if (currentMode === 'free') {
+                // Réactiver le défilement automatique en quittant le mode caméra libre
+                if (interaction && typeof interaction.setAllowScroll === 'function') {
+                    interaction.setAllowScroll(true);
+                }
+            }
         } catch (error) {
-            console.error('Error toggling camera mode:', error);
+            console.error('Erreur lors du changement de mode caméra:', error);
         }
     }, [safeUpdateConfig]);
 
@@ -410,7 +443,7 @@ const DebugInitializer = () => {
             showInstances: guiConfig.visualization.showInstances.default,
             showInteractive: guiConfig.visualization.showInteractive.default,
             showStatic: guiConfig.visualization.showStatic.default,
-            cameraMode: 'free'
+            cameraMode: 'default'
         };
 
         // Obtenir les valeurs sauvegardées si disponibles
@@ -423,13 +456,13 @@ const DebugInitializer = () => {
                 guiConfig.visualization.showInteractive.default);
             visualizationSettings.showStatic = getDebugConfigValue('visualization.showStatic.value',
                 guiConfig.visualization.showStatic.default);
-            visualizationSettings.cameraMode = getDebugConfigValue('visualization.cameraMode.value', 'free');
+            visualizationSettings.cameraMode = getDebugConfigValue('camera.mode.value', 'default');
         }
 
-        // Initialiser l'état dans le store
+        // Récupérer le mode de caméra actuel du store
         const store = useStore.getState();
-        if (!store.visualization) {
-            store.visualization = {...visualizationSettings};
+        if (store.cameraMode) {
+            visualizationSettings.cameraMode = store.cameraMode;
         }
 
         // Ajouter les contrôles
@@ -461,8 +494,13 @@ const DebugInitializer = () => {
                 safeUpdateConfig('visualization.showStatic.value', value);
             });
 
-        // Camera mode control
-        const cameraModeOptions = {theatre: 'Theatre.js', free: 'Free Camera'};
+        // Contrôle du mode caméra avec options améliorées
+        const cameraModeOptions = {
+            default: 'Caméra par défaut',
+            free: 'Caméra libre (ZQSD)',
+            theatre: 'Theatre.js'
+        };
+
         visualizationFolder.add(visualizationSettings, 'cameraMode', cameraModeOptions)
             .name('Mode Caméra')
             .onChange(toggleCameraMode);
