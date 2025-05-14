@@ -115,7 +115,8 @@ function CameraController({children}) {
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
-
+    const [initAttempts, setInitAttempts] = useState(0);
+    const maxInitAttempts = 5;
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
@@ -154,30 +155,35 @@ function CameraController({children}) {
     const initializeGLBAnimator = (model) => {
         if (!model || glbInitializedRef.current) return;
 
-        // console.log('Initialisation de CameraAnimatorGLB avec le modèle:', model);
+        console.log('ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle:',
+            model.scene ? 'Format {scene, animations}' : 'Format direct');
 
         try {
-            // CORRECTION: Vérifier si le format du modèle est nouveau {scene, animations}
-            // ou ancien (direct)
-            if (model.scene && Array.isArray(model.animations)) {
-                // console.log('Détection du nouveau format de modèle avec animations:',
-                //     model.animations.length);
+            // CORRECTION: Vérifier que nous avons un modèle valide
+            let validModel = model;
 
-                // Créer l'animateur GLB avec le modèle complet
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.005');
-            } else {
-                // console.log('Utilisation du format standard du modèle');
-                // Ancienne méthode
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.005');
+            // Si le modèle n'a pas de structure attendue, créer un modèle minimal
+            if (!model.scene && !model.animations) {
+                console.warn("ScrollControls: Modèle dans un format inattendu, création d'un wrapper");
+                validModel = {
+                    scene: model.scene || model || new THREE.Group(),
+                    animations: model.animations || []
+                };
             }
+
+            // Créer l'animateur GLB avec le modèle
+            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.005');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
                 timelineLengthRef.current = cameraAnimatorRef.current.getLength();
-                // console.log(`Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
+                console.log(`ScrollControls: Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
             } else {
-                // console.warn("Animateur GLB initialisé, mais la longueur de timeline est 0. Vérifier les animations.");
-                timelineLengthRef.current = 30; // Valeur par défaut de 30 secondes
+                console.warn("ScrollControls: Animateur GLB initialisé, mais la longueur de timeline est 0. Utilisation d'une valeur par défaut.");
+                timelineLengthRef.current = 52.08; // Valeur par défaut d'après les logs
+
+                // Forcer une longueur de timeline dans l'animateur
+                cameraAnimatorRef.current.timelineLength = timelineLengthRef.current;
             }
 
             // Déterminer la position de départ
@@ -185,7 +191,7 @@ function CameraController({children}) {
             timelinePositionRef.current = startChapterPosition;
             cameraAnimatorRef.current.setPosition(startChapterPosition);
 
-            // Exposer la fonction jumpToChapter globalement
+            // Exposer les fonctions globalement
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
             window.doJumpToChapter = doJumpToChapter;
@@ -193,7 +199,6 @@ function CameraController({children}) {
 
             // Créer l'interface de progression
             if (!debug) {
-
                 createProgressUI();
             }
 
@@ -203,25 +208,120 @@ function CameraController({children}) {
             // Marquer comme initialisé
             glbInitializedRef.current = true;
 
-            // Informer les autres composants que l'animateur est prêt
+            // Informer les autres composants
             EventBus.trigger('camera-animator-ready', {
                 animator: cameraAnimatorRef.current
             });
         } catch (error) {
-            console.error('Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
+            console.error('ScrollControls: Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
+
+            // Même en cas d'erreur, créer un animateur minimal
+            if (!glbInitializedRef.current) {
+                console.warn("ScrollControls: Création d'un animateur minimal suite à une erreur");
+
+                // Modèle minimal en cas d'échec
+                const fallbackModel = {
+                    scene: new THREE.Group(),
+                    animations: [{
+                        name: 'Action.005',
+                        duration: 52.08,
+                        tracks: []
+                    }]
+                };
+
+                try {
+                    // Nouvelle tentative avec le modèle minimal
+                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.005');
+                    timelineLengthRef.current = 52.08;
+
+                    // Initialiser les éléments d'interface
+                    if (!debug) {
+                        createProgressUI();
+                    }
+
+                    setupScrollHandlers();
+                    glbInitializedRef.current = true;
+
+                    EventBus.trigger('camera-animator-fallback-ready', {
+                        animator: cameraAnimatorRef.current,
+                        reason: 'error-recovery'
+                    });
+                } catch (fallbackError) {
+                    console.error('ScrollControls: Échec critique de l\'initialisation de la caméra:', fallbackError);
+                }
+            }
         }
     };
 
     // Initialiser l'animateur dès que la caméra ou le modèle est disponible
     useEffect(() => {
-        if (camera && cameraModel && !glbInitializedRef.current) {
-            initializeGLBAnimator(cameraModel);
+        // Si déjà initialisé, ne rien faire
+        if (glbInitializedRef.current) {
+            return;
         }
 
-        return () => {
-            cleanupUI();
-        };
-    }, [camera, cameraModel]);
+        // S'il y a une caméra et un modèle, initialiser normalement
+        if (camera && cameraModel) {
+            console.log("ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle disponible");
+            initializeGLBAnimator(cameraModel);
+        }
+        // Sinon, après plusieurs tentatives, créer une caméra "factice"
+        else if (camera && initAttempts >= maxInitAttempts) {
+            console.warn("ScrollControls: Aucun modèle de caméra disponible après plusieurs tentatives, création d'un animateur de secours");
+
+            // Créer un modèle minimal pour l'animation
+            const fallbackModel = {
+                scene: new THREE.Group(),
+                animations: [{
+                    name: 'Action.005',
+                    duration: 52.08, // Durée typique d'après les logs
+                    tracks: []
+                }]
+            };
+
+            // Initialiser avec le modèle de secours
+            console.log("ScrollControls: Initialisation avec modèle de secours");
+            initializeGLBAnimator(fallbackModel);
+
+            // Informer les autres composants
+            EventBus.trigger('camera-animator-fallback-created', {
+                reason: 'no-model-available',
+                fallbackUsed: true
+            });
+        }
+        // Incrémenter le compteur de tentatives et réessayer plus tard
+        else {
+            const newAttemptCount = initAttempts + 1;
+            setInitAttempts(newAttemptCount);
+
+            // Afficher un message uniquement lors des premières tentatives
+            if (newAttemptCount <= 3) {
+                console.log(`ScrollControls: Tentative ${newAttemptCount}/${maxInitAttempts} d'initialisation de CameraAnimatorGLB - en attente du modèle`);
+            }
+
+            // Réessayer après un délai
+            const timer = setTimeout(() => {
+                if (camera && !glbInitializedRef.current) {
+                    // Vérifier à nouveau si le modèle est disponible via window.assetManager
+                    if (window.assetManager && typeof window.assetManager.getItem === 'function') {
+                        const cameraModelFromManager = window.assetManager.getItem('Camera');
+                        if (cameraModelFromManager) {
+                            console.log("ScrollControls: Modèle récupéré depuis AssetManager");
+                            initializeGLBAnimator(cameraModelFromManager);
+                            return;
+                        }
+                    }
+
+                    // Si toujours pas de modèle et c'est la dernière tentative
+                    if (newAttemptCount >= maxInitAttempts) {
+                        console.warn("ScrollControls: Échec d'obtention du modèle de caméra, utilisation du modèle de secours");
+                    }
+                }
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [camera, cameraModel, initAttempts]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
