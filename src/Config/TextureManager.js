@@ -3038,7 +3038,7 @@ class TextureManager {
      * @param {String} maskImagePath - Chemin vers l'image masque en noir et blanc
      * @returns {Promise} - Une promesse résolue quand les textures sont appliquées
      */
-    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_grass.png') {
+    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
         if (!groundObject) {
             console.error("applyGroundTexturesWithMask: objet terrain manquant");
             return false;
@@ -3329,7 +3329,7 @@ class TextureManager {
     /**
      * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
      */
-    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_grass.png') {
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/center_test.png') {
         // Initialiser les textures avec toutes les maps
         this.initializeGroundTextures();
 

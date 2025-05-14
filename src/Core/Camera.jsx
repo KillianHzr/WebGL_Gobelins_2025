@@ -154,7 +154,7 @@ export default function Camera() {
                     // Si c'est une vraie caméra, on copie les propriétés
                     camera.fov = glbCamera.fov*1.1; // Ajuster le champ de vision
                     camera.near = 0.1;
-                    camera.far = GuiConfig.scene.fog.far.default + 3;
+                    camera.far = debug ? 999 : GuiConfig.scene.fog.far.default + 3;
                     camera.zoom = glbCamera.zoom;
                     camera.aspect = glbCamera.aspect;
                     camera.updateProjectionMatrix();

@@ -279,7 +279,7 @@ export default function Experience() {
 
             {debug && <Stats />}
             {debug && <Debug />}
-            <FreeCamera />
+            {debug && <FreeCamera/>}
             <Camera/>
             <Controls/>
             <Lights/>

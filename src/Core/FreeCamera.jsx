@@ -7,6 +7,8 @@ import * as THREE from 'three';
 /**
  * Composant de caméra libre contrôlable avec ZQSD/WASD
  * S'active uniquement quand le mode caméra "free" est sélectionné
+ * Rotation avec les flèches directionnelles
+ * Shift pour accélérer, Contrôle pour descendre
  */
 export default function FreeCamera() {
     const { camera } = useThree();
@@ -19,6 +21,12 @@ export default function FreeCamera() {
 
     // Vitesse de déplacement de la caméra
     const speed = 0.15;
+
+    // Facteur d'accélération lorsque Shift est enfoncé
+    const speedBoost = 3.0;
+
+    // Vitesse de rotation de la caméra (en radians par frame)
+    const rotationSpeed = 0.03;
 
     // Définition des vecteurs de direction pour optimiser les performances
     const moveForward = useRef(new THREE.Vector3(0, 0, -1));
@@ -37,7 +45,7 @@ export default function FreeCamera() {
         if (!isFreeCameraActive()) return;
 
         // Eviter que les touches ne défilent la page
-        if (['z', 'q', 's', 'd', 'w', 'a', ' ', 'shift'].includes(event.key.toLowerCase())) {
+        if (['z', 'q', 's', 'd', 'w', 'a', ' ', 'shift', 'control', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(event.key.toLowerCase())) {
             event.preventDefault();
         }
 
@@ -72,6 +80,9 @@ export default function FreeCamera() {
         // Réinitialiser le vecteur temporaire
         tempVector.current.set(0, 0, 0);
 
+        // Calculer le multiplicateur de vitesse (accélération avec Shift)
+        const currentSpeed = keysPressed.current['shift'] ? speed * speedBoost : speed;
+
         // Déplacement avant/arrière (Z/S)
         if (keysPressed.current['z'] || keysPressed.current['w']) {
             tempVector.current.add(moveForward.current);
@@ -88,18 +99,43 @@ export default function FreeCamera() {
             tempVector.current.add(moveRight.current);
         }
 
-        // Déplacement vertical (Espace/Shift)
+        // Déplacement vertical (Espace/Control)
         if (keysPressed.current[' ']) {
             tempVector.current.y += 1;
         }
-        if (keysPressed.current['shift']) {
+        if (keysPressed.current['control']) {
             tempVector.current.y -= 1;
         }
 
         // Normaliser et appliquer la vitesse si un mouvement est détecté
         if (tempVector.current.lengthSq() > 0) {
-            tempVector.current.normalize().multiplyScalar(speed);
+            tempVector.current.normalize().multiplyScalar(currentSpeed);
             camera.position.add(tempVector.current);
+        }
+
+        // Rotation avec les flèches directionnelles
+        // Rotation horizontale (gauche/droite)
+        if (keysPressed.current['arrowleft']) {
+            camera.rotateY(rotationSpeed);
+        }
+        if (keysPressed.current['arrowright']) {
+            camera.rotateY(-rotationSpeed);
+        }
+
+        // Rotation verticale (haut/bas)
+        if (keysPressed.current['arrowup']) {
+            // Limiter la rotation vers le haut
+            const newRotationX = camera.rotation.x + rotationSpeed;
+            if (newRotationX < Math.PI / 2) {
+                camera.rotateX(rotationSpeed);
+            }
+        }
+        if (keysPressed.current['arrowdown']) {
+            // Limiter la rotation vers le bas
+            const newRotationX = camera.rotation.x - rotationSpeed;
+            if (newRotationX > -Math.PI / 2) {
+                camera.rotateX(-rotationSpeed);
+            }
         }
     };
 
@@ -146,6 +182,10 @@ export default function FreeCamera() {
                     position: camera.position.clone(),
                     rotation: camera.rotation.clone()
                 };
+                // Initialiser la caméra libre à la position (0, 100, 0)
+                camera.position.set(0, 500, 0);
+                camera.lookAt(0, 0, 0); // Optionnel: faire regarder la caméra vers le centre
+                camera.updateProjectionMatrix();
                 // Désactiver le défilement automatique
                 if (setAllowScroll) setAllowScroll(false);
             }
@@ -186,7 +226,9 @@ export default function FreeCamera() {
         if (cameraMode === 'free') {
             console.log('------ Caméra libre activée ------');
             console.log('Contrôles: Z/Q/S/D pour se déplacer');
-            console.log('Espace/Shift pour monter/descendre');
+            console.log('Espace pour monter / Contrôle pour descendre');
+            console.log('Shift pour accélérer');
+            console.log('Flèches directionnelles pour orienter la caméra');
             console.log('Cliquer et déplacer la souris pour orienter la caméra');
             console.log('----------------------------------');
         }
