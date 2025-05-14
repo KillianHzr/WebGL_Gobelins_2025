@@ -167,7 +167,7 @@ class SceneObjectManager {
             'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
-                scale: [0.184, 0.184, 0.184],
+                scale: [0.13031/5, 0.13031/5, 0.13031/5],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
@@ -183,7 +183,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-6.92739, 0.03838, -55.54513],
                     rotation: [0, 24.64264, 0],
-                    scale: [0.13031, 0.13031, 0.13031],
+                    scale: [0.13031/2, 0.13031/2, 0.13031/2],
                 }
             }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
             // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
@@ -270,7 +270,7 @@ class SceneObjectManager {
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.7,
+                    chapterDistance: 1.5,
                     requiredStep: 'fourteenthStop'
                 }],
                 defaultPlacement: {
@@ -295,7 +295,7 @@ class SceneObjectManager {
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.5,
+                    chapterDistance: 0.6,
                     requiredStep: 'fourthStop'
                 }],
                 defaultPlacement: {
@@ -365,7 +365,7 @@ class SceneObjectManager {
                     requiredStep: 'sixthStop'
                 }],
                 defaultPlacement: {
-                    position: [51.30307, 0, -134.26718],
+                    position: [51.67054, 0.04409, -134.37912],
                     rotation: [-3.14159, 25.90977, -3.14159],
                     scale: [1, 1, 1],
                     outlinePulse: false,
@@ -472,7 +472,7 @@ class SceneObjectManager {
                     requiredStep: 'seventhStop',
                 }],
                 defaultPlacement: {
-                    position: [56.50845, 0, -131.20076],
+                    position: [56.50845, 0, -131.60712],
                     rotation: [-3.09, 180 + 55.03315, -3.10794],
                     scale: [0.13, 0.13, 0.13],
                 }
