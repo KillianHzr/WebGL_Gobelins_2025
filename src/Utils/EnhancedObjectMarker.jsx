@@ -1063,43 +1063,59 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                 </div>
             </Html>)}
 
-            {markerType === INTERACTION_TYPES.LONG_PRESS && (<Html
-                className="marker-button"
-                position={[0, 0, 0.002]}
-                center
-            >
-                <div
-                    className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
-                    onMouseDown={handleLongPressStart}
-                    onMouseUp={handleLongPressCancel}
-                    onTouchStart={handleLongPressStart}
-                    onTouchEnd={handleLongPressCancel}
-                    onMouseEnter={(e) => {
-                        // console.log('Button hover enter');
-                        stopAllPropagation(e);
-                        setButtonHovered(true);
-                        if (onPointerEnter) onPointerEnter(e);
-                    }}
-                    onMouseLeave={(e) => {
-                        // console.log('Button hover leave');
-                        stopAllPropagation(e);
-                        setButtonHovered(false);
-                        if (onPointerLeave) onPointerLeave(e);
-                    }}
+            {markerType === INTERACTION_TYPES.LONG_PRESS && (
+                <Html
+                    className="marker-button"
+                    position={[0, 0, 0.002]}
+                    center
                 >
-                    <div className="marker-button-inner-text">
-                        {text}
-                    </div>
                     <div
-                        className="marker-button-inner-progress"
-                        style={{
-                            width: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
-                            height: isLongPressing ? `${72 + longPressFeedback * 16}px` : '72px',
-                            opacity: 1
+                        className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
+                        onMouseDown={(e) => {
+                            stopAllPropagation(e);
+                            handleLongPressStart(e);
                         }}
-                    />
-                </div>
-            </Html>)}
+                        onMouseUp={(e) => {
+                            stopAllPropagation(e);
+                            handleLongPressCancel();
+                        }}
+                        onTouchStart={(e) => {
+                            stopAllPropagation(e);
+                            handleLongPressStart(e);
+                        }}
+                        onTouchEnd={(e) => {
+                            stopAllPropagation(e);
+                            handleLongPressCancel();
+                        }}
+                        onMouseLeave={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(false);
+                            handleLongPressCancel();
+                            if (onPointerLeave) onPointerLeave(e);
+                        }}
+                        onMouseEnter={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(true);
+                            if (onPointerEnter) onPointerEnter(e);
+                        }}
+                    >
+                        <div className="marker-button-inner-text">
+                            {text}
+                        </div>
+                        {/* Toujours afficher le cercle de progression mais avec des styles conditionnels */}
+                        <div
+                            className="marker-button-inner-progress"
+                            style={{
+                                transform: `scale(${isLongPressing ? 1 + longPressFeedback * 0.22 : 1})`,
+                                width: '72px',
+                                height: '72px',
+                                opacity: isLongPressing ? 1 : 0.7,
+                                transition: isLongPressing ? 'transform 0.1s linear' : 'transform 0.3s ease, opacity 0.3s ease'
+                            }}
+                        />
+                    </div>
+                </Html>
+            )}
 
             {/* Flèches directionnelles pour les drags */}
             {(markerType === INTERACTION_TYPES.DRAG_LEFT || markerType === INTERACTION_TYPES.DRAG_RIGHT || markerType === INTERACTION_TYPES.DRAG_UP || markerType === INTERACTION_TYPES.DRAG_DOWN) && (
