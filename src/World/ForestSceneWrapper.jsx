@@ -196,25 +196,6 @@ export default function ForestSceneWrapper() {
         };
     }, []);
 
-    // Si les assets ne sont pas prêts, retourner un placeholder ou null
-    if (!assetsReady) {
-        return (
-            <group>
-                {/* Placeholder pendant le chargement */}
-                <mesh position={[0, 0, 0]}>
-                    <boxGeometry args={[1, 1, 1]}/>
-                    <meshStandardMaterial color={isRetrying ? "#ff5500" : "#00ff00"}/>
-                </mesh>
-                {isRetrying && (
-                    <mesh position={[0, 2, 0]}>
-                        <sphereGeometry args={[0.5, 16, 16]}/>
-                        <meshStandardMaterial color={"#ffbb00"}/>
-                    </mesh>
-                )}
-            </group>
-        );
-    }
-
     // Assets prêts, afficher la scène forestière
     return <ForestScene/>;
 }
