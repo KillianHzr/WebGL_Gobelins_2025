@@ -48,29 +48,29 @@ export default function PostProcessing() {
         composer.addPass(renderPass);
 
         // Ajouter le pass de grain seulement s'il est activé
-        if (grainSettingsRef.current.enabled) {
-            const grainPass = new ShaderPass(GrainShader);
-            grainPass.name = 'GrainPass';
-
-            // Configurer les uniformes
-            grainPass.uniforms.grainIntensity.value = grainSettingsRef.current.intensity;
-            grainPass.uniforms.grainFPS.value = grainSettingsRef.current.fps;
-            grainPass.uniforms.enabled.value = true;
-            grainPass.uniforms.resolution.value = {
-                x: window.innerWidth * window.devicePixelRatio,
-                y: window.innerHeight * window.devicePixelRatio
-            };
-
-            // Synchroniser les paramètres de tone mapping avec le renderer
-            grainPass.uniforms.toneMappingType.value = gl.toneMapping;
-            grainPass.uniforms.toneMappingExp.value = gl.toneMappingExposure;
-
-            // S'assurer que le grain est le dernier pass
-            grainPass.renderToScreen = true;
-            composer.addPass(grainPass);
-
-            grainPassRef.current = grainPass;
-        }
+        // if (grainSettingsRef.current.enabled) {
+        //     const grainPass = new ShaderPass(GrainShader);
+        //     grainPass.name = 'GrainPass';
+        //
+        //     // Configurer les uniformes
+        //     grainPass.uniforms.grainIntensity.value = grainSettingsRef.current.intensity;
+        //     grainPass.uniforms.grainFPS.value = grainSettingsRef.current.fps;
+        //     grainPass.uniforms.enabled.value = true;
+        //     grainPass.uniforms.resolution.value = {
+        //         x: window.innerWidth * window.devicePixelRatio,
+        //         y: window.innerHeight * window.devicePixelRatio
+        //     };
+        //
+        //     // Synchroniser les paramètres de tone mapping avec le renderer
+        //     grainPass.uniforms.toneMappingType.value = gl.toneMapping;
+        //     grainPass.uniforms.toneMappingExp.value = gl.toneMappingExposure;
+        //
+        //     // S'assurer que le grain est le dernier pass
+        //     grainPass.renderToScreen = true;
+        //     composer.addPass(grainPass);
+        //
+        //     grainPassRef.current = grainPass;
+        // }
 
         // Stocker les références
         composerRef.current = composer;
