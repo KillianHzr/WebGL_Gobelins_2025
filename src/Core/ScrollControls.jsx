@@ -416,9 +416,6 @@ function CameraController({children}) {
         // Définir une distance maximale
         const TRIGGER_PROXIMITY = 2.8;
 
-        // console.log("Current completed interactions:", completedInteractions);
-        // console.log("Current interactions:", interactions);
-
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
@@ -429,8 +426,7 @@ function CameraController({children}) {
                     return false;
                 }
             }
-// Dans la fonction checkInteractionPrerequisites, après le bloc pour AnimalPaws
-// Cas spécifique pour JumpRock2
+            // Cas spécifique pour JumpRock2
             if (interaction.objectKey === 'JumpRock2') {
                 const rock1Completed = Object.keys(completedInteractions).some(key =>
                     key.includes('eleventhStop') ||
@@ -438,12 +434,11 @@ function CameraController({children}) {
                 );
 
                 if (!rock1Completed) {
-                    // console.log(`Interaction JumpRock2 ignorée car JumpRock1 n'a pas encore été complété`);
                     return false;
                 }
             }
 
-// Cas spécifique pour JumpRock3
+            // Cas spécifique pour JumpRock3
             if (interaction.objectKey === 'JumpRock3') {
                 const rock2Completed = Object.keys(completedInteractions).some(key =>
                     key.includes('twelfthStop') ||
@@ -451,12 +446,11 @@ function CameraController({children}) {
                 );
 
                 if (!rock2Completed) {
-                    // console.log(`Interaction JumpRock3 ignorée car JumpRock2 n'a pas encore été complété`);
                     return false;
                 }
             }
 
-// Cas spécifique pour JumpRock4
+            // Cas spécifique pour JumpRock4
             if (interaction.objectKey === 'JumpRock4') {
                 const rock3Completed = Object.keys(completedInteractions).some(key =>
                     key.includes('thirteenthStop') ||
@@ -464,7 +458,6 @@ function CameraController({children}) {
                 );
 
                 if (!rock3Completed) {
-                    // console.log(`Interaction JumpRock4 ignorée car JumpRock3 n'a pas encore été complété`);
                     return false;
                 }
             }
@@ -485,7 +478,6 @@ function CameraController({children}) {
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
                     if (!previousStepCompleted) {
-                        // console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
                         return false;
                     }
                 }
@@ -495,7 +487,6 @@ function CameraController({children}) {
             return true;
         };
 
-        // console.log("liste des interactions:", interactions);
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {
@@ -549,15 +540,24 @@ function CameraController({children}) {
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
+
+                // NOUVEAU: Émettre un événement d'interaction détectée pour déclencher la narration automatiquement
+                EventBus.trigger('interaction:detected', {
+                    requiredStep: interaction.id,
+                    objectKey: relatedObjectKey,
+                    position: position,
+                    distance: distance,
+                    type: 'auto-detected'
+                });
             }
         });
 
         // Afficher le log uniquement si une interaction est déclenchée
         if (triggeredInteraction) {
-            // console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            // console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            // console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            // console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
 
             // Mettre à jour le chapitre actuel en fonction de l'interaction
             updateCurrentChapter();

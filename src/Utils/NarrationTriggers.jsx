@@ -30,6 +30,8 @@ const NarrationTriggers = () => {
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
         'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
+        'Vison': 'Scene08_DecouverteDuVisonMort',
+        'DirectionPanelEndInteractive': 'Scene09_ClairiereDigitalisee'
     };
 
     // Map entre les "requiredStep" et les objets correspondants
@@ -95,67 +97,49 @@ const NarrationTriggers = () => {
         // Initialiser les mappings au chargement
         initializeMappings();
 
-        // Fonction pour gérer les événements de survol des marqueurs
-        const handleMarkerHover = (data) => {
-            console.log('Event MARKER_HOVER reçu:', data);
+        // NOUVELLE FONCTION: Gestion des interactions détectées automatiquement
+        // lors de l'arrêt du scroll près d'un élément interactif
+        const handleInteractionDetected = (data) => {
+            console.log('Événement INTERACTION_DETECTED reçu:', data);
 
             // Si pas de données ou d'ID, sortir
-            if (!data || !data.id) return;
+            if (!data || !data.requiredStep) return;
 
             try {
-                // 1. Essayer de trouver directement l'objet correspondant par son ID de marqueur
+                // Identifier l'objet interactif
                 let objectKey = null;
 
-                // 2. Essayer d'utiliser le mapping des étapes requises vers les objets
-                if (stepToObjectMap[data.id]) {
-                    objectKey = stepToObjectMap[data.id];
+                // Utiliser le requiredStep pour trouver l'objectKey
+                if (stepToObjectMap[data.requiredStep]) {
+                    objectKey = stepToObjectMap[data.requiredStep];
                     console.log(`Trouvé objectKey via stepToObjectMap: ${objectKey}`);
                 }
 
-                // 3. Essayer de trouver l'objet dans les sous-chaînes de l'ID du marqueur
-                if (!objectKey) {
-                    for (const key of Object.keys(objectNarrationMap)) {
-                        if (data.id.includes(key)) {
-                            objectKey = key;
-                            console.log(`Trouvé objectKey via substring: ${objectKey} dans ${data.id}`);
-                            break;
-                        }
-                    }
+                // Utiliser l'objectKey directement s'il est fourni
+                else if (data.objectKey) {
+                    objectKey = data.objectKey;
+                    console.log(`Utilisation directe de objectKey: ${objectKey}`);
                 }
 
-                // 4. Extraire le requiredStep de l'ID du marqueur (format typique: 'requiredStep-marker')
-                if (!objectKey && data.id.includes('-marker')) {
-                    const requiredStep = data.id.split('-marker')[0];
-                    objectKey = stepToObjectMap[requiredStep];
-                    console.log(`Trouvé objectKey via requiredStep extraction: ${objectKey} pour ${requiredStep}`);
-                }
-
-                // 5. NOUVEAU: Vérification spécifique pour AnimalPaws
-                // Bloquer l'interaction avec AnimalPaws si LeafErable n'a pas encore été complété
+                // Vérifications spécifiques pour certains objets
                 if (objectKey === 'AnimalPaws') {
-                    // Récupérer les interactions complétées
+                    // Vérifier les préalables pour AnimalPaws
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-                    // Vérifier si LeafErable a été complété
                     const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                        key.includes('thirdStop') || // Vérifie par requiredStep
-                        key.includes('LeafErable') || // Vérifie par objectKey
-                        // Vous pouvez ajouter d'autres conditions si nécessaire
-                        completedInteractions[key] === true
+                        key.includes('thirdStop') || key.includes('LeafErable')
                     );
 
                     if (!leafErableCompleted) {
                         console.log('AnimalPaws interaction ignorée car LeafErable n\'a pas encore été complété');
-                        return; // Sortir sans déclencher d'interaction
+                        return;
                     }
                 }
-// Après le bloc de vérification pour AnimalPaws
-// Vérification spécifique pour JumpRock2
+
+                // Vérifications similaires pour les rochers de saut
                 if (objectKey === 'JumpRock2') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
                     const rock1Completed = Object.keys(completedInteractions).some(key =>
-                        key.includes('eleventhStop') ||
-                        key.includes('JumpRock1')
+                        key.includes('eleventhStop') || key.includes('JumpRock1')
                     );
 
                     if (!rock1Completed) {
@@ -164,12 +148,10 @@ const NarrationTriggers = () => {
                     }
                 }
 
-// Vérification spécifique pour JumpRock3
                 if (objectKey === 'JumpRock3') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
                     const rock2Completed = Object.keys(completedInteractions).some(key =>
-                        key.includes('twelfthStop') ||
-                        key.includes('JumpRock2')
+                        key.includes('twelfthStop') || key.includes('JumpRock2')
                     );
 
                     if (!rock2Completed) {
@@ -178,12 +160,10 @@ const NarrationTriggers = () => {
                     }
                 }
 
-// Vérification spécifique pour JumpRock4
                 if (objectKey === 'JumpRock4') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
                     const rock3Completed = Object.keys(completedInteractions).some(key =>
-                        key.includes('thirteenthStop') ||
-                        key.includes('JumpRock3')
+                        key.includes('thirteenthStop') || key.includes('JumpRock3')
                     );
 
                     if (!rock3Completed) {
@@ -191,7 +171,8 @@ const NarrationTriggers = () => {
                         return;
                     }
                 }
-                // Si on a trouvé un objectKey correspondant à une narration, la jouer
+
+                // Si un objet a été identifié et qu'il a une narration associée, la jouer
                 if (objectKey && objectNarrationMap[objectKey]) {
                     const narrationId = objectNarrationMap[objectKey];
                     console.log(`Narration à jouer pour ${objectKey}: ${narrationId}`);
@@ -200,20 +181,24 @@ const NarrationTriggers = () => {
                     console.log(`Pas de narration trouvée pour l'objet identifié: ${objectKey || 'inconnu'}`);
                 }
             } catch (error) {
-                console.error('Erreur lors du traitement de l\'événement de survol:', error);
+                console.error('Erreur lors du traitement de l\'événement d\'interaction:', error);
             }
         };
 
-        // Fonction pour gérer les événements MARKER_ENTER
-        const handleMarkerEnter = (data) => {
-            console.log('Event MARKER_ENTER reçu:', data);
-            handleMarkerHover(data); // Réutiliser la même logique
-        };
+        // Fonction pour gérer les événements de succès d'action sur le CTA
+        const handleSuccessfulInteraction = (data) => {
+            console.log('Événement INTERACTION_COMPLETE reçu:', data);
 
-        // Fonction pour gérer les événements pointer enter
-        const handlePointerEnter = (data) => {
-            console.log('Event POINTER_ENTER reçu:', data);
-            handleMarkerHover(data); // Réutiliser la même logique
+            // Cas spécial pour DirectionPanelEndInteractive (doit être déclenché après l'action, pas au hover)
+            const objectKey = data.objectKey ||
+                (data.id && stepToObjectMap[data.id]) ||
+                (data.requiredStep && stepToObjectMap[data.requiredStep]);
+
+            if (objectKey === 'DirectionPanelEndInteractive') {
+                const narrationId = objectNarrationMap[objectKey];
+                console.log(`Narration post-action à jouer pour ${objectKey}: ${narrationId}`);
+                playNarrationIfNotTriggered(narrationId);
+            }
         };
 
         // Fonction pour gérer les événements de fermeture d'interface
@@ -240,19 +225,19 @@ const NarrationTriggers = () => {
 
         // S'abonner aux événements avec gestion des erreurs
         try {
-            // Écouter différents types d'événements qui pourraient indiquer un survol
-            const hoverListener = EventBus.on(MARKER_EVENTS.MARKER_HOVER, handleMarkerHover);
-            const markerEnterListener = EventBus.on(MARKER_EVENTS.MARKER_HOVER_END, handleMarkerEnter);
-            const pointerEnterListener = EventBus.on('marker:pointer:enter', handlePointerEnter);
+            // NOUVEL ÉVÉNEMENT: S'abonner à l'événement d'interaction détectée
+            const interactionDetectedListener = EventBus.on('interaction:detected', handleInteractionDetected);
 
-            // Écouter les événements d'interface (pour la fermeture du scanner)
+            // S'abonner à l'événement de complétion d'interaction pour la narration post-action
+            const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleSuccessfulInteraction);
+
+            // Conserver les événements pour la fermeture d'interface
             const interfaceListener = EventBus.on('interface-action', handleInterfaceClose);
 
             // Stocker les références pour le nettoyage
             eventListenersRef.current = [
-                hoverListener,
-                markerEnterListener,
-                pointerEnterListener,
+                interactionDetectedListener,
+                interactionCompleteListener,
                 interfaceListener
             ];
 
