@@ -69,13 +69,13 @@ class SceneObjectManager {
             //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
             // },
 
-            // /**
-            //  * SCÈNE 02 - PANNEAU D'INFORMATION
-            //  * Premier point interactif avec informations contextuelles
-            //  * Déclencheur: CLICK sur le panneau "Lis le panneau"
-            //  * Effet: Rotation et zoom vers le panneau, narration par Célia
-            //  * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
-            //  */
+            /**
+             * SCÈNE 02 - PANNEAU D'INFORMATION
+             * Premier point interactif avec informations contextuelles
+             * Déclencheur: CLICK sur le panneau "Lis le panneau"
+             * Effet: Rotation et zoom vers le panneau, narration par Célia
+             * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
+             */
             // 'DirectionPanelStartInteractive': {
             //     id: 'DirectionPanel',
             //     path: '/models/primary/DirectionPanel.glb',
@@ -109,7 +109,7 @@ class SceneObjectManager {
             //
             // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
             // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-
+            //
             // /**
             //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
             //  * Apprentissage du mouvement vertical
@@ -136,14 +136,14 @@ class SceneObjectManager {
             //     }
             // }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
             //
-            // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
-            //  */
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
             // 'MultipleLeaf': {
             //     id: 'MultipleLeaf',
             //     path: '/models/primary/MultipleLeaf.glb',
@@ -167,7 +167,7 @@ class SceneObjectManager {
             // 'AnimalPaws': {
             //     id: 'AnimalPaws',
             //     path: '/models/primary/AnimalPaws.glb',
-            //     scale: [0.13031/5, 0.13031/5, 0.13031/5],
+            //     scale: [0.13031, 0.13031, 0.13031],
             //     interactive: true,
             //     useTextures: true,
             //     interaction: [{
@@ -183,11 +183,11 @@ class SceneObjectManager {
             //     defaultPlacement: {
             //         position: [-6.92739, 0.03838, -55.54513],
             //         rotation: [0, 24.64264, 0],
-            //         scale: [0.13031/2, 0.13031/2, 0.13031/2],
+            //         scale: [1.3031, 1.3031, 1.3031],
             //     }
             // }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
-            //
+            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
+
             // /**
             //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
             //  * Puzzle spatial avec progression séquentielle
@@ -349,30 +349,38 @@ class SceneObjectManager {
             //  */
             //
             //
-            'Vison': {
-                id: 'Vison',
-                path: '/models/primary/AnimalVisonMortV1.glb',
-                scale: [0.04874, 0.04874, 0.04874],
-                interactive: true,
-                useTextures: false,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "capture",
-                    chapterDistance: 0.28,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [51.67054, 0.04409, -134.37912],
-                    rotation: [-3.14159, 25.90977, -3.14159],
-                    scale: [1, 1, 1],
-                    outlinePulse: false,
-                }
+            // 'Vison': {
+            //     id: 'Vison',
+            //     path: '/models/primary/AnimalVisonMortV1.glb',
+            //     scale: [0.04874, 0.04874, 0.04874],
+            //     interactive: true,
+            //     useTextures: false,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "capture",
+            //         chapterDistance: 0.28,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [51.67054, 0.04409, -134.37912],
+            //         rotation: [-3.14159, 25.90977, -3.14159],
+            //         scale: [1, 1, 1],
+            //         outlinePulse: false,
+            //     }
+            // },
+
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [66.95818, -0.50182, -123.19365],
+                    rotation: [-3.14159, -54.12542, -3.14159],
+                    scale: [1.79768, 1.79768, 1.79768],
+                }]
+                //todo: ajouter DataCenter au groupe Screen et trigger à la fin
             },
-
-
             // 'Vison': {
             //     id: 'Vison',
             //     path: '/models/primary/AnimalVisonMortV1.glb',
@@ -422,39 +430,39 @@ class SceneObjectManager {
              *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
              *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
              */
-                // 'DigitalDirectionPanelEndInteractive': {
-                //     id: 'DigitalDirectionPanel',
-                //     path: '/models/primary/DigitalDirectionPanel.glb',
-                //     scale: [0.55, 0.55, 0.55],
-                //     interactive: true,
-                //     useTextures: true,
-                //     interaction: [{
-                //         type: INTERACTION_TYPES.CLICK,
-                //         text: "Clique",
-                //
-                //         offset: 0.5,
-                //         axis: "y",
-                //         interfaceToShow: "none",
-                //         chapterDistance: 0.1,
-                //         requiredStep: 'tenthStop'
-                //     }, {
-                //         type: INTERACTION_TYPES.LONG_PRESS,
-                //         text: "Maintiens",
-                //
-                //         offset: 0.5,
-                //         axis: "y",
-                //         interfaceToShow: "none",
-                //         chapterDistance: 0.5,
-                //         requiredStep: 'tenthStopEnd'
-                //     }],
-                //     defaultPlacement: {
-                //         position: [55.10253, 0, -134.2177],
-                //         rotation: [0,  135 + 58.43814, 0],
-                //         scale: [0.55, 0.55, 0.55],
-                //         outlinePulse: false,
-                //     }
-                // }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-                // // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+                'DigitalDirectionPanelEndInteractive': {
+                    id: 'DigitalDirectionPanel',
+                    path: '/models/primary/DigitalDirectionPanel.glb',
+                    scale: [0.55, 0.55, 0.55],
+                    interactive: true,
+                    useTextures: true,
+                    interaction: [{
+                        type: INTERACTION_TYPES.CLICK,
+                        text: "Clique",
+
+                        offset: 0.5,
+                        axis: "y",
+                        interfaceToShow: "none",
+                        chapterDistance: 0.1,
+                        requiredStep: 'tenthStop'
+                    }, {
+                        type: INTERACTION_TYPES.LONG_PRESS,
+                        text: "Maintiens",
+
+                        offset: 0.5,
+                        axis: "y",
+                        interfaceToShow: "none",
+                        chapterDistance: 0.5,
+                        requiredStep: 'tenthStopEnd'
+                    }],
+                    defaultPlacement: {
+                        position: [55.10253, 0, -134.2177],
+                        rotation: [0,  135 + 58.43814, 0],
+                        scale: [0.55, 0.55, 0.55],
+                        outlinePulse: false,
+                    }
+                }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+                // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
                 //
                 //
                 // 'RadioInteractive': {
@@ -477,7 +485,7 @@ class SceneObjectManager {
                 //         scale: [0.13, 0.13, 0.13],
                 //     }
                 // }
-                // // seventhStop au click -> voile noir sur tout l'écran
+                // seventhStop au click -> voile noir sur tout l'écran
 
 
         };
