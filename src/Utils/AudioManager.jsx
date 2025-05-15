@@ -154,6 +154,22 @@ class AudioManager {
             onload: () => console.log('Scan complete sound loaded'),
             onloaderror: (id, error) => console.error('Error loading scan complete sound:', error)
         });
+
+        this.addSound('radio-on', {
+            src: ['/audios/radio_on.wav'],
+            volume: 0.8,
+            preload: true,
+            onload: () => console.log('Radio on sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading radio on sound:', error)
+        });
+
+        this.addSound('radio-off', {
+            src: ['/audios/radio_off.wav'],
+            volume: 0.8,
+            preload: true,
+            onload: () => console.log('Radio off sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading radio off sound:', error)
+        });
     }
 
     // Ajouter un son à la collection
