@@ -135,17 +135,17 @@ class SceneObjectManager {
             //         position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
             //     }
             // }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
-            // //
-            // /**
-            //  * SCÈNE 04 - RECHERCHE DES INDICES
-            //  * Investigation environnementale avec découverte progressive
-            //  * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
-            //  * Effet 1: Animation de secousse et déblayage des feuilles
-            //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
-            //  * Effet 2: Analyse des empreintes avec explication par Célia
-            //  */
-            // 'LeafErable': {
-            //     id: 'LeafErable',
+            //
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
+            // 'MultipleLeaf': {
+            //     id: 'MultipleLeaf',
             //     path: '/models/primary/MultipleLeaf.glb',
             //     scale: [1, 1, 1],
             //     interactive: true,
@@ -161,32 +161,52 @@ class SceneObjectManager {
             //     }],
             //     defaultPlacement: {
             //         scale: [1, 1, 1],
-            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0], outlinePulse: false
+            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
             //     }
             // },
-            // 'AnimalPaws': {
-            //     id: 'AnimalPaws',
-            //     path: '/models/primary/AnimalPaws.glb',
-            //     scale: [0.13031/5, 0.13031/5, 0.13031/5],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "scanner",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'fifthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-6.92739, 0.03838, -55.54513],
-            //         rotation: [0, 24.64264, 0],
-            //         scale: [0.13031/2, 0.13031/2, 0.13031/2],
-            //     }
-            // }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
+            'FakeLeaf': {
+                id: 'FakeLeaf',
+                path: '/models/tree/FakeLeaf.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Tire",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'inifinitStop'
+                }],
+                defaultPlacement: {
+                    scale: [1, 1, 1],
+                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
+                }
+            },
+            'AnimalPaws': {
+                id: 'AnimalPaws',
+                path: '/models/primary/AnimalPaws.glb',
+                scale: [0.13031/5, 0.13031/5, 0.13031/5],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "scanner",
+                    chapterDistance: 0.5,
+                    requiredStep: 'fifthStop'
+                }],
+                defaultPlacement: {
+                    position: [-6.92739, 0.03838, -55.54513],
+                    rotation: [0, 24.64264, 0],
+                    scale: [0.13031/2, 0.13031/2, 0.13031/2],
+                }
+            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
             //
             // /**
             //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
@@ -564,16 +584,16 @@ class SceneObjectManager {
     handleThirdStopCompletion() {
         console.log('*** Exécution de handleThirdStopCompletion ***');
 
-        // Trouver l'emplacement de LeafErable avec plus de détails de débogage
-        const leafPlacements = this.getPlacements({ objectKey: 'LeafErable' });
-        console.log('Placements LeafErable trouvés:', leafPlacements);
+        // Trouver l'emplacement de MultipleLeaf avec plus de détails de débogage
+        const leafPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
+        console.log('Placements MultipleLeaf trouvés:', leafPlacements);
 
         if (leafPlacements && leafPlacements.length > 0) {
             const leafPlacement = leafPlacements[0];
 
             // Obtenir la position actuelle
             const currentPosition = [...leafPlacement.position];
-            console.log('Position actuelle de LeafErable:', currentPosition);
+            console.log('Position actuelle de MultipleLeaf:', currentPosition);
 
             // Calculer la nouvelle position (décalage de 2.0 sur X et Z)
             const newPosition = [
@@ -582,7 +602,7 @@ class SceneObjectManager {
                 currentPosition[2] - 0.02
             ];
 
-            console.log(`Déplacement de LeafErable de [${currentPosition}] à [${newPosition}]`);
+            console.log(`Déplacement de MultipleLeaf de [${currentPosition}] à [${newPosition}]`);
 
             // Récupérer l'identifiant du marqueur pour une mise à jour précise
             let identifier;
@@ -592,7 +612,7 @@ class SceneObjectManager {
             } else {
                 // Si markerId n'est pas disponible, utiliser l'index de placement dans le tableau
                 const index = this.placements.findIndex(p =>
-                    p.objectKey === 'LeafErable' &&
+                    p.objectKey === 'MultipleLeaf' &&
                     p.position[0] === currentPosition[0] &&
                     p.position[2] === currentPosition[2]
                 );
@@ -614,19 +634,19 @@ class SceneObjectManager {
             console.log('Résultat de la mise à jour:', updateResult);
 
             // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
-            const updatedPlacements = this.getPlacements({ objectKey: 'LeafErable' });
+            const updatedPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
             if (updatedPlacements && updatedPlacements.length > 0) {
                 console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
             }
 
             // Émettre un événement pour informer les autres composants
             EventBus.trigger('object-position-updated', {
-                objectKey: 'LeafErable',
+                objectKey: 'MultipleLeaf',
                 oldPosition: currentPosition,
                 newPosition: newPosition
             });
         } else {
-            console.warn('Objet LeafErable non trouvé lors de la complétion de thirdStop');
+            console.warn('Objet MultipleLeaf non trouvé lors de la complétion de thirdStop');
         }
     }
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
@@ -841,7 +861,7 @@ class SceneObjectManager {
                     isFinalInteraction: true
                 });
 
-                // Cas spécial pour thirdStop - Déplacer l'objet LeafErable
+                // Cas spécial pour thirdStop - Déplacer l'objet MultipleLeaf
                 if (placement.requiredStep === 'thirdStop') {
                     console.log('thirdStop completion détectée via placement.requiredStep');
                     this.handleThirdStopCompletion();

@@ -34,7 +34,7 @@ const SCENARIO_CONFIG = {
     // Scène 04 - Recherche des indices (Part 1)
     'Scene04_RechercheDesIndices_part1': {
         markerId: 'thirdStop-marker',
-        objectKey: 'LeafErable',
+        objectKey: 'MultipleLeaf',
         triggerType: 'interaction:detected',
         narrationId: 'Scene04_RechercheDesIndices_part1',
         postInteractionAnimation: {

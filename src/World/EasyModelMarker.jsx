@@ -383,14 +383,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-                // Vérifier si LeafErable a été complété
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                // Vérifier si MultipleLeaf a été complété
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
                     key.includes('thirdStop') ||
-                    key.includes('LeafErable')
+                    key.includes('MultipleLeaf')
                 );
 
-                if (!leafErableCompleted) {
-                    console.log('Survol de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
+                if (!multipleLeafCompleted) {
+                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }

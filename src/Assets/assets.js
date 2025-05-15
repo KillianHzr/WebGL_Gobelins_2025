@@ -101,14 +101,6 @@ const baseAssets = [
         url: ''
     },
     {
-        name: 'LeafErable',
-        type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
-    {
         name: 'ThinTrunkInteractive',
         type: 'gltf',
         path: '/models/forest/tree/Obstacle2Tree.gltf',

@@ -97,7 +97,7 @@ export const createInteractionSlice = (set, get) => ({
                 }
             }));
 
-            // Cas spécial pour thirdStop - décaler l'objet LeafErable
+            // Cas spécial pour thirdStop - décaler l'objet MultipleLeaf
             if (currentStep === 'thirdStop') {
                 console.log("thirdStop détecté dans completeInteraction - appel direct du déplacement");
 

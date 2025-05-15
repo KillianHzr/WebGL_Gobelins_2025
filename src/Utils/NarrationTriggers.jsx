@@ -26,7 +26,7 @@ const NarrationTriggers = () => {
     const objectNarrationMap = {
         'DirectionPanelStartInteractive': 'Scene02_PanneauInformation',
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
-        'LeafErable': 'Scene04_RechercheDesIndices_part1',
+        'MultipleLeaf': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
         'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
@@ -125,12 +125,12 @@ const NarrationTriggers = () => {
                 if (objectKey === 'AnimalPaws') {
                     // Vérifier les préalables pour AnimalPaws
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-                    const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                        key.includes('thirdStop') || key.includes('LeafErable')
+                    const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
+                        key.includes('thirdStop') || key.includes('MultipleLeaf')
                     );
 
-                    if (!leafErableCompleted) {
-                        console.log('AnimalPaws interaction ignorée car LeafErable n\'a pas encore été complété');
+                    if (!multipleLeafCompleted) {
+                        console.log('AnimalPaws interaction ignorée car MultipleLeaf n\'a pas encore été complété');
                         return;
                     }
                 }

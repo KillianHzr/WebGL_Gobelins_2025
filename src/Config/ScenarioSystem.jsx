@@ -187,7 +187,7 @@ const ScenarioSystem = () => {
      */
     const _handlePostLeafScatterAnimation = (data) => {
         // Après avoir dégagé les feuilles, révéler les empreintes animales
-        if (data.target && data.target.includes('LeafErable')) {
+        if (data.target && data.target.includes('MultipleLeaf')) {
             console.log('Leaf scatter completed, revealing animal paws');
 
             // Mettre à jour l'étape actuelle pour permettre l'interaction avec les empreintes

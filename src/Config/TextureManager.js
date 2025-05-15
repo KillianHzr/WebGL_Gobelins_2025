@@ -679,7 +679,15 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addPlantTexture('MultipleLeaf', 'primary', {
+        this.addTextureMapping('MultipleLeaf', 'primary', null, {
+
+            roughness: 0.7,
+            metalness: 0.0,
+            castShadow: true,
+
+            receivedShadow: true,
+        });
+        this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
             metalness: 0.0,
@@ -688,7 +696,7 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addPlantTexture('animalPaws', 'primary', {
+        this.addPlantTexture('FakeLeaf', 'forest/tree', {
 
             roughness: 0.7,
             metalness: 0.0,
@@ -764,11 +772,6 @@ class TextureManager {
             castShadow: true,
 
             receivedShadow: true,
-        });
-        this.addPlantTexture('LeafErable', 'primary', {
-            roughness: 0.96,
-            // metalness: 0.4,
-            // envMapIntensity: 0.25
         });
         this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96,
@@ -3640,8 +3643,7 @@ class TextureManager {
         // Mappings spécifiques pour certains modèles
         const specialMappings = {
             'ObstacleTree': 'TrunkLarge',
-            'Obstacle2Tree': 'TrunkThin',
-            'MultipleLeaf': 'LeafErable'
+            'Obstacle2Tree': 'TrunkThin'
         };
 
         if (specialMappings[modelId]) {

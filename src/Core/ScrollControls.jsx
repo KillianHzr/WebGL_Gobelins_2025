@@ -45,9 +45,9 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 0.1;
 const DECELERATION = 0.85;
-const MIN_VELOCITY = 0.001;
+const MIN_VELOCITY = 0.01;
 const BASE_SENSITIVITY = 0.001;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
@@ -419,9 +419,9 @@ function CameraController({children}) {
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
+                const MultipleLeafCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
 
-                if (!leafErableCompleted) {
+                if (!MultipleLeafCompleted) {
                     return false;
                 }
             }
