@@ -1006,7 +1006,8 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
-
+        useStore.getState().setTimelinePosition(timelinePositionRef.current);
+        useStore.getState().setSequenceLength(timelineLengthRef.current);
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
 

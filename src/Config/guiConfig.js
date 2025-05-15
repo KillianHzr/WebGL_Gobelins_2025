@@ -26,6 +26,23 @@ const guiConfig = {
     },
     flashlight: {
         folder: 'Flashlight',
+        // Contrôles principaux
+        active: {
+            name: "Activer",
+            default: true
+        },
+        autoActivate: {
+            name: "Activation automatique",
+            default: true
+        },
+        activationThreshold: {
+            name: "Seuil d'activation",
+            default: 0.7,
+            min: 0,
+            max: 1,
+            step: 0.05
+        },
+        // Paramètres lumière
         intensity: {
             default: 2.5,
             min: 0.1,
@@ -36,7 +53,7 @@ const guiConfig = {
             default: '#fff4ad'
         },
         angle: {
-            default: Math.PI / 5,
+            default: Math.PI / 6,
             min: Math.PI / 12,
             max: Math.PI / 2,
             step: 0.01
@@ -59,7 +76,66 @@ const guiConfig = {
             max: 2,
             step: 0.1
         },
+        // Position relative à la caméra
+        position: {
+            folder: "Position",
+            offsetX: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage X"
+            },
+            offsetY: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage Y"
+            },
+            offsetZ: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage Z"
+            }
+        },
+        // Direction
+        target: {
+            folder: "Direction",
+            offsetX: {
+                default: 0.0,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction X"
+            },
+            offsetY: {
+                default: -0.75,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction Y"
+            },
+            offsetZ: {
+                default: -1.0,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction Z"
+            },
+            distance: {
+                default: 10.0,
+                min: 1.0,
+                max: 20.0,
+                step: 0.5,
+                name: "Distance cible"
+            }
+        },
+        // Configuration des ombres
         shadows: {
+            folder: "Shadows",
             enabled: {
                 default: true
             },
@@ -78,6 +154,54 @@ const guiConfig = {
                 min: -0.05,
                 max: 0.05,
                 step: 0.001
+            },
+            optimizePerformance: {
+                default: true,
+                name: "Optimiser performances"
+            }
+        },
+        // Animations et effets
+        effects: {
+            folder: "Effets",
+            flicker: {
+                enabled: {
+                    default: false,
+                    name: "Scintillement"
+                },
+                intensity: {
+                    default: 0.1,
+                    min: 0.01,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Intensité scintillement"
+                },
+                speed: {
+                    default: 2.0,
+                    min: 0.1,
+                    max: 10.0,
+                    step: 0.1,
+                    name: "Vitesse scintillement"
+                }
+            },
+            battery: {
+                enabled: {
+                    default: false,
+                    name: "Simulation batterie"
+                },
+                drainRate: {
+                    default: 0.05,
+                    min: 0.01,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Taux d'épuisement"
+                },
+                minLevel: {
+                    default: 0.2,
+                    min: 0.0,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Niveau minimum"
+                }
             }
         }
     },
@@ -342,14 +466,14 @@ const guiConfig = {
                 max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 7.5
+                default: 15
             },
             far: {
                 min: 0,
                 max: 100,
                 step: 0.1,
                 name: "Fog Far",
-                default: 15
+                default: 20
             },
             transition: {
                 folder: "Fog Transition",

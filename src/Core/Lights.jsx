@@ -233,7 +233,7 @@ export default function Lights() {
             });
 
             // Mettre à jour le mode actif en fonction du facteur de transition
-            if (transitionFactor > 0.5) {
+            if (transitionFactor > 0.7) {
                 setActiveMode('Night');
             } else {
                 setActiveMode('Day');
