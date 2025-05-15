@@ -10,11 +10,20 @@ export const createAudioSlice = (set, get) => ({
         currentNarrationId: null,
         volume: 1.0,
         muted: false,
+        ambienceType: 'none',
 
         // Méthodes pour contrôler l'audio ambiant
         playAmbient: () => set(state => ({
             audio: {
                 ...state.audio,
+                ambientPlaying: true
+            }
+        })),
+
+        setAmbienceType: (type) => set(state => ({
+            audio: {
+                ...state.audio,
+                ambienceType: type,
                 ambientPlaying: true
             }
         })),

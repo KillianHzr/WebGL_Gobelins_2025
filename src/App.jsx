@@ -155,6 +155,12 @@ export default function App() {
                         canvasRef.current.focus();
                     }
 
+                    // Démarrer l'ambiance nature en fondu
+                    if (audioManager && typeof audioManager.playNatureAmbience === 'function') {
+                        console.log("Starting nature ambience after radio narrations");
+                        audioManager.playNatureAmbience(3000); // Fondu sur 3 secondes
+                    }
+
                     // Play the next narration after showing the 3D scene
                     setTimeout(() => {
                         narrationManager.playNarration('Scene01_Mission');
