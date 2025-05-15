@@ -101,8 +101,6 @@ export default function CaptureInterface() {
         setTimeout(() => {
 
             // Toggle scene groups when the flash effect starts
-
-
             setIsButtonPressed(false);
             setIsFlashing(false);
 
@@ -112,16 +110,10 @@ export default function CaptureInterface() {
                 interaction.setShowCaptureInterface(false);
             }
 
-            // setShowNotification(true);
-
-            setTimeout(() => {
-                setShowNotification(false);
-            }, 3000);
-
             if (interaction?.completeInteraction) {
                 interaction.completeInteraction();
             }
-        }, 1000);
+        }, 6000);
 
     };
 

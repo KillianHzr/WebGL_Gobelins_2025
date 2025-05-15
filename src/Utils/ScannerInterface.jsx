@@ -161,18 +161,12 @@ export default function ScannerInterface() {
             interaction.setShowScannerInterface(false);
         }
 
-        setShowNotification(true);
-
         // Émettre un événement pour indiquer que l'interface a été fermée
         EventBus.trigger('interface-action', {
             type: 'scanner',
             action: 'close',
             result: 'complete'
         });
-
-        setTimeout(() => {
-            setShowNotification(false);
-        }, 3000);
 
         if (interaction?.completeInteraction) {
             interaction.completeInteraction();
