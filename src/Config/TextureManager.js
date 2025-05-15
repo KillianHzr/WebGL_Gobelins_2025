@@ -691,14 +691,6 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addTextureMapping('MultipleLeaf', 'primary', null, {
-
-            roughness: 0.7,
-            metalness: 0.0,
-            castShadow: true,
-
-            receivedShadow: true,
-        });
         this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
