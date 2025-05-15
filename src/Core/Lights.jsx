@@ -10,7 +10,7 @@ import * as THREE from 'three';
 export const LightConfig = {
     modes: {
         day: {
-            ambientIntensity: 0.2,
+            ambientIntensity: 1.0,
             ambientColor: "#FFFFFF",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
@@ -212,8 +212,8 @@ export default function Lights() {
                     transitionFactor
                 ),
                 ambientIntensity: lerp(
-                    dayConfig.ambientIntensity,
-                    nightConfig.ambientIntensity,
+                    debug ? dayConfig.ambientIntensity : 1.0,
+                    debug ? nightConfig.ambientIntensity : 1.0,
                     transitionFactor
                 ),
                 ambientColor: lerpColor(

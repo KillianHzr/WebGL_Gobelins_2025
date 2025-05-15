@@ -76,40 +76,40 @@ class SceneObjectManager {
              * Effet: Rotation et zoom vers le panneau, narration par Célia
              * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
              */
-            // 'DirectionPanelStartInteractive': {
-            //     id: 'DirectionPanel',
-            //     path: '/models/primary/DirectionPanel.gltf',
-            //     scale: [0.605, 0.605, 0.605],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'initialStartStop'
-            //     }, {
-            //         type: INTERACTION_TYPES.LONG_PRESS,
-            //         text: "Maintiens",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.8,
-            //         requiredStep: 'initialEndStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-6.7116, 0, 11.35076],
-            //         rotation: [0, 179.5  + 53.97781, 0],
-            //         scale: [0.60463, 0.60463, 0.60463],
-            //         outlinePulse: false,
-            //     }
-            // },
-            // //
-            // // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
-            // // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-            // //
+            'DirectionPanelStartInteractive': {
+                id: 'DirectionPanel',
+                path: '/models/primary/DirectionPanel.glb',
+                scale: [0.605, 0.605, 0.605],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'initialStartStop'
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.8,
+                    requiredStep: 'initialEndStop'
+                }],
+                defaultPlacement: {
+                    position: [-6.7116, 0, 11.35076],
+                    rotation: [0, 179.5  + 53.97781, 0],
+                    scale: [0.60463, 0.60463, 0.60463],
+                    outlinePulse: false,
+                }
+            },
+            //
+            // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
+            // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+            //
             // // /**
             // //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
             // //  * Apprentissage du mouvement vertical
@@ -164,49 +164,49 @@ class SceneObjectManager {
             //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
             //     }
             // },
-            'FakeLeaf': {
-                id: 'FakeLeaf',
-                path: '/models/tree/FakeLeaf.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Tire",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.5,
-                    requiredStep: 'inifinitStop'
-                }],
-                defaultPlacement: {
-                    scale: [1, 1, 1],
-                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
-                }
-            },
-            'AnimalPaws': {
-                id: 'AnimalPaws',
-                path: '/models/primary/AnimalPaws.glb',
-                scale: [0.13031/5, 0.13031/5, 0.13031/5],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner",
-                    chapterDistance: 0.5,
-                    requiredStep: 'fifthStop'
-                }],
-                defaultPlacement: {
-                    position: [-6.92739, 0.03838, -55.54513],
-                    rotation: [0, 24.64264, 0],
-                    scale: [0.13031/2, 0.13031/2, 0.13031/2],
-                }
-            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
+            // 'FakeLeaf': {
+            //     id: 'FakeLeaf',
+            //     path: '/models/tree/FakeLeaf.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_RIGHT,
+            //         text: "Tire",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.5,
+            //         requiredStep: 'inifinitStop'
+            //     }],
+            //     defaultPlacement: {
+            //         scale: [1, 1, 1],
+            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
+            //     }
+            // },
+            // 'AnimalPaws': {
+            //     id: 'AnimalPaws',
+            //     path: '/models/primary/AnimalPaws.glb',
+            //     scale: [0.13031/5, 0.13031/5, 0.13031/5],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "scanner",
+            //         chapterDistance: 0.5,
+            //         requiredStep: 'fifthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-6.92739, 0.03838, -55.54513],
+            //         rotation: [0, 24.64264, 0],
+            //         scale: [0.13031/2, 0.13031/2, 0.13031/2],
+            //     }
+            // }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
             //
             // /**
             //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
@@ -442,40 +442,40 @@ class SceneObjectManager {
             //  *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
             //  *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
             //  */
-            // 'DirectionPanelEndInteractive': {
-            //     id: 'DirectionPanelDigital',
-            //     path: '/models/primary/DigitalDirectionPanel.glb',
-            //     scale: [0.605, 0.605, 0.605],
-            //     interactive: true,
-            //     useTextures: false,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.1,
-            //         requiredStep: 'tenthStop'
-            //     }, {
-            //         type: INTERACTION_TYPES.LONG_PRESS,
-            //         text: "Maintiens",
-            //
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'tenthStopEnd'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [55.10253, 0, -134.2177],
-            //         rotation: [0,  135 + 58.43814, 0],
-            //         scale: [1, 1, 1],
-            //         outlinePulse: false,
-            //     }
-            // }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-            // // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-            //
+            'DigitalDirectionPanelEndInteractive': {
+                id: 'DigitalDirectionPanel',
+                path: '/models/primary/DigitalDirectionPanel.glb',
+                scale: [0.55, 0.55, 0.55],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.1,
+                    requiredStep: 'tenthStop'
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'tenthStopEnd'
+                }],
+                defaultPlacement: {
+                    position: [55.10253, 0, -134.2177],
+                    rotation: [0,  135 + 58.43814, 0],
+                    scale: [0.55, 0.55, 0.55],
+                    outlinePulse: false,
+                }
+            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
 
             // 'RadioInteractive': {
             //     id: 'Radio',

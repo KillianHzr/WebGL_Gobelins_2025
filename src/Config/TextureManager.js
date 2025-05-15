@@ -528,6 +528,18 @@ class TextureManager {
             envMapIntensity: 0.08
         });
 
+        this.addTextureMapping('DirectionPanel', 'primary', null, {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 1.0
+        });
+
+        this.addTextureMapping('DigitalDirectionPanel', 'primary', null, {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 1.0
+        });
+
         this.addTextureMapping('TrunkLarge', 'forest/tree', null, {
             roughness: 0.78,
             metalness: 0.71,

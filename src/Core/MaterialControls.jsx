@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import * as THREE from 'three';
+import {textureManager} from '../Config/TextureManager'; // Importer textureManager
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_MATERIALS = true;
@@ -19,6 +20,7 @@ export default function MaterialControls() {
     const originalMaterialStates = useRef({});
     const originalMeshStates = useRef({});  // Pour stocker l'état original des meshes
     const [materialsReady, setMaterialsReady] = useState(false);
+    const materialToModelMap = useRef(new Map()); // Pour stocker la relation entre matériaux et modèles
 
     // Options pour les propriétés avec valeurs discrètes
     const sideOptions = {
@@ -63,10 +65,81 @@ export default function MaterialControls() {
         'Invert': THREE.InvertStencilOp
     };
 
+    // Fonction utilitaire pour extraire le model ID à partir du nom de l'objet de manière plus robuste
+    const extractModelId = (objectName) => {
+        if (!objectName) return null;
+
+        // Patterns communs dans les noms d'objets
+        const patterns = [
+            /^(.+?)_lod\d+/, // Format standard e.g. "TrunkThin_lod0_chunk..."
+            /^(.+?)(?=\d+$)/, // Suffixe numérique e.g. "TrunkThin123"
+            /^(.+?)Instance/, // Pattern d'instance e.g. "TrunkThinInstance"
+            /^(.+?)Interactive/, // Pattern interactif e.g. "TrunkThinInteractive"
+        ];
+
+        for (const pattern of patterns) {
+            const match = objectName.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+
+        // Si aucun pattern ne correspond, on utilise le nom complet
+        return objectName;
+    };
+
+    // Fonction pour trouver le bon modèle ID dans le TextureManager
+    const findModelIdInTextureManager = (objectName) => {
+        if (!objectName) return null;
+
+        // Extraction basique
+        const baseId = extractModelId(objectName);
+
+        // Vérifier si ce modelId existe directement dans textureManager
+        if (textureManager && textureManager.hasTextures(baseId)) {
+            return baseId;
+        }
+
+        // Recherche plus poussée dans les IDs connus de textureManager
+        if (textureManager && textureManager.texturePaths) {
+            const knownIds = Object.keys(textureManager.texturePaths);
+
+            // Recherche exacte
+            const exactMatch = knownIds.find(id => id === baseId);
+            if (exactMatch) return exactMatch;
+
+            // Recherche par inclusion
+            const includedMatch = knownIds.find(id =>
+                objectName.includes(id) || id.includes(baseId)
+            );
+            if (includedMatch) return includedMatch;
+
+            // Recherche par similarité (première partie du nom)
+            for (const id of knownIds) {
+                if (id.startsWith(baseId) || baseId.startsWith(id)) {
+                    return id;
+                }
+            }
+        }
+
+        return baseId; // Retourner l'ID de base comme fallback
+    };
+
     // Fonction pour collecter tous les matériaux et meshes de la scène
     const collectAllMaterials = () => {
         const materials = new Map();
         const meshes = new Map();  // Stocker les références aux meshes
+        const modelHierarchy = new Map(); // Stocker les relations parent-enfant
+
+        // Première passe : construire la hiérarchie des objets
+        scene.traverse((object) => {
+            if (object.parent && object.parent !== scene) {
+                if (!modelHierarchy.has(object.parent.uuid)) {
+                    modelHierarchy.set(object.parent.uuid, []);
+                }
+                modelHierarchy.get(object.parent.uuid).push(object.uuid);
+            }
+        });
 
         scene.traverse((object) => {
             if (!object.isMesh || !object.material) return;
@@ -91,14 +164,14 @@ export default function MaterialControls() {
 
             meshMaterials.forEach(material => {
                 // Extraire le model ID à partir du nom de l'objet
-                const extractModelId = (objectName) => {
-                    const parts = objectName.split('_lod');
-                    return parts[0]; // Par exemple "TrunkThin" de "TrunkThin_lod0_chunkTrunkThin_-1_0"
-                };
-
-                const modelId = extractModelId(object.name);
+                const modelId = findModelIdInTextureManager(object.name);
 
                 if (material && material.uuid && !materials.has(material.uuid)) {
+                    // Enregistrer le mapping matériau -> modelId
+                    if (modelId) {
+                        materialToModelMap.current.set(material.uuid, modelId);
+                    }
+
                     // Sauvegarder l'état original de manière exhaustive
                     if (!originalMaterialStates.current[material.uuid]) {
                         const originalState = {
@@ -216,8 +289,13 @@ export default function MaterialControls() {
                     }
 
                     // Utiliser le modelId extrait
-                    material._objectName = modelId || 'Unknown';
+                    material._objectName = modelId || object.name || 'Unknown';
                     material._objectType = object.type;
+                    material._objectUuid = object.uuid; // Stocker l'UUID de l'objet
+
+                    // Stocker la hiérarchie parent-enfant
+                    material._parentUuid = object.parent ? object.parent.uuid : null;
+                    material._childrenUuids = modelHierarchy.get(object.uuid) || [];
 
                     // Associer le matériau avec le mesh
                     material._meshRefs = material._meshRefs || [];
@@ -310,6 +388,12 @@ export default function MaterialControls() {
             }
 
             material.needsUpdate = true;
+
+            // Réinitialiser dans TextureManager si un modelId est associé
+            const modelId = materialToModelMap.current.get(material.uuid);
+            if (modelId && textureManager) {
+                textureManager.resetMaterialProperties(modelId);
+            }
         } catch (error) {
             console.warn(`Error resetting material ${material._objectName}:`, error);
         }
@@ -334,17 +418,130 @@ export default function MaterialControls() {
         }
     };
 
+    // Fonction pour propager les propriétés PBR aux enfants
+    const propagatePropertiesToChildren = (material, properties, meshesMap) => {
+        if (!material || !material._childrenUuids || material._childrenUuids.length === 0) {
+            return;
+        }
+
+        const childMeshes = material._childrenUuids
+            .map(uuid => meshesMap.get(uuid))
+            .filter(mesh => mesh && mesh.material);
+
+        debugLog(`Propagating properties to ${childMeshes.length} children of ${material._objectName}`);
+
+        childMeshes.forEach(childMesh => {
+            const childMaterial = childMesh.material;
+            if (!childMaterial) return;
+
+            // Appliquer les propriétés au matériau de l'enfant
+            Object.entries(properties).forEach(([prop, value]) => {
+                if (childMaterial[prop] !== undefined) {
+                    childMaterial[prop] = value;
+                }
+            });
+
+            childMaterial.needsUpdate = true;
+
+            // Mettre à jour dans TextureManager si nécessaire
+            const childModelId = materialToModelMap.current.get(childMaterial.uuid);
+            if (childModelId && textureManager) {
+                textureManager.updateMaterialProperties(childModelId, properties);
+            }
+
+            // Propager récursivement aux enfants des enfants
+            propagatePropertiesToChildren(childMaterial, properties, meshesMap);
+        });
+    };
+
+    // Fonction pour appliquer les propriétés du TextureManager à un matériau
+    const applyTextureManagerPropertiesToMaterial = (material, modelId) => {
+        if (!material || !modelId || !textureManager) return;
+
+        try {
+            // Récupérer les propriétés depuis TextureManager
+            const tmProps = textureManager.getMaterialProperties(modelId);
+            if (!tmProps) return;
+
+            debugLog(`Applying TextureManager properties to ${modelId}:`, tmProps);
+
+            // Appliquer les propriétés au matériau
+            if (tmProps.roughness !== undefined && material.roughness !== undefined)
+                material.roughness = tmProps.roughness;
+
+            if (tmProps.metalness !== undefined && material.metalness !== undefined)
+                material.metalness = tmProps.metalness;
+
+            if (tmProps.envMapIntensity !== undefined && material.envMapIntensity !== undefined)
+                material.envMapIntensity = tmProps.envMapIntensity;
+
+            if (tmProps.aoIntensity !== undefined && material.aoMapIntensity !== undefined)
+                material.aoMapIntensity = tmProps.aoIntensity;
+
+            if (tmProps.normalScale !== undefined && material.normalScale) {
+                material.normalScale.x = tmProps.normalScale;
+                material.normalScale.y = tmProps.normalScale;
+            }
+
+            if (tmProps.displacementScale !== undefined && material.displacementScale !== undefined)
+                material.displacementScale = tmProps.displacementScale;
+
+            material.needsUpdate = true;
+        } catch (error) {
+            console.warn(`Error applying TextureManager properties to ${modelId}:`, error);
+        }
+    };
+
+    // Fonction pour appliquer les propriétés du TextureManager à tous les matériaux
+    const applyTextureManagerPropertiesToAllMaterials = () => {
+        if (!textureManager) return;
+
+        console.log("Applying TextureManager properties to all materials...");
+
+        scene.traverse((object) => {
+            if (!object.isMesh || !object.material) return;
+
+            const materials = Array.isArray(object.material) ? object.material : [object.material];
+
+            materials.forEach(material => {
+                // Extraire le modelId à partir du nom de l'objet
+                const modelId = findModelIdInTextureManager(object.name);
+                if (modelId) {
+                    applyTextureManagerPropertiesToMaterial(material, modelId);
+
+                    // Mémoriser l'association matériau-modèle pour une utilisation ultérieure
+                    if (!materialToModelMap.current.has(material.uuid)) {
+                        materialToModelMap.current.set(material.uuid, modelId);
+                    }
+                }
+            });
+        });
+    };
+
+    // Observer les changements dans le mode debug
+    useEffect(() => {
+        if (debug?.active && materialsReady) {
+            // Appliquer les propriétés du TextureManager chaque fois que le debug est activé
+            applyTextureManagerPropertiesToAllMaterials();
+        }
+    }, [debug?.active, materialsReady]);
+
     // Hook pour vérifier la disponibilité des matériaux
     useEffect(() => {
         const checkMaterialsReadyInterval = setInterval(() => {
             if (isSceneReady()) {
                 clearInterval(checkMaterialsReadyInterval);
                 setMaterialsReady(true);
+
+                // Appliquer les propriétés du TextureManager dès que les matériaux sont prêts
+                if (debug?.active) {
+                    applyTextureManagerPropertiesToAllMaterials();
+                }
             }
         }, 500); // Vérifier toutes les 500ms
 
         return () => clearInterval(checkMaterialsReadyInterval);
-    }, [scene]);
+    }, [scene, debug]);
 
     // Initialisation des contrôles GUI pour les matériaux
     useEffect(() => {
@@ -360,10 +557,13 @@ export default function MaterialControls() {
             return;
         }
 
+        // Appliquer les propriétés du TextureManager à tous les matériaux dès que le debug est activé
+        applyTextureManagerPropertiesToAllMaterials();
+
         // Utiliser un timeout supplémentaire pour s'assurer que tout est chargé
         const initTimer = setTimeout(() => {
             try {
-                console.log("Setting up individual material controls");
+                console.log("Setting up individual material controls with TextureManager integration");
 
                 // Collecter tous les matériaux et meshes
                 const {materials: allMaterials, meshes: meshesMap} = collectAllMaterials();
@@ -390,6 +590,40 @@ export default function MaterialControls() {
                     }
                 }
 
+                // Ajouter un dossier pour TextureManager global
+                const texManagerFolder = materialsFolder.addFolder("TextureManager Global");
+
+                // Contrôles globaux pour TextureManager
+                if (textureManager) {
+                    const texManagerControls = {
+                        logMaterialProperties: () => {
+                            textureManager.logMaterialProperties();
+                        },
+                        logTextureStats: () => {
+                            textureManager.logTextureStats();
+                        },
+                        analyzePerfAndSuggestOptimizations: () => {
+                            textureManager.analyzePerfAndSuggestOptimizations();
+                        },
+                        setGlobalLOD: 'high'
+                    };
+
+                    // LOD global
+                    texManagerFolder.add(texManagerControls, 'setGlobalLOD', ['high', 'medium', 'low'])
+                        .name('Global LOD Level')
+                        .onChange(value => {
+                            textureManager.setGlobalLOD(value);
+                            textureManager.refreshMaterialsWithCurrentLOD();
+                        });
+
+                    // Boutons utilitaires
+                    texManagerFolder.add(texManagerControls, 'logMaterialProperties').name('Log Material Properties');
+                    texManagerFolder.add(texManagerControls, 'logTextureStats').name('Log Texture Stats');
+                    texManagerFolder.add(texManagerControls, 'analyzePerfAndSuggestOptimizations').name('Analyze & Optimize');
+                }
+
+                texManagerFolder.close();
+
                 // Ajouter des dossiers communs pour les opérations globales
                 const globalSettingsFolder = materialsFolder.addFolder("Global Settings");
                 const globalMaterialControls = {
@@ -399,6 +633,8 @@ export default function MaterialControls() {
                     opacity: 1.0,
                     side: THREE.FrontSide,
                     envMapIntensity: 1.0,
+                    roughness: 0.5,
+                    metalness: 0.0,
 
                     // Actions globales
                     applyToAllMaterials: () => {
@@ -409,7 +645,19 @@ export default function MaterialControls() {
                             if (material.opacity !== undefined) material.opacity = globalMaterialControls.opacity;
                             if (material.side !== undefined) material.side = globalMaterialControls.side;
                             if (material.envMapIntensity !== undefined) material.envMapIntensity = globalMaterialControls.envMapIntensity;
+                            if (material.roughness !== undefined) material.roughness = globalMaterialControls.roughness;
+                            if (material.metalness !== undefined) material.metalness = globalMaterialControls.metalness;
                             material.needsUpdate = true;
+
+                            // Mise à jour dans TextureManager
+                            const modelId = materialToModelMap.current.get(material.uuid);
+                            if (modelId && textureManager) {
+                                textureManager.updateMaterialProperties(modelId, {
+                                    roughness: globalMaterialControls.roughness,
+                                    metalness: globalMaterialControls.metalness,
+                                    envMapIntensity: globalMaterialControls.envMapIntensity
+                                });
+                            }
                         });
                     },
 
@@ -427,6 +675,8 @@ export default function MaterialControls() {
                 globalSettingsFolder.add(globalMaterialControls, 'opacity', 0, 1, 0.01).name('Global Opacity');
                 globalSettingsFolder.add(globalMaterialControls, 'side', sideOptions).name('Global Side');
                 globalSettingsFolder.add(globalMaterialControls, 'envMapIntensity', 0, 5, 0.1).name('Global EnvMap Intensity');
+                globalSettingsFolder.add(globalMaterialControls, 'roughness', 0, 1, 0.01).name('Global Roughness');
+                globalSettingsFolder.add(globalMaterialControls, 'metalness', 0, 1, 0.01).name('Global Metalness');
 
                 // Boutons d'action
                 globalSettingsFolder.add(globalMaterialControls, 'applyToAllMaterials').name('Apply To All Materials');
@@ -442,6 +692,19 @@ export default function MaterialControls() {
                         const materialFolder = materialsFolder.addFolder(folderName);
                         foldersRef.current[material.uuid] = materialFolder;
                         materialFolder.close();
+
+                        // Récupérer les propriétés depuis TextureManager si disponible
+                        const modelId = materialToModelMap.current.get(material.uuid);
+                        let textureManagerProps = {};
+
+                        if (textureManager && modelId) {
+                            try {
+                                textureManagerProps = textureManager.getMaterialProperties(modelId) || {};
+                                debugLog(`Found TextureManager properties for ${modelId}:`, textureManagerProps);
+                            } catch (error) {
+                                console.warn(`Error getting properties from TextureManager for ${modelId}:`, error);
+                            }
+                        }
 
                         // État du matériau - inclure toutes les propriétés possibles
                         const materialControls = {
@@ -460,23 +723,39 @@ export default function MaterialControls() {
                             flatShading: material.flatShading || false,
                             fog: material.fog !== undefined ? material.fog : true,
 
-                            // Standard/PBR material properties
+                            // PBR Properties - Priorité aux valeurs de TextureManager
                             color: material.color ? '#' + material.color.getHexString() : '#ffffff',
-                            roughness: material.roughness !== undefined ? material.roughness : 0.5,
-                            metalness: material.metalness !== undefined ? material.metalness : 0.0,
-                            envMapIntensity: material.envMapIntensity !== undefined ? material.envMapIntensity : 1.0,
+                            roughness: textureManagerProps.roughness !== undefined
+                                ? textureManagerProps.roughness
+                                : (material.roughness !== undefined ? material.roughness : 0.5),
+                            metalness: textureManagerProps.metalness !== undefined
+                                ? textureManagerProps.metalness
+                                : (material.metalness !== undefined ? material.metalness : 0.0),
+                            envMapIntensity: textureManagerProps.envMapIntensity !== undefined
+                                ? textureManagerProps.envMapIntensity
+                                : (material.envMapIntensity !== undefined ? material.envMapIntensity : 1.0),
 
                             // Ambient Occlusion
-                            aoMapIntensity: material.aoMapIntensity !== undefined ? material.aoMapIntensity : 1.0,
+                            aoMapIntensity: textureManagerProps.aoIntensity !== undefined
+                                ? textureManagerProps.aoIntensity
+                                : (material.aoMapIntensity !== undefined ? material.aoMapIntensity : 1.0),
+
+                            // Normal Mapping
+                            normalScale: textureManagerProps.normalScale !== undefined
+                                ? textureManagerProps.normalScale
+                                : (material.normalScale ? material.normalScale.x : 1.0),
+
+                            // Displacement
+                            displacementScale: textureManagerProps.displacementScale !== undefined
+                                ? textureManagerProps.displacementScale
+                                : (material.displacementScale !== undefined ? material.displacementScale : 1.0),
 
                             // Emissive properties
                             emissive: material.emissive ? '#' + material.emissive.getHexString() : '#000000',
                             emissiveIntensity: material.emissiveIntensity !== undefined ? material.emissiveIntensity : 1.0,
 
                             // Mapping properties
-                            normalScale: material.normalScale ? material.normalScale.x : 1.0,
                             bumpScale: material.bumpScale !== undefined ? material.bumpScale : 1.0,
-                            displacementScale: material.displacementScale !== undefined ? material.displacementScale : 1.0,
                             displacementBias: material.displacementBias !== undefined ? material.displacementBias : 0.0,
 
                             // Clearcoat (MeshPhysicalMaterial)
@@ -516,6 +795,10 @@ export default function MaterialControls() {
                                 ? meshesMap.get(material._meshRefs[0])?.receiveShadow || false
                                 : false,
 
+                            // TextureManager specifics
+                            modelId: modelId || "Unknown",
+                            propagateToChildren: false,
+
                             // Reset button action
                             reset: () => {
                                 resetMaterial(material);
@@ -542,6 +825,7 @@ export default function MaterialControls() {
                         const advancedFolder = materialFolder.addFolder('Advanced Properties');
                         const texturesFolder = materialFolder.addFolder('Textures');
                         const specialFolder = materialFolder.addFolder('Special Effects');
+                        const tmFolder = materialFolder.addFolder('TextureManager');
 
                         // ---- BASIC PROPERTIES ----
                         // Couleur de base si disponible
@@ -609,6 +893,16 @@ export default function MaterialControls() {
                                 try {
                                     material.roughness = value;
                                     material.needsUpdate = true;
+
+                                    // Mettre à jour dans TextureManager
+                                    if (modelId && textureManager) {
+                                        textureManager.updateMaterialProperty(modelId, 'roughness', value);
+
+                                        // Propager aux enfants si demandé
+                                        if (materialControls.propagateToChildren) {
+                                            propagatePropertiesToChildren(material, { roughness: value }, meshesMap);
+                                        }
+                                    }
                                 } catch (error) {
                                     console.warn(`Error updating roughness for ${material._objectName}:`, error);
                                 }
@@ -620,6 +914,16 @@ export default function MaterialControls() {
                                 try {
                                     material.metalness = value;
                                     material.needsUpdate = true;
+
+                                    // Mettre à jour dans TextureManager
+                                    if (modelId && textureManager) {
+                                        textureManager.updateMaterialProperty(modelId, 'metalness', value);
+
+                                        // Propager aux enfants si demandé
+                                        if (materialControls.propagateToChildren) {
+                                            propagatePropertiesToChildren(material, { metalness: value }, meshesMap);
+                                        }
+                                    }
                                 } catch (error) {
                                     console.warn(`Error updating metalness for ${material._objectName}:`, error);
                                 }
@@ -634,6 +938,17 @@ export default function MaterialControls() {
                                     try {
                                         material.envMapIntensity = value;
                                         material.needsUpdate = true;
+
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'envMapIntensity', value);
+
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, { envMapIntensity: value }, meshesMap);
+                                            }
+                                        }
+
                                         debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
                                     } catch (error) {
                                         console.warn(`Error updating envMapIntensity for ${material._objectName}:`, error);
@@ -649,6 +964,16 @@ export default function MaterialControls() {
                                     try {
                                         material.aoMapIntensity = value;
                                         material.needsUpdate = true;
+
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'aoIntensity', value);
+
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, { aoMapIntensity: value }, meshesMap);
+                                            }
+                                        }
                                     } catch (error) {
                                         console.warn(`Error updating aoMapIntensity for ${material._objectName}:`, error);
                                     }
@@ -695,6 +1020,18 @@ export default function MaterialControls() {
                                             material.normalScale = new THREE.Vector2(value, value);
                                         }
                                         material.needsUpdate = true;
+
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'normalScale', value);
+
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, {
+                                                    normalScale: { x: value, y: value }
+                                                }, meshesMap);
+                                            }
+                                        }
                                     } catch (error) {
                                         console.warn(`Error updating normalScale for ${material._objectName}:`, error);
                                     }
@@ -709,6 +1046,16 @@ export default function MaterialControls() {
                                     try {
                                         material.displacementScale = value;
                                         material.needsUpdate = true;
+
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'displacementScale', value);
+
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, { displacementScale: value }, meshesMap);
+                                            }
+                                        }
                                     } catch (error) {
                                         console.warn(`Error updating displacementScale for ${material._objectName}:`, error);
                                     }
@@ -1219,6 +1566,84 @@ export default function MaterialControls() {
                             shadowFolder.close(); // Fermer le dossier d'ombres par défaut
                         }
 
+                        // ---- TEXTURE MANAGER FOLDER ----
+                        if (modelId) {
+                            // Afficher les propriétés TextureManager
+                            tmFolder.add({ id: modelId }, 'id').name('Model ID').disable();
+                            tmFolder.add(materialControls, 'propagateToChildren').name('Propagate to Children');
+
+                            // Bouton pour enregistrer dans TextureManager
+                            const tmActions = {
+                                saveToTextureManager: () => {
+                                    if (modelId && textureManager) {
+                                        const properties = {
+                                            roughness: material.roughness,
+                                            metalness: material.metalness,
+                                            envMapIntensity: material.envMapIntensity,
+                                            aoIntensity: material.aoMapIntensity,
+                                            normalScale: material.normalScale ? material.normalScale.x : 1.0,
+                                            displacementScale: material.displacementScale
+                                        };
+
+                                        textureManager.setMaterialProperties(modelId, properties);
+                                        debugLog(`Saved properties to TextureManager for ${modelId}:`, properties);
+
+                                        // Propager aux enfants si demandé
+                                        if (materialControls.propagateToChildren) {
+                                            propagatePropertiesToChildren(material, properties, meshesMap);
+                                        }
+                                    }
+                                },
+                                resetInTextureManager: () => {
+                                    if (modelId && textureManager) {
+                                        textureManager.resetMaterialProperties(modelId);
+                                        debugLog(`Reset properties in TextureManager for ${modelId}`);
+
+                                        // Mettre à jour l'interface
+                                        const defaultProps = textureManager.defaultMaterialProperties;
+
+                                        // Mettre à jour les propriétés du matériau
+                                        if (material.roughness !== undefined) material.roughness = defaultProps.roughness;
+                                        if (material.metalness !== undefined) material.metalness = defaultProps.metalness;
+                                        if (material.envMapIntensity !== undefined) material.envMapIntensity = defaultProps.envMapIntensity;
+                                        if (material.aoMapIntensity !== undefined) material.aoMapIntensity = defaultProps.aoIntensity;
+                                        if (material.normalScale) {
+                                            material.normalScale.x = defaultProps.normalScale;
+                                            material.normalScale.y = defaultProps.normalScale;
+                                        }
+                                        if (material.displacementScale !== undefined) material.displacementScale = defaultProps.displacementScale;
+
+                                        material.needsUpdate = true;
+
+                                        // Mettre à jour les contrôleurs
+                                        materialControls.roughness = defaultProps.roughness;
+                                        materialControls.metalness = defaultProps.metalness;
+                                        materialControls.envMapIntensity = defaultProps.envMapIntensity;
+                                        materialControls.aoMapIntensity = defaultProps.aoIntensity;
+                                        materialControls.normalScale = defaultProps.normalScale;
+                                        materialControls.displacementScale = defaultProps.displacementScale;
+
+                                        // Rafraîchir tous les contrôleurs
+                                        for (const key in materialControls) {
+                                            const controller = materialFolder.__controllers.find(c => c.property === key);
+                                            if (controller) controller.updateDisplay();
+                                        }
+
+                                        // Propager aux enfants si demandé
+                                        if (materialControls.propagateToChildren) {
+                                            propagatePropertiesToChildren(material, defaultProps, meshesMap);
+                                        }
+                                    }
+                                }
+                            };
+
+                            // Ajouter les boutons d'action
+                            tmFolder.add(tmActions, 'saveToTextureManager').name('Save to TextureManager');
+                            tmFolder.add(tmActions, 'resetInTextureManager').name('Reset in TextureManager');
+                        }
+
+                        tmFolder.close();
+
                         // Ajouter un bouton de réinitialisation
                         materialFolder.add(materialControls, 'reset').name('Reset Material');
 
@@ -1233,7 +1658,12 @@ export default function MaterialControls() {
 
                 materialsFolder.close();
                 initialized.current = true;
-                console.log("Individual material controls initialized successfully");
+                console.log("Individual material controls initialized successfully with TextureManager integration");
+
+                // Afficher les statistiques TextureManager
+                if (textureManager) {
+                    textureManager.logTextureStats();
+                }
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
