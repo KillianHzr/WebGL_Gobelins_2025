@@ -284,7 +284,7 @@ export default function Experience() {
             <Controls/>
             <Lights/>
             <MaterialControls/>
-            <PostProcessing/>
+            {/*<PostProcessing/>*/}
 
             <RayCaster>
                 <InteractiveMarkersProvider>
