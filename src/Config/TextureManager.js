@@ -700,15 +700,6 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addPlantTexture('FakeLeaf', 'forest/tree', {
-
-            roughness: 0.7,
-            metalness: 0.0,
-            // envMapIntensity: 0.46,
-            castShadow: true,
-
-            receivedShadow: true,
-        });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
             roughness: 0.7,

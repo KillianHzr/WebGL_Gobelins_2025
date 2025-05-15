@@ -419,7 +419,7 @@ function CameraController({children}) {
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
 
                 if (!leafErableCompleted) {
                     return false;
