@@ -85,9 +85,8 @@ const NarrationTriggers = () => {
                     const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
                         key.includes('thirdStop') || key.includes('MultipleLeaf')
                     );
-
-                    if (!multipleLeafCompleted) {
-                        console.log('AnimalPaws interaction ignorée car MultipleLeaf n\'a pas encore été complété');
+                    if (!leafErableCompleted) {
+                        console.log('AnimalPaws interaction ignorée car LeafErable n\'a pas encore été complété');
                         return;
                     }
                 }
