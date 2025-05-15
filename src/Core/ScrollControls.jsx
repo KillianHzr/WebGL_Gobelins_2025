@@ -172,7 +172,7 @@ function CameraController({children}) {
             }
 
             // Créer l'animateur GLB avec le modèle
-            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.005');
+            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
