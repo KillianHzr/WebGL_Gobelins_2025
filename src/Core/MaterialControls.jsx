@@ -1008,35 +1008,35 @@ export default function MaterialControls() {
                         }
 
                         // Normal mapping scale
-                        if (material.normalScale) {
-                            pbrFolder.add(materialControls, 'normalScale', 0, 5, 0.05)
-                                .name('Normal Scale')
-                                .onChange(value => {
-                                    try {
-                                        if (material.normalScale) {
-                                            material.normalScale.x = value;
-                                            material.normalScale.y = value;
-                                        } else {
-                                            material.normalScale = new THREE.Vector2(value, value);
-                                        }
-                                        material.needsUpdate = true;
-
-                                        // Mettre à jour dans TextureManager
-                                        if (modelId && textureManager) {
-                                            textureManager.updateMaterialProperty(modelId, 'normalScale', value);
-
-                                            // Propager aux enfants si demandé
-                                            if (materialControls.propagateToChildren) {
-                                                propagatePropertiesToChildren(material, {
-                                                    normalScale: { x: value, y: value }
-                                                }, meshesMap);
-                                            }
-                                        }
-                                    } catch (error) {
-                                        console.warn(`Error updating normalScale for ${material._objectName}:`, error);
-                                    }
-                                });
-                        }
+                        // if (material.normalScale) {
+                        //     pbrFolder.add(materialControls, 'normalScale', 0, 5, 0.05)
+                        //         .name('Normal Scale')
+                        //         .onChange(value => {
+                        //             try {
+                        //                 if (material.normalScale) {
+                        //                     material.normalScale.x = value;
+                        //                     material.normalScale.y = value;
+                        //                 } else {
+                        //                     material.normalScale = new THREE.Vector2(value, value);
+                        //                 }
+                        //                 material.needsUpdate = true;
+                        //
+                        //                 // Mettre à jour dans TextureManager
+                        //                 if (modelId && textureManager) {
+                        //                     textureManager.updateMaterialProperty(modelId, 'normalScale', value);
+                        //
+                        //                     // Propager aux enfants si demandé
+                        //                     if (materialControls.propagateToChildren) {
+                        //                         propagatePropertiesToChildren(material, {
+                        //                             normalScale: { x: value, y: value }
+                        //                         }, meshesMap);
+                        //                     }
+                        //                 }
+                        //             } catch (error) {
+                        //                 console.warn(`Error updating normalScale for ${material._objectName}:`, error);
+                        //             }
+                        //         });
+                        // }
 
                         // Displacement mapping
                         if (material.displacementScale !== undefined) {

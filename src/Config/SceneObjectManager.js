@@ -76,36 +76,36 @@ class SceneObjectManager {
              * Effet: Rotation et zoom vers le panneau, narration par Célia
              * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
              */
-            'DirectionPanelStartInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.glb',
-                scale: [0.605, 0.605, 0.605],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.5,
-                    requiredStep: 'initialStartStop'
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Maintiens",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.8,
-                    requiredStep: 'initialEndStop'
-                }],
-                defaultPlacement: {
-                    position: [-6.7116, 0, 11.35076],
-                    rotation: [0, 179.5  + 53.97781, 0],
-                    scale: [0.60463, 0.60463, 0.60463],
-                    outlinePulse: false,
-                }
-            },
+            // 'DirectionPanelStartInteractive': {
+            //     id: 'DirectionPanel',
+            //     path: '/models/primary/DirectionPanel.glb',
+            //     scale: [0.605, 0.605, 0.605],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.5,
+            //         requiredStep: 'initialStartStop'
+            //     }, {
+            //         type: INTERACTION_TYPES.LONG_PRESS,
+            //         text: "Maintiens",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.8,
+            //         requiredStep: 'initialEndStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-6.7116, 0, 11.35076],
+            //         rotation: [0, 179.5  + 53.97781, 0],
+            //         scale: [0.60463, 0.60463, 0.60463],
+            //         outlinePulse: false,
+            //     }
+            // },
             //
             // // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
             // // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
@@ -144,46 +144,26 @@ class SceneObjectManager {
              * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
              * Effet 2: Analyse des empreintes avec explication par Célia
              */
-            // 'MultipleLeaf': {
-            //     id: 'MultipleLeaf',
-            //     path: '/models/primary/MultipleLeaf.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_RIGHT,
-            //         text: "Tire",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'thirdStop'
-            //     }],
-            //     defaultPlacement: {
-            //         scale: [1, 1, 1],
-            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
-            //     }
-            // },
-            // 'FakeLeaf': {
-            //     id: 'FakeLeaf',
-            //     path: '/models/tree/FakeLeaf.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_RIGHT,
-            //         text: "Tire",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'inifinitStop'
-            //     }],
-            //     defaultPlacement: {
-            //         scale: [1, 1, 1],
-            //         position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
-            //     }
-            // },
+            'MultipleLeaf': {
+                id: 'MultipleLeaf',
+                path: '/models/primary/MultipleLeaf.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Tire",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'thirdStop'
+                }],
+                defaultPlacement: {
+                    scale: [1, 1, 1],
+                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
+                }
+            },
             // 'AnimalPaws': {
             //     id: 'AnimalPaws',
             //     path: '/models/primary/AnimalPaws.glb',
