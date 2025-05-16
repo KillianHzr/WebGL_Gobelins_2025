@@ -684,9 +684,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {
-                audioManager.playSound('click', {
-                    volume: 0.8, fade: true, fadeTime: 400
-                });
+                // audioManager.playSound('click', {
+                //     volume: 0.8, fade: true, fadeTime: 400
+                // });
             }
 
             if (onClick) {
@@ -764,9 +764,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
 
         if (audioManager) {
-            audioManager.playSound('click', {
-                volume: 0.8
-            });
+            // audioManager.playSound('click', {
+            //     volume: 0.8
+            // });
         }
 
         if (onClick) {

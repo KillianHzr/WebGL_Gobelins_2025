@@ -129,6 +129,13 @@ class AudioManager {
             onload: () => console.log('Camera sound loaded'),
             onloaderror: (id, error) => console.error('Error loading camera sound:', error)
         });
+this.addSound('ultrasound', {
+            src: ['/audios/ultrasound.mp3'],
+            volume: 0.9,
+            preload: true,
+            onload: () => console.log('Camera sound loaded'),
+            onloaderror: (id, error) => console.error('Error loading camera sound:', error)
+        });
 
         // Sons pour le scanner
         this.addSound('scan-start', {
@@ -327,7 +334,7 @@ class AudioManager {
     /**
      * Joue un son avec possibilité d'effet de fondu
      * @param {string} id - Identifiant du son
-     * @param {Object} options - Options de lecture
+     * @param {{fade: boolean, fadeTime: number}} options - Options de lecture
      * @param {boolean} options.fade - Activer l'effet de fondu
      * @param {number} options.fadeTime - Durée du fondu en ms
      * @param {number} options.volume - Volume du son (0-1)

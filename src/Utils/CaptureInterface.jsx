@@ -45,7 +45,7 @@ export default function CaptureInterface() {
             setCurrentZoomLevel(currentZoomLevel + 1);
             // Jouer un son de clic si disponible
             if (audioManager && audioManager.playSound) {
-                audioManager.playSound('click');
+                // audioManager.playSound('click');
             }
         }
     };
@@ -57,7 +57,7 @@ export default function CaptureInterface() {
             setCurrentZoomLevel(currentZoomLevel - 1);
             // Jouer un son de clic si disponible
             if (audioManager && audioManager.playSound) {
-                audioManager.playSound('click');
+                // audioManager.playSound('click');
             }
         }
     };
@@ -86,6 +86,9 @@ export default function CaptureInterface() {
     const handleCaptureClick = () => {
         // Jouer le son de capture
         audioManager.playSound('capture');
+        setTimeout(() => {
+            audioManager.playSound('ultrasound', {fade:true,fadeTime:2});
+        }, 1000); // Attendre 1 seconde avant d'afficher la notification
         setIsButtonPressed(true);
 
         // Réinitialiser le zoom
@@ -130,7 +133,7 @@ export default function CaptureInterface() {
             setIsButtonPressed(false);
             setIsFlashing(false);
 
-            window.doJumpToChapter(0.6)
+            window.doJumpToChapter(0.8)
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);
             }
@@ -138,7 +141,7 @@ export default function CaptureInterface() {
             if (interaction?.completeInteraction) {
                 interaction.completeInteraction();
             }
-        }, 6000);
+        }, 8000);
     };
 
     if (!isVisible && !isFlashing && !showNotification) return null;
