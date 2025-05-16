@@ -199,7 +199,7 @@ const NarrationTriggers = () => {
         try {
             // Register event listeners
             const interactionDetectedListener = EventBus.on('interaction:detected', handleInteractionDetected);
-            const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
+            // const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
             const interfaceListener = EventBus.on('interface-action', handleInterfaceClose);
 
             // IMPORTANT: Don't duplicate INTERACTION_COMPLETE listeners
@@ -207,7 +207,7 @@ const NarrationTriggers = () => {
 
             eventListenersRef.current = [
                 interactionDetectedListener,
-                interactionCompleteListener,
+                // interactionCompleteListener,
                 interfaceListener
             ];
 
