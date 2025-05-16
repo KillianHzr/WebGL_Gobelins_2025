@@ -423,9 +423,9 @@ function CameraController({children}) {
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
 
-                if (!leafErableCompleted) {
+                if (!multipleLeafCompleted) {
                     return false;
                 }
             }
@@ -1021,6 +1021,13 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
+        console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
+        const normalizedPosition = timelinePositionRef.current / timelineLengthRef.current;
+        EventBus.trigger('timeline-position-normalized', {
+            position: normalizedPosition,
+            rawPosition: timelinePositionRef.current,
+            totalLength: timelineLengthRef.current
+        });
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
 
