@@ -1223,8 +1223,6 @@ function CameraController({children}) {
 
             const direction = Math.sign(deltaY);
 
-            if (direction < 0) return;
-
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
@@ -1239,8 +1237,6 @@ function CameraController({children}) {
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
             setScrollDirection(direction);
-
-            if (direction < 0) return;
 
             let scrollMagnitude = Math.abs(normalizedDelta) * BASE_SENSITIVITY;
             const cappedMagnitude = Math.min(scrollMagnitude, MAX_SCROLL_SPEED);
