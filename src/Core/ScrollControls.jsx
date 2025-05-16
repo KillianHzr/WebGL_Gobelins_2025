@@ -224,7 +224,7 @@ function CameraController({children}) {
                 const fallbackModel = {
                     scene: new THREE.Group(),
                     animations: [{
-                        name: 'Action.005',
+                        name: 'Action.004',
                         duration: 52.08,
                         tracks: []
                     }]
@@ -232,7 +232,7 @@ function CameraController({children}) {
 
                 try {
                     // Nouvelle tentative avec le modèle minimal
-                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.005');
+                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.004');
                     timelineLengthRef.current = 52.08;
 
                     // Initialiser les éléments d'interface
@@ -274,7 +274,7 @@ function CameraController({children}) {
             const fallbackModel = {
                 scene: new THREE.Group(),
                 animations: [{
-                    name: 'Action.005',
+                    name: 'Action.004',
                     duration: 52.08, // Durée typique d'après les logs
                     tracks: []
                 }]
