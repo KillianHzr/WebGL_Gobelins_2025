@@ -354,8 +354,8 @@ class SceneObjectManager {
                     requiredStep: 'seventeenStop'
                 }],
                 defaultPlacement: {
-                    // position: [0.42004, -0.70173, -141.44714],
-                    position: [-39.47393, 0.2628, 83.18371],
+                    position: [0.42004, -0.70173, -141.44714],
+                    // position: [-39.47393, 0.2628, 83.18371],
                     rotation: [0, 0, 0],
                     scale: [1, 1, 1],
                 }

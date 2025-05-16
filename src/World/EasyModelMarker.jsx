@@ -625,6 +625,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     }, [markerType]);
     // Optimiser le rendu conditionnel du modèle par défaut
     const renderDefaultModel = useMemo(() => {
+        if (!shouldModelBeVisible) {
+            return null;
+        }
 
         if (useBox) {
             return (

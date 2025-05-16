@@ -60,12 +60,19 @@ export const ModelMarker = React.memo(function ModelMarker({
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
     const shouldShowMarker = (
         // Ne pas montrer si l'étape a déjà été complétée
-        !interactionCompleted &&
+        !interactionCompleted && (
+            // Cas spécial pour le type DISABLE : toujours afficher quand l'interaction est disponible
+            (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
+                (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
-        // Conditions standards d'affichage (simplifié)
-        ((isHovered || isMarkerHovered) &&
-            showMarkerOnHover &&
-            (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+            // Condition modifiée : montrer le marqueur quand le stop est activé (même sans hover)
+            (interaction?.waitingForInteraction && interaction.currentStep === requiredStep) ||
+
+            // Condition standard pour les autres types (basée sur le hover)
+            ((isHovered || isMarkerHovered) &&
+                showMarkerOnHover &&
+                (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+        )
     );
 
     // Gérer le clic sur l'objet
