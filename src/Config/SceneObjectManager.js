@@ -110,12 +110,12 @@ class SceneObjectManager {
             // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
             // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
 
-            // /**
-            //  * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
-            //  * Apprentissage du mouvement vertical
-            //  * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
-            //  * Effet: Animation de saut par-dessus l'obstacle
-            //  */
+            /**
+             * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
+             * Apprentissage du mouvement vertical
+             * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
+             * Effet: Animation de saut par-dessus l'obstacle
+             */
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
@@ -167,7 +167,7 @@ class SceneObjectManager {
             'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
-                scale: [0.13031/5, 0.13031/5, 0.13031/5],
+                scale: [0.13031, 0.13031, 0.13031],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
@@ -183,7 +183,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-6.92739, 0.03838, -55.54513],
                     rotation: [0, 24.64264, 0],
-                    scale: [0.13031/2, 0.13031/2, 0.13031/2],
+                    scale: [1.3031, 1.3031, 1.3031],
                 }
             }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
             // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
@@ -349,6 +349,8 @@ class SceneObjectManager {
              */
 
 
+
+
             'Vison': {
                 id: 'Vison',
                 path: '/models/primary/AnimalVisonMortV1.glb',
@@ -373,6 +375,39 @@ class SceneObjectManager {
             },
 
 
+            //
+            // 'VisonRun': {
+            //     id: 'VisonRun',
+            //     path: '/models/primary/VisonRun.glb',
+            //     scale: [0.04874, 0.04874, 0.04874],
+            //     interactive: true,
+            //     useTextures: false,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "capture",
+            //         chapterDistance: 0.28,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [51.67054, 0.04409, -134.37912],
+            //         rotation: [-3.14159, 25.90977, -3.14159],
+            //         scale: [1, 1, 1],
+            //         outlinePulse: false,
+            //     }
+            // },
+
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [66.95818, -0.50182, -123.19365],
+                    rotation: [-3.14159, -54.12542, -3.14159],
+                    scale: [1.79768, 1.79768, 1.79768],
+                }]
+                //todo: ajouter DataCenter au groupe Screen et trigger à la fin
+            },
             // 'Vison': {
             //     id: 'Vison',
             //     path: '/models/primary/AnimalVisonMortV1.glb',
@@ -422,62 +457,62 @@ class SceneObjectManager {
              *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
              *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
              */
-            'DigitalDirectionPanelEndInteractive': {
-                id: 'DigitalDirectionPanel',
-                path: '/models/primary/DigitalDirectionPanel.glb',
-                scale: [0.55, 0.55, 0.55],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.1,
-                    requiredStep: 'tenthStop'
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Maintiens",
-
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.5,
-                    requiredStep: 'tenthStopEnd'
-                }],
-                defaultPlacement: {
-                    position: [55.10253, 0, -134.2177],
-                    rotation: [0,  135 + 58.43814, 0],
+                'DigitalDirectionPanelEndInteractive': {
+                    id: 'DigitalDirectionPanel',
+                    path: '/models/primary/DigitalDirectionPanel.glb',
                     scale: [0.55, 0.55, 0.55],
-                    outlinePulse: false,
-                }
-            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+                    interactive: true,
+                    useTextures: true,
+                    interaction: [{
+                        type: INTERACTION_TYPES.CLICK,
+                        text: "Clique",
+
+                        offset: 0.5,
+                        axis: "y",
+                        interfaceToShow: "none",
+                        chapterDistance: 0.1,
+                        requiredStep: 'tenthStop'
+                    }, {
+                        type: INTERACTION_TYPES.LONG_PRESS,
+                        text: "Maintiens",
+
+                        offset: 0.5,
+                        axis: "y",
+                        interfaceToShow: "none",
+                        chapterDistance: 0.5,
+                        requiredStep: 'tenthStopEnd'
+                    }],
+                    defaultPlacement: {
+                        position: [55.10253, 0, -134.2177],
+                        rotation: [0,  135 + 58.43814, 0],
+                        scale: [0.55, 0.55, 0.55],
+                        outlinePulse: false,
+                    }
+                }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+                // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
 
 
-            'RadioInteractive': {
-                id: 'Radio',
-                path: '/models/primary/Radio.glb',
-                interactive: true,
-                useTextures: false,
-                scale: [0.13, 0.13, 0.13],
-                interaction: [{
-                    type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-                    text: "Maintiens",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "blackScreen",
-                    requiredStep: 'seventhStop',
-                }],
-                defaultPlacement: {
-                    position: [56.50845, 0, -131.60712],
-                    rotation: [-3.09, 180 + 55.03315, -3.10794],
+                'RadioInteractive': {
+                    id: 'Radio',
+                    path: '/models/primary/Radio.glb',
+                    interactive: true,
+                    useTextures: false,
                     scale: [0.13, 0.13, 0.13],
+                    interaction: [{
+                        type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
+                        text: "Maintiens",
+                        offset: 0.5,
+                        axis: "y",
+                        interfaceToShow: "blackScreen",
+                        requiredStep: 'seventhStop',
+                    }],
+                    defaultPlacement: {
+                        position: [56.50845, 0, -131.60712],
+                        rotation: [-3.09, 180 + 55.03315, -3.10794],
+                        scale: [0.13, 0.13, 0.13],
+                    }
                 }
-            }
-            // seventhStop au click -> voile noir sur tout l'écran
+                // seventhStop au click -> voile noir sur tout l'écran
 
 
         };

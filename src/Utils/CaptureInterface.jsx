@@ -45,7 +45,7 @@ export default function CaptureInterface() {
             setCurrentZoomLevel(currentZoomLevel + 1);
             // Jouer un son de clic si disponible
             if (audioManager && audioManager.playSound) {
-                audioManager.playSound('click');
+                // audioManager.playSound('click');
             }
         }
     };
@@ -57,7 +57,7 @@ export default function CaptureInterface() {
             setCurrentZoomLevel(currentZoomLevel - 1);
             // Jouer un son de clic si disponible
             if (audioManager && audioManager.playSound) {
-                audioManager.playSound('click');
+                // audioManager.playSound('click');
             }
         }
     };
@@ -84,14 +84,44 @@ export default function CaptureInterface() {
 
     // Gérer le clic sur le bouton de capture
     const handleCaptureClick = () => {
+        // Jouer le son de capture
         audioManager.playSound('capture');
+        setTimeout(() => {
+            audioManager.playSound('ultrasound', {fade:true,fadeTime:2});
+        }, 1000); // Attendre 1 seconde avant d'afficher la notification
         setIsButtonPressed(true);
 
-        // Réinitialiser le zoom au moment où l'effet de flash commence
+        // Réinitialiser le zoom
         if (camera && cameraInitialZoom !== null && currentZoomLevel !== 0) {
             camera.zoom = cameraInitialZoom;
             camera.updateProjectionMatrix();
             setCurrentZoomLevel(0);
+        }
+
+        // Déclencher la transition audio DIRECTEMENT
+        console.log("Starting digital ambience transition from CaptureInterface");
+
+        // Accéder à audioManager de manière sûre
+        if (window.audioManager && typeof window.audioManager.playDigitalAmbience === 'function') {
+            window.audioManager.playDigitalAmbience(0); // Pas de fondu, changement immédiat
+        } else if (audioManager && typeof audioManager.playDigitalAmbience === 'function') {
+            audioManager.playDigitalAmbience(0); // Pas de fondu, changement immédiat
+        } else {
+            console.error("No audioManager available for digital ambience!");
+
+            try {
+                const digitalSound = new Howl({
+                    src: ['/audios/compos/MoodDigitalLoop.mp3'],
+                    loop: true,
+                    volume: 2,
+                    autoplay: true
+                });
+
+                // Stocker globalement pour debug
+                window.digitalSound = digitalSound;
+            } catch (e) {
+                console.error("Failed to create fallback sound:", e);
+            }
         }
 
         setIsVisible(false);
@@ -99,30 +129,19 @@ export default function CaptureInterface() {
         toggleSceneGroups();
 
         setTimeout(() => {
-
-            // Toggle scene groups when the flash effect starts
-
-
+            // Reste de la fonction inchangé
             setIsButtonPressed(false);
             setIsFlashing(false);
 
-            // Jump to chapter and complete interaction
-            window.doJumpToChapter(0.6)
+            window.doJumpToChapter(0.8)
             if (interaction?.setShowCaptureInterface) {
                 interaction.setShowCaptureInterface(false);
             }
 
-            // setShowNotification(true);
-
-            setTimeout(() => {
-                setShowNotification(false);
-            }, 3000);
-
             if (interaction?.completeInteraction) {
                 interaction.completeInteraction();
             }
-        }, 1000);
-
+        }, 8000);
     };
 
     if (!isVisible && !isFlashing && !showNotification) return null;

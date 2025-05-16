@@ -347,7 +347,7 @@
         height: 100%;
         background-color: v.color(text);
         z-index: map.get(v.$z-index, flash);
-        animation: flash 1s ease-out;
+        animation: flash 6s ease-out;
     }
 
     &-notification {

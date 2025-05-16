@@ -306,6 +306,14 @@ const baseAssets = [
         author: 'Author',
         url: ''
     },
+    {
+        name: 'DataCenter',
+        type: 'gltf',
+        path: '/models/digital/DataCenter.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
     // {
     //     name: 'PlantIvy',
     //     type: 'gltf',
