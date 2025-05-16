@@ -349,9 +349,9 @@ class SceneObjectManager {
             //  */
             //
             //
-            // 'Vison': {
-            //     id: 'Vison',
-            //     path: '/models/primary/AnimalVisonMortV1.glb',
+            // 'VisonRun': {
+            //     id: 'VisonRun',
+            //     path: '/models/primary/VisonRun.glb',
             //     scale: [0.04874, 0.04874, 0.04874],
             //     interactive: true,
             //     useTextures: false,
@@ -430,39 +430,39 @@ class SceneObjectManager {
              *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
              *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
              */
-                'DigitalDirectionPanelEndInteractive': {
-                    id: 'DigitalDirectionPanel',
-                    path: '/models/primary/DigitalDirectionPanel.glb',
-                    scale: [0.55, 0.55, 0.55],
-                    interactive: true,
-                    useTextures: true,
-                    interaction: [{
-                        type: INTERACTION_TYPES.CLICK,
-                        text: "Clique",
-
-                        offset: 0.5,
-                        axis: "y",
-                        interfaceToShow: "none",
-                        chapterDistance: 0.1,
-                        requiredStep: 'tenthStop'
-                    }, {
-                        type: INTERACTION_TYPES.LONG_PRESS,
-                        text: "Maintiens",
-
-                        offset: 0.5,
-                        axis: "y",
-                        interfaceToShow: "none",
-                        chapterDistance: 0.5,
-                        requiredStep: 'tenthStopEnd'
-                    }],
-                    defaultPlacement: {
-                        position: [55.10253, 0, -134.2177],
-                        rotation: [0,  135 + 58.43814, 0],
-                        scale: [0.55, 0.55, 0.55],
-                        outlinePulse: false,
-                    }
-                }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-                // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+                // 'DigitalDirectionPanelEndInteractive': {
+                //     id: 'DigitalDirectionPanel',
+                //     path: '/models/primary/DigitalDirectionPanel.glb',
+                //     scale: [0.55, 0.55, 0.55],
+                //     interactive: true,
+                //     useTextures: true,
+                //     interaction: [{
+                //         type: INTERACTION_TYPES.CLICK,
+                //         text: "Clique",
+                //
+                //         offset: 0.5,
+                //         axis: "y",
+                //         interfaceToShow: "none",
+                //         chapterDistance: 0.1,
+                //         requiredStep: 'tenthStop'
+                //     }, {
+                //         type: INTERACTION_TYPES.LONG_PRESS,
+                //         text: "Maintiens",
+                //
+                //         offset: 0.5,
+                //         axis: "y",
+                //         interfaceToShow: "none",
+                //         chapterDistance: 0.5,
+                //         requiredStep: 'tenthStopEnd'
+                //     }],
+                //     defaultPlacement: {
+                //         position: [55.10253, 0, -134.2177],
+                //         rotation: [0,  135 + 58.43814, 0],
+                //         scale: [0.55, 0.55, 0.55],
+                //         outlinePulse: false,
+                //     }
+                // }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+                // // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
                 //
                 //
                 // 'RadioInteractive': {
