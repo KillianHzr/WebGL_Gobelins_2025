@@ -21,7 +21,7 @@ const NarrationTriggers = () => {
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
         'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
         'Vison': 'Scene08_DecouverteDuVisonMort',
-        'DirectionPanelEndInteractive': 'Scene09_ClairiereDigitalisee'
+        'DigitalDirectionPanelEndInteractive': 'Scene09_ClairiereDigitalisee'
     };
 
     const stepToObjectMap = {};

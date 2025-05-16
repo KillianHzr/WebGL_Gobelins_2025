@@ -60,14 +60,14 @@ class SceneObjectManager {
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-            'WaterPlane': {
-                id: 'WaterPlane',
-                path: '/models/forest/river/River.glb',
-                scale: [1, 1, 1],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
-            },
+            // 'WaterPlane': {
+            //     id: 'WaterPlane',
+            //     path: '/models/forest/river/River.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: false,
+            //     useTextures: true,
+            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
+            // },
 
             /**
              * SCÈNE 02 - PANNEAU D'INFORMATION
