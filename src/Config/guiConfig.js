@@ -44,13 +44,13 @@ const guiConfig = {
         },
         // Paramètres lumière
         intensity: {
-            default: 2.5,
+            default: 15,
             min: 0.1,
-            max: 10.0,
+            max: 20.0,
             step: 0.1
         },
         color: {
-            default: '#fff4ad'
+            default: '#ffc547'
         },
         angle: {
             default: Math.PI / 6,
@@ -126,7 +126,7 @@ const guiConfig = {
                 name: "Direction Z"
             },
             distance: {
-                default: 10.0,
+                default: 15.0,
                 min: 1.0,
                 max: 20.0,
                 step: 0.5,

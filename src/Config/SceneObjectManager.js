@@ -60,14 +60,14 @@ class SceneObjectManager {
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-            // 'WaterPlane': {
-            //     id: 'WaterPlane',
-            //     path: '/models/forest/river/River.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: false,
-            //     useTextures: true,
-            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
-            // },
+            'WaterPlane': {
+                id: 'WaterPlane',
+                path: '/models/forest/river/River.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
+            },
 
             /**
              * SCÈNE 02 - PANNEAU D'INFORMATION
@@ -83,8 +83,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -202,7 +202,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    text: "Saute",
 
                     offset: 0.5,
                     axis: "y",
@@ -223,7 +223,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Tire",
+                    text: "Saute",
 
                     offset: 0.5,
                     axis: "y",
@@ -244,7 +244,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    text: "Saute",
 
                     offset: 0.6,
                     axis: "y",
@@ -265,7 +265,7 @@ class SceneObjectManager {
                 useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    text: "Saute",
 
                     offset: 0.5,
                     axis: "y",
@@ -479,8 +479,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
 
                     offset: 0.5,
                     axis: "y",

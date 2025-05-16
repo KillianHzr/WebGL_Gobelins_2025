@@ -60,8 +60,8 @@ INSTRUCTIONS DE CONTRÔLE:
     return (
         <>
             {/*{mapComponent}*/}
-            {(GuiConfig.visualization.showInstances.default) ? forestComponent : null}
-            {/*{forestComponent}*/}
+            {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
+            {forestComponent}
             {waterComponent}
         </>
     );

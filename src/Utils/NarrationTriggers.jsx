@@ -19,6 +19,7 @@ const NarrationTriggers = () => {
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
         'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
+        'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
         'Vison': 'Scene08_DecouverteDuVisonMort',
         'DirectionPanelEndInteractive': 'Scene09_ClairiereDigitalisee'
     };
@@ -199,7 +200,7 @@ const NarrationTriggers = () => {
         try {
             // Register event listeners
             const interactionDetectedListener = EventBus.on('interaction:detected', handleInteractionDetected);
-            const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
+            // const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
             const interfaceListener = EventBus.on('interface-action', handleInterfaceClose);
 
             // IMPORTANT: Don't duplicate INTERACTION_COMPLETE listeners
@@ -207,7 +208,7 @@ const NarrationTriggers = () => {
 
             eventListenersRef.current = [
                 interactionDetectedListener,
-                interactionCompleteListener,
+                // interactionCompleteListener,
                 interfaceListener
             ];
 

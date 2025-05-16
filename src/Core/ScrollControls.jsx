@@ -46,7 +46,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.1;
+const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.85;
 const MIN_VELOCITY = 0.001;
 const BASE_SENSITIVITY = 0.001;
@@ -1223,8 +1223,6 @@ function CameraController({children}) {
 
             const direction = Math.sign(deltaY);
 
-            if (direction < 0) return;
-
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
@@ -1239,8 +1237,6 @@ function CameraController({children}) {
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
             setScrollDirection(direction);
-
-            if (direction < 0) return;
 
             let scrollMagnitude = Math.abs(normalizedDelta) * BASE_SENSITIVITY;
             const cappedMagnitude = Math.min(scrollMagnitude, MAX_SCROLL_SPEED);
