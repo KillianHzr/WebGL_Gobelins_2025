@@ -153,6 +153,61 @@ function CameraController({children}) {
         };
     }, [cameraModel]);
 
+    // Ajoutez ce useEffect dans le composant CameraController
+    useEffect(() => {
+        // Gérer l'achèvement d'une interaction DISABLE
+        const handleDisableInteractionComplete = (data) => {
+            if (data.type !== 'disable') return;
+
+            console.log(`[ScrollControls] Interaction DISABLE complétée: ${data.id}`);
+
+            // Récupérer l'étape associée à cette interaction
+            const stepId = data.id.split('-')[0]; // Extraire l'ID de l'étape du markerId
+
+            // Récupérer la distance à déplacer après cette interaction
+            const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
+
+            // Si aucune distance n'est spécifiée, simplement réactiver le scroll
+            if (distanceToMove === 0 || distanceToMove === "none" || distanceToMove === undefined) {
+                console.log(`[ScrollControls] Pas de transition après l'interaction DISABLE ${stepId}`);
+
+                // Réactiver le défilement
+                setTimeout(() => {
+                    if (setAllowScroll) {
+                        setAllowScroll(true);
+                    }
+                }, 500);
+
+                return;
+            }
+
+            // Calculer la position cible
+            const currentPosition = timelinePositionRef.current;
+            const targetPosition = currentPosition + distanceToMove;
+
+            console.log(`[ScrollControls] Avancement après DISABLE: ${distanceToMove}, cible: ${targetPosition}`);
+
+            // Effectuer la transition
+            smoothJumpTo(targetPosition);
+
+            // Notifier les autres composants
+            EventBus.trigger('post-interaction-advancement', {
+                startPosition: currentPosition,
+                distance: distanceToMove,
+                targetPosition: targetPosition,
+                stepId: stepId,
+                interactionType: 'disable'
+            });
+        };
+
+        // Créer un écouteur pour cet événement spécifique
+        const disableInteractionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleDisableInteractionComplete);
+
+        return () => {
+            disableInteractionCompleteSubscription();
+        };
+    }, []);
+
     // Initialiser l'animateur de caméra GLB
     const initializeGLBAnimator = (model) => {
         if (!model || glbInitializedRef.current) return;
@@ -947,6 +1002,74 @@ function CameraController({children}) {
         }
     };
 
+    const checkDisableInteractions = (cameraPosition) => {
+        // Récupérer la liste des interactions complétées
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+        // Ne pas vérifier les interactions DISABLE si nous sommes en transition
+        if (chapterTransitioning || isTransitioningRef.current) return;
+
+        // Parcourir les interactions pour trouver des points d'interaction DISABLE à proximité
+        interactions.forEach(interaction => {
+            // Ignorer les interactions déjà complétées
+            if (!interaction.isActive || completedInteractions[interaction.id]) {
+                return;
+            }
+
+            // Vérifier si cette interaction est de type DISABLE
+            const placement = sceneObjectManager.getPlacements({
+                objectKey: interaction.objectKey,
+                requiredStep: interaction.id
+            })[0];
+
+            if (!placement) return;
+
+            // Vérifier le type d'interaction via l'objet du catalogue
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
+            if (!objectConfig || !objectConfig.interaction) return;
+
+            // Vérifier si c'est une interaction DISABLE
+            let isDisableType = false;
+            let interactionConfig = null;
+
+            if (Array.isArray(objectConfig.interaction)) {
+                interactionConfig = objectConfig.interaction.find(int =>
+                    int.requiredStep === interaction.id && int.type === 'disable');
+                isDisableType = !!interactionConfig;
+            } else {
+                isDisableType = objectConfig.interaction.type === 'disable';
+                interactionConfig = isDisableType ? objectConfig.interaction : null;
+            }
+
+            if (!isDisableType) return;
+
+            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
+            const dx = cameraPosition.x - interaction.triggers.x;
+            const dz = cameraPosition.z - interaction.triggers.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // Distance de proximité pour les interactions DISABLE (peut être ajustée)
+            const DISABLE_PROXIMITY = 3.5;
+
+            // Si la caméra est proche d'un point d'interaction DISABLE et le scroll s'est arrêté
+            if (distance < DISABLE_PROXIMITY && !allowScroll) {
+                console.log(`[ScrollControls] Point d'interaction DISABLE détecté: ${interaction.id}`);
+
+                // Émettre un événement pour montrer le marqueur DISABLE
+                EventBus.trigger('disable-interaction:show', {
+                    id: interaction.id,
+                    requiredStep: interaction.id,
+                    objectKey: interaction.objectKey,
+                    position: {
+                        x: interaction.triggers.x,
+                        y: 0, // Hauteur par défaut
+                        z: interaction.triggers.z
+                    }
+                });
+            }
+        });
+    };
+
     function doJumpToChapter(distance) {
         // NOUVEAU: Sauvegarder l'état actuel avant toute opération
         const wasWaitingForInteraction = isWaitingForInteraction;
@@ -1000,6 +1123,10 @@ function CameraController({children}) {
 
         // Vérifier les déclencheurs d'interaction
         checkInteractionTriggers(cameraPosition);
+
+        if (!allowScroll) {
+            checkDisableInteractions(cameraPosition);
+        }
 
         // 1. Calcul du mouvement - uniquement si le défilement est autorisé
         if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !chapterTransitioning) {

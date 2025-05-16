@@ -616,8 +616,16 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         );
     }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
 
+    const shouldModelBeVisible = useMemo(() => {
+        // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
+        if (markerType === INTERACTION_TYPES.DISABLE) {
+            return false;
+        }
+        return true;
+    }, [markerType]);
     // Optimiser le rendu conditionnel du modèle par défaut
     const renderDefaultModel = useMemo(() => {
+
         if (useBox) {
             return (
                 <mesh
@@ -695,8 +703,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
-
+    }, [shouldModelBeVisible, useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
     return (
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}

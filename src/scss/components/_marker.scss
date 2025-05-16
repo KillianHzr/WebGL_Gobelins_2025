@@ -33,6 +33,12 @@
         border-radius: 999px;
         border: 1.5px solid #F9FEFF;
         pointer-events: auto;
+        &.disable {
+            transition: opacity 0.3s ease;
+            &:hover {
+                opacity: 0.7;
+            }
+        }
 
         &-inner {
             position: absolute;
