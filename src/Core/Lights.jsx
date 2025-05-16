@@ -249,7 +249,7 @@ export default function Lights() {
             {/* Lumière ambiante */}
             <ambientLight
                 ref={ambientLightRef}
-                intensity={lightSettingsRef.current.current.ambientIntensity}
+                intensity={0.5}
                 color={lightSettingsRef.current.current.ambientColor}
             />
             {/*<spotLight*/}

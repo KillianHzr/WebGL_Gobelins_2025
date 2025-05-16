@@ -39,11 +39,11 @@ const SceneFog = () => {
         fogColorRef.current = new Color(fogConfigRef.current.color);
 
         // Initialiser le brouillard avec les valeurs configurées
-        scene.fog = new Fog(
-            fogColorRef.current,
-            fogConfigRef.current.initialNear,
-            fogConfigRef.current.initialFar
-        );
+        // scene.fog = new Fog(
+        //     fogColorRef.current,
+        //     fogConfigRef.current.initialNear,
+        //     fogConfigRef.current.initialFar
+        // );
         scene.background = fogColorRef.current;
 
         console.log(`Brouillard initialisé avec la couleur ${fogColorRef.current.getHexString()}`);

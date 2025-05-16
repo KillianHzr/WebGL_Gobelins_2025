@@ -5,6 +5,7 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 import {CameraAnimatorGLB} from './CameraAnimatorGLB';
+import * as THREE from 'three';
 
 const getChaptersWithDistances = () => {
     return [{
@@ -45,7 +46,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 0.1;
 const DECELERATION = 0.85;
 const MIN_VELOCITY = 0.001;
 const BASE_SENSITIVITY = 0.001;
@@ -172,7 +173,7 @@ function CameraController({children}) {
             }
 
             // Créer l'animateur GLB avec le modèle
-            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.005');
+            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
