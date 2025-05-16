@@ -340,25 +340,31 @@ class SceneObjectManager {
 
             'VisonRun': {
                 id: 'VisonRun',
-                path: '/models/primary/VisonRun.glb',
-                scale: [0.04874, 0.04874, 0.04874],
-                interactive: true,
-                useTextures: false,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "capture",
-                    chapterDistance: 0.28,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [51.67054, 0.04409, -134.37912],
-                    rotation: [-3.14159, 25.90977, -3.14159],
+                path: '/models/primary/AnimalVisonRun.glb',
+                interactive: false,
+                useTextures: true,
+                animations: {
+                    'animation_0': {
+                        autoplay: true,
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.5
+                    },
+                },
+                defaultPlacements: [{
+                    // données voulu au début de l'animation
+                    position: [-43.22722, 0.85657, -117.16203],
+                    rotation: [0.10031, 43.30824, -0.06331],
                     scale: [1, 1, 1],
-                    outlinePulse: false,
-                }
+                    userData: {
+                        objectKey: 'VisonRun',
+                        type: 'animated'
+                    }
+                    // données voulu à la fin de l'animation
+                    // position: [-40.16673, 0.66782, -113.89601],
+                    // rotation: [0, 50.45463, 0],
+                    // scale: [1, 1, 1],
+                }]
             },
 
             'BigRock': {
@@ -414,7 +420,6 @@ class SceneObjectManager {
                 }
             },
 
-            //
             // 'VisonRun': {
             //     id: 'VisonRun',
             //     path: '/models/primary/VisonRun.glb',

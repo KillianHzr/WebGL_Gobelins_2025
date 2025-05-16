@@ -463,6 +463,234 @@ function CameraController({children}) {
         };
     }, []);
 
+// Add this function to the CameraController component in ScrollControls.jsx
+// This function provides a comprehensive approach to find and animate the VisonRun object
+
+    const findAndAnimateVisonRun = () => {
+        console.log('Starting comprehensive search for VisonRun object');
+
+        // Array of possible object identifiers to search for
+        const possibleIdentifiers = [
+            'VisonRun',
+            'AnimalVisonRun',
+            'Retopo_Vison_(Copy)',
+            'Vison_Run',
+            'Vison'
+        ];
+
+        // Track if we found and successfully animated the object
+        let animationStarted = false;
+
+        // First attempt: search for objects with matching names or userdata
+        possibleIdentifiers.forEach(identifier => {
+            if (animationStarted) return; // Skip if already found
+
+            scene.traverse((object) => {
+                if (animationStarted) return; // Skip if already found
+
+                // Check if this object matches any of our identifiers
+                const nameMatches = object.name === identifier ||
+                    (object.name && object.name.includes(identifier));
+                const userDataMatches = object.userData &&
+                    (object.userData.objectKey === identifier ||
+                        object.userData.id === identifier);
+
+                if (nameMatches || userDataMatches) {
+                    console.log(`Found potential VisonRun object by identifier "${identifier}":`, object);
+
+                    if (tryPlayAnimation(object)) {
+                        console.log(`Successfully started animation on object found via identifier "${identifier}"`);
+                        animationStarted = true;
+                    }
+                }
+            });
+        });
+
+        // Second attempt: search by position that matches the expected placement
+        if (!animationStarted) {
+            const expectedPosition = [-43.22722, 0.85657, -117.16203]; // From SceneObjectManager
+            const positionTolerance = 0.5; // Allow some variance in position
+
+            scene.traverse((object) => {
+                if (animationStarted) return;
+
+                // Skip objects without position
+                if (!object.position) return;
+
+                // Check if position is close to expected
+                const isCloseToExpectedPosition =
+                    Math.abs(object.position.x - expectedPosition[0]) < positionTolerance &&
+                    Math.abs(object.position.y - expectedPosition[1]) < positionTolerance &&
+                    Math.abs(object.position.z - expectedPosition[2]) < positionTolerance;
+
+                if (isCloseToExpectedPosition) {
+                    console.log('Found potential VisonRun object by position match:', object);
+
+                    if (tryPlayAnimation(object)) {
+                        console.log('Successfully started animation on object found via position');
+                        animationStarted = true;
+                    }
+                }
+            });
+        }
+
+        // Third attempt: search for any object with animations that have "run" in their name
+        if (!animationStarted) {
+            scene.traverse((object) => {
+                if (animationStarted) return;
+
+                if (object.animations && object.animations.length > 0) {
+                    const hasRunAnimation = object.animations.some(anim =>
+                        anim.name.toLowerCase().includes('run'));
+
+                    // Also check if the object itself has "vison" in its name or userData
+                    const mightBeVison =
+                        (object.name && object.name.toLowerCase().includes('vison')) ||
+                        (object.userData && object.userData.objectKey &&
+                            object.userData.objectKey.toLowerCase().includes('vison'));
+
+                    if (hasRunAnimation || mightBeVison) {
+                        console.log('Found potential VisonRun object by animation or name pattern:', object);
+
+                        if (tryPlayAnimation(object)) {
+                            console.log('Successfully started animation on object found via animation/name pattern');
+                            animationStarted = true;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Helper function to try playing animation on an object
+        function tryPlayAnimation(object) {
+            // Skip objects that don't have or can't have animations
+            if (!object.isObject3D) return false;
+
+            try {
+                // Ensure the object is visible
+                object.visible = true;
+
+                // Case 1: Object already has a mixer
+                if (object.mixer) {
+                    console.log('Object has existing mixer, using it');
+                    const animations = object.animations || [];
+
+                    if (animations.length > 0) {
+                        // Find a run animation or use the first one
+                        const runClip = animations.find(a => a.name.toLowerCase().includes('run')) || animations[0];
+                        const action = object.mixer.clipAction(runClip);
+
+                        action.loop = THREE.LoopRepeat;
+                        action.timeScale = 1.5;
+                        action.reset().play();
+
+                        object.userData.animationActive = true;
+                        return true;
+                    }
+                }
+                // Case 2: Object has animations but no mixer
+                else if (object.animations && object.animations.length > 0) {
+                    console.log('Creating new mixer for object with animations');
+                    object.mixer = new THREE.AnimationMixer(object);
+
+                    const runClip = object.animations.find(a => a.name.toLowerCase().includes('run')) || object.animations[0];
+                    const action = object.mixer.clipAction(runClip);
+
+                    action.loop = THREE.LoopRepeat;
+                    action.timeScale = 1.5;
+                    action.reset().play();
+
+                    object.userData.animationActive = true;
+                    return true;
+                }
+                // Case 3: Try using EventBus as last resort
+                else {
+                    console.log('No direct animations found, attempting EventBus trigger');
+
+                    // Store reference to successfully animated object
+                    window._visonRunObject = object;
+
+                    // Try triggering animation via EventBus with both VisonRun and object's actual name
+                    EventBus.trigger('play-object-animation', {
+                        objectKey: 'VisonRun',
+                        animationName: 'animation_0'
+                    });
+
+                    if (object.name) {
+                        EventBus.trigger('play-object-animation', {
+                            objectKey: object.name,
+                            animationName: 'animation_0'
+                        });
+                    }
+
+                    return true; // Assume EventBus will handle it
+                }
+            } catch (error) {
+                console.error('Error attempting to animate object:', error);
+                return false;
+            }
+
+            return false;
+        }
+
+        // If we couldn't animate anything, log diagnostic info
+        if (!animationStarted) {
+            console.error('Failed to find and animate VisonRun object. Diagnostic info:');
+
+            // List all objects with "vison" in name for debugging
+            const visonObjects = [];
+            scene.traverse((object) => {
+                if (object.name && object.name.toLowerCase().includes('vison')) {
+                    visonObjects.push({
+                        name: object.name,
+                        type: object.type,
+                        position: object.position ? object.position.toArray() : null,
+                        hasAnimations: !!(object.animations && object.animations.length > 0)
+                    });
+                }
+            });
+
+            console.log('Vison-related objects in scene:', visonObjects);
+
+            // List all objects with animations
+            const objectsWithAnimations = [];
+            scene.traverse((object) => {
+                if (object.animations && object.animations.length > 0) {
+                    objectsWithAnimations.push({
+                        name: object.name,
+                        type: object.type,
+                        position: object.position ? object.position.toArray() : null,
+                        animationCount: object.animations.length,
+                        animationNames: object.animations.map(a => a.name)
+                    });
+                }
+            });
+
+            console.log('Objects with animations in scene:', objectsWithAnimations);
+
+            // As a last resort, try animation via SceneObjectManager
+            try {
+                // Find the VisonRun object by its path
+                const visonRunConfig = sceneObjectManager.getObjectFromCatalog('VisonRun');
+                if (visonRunConfig) {
+                    console.log('Found VisonRun in SceneObjectManager:', visonRunConfig);
+
+                    EventBus.trigger('play-object-animation', {
+                        objectKey: 'VisonRun',
+                        animationName: 'animation_0'
+                    });
+
+                    animationStarted = true;
+                }
+            } catch (managerError) {
+                console.error('Error attempting SceneObjectManager approach:', managerError);
+            }
+        }
+
+        return animationStarted;
+    };
+
+
     // Fonction pour vérifier les déclencheurs d'interaction
     const checkInteractionTriggers = (position) => {
         // Variable pour stocker l'interaction déclenchée
@@ -602,6 +830,32 @@ function CameraController({children}) {
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
+                if (interaction.id === 'fourthStop') {
+                    console.log('fourthStop interaction triggered - playing vison run animation');
+
+                    // Use our comprehensive search and animation function
+                    const animationStarted = findAndAnimateVisonRun();
+
+                    if (!animationStarted) {
+                        console.warn('Failed to find and animate VisonRun object. Trying fallback method...');
+
+                        // Fallback to direct EventBus trigger
+                        EventBus.trigger('play-object-animation', {
+                            objectKey: 'VisonRun',
+                            animationName: 'animation_0'
+                        });
+
+                        // Also try to notify SceneObjectManager directly
+                        setTimeout(() => {
+                            EventBus.trigger('animate-model', {
+                                objectKey: 'VisonRun',
+                                animationName: 'animation_0',
+                                loop: true,
+                                timeScale: 1.5
+                            });
+                        }, 100);
+                    }
+                }
 
                 // NOUVEAU: Émettre un événement d'interaction détectée pour déclencher la narration automatiquement
                 EventBus.trigger('interaction:detected', {
@@ -628,6 +882,95 @@ function CameraController({children}) {
             updateCurrentChapter();
         }
     };
+
+
+    useEffect(() => {
+        // Handler for animation requests
+        const handleAnimateModel = (data) => {
+            if (!data || !data.objectKey) return;
+
+            console.log(`Model animation request received for: ${data.objectKey}`, data);
+
+            // Find the object in SceneObjectManager
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(data.objectKey);
+            if (!objectConfig) {
+                console.warn(`Object ${data.objectKey} not found in SceneObjectManager`);
+                return;
+            }
+
+            console.log(`Found object config in SceneObjectManager:`, objectConfig);
+
+            // Find all placements for this object
+            const placements = sceneObjectManager.getPlacements({ objectKey: data.objectKey });
+            if (!placements || placements.length === 0) {
+                console.warn(`No placements found for ${data.objectKey}`);
+                return;
+            }
+
+            console.log(`Found ${placements.length} placements for ${data.objectKey}`);
+
+            // Try to find the object in the scene based on placement positions
+            let found = false;
+            placements.forEach(placement => {
+                const position = placement.position;
+
+                scene.traverse((object) => {
+                    if (found) return;
+
+                    // Check if position matches approximately
+                    const positionMatches =
+                        object.position &&
+                        Math.abs(object.position.x - position[0]) < 1 &&
+                        Math.abs(object.position.y - position[1]) < 1 &&
+                        Math.abs(object.position.z - position[2]) < 1;
+
+                    if (positionMatches) {
+                        console.log(`Found ${data.objectKey} in scene by position match:`, object);
+
+                        // If it has no mixer, create one
+                        if (!object.mixer) {
+                            object.mixer = new THREE.AnimationMixer(object);
+                        }
+
+                        // Find animations
+                        const animations = object.animations || [];
+                        if (animations.length > 0) {
+                            const animClip = animations.find(a => a.name === data.animationName) || animations[0];
+                            const action = object.mixer.clipAction(animClip);
+
+                            // Apply parameters
+                            if (data.loop !== undefined) {
+                                action.loop = data.loop ? THREE.LoopRepeat : THREE.LoopOnce;
+                            }
+
+                            if (data.timeScale !== undefined) {
+                                action.timeScale = data.timeScale;
+                            }
+
+                            action.reset().play();
+                            found = true;
+
+                            console.log(`Started animation ${animClip.name} on ${data.objectKey}`);
+                        } else {
+                            console.warn(`Object found but has no animations:`, object);
+                        }
+                    }
+                });
+            });
+
+            if (!found) {
+                console.warn(`Could not find ${data.objectKey} in scene for animation`);
+            }
+        };
+
+        // Subscribe to animation events
+        const animateModelSubscription = EventBus.on('animate-model', handleAnimateModel);
+
+        // Clean up subscription
+        return () => {
+            animateModelSubscription();
+        };
+    }, [scene]);
 
     // Trouver le chapitre actuel en fonction de la position
     const updateCurrentChapter = () => {
@@ -680,7 +1023,187 @@ function CameraController({children}) {
         };
     }, []);
 
+    // Add this useEffect to the CameraController component in ScrollControls.jsx
+    useEffect(() => {
+        // Handler for animation play requests
+        const handlePlayAnimation = (data) => {
+            if (!data || !data.objectKey) return;
 
+            console.log(`Animation play request received for: ${data.objectKey}`, data);
+
+            // Find the object in the scene
+            let targetObject = null;
+            scene.traverse((object) => {
+                if (object.name === data.objectKey ||
+                    (object.userData && object.userData.objectKey === data.objectKey)) {
+                    targetObject = object;
+                }
+            });
+
+            if (!targetObject) {
+                console.warn(`Object ${data.objectKey} not found in scene for animation`);
+                return;
+            }
+
+            console.log(`Found object for animation: ${targetObject.name || 'unnamed'}`);
+
+            // Check if object has animations
+            if (targetObject.animations && targetObject.animations.length > 0) {
+                // If the object has animations, create a mixer if it doesn't exist
+                if (!targetObject.mixer) {
+                    targetObject.mixer = new THREE.AnimationMixer(targetObject);
+                }
+
+                // Find the animation clip
+                let clip = null;
+                if (data.animationName) {
+                    // Find by name
+                    clip = targetObject.animations.find(a => a.name === data.animationName);
+                }
+
+                // If not found by name or no name specified, use the first one
+                if (!clip && targetObject.animations.length > 0) {
+                    clip = targetObject.animations[0];
+                }
+
+                if (clip) {
+                    const action = targetObject.mixer.clipAction(clip);
+
+                    // Configure the action
+                    if (data.loop !== undefined) {
+                        action.loop = data.loop ? THREE.LoopRepeat : THREE.LoopOnce;
+                    }
+
+                    if (data.timeScale !== undefined) {
+                        action.timeScale = data.timeScale;
+                    }
+
+                    // Play the animation
+                    action.reset().play();
+                    console.log(`Playing animation: ${clip.name}`);
+
+                    // Store the active animation in userData for reference
+                    targetObject.userData.activeAnimation = {
+                        clipName: clip.name,
+                        action: action
+                    };
+                } else {
+                    console.warn(`No animation clip found for ${data.objectKey}`);
+                }
+            } else {
+                console.warn(`Object ${data.objectKey} has no animations`);
+            }
+        };
+
+        // Subscribe to animation play events
+        const playAnimationSubscription = EventBus.on('play-animation', handlePlayAnimation);
+        const playObjectAnimationSubscription = EventBus.on('play-object-animation', handlePlayAnimation);
+
+        // Clean up subscriptions
+        return () => {
+            playAnimationSubscription();
+            playObjectAnimationSubscription();
+        };
+    }, [scene]);
+
+
+    // Add this function to the CameraController component
+    const playAnimalVisonRunAnimation = () => {
+        console.log('Attempting to play AnimalVisonRun animation directly');
+
+        // Find the AnimalVisonRun object in the scene
+        let AnimalVisonRunObject = null;
+        scene.traverse((object) => {
+            // Check both by name and userData for maximum coverage
+            if (object.name === 'Retopo_Vison_(Copy)' ||
+                (object.userData && object.userData.objectKey === 'Retopo_Vison_(Copy)')) {
+                AnimalVisonRunObject = object;
+                console.log('Found AnimalVisonRun object:', object);
+            }
+        });
+
+        if (!AnimalVisonRunObject) {
+            console.warn('AnimalVisonRun object not found in scene, trying to locate by model type');
+
+            // Try a broader search by looking for objects with animations
+            scene.traverse((object) => {
+                if (object.animations && object.animations.length > 0) {
+                    // Check if any animation name matches the expected pattern
+                    const hasRunAnimation = object.animations.some(anim =>
+                        anim.name.toLowerCase().includes('run'));
+
+                    if (hasRunAnimation) {
+                        AnimalVisonRunObject = object;
+                        console.log('Found possible AnimalVisonRun object by animation:', object);
+                    }
+                }
+            });
+        }
+
+        if (AnimalVisonRunObject) {
+            // Create an animation mixer if it doesn't exist
+            if (!AnimalVisonRunObject.mixer) {
+                AnimalVisonRunObject.mixer = new THREE.AnimationMixer(AnimalVisonRunObject);
+            }
+
+            // Get animations
+            const animations = AnimalVisonRunObject.animations || [];
+            if (animations.length > 0) {
+                console.log('Available animations:', animations.map(a => a.name));
+
+                // Try to find a run animation
+                let runClip = animations.find(a => a.name.toLowerCase().includes('run'));
+
+                // If no specific run animation, use the first one
+                if (!runClip) {
+                    runClip = animations[0];
+                }
+
+                const action = AnimalVisonRunObject.mixer.clipAction(runClip);
+
+                // Configure the action based on SceneObjectManager settings
+                action.loop = THREE.LoopRepeat;
+                action.timeScale = 1.5; // Use the same timeScale as in SceneObjectManager
+
+                // Play the animation
+                action.reset().play();
+                console.log('Started AnimalVisonRun animation:', runClip.name);
+
+                // Make sure the object is visible
+                AnimalVisonRunObject.visible = true;
+
+                // Mark the animation as active in userData
+                AnimalVisonRunObject.userData.animationActive = true;
+
+                return true;
+            } else {
+                console.warn('AnimalVisonRun object has no animations');
+            }
+        } else {
+            console.error('Could not find AnimalVisonRun object in scene after extensive search');
+        }
+
+        return false;
+    };
+
+// Add this effect to listen for fourthStop specifically
+    useEffect(() => {
+        // Handler for the fourthStop detected event
+        const handleFourthStopDetected = (data) => {
+            if (data.requiredStep === 'fourthStop') {
+                console.log('fourthStop specifically detected, playing AnimalVisonRun animation');
+                playAnimalVisonRunAnimation();
+            }
+        };
+
+        // Subscribe to the interaction:detected event
+        const interactionDetectedSubscription = EventBus.on('interaction:detected', handleFourthStopDetected);
+
+        // Clean up subscription
+        return () => {
+            interactionDetectedSubscription();
+        };
+    }, [scene]);
     useEffect(() => {
         // Function that will be called when an interaction is completed
         const handleInteractionComplete = (data) => {
@@ -1157,6 +1680,13 @@ function CameraController({children}) {
         });
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
+
+        const delta = 1/60; // Approximate delta time
+        scene.traverse((object) => {
+            if (object.mixer) {
+                object.mixer.update(delta);
+            }
+        });
 
         // Détection de la fin du scroll
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
