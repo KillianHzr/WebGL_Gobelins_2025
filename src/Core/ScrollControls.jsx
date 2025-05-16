@@ -46,7 +46,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.1;
+const MAX_SCROLL_SPEED = 0.01;
 const DECELERATION = 0.85;
 const MIN_VELOCITY = 0.001;
 const BASE_SENSITIVITY = 0.001;
@@ -103,6 +103,7 @@ function CameraController({children}) {
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
     const END_SCROLL_THRESHOLD = 1; // 98% du scroll considéré comme fin
+    const triggeredInteractionsSet = useRef(new Set());
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -192,6 +193,8 @@ function CameraController({children}) {
             timelinePositionRef.current = startChapterPosition;
             cameraAnimatorRef.current.setPosition(startChapterPosition);
 
+            useStore.getState().setTimelinePosition(startChapterPosition);
+            useStore.getState().setSequenceLength(startChapterPosition);
             // Exposer les fonctions globalement
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
@@ -492,7 +495,9 @@ function CameraController({children}) {
             if (!interaction.isActive || completedInteractions[interaction.id]) {
                 return;
             }
-
+            if (triggeredInteractionsSet.current.has(interaction.id)) {
+                return;
+            }
             // Vérifier les prérequis avant de procéder
             if (!checkInteractionPrerequisites(interaction)) {
                 return;
@@ -507,6 +512,8 @@ function CameraController({children}) {
             if (distance < TRIGGER_PROXIMITY && allowScroll && !chapterTransitioning) {
                 // Stocker l'interaction déclenchée pour le log
                 triggeredInteraction = interaction;
+
+                triggeredInteractionsSet.current.add(interaction.id);
 
                 // Récupérer l'objet associé à cette interaction
                 const relatedObjectKey = interaction.objectKey;
@@ -550,6 +557,9 @@ function CameraController({children}) {
                     type: 'auto-detected'
                 });
             }
+            setTimeout(() => {
+                triggeredInteractionsSet.current.delete(interaction.id);
+            }, 1000);
         });
 
         // Afficher le log uniquement si une interaction est déclenchée
@@ -688,6 +698,8 @@ function CameraController({children}) {
             interactionCompleteSubscription1();
             interactionCompleteSubscription2();
             interactionCompleteSubscription3();
+            triggeredInteractionsSet.current.clear();
+
         };
     }, []);
 
@@ -791,7 +803,6 @@ function CameraController({children}) {
 
         // Restaurer la position initiale de la timeline
         timelinePositionRef.current = currentTimelinePos;
-
         // Maintenant nous avons les positions de départ et d'arrivée
         const endPosition = targetCameraState.position;
         const endRotation = targetCameraState.rotation;
@@ -833,6 +844,8 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
+                useStore.getState().setTimelinePosition(targetPosition);
+                useStore.getState().setSequenceLength(targetPosition);
                 finishCurrentTransition();
                 return;
             }
@@ -869,6 +882,8 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
+                useStore.getState().setTimelinePosition(targetPosition);
+                useStore.getState().setSequenceLength(targetPosition);
                 // Notifier la fin de transition
                 EventBus.trigger('distance-transition-complete', {
                     finalPosition: targetPosition
@@ -1006,8 +1021,6 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
-        useStore.getState().setTimelinePosition(timelinePositionRef.current);
-        useStore.getState().setSequenceLength(timelineLengthRef.current);
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
 
