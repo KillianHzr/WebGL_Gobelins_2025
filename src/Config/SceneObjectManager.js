@@ -201,8 +201,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Saute",
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
 
                     offset: 0.5,
                     axis: "y",
@@ -222,8 +222,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Saute",
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
 
                     offset: 0.5,
                     axis: "y",
@@ -243,8 +243,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Saute",
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
 
                     offset: 0.6,
                     axis: "y",
@@ -264,8 +264,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Saute",
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
 
                     offset: 0.5,
                     axis: "y",
