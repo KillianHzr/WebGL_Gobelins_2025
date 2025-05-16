@@ -202,7 +202,7 @@ export const InteractiveMarkersProvider = ({children, config}) => {
 
                 // Réactiver le défilement
                 if (setAllowScroll) {
-                    setTimeout(() => setAllowScroll(true), 300);
+                    setAllowScroll(true)
                 }
 
                 // Émettre un événement de fin d'animation

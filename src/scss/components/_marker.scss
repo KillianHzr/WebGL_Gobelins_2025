@@ -33,6 +33,11 @@
         border-radius: 999px;
         border: 1.5px solid #F9FEFF;
         pointer-events: auto;
+        &.disable {
+            opacity: 0.4;
+            right: 33vw;
+            top: 33vh;
+        }
 
         &-inner {
             position: absolute;
@@ -87,7 +92,7 @@
                 flex-shrink: 0;
                 aspect-ratio: 1;
                 border-radius: 999px;
-                background: rgba(249, 254, 255, 0.30);
+                //background: rgba(249, 254, 255, 0.30);
                 border: 1px solid #F9FEFF;
                 transition: all 0.3s ease;
                 opacity: 0.7;

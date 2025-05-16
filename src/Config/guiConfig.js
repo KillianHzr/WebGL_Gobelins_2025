@@ -10,11 +10,220 @@ const guiConfig = {
         width: 300,
         closeFolders: true
     },
+    interface: {
+        folder: "Interface",
+        skipIntro: {
+            name: "Sauter Intro/Loading",
+            default: true
+        }
+    },
     theatre: {
         folder: "Theatre.js",
         showUI: {
             name: "Afficher UI Theatre",
             default: true
+        }
+    },
+    flashlight: {
+        folder: 'Flashlight',
+        // Contrôles principaux
+        active: {
+            name: "Activer",
+            default: true
+        },
+        autoActivate: {
+            name: "Activation automatique",
+            default: true
+        },
+        activationThreshold: {
+            name: "Seuil d'activation",
+            default: 0.7,
+            min: 0,
+            max: 1,
+            step: 0.05
+        },
+        // Paramètres lumière
+        intensity: {
+            default: 15,
+            min: 0.1,
+            max: 20.0,
+            step: 0.1
+        },
+        color: {
+            default: '#ffc547'
+        },
+        angle: {
+            default: Math.PI / 6,
+            min: Math.PI / 12,
+            max: Math.PI / 2,
+            step: 0.01
+        },
+        penumbra: {
+            default: 0.66,
+            min: 0,
+            max: 1,
+            step: 0.01
+        },
+        distance: {
+            default: 4,
+            min: 1,
+            max: 50,
+            step: 0.5
+        },
+        decay: {
+            default: 1.0,
+            min: 0,
+            max: 2,
+            step: 0.1
+        },
+        // Position relative à la caméra
+        position: {
+            folder: "Position",
+            offsetX: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage X"
+            },
+            offsetY: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage Y"
+            },
+            offsetZ: {
+                default: 0.0,
+                min: -1.0,
+                max: 1.0,
+                step: 0.01,
+                name: "Décalage Z"
+            }
+        },
+        // Direction
+        target: {
+            folder: "Direction",
+            offsetX: {
+                default: 0.0,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction X"
+            },
+            offsetY: {
+                default: -0.75,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction Y"
+            },
+            offsetZ: {
+                default: -1.0,
+                min: -3.0,
+                max: 3.0,
+                step: 0.1,
+                name: "Direction Z"
+            },
+            distance: {
+                default: 15.0,
+                min: 1.0,
+                max: 20.0,
+                step: 0.5,
+                name: "Distance cible"
+            }
+        },
+        // Configuration des ombres
+        shadows: {
+            folder: "Shadows",
+            enabled: {
+                default: true
+            },
+            mapSize: {
+                default: 512,
+                options: [256, 512, 1024, 2048, 4096]
+            },
+            bias: {
+                default: -0.001,
+                min: -0.01,
+                max: 0.01,
+                step: 0.0001
+            },
+            normalBias: {
+                default: 0,
+                min: -0.05,
+                max: 0.05,
+                step: 0.001
+            },
+            optimizePerformance: {
+                default: true,
+                name: "Optimiser performances"
+            }
+        },
+        // Animations et effets
+        effects: {
+            folder: "Effets",
+            flicker: {
+                enabled: {
+                    default: false,
+                    name: "Scintillement"
+                },
+                intensity: {
+                    default: 0.1,
+                    min: 0.01,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Intensité scintillement"
+                },
+                speed: {
+                    default: 2.0,
+                    min: 0.1,
+                    max: 10.0,
+                    step: 0.1,
+                    name: "Vitesse scintillement"
+                }
+            },
+            battery: {
+                enabled: {
+                    default: false,
+                    name: "Simulation batterie"
+                },
+                drainRate: {
+                    default: 0.05,
+                    min: 0.01,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Taux d'épuisement"
+                },
+                minLevel: {
+                    default: 0.2,
+                    min: 0.0,
+                    max: 0.5,
+                    step: 0.01,
+                    name: "Niveau minimum"
+                }
+            }
+        }
+    },
+    // Ajouter cette section dans guiConfig.js
+    chapters: {
+        folder: "Chapitres",
+        controls: {
+            currentChapter: {
+                name: "Chapitre actuel",
+                default: 0,
+                options: {
+                    "Introduction": 0,
+                    "Forêt mystérieuse": 1,
+                    "Découverte": 2,
+                    "Créatures": 3,
+                    "Conclusion": 4
+                }
+            },
+            autoProgress: {
+                name: "Progression auto",
+                default: true
+            },
         }
     },
     // Nouvelle section pour les contrôles de visualisation générale
@@ -26,7 +235,7 @@ const guiConfig = {
         },
         showInstances: {
             name: "Afficher Instances",
-            default: false
+            default: true
         },
         showInteractive: {
             name: "Afficher Interactifs",
@@ -119,7 +328,7 @@ const guiConfig = {
                     Cineon: 3,
                     ACESFilmic: 4
                 },
-                default: 2,
+                default: 4,
                 name: "Tone Mapping"
             },
             toneMappingExposure: {
@@ -127,7 +336,7 @@ const guiConfig = {
                 max: 5,
                 step: 0.01,
                 name: "Exposure",
-                default: 2.36
+                default: 0.36
             }
         }
     },
@@ -241,34 +450,61 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-        background: {
-            color: "#000000",
-            name: "Background",
-            default: "#000000"
-        },
+
         fog: {
             enabled: {
                 name: "Fog",
                 default: true
             },
             color: {
-                color: "#1e356b",
+                color: "#ffffff",
                 name: "Fog Color",
-                default: "#1e356b"
+                default: "#1E6B31"
             },
             near: {
                 min: 0,
-                max: 10,
+                max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 0
+                default: 15
             },
             far: {
                 min: 0,
-                max: 50,
+                max: 100,
                 step: 0.1,
                 name: "Fog Far",
                 default: 20
+            },
+            transition: {
+                folder: "Fog Transition",
+                startPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "Start Point",
+                    default: 0.0
+                },
+                endPoint: {
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    name: "End Point",
+                    default: 0.5
+                },
+                initialNear: {
+                    min: 20,
+                    max: 200,
+                    step: 1,
+                    name: "Initial Near",
+                    default: 50
+                },
+                initialFar: {
+                    min: 30,
+                    max: 250,
+                    step: 1,
+                    name: "Initial Far",
+                    default: 100
+                }
             }
         }
     },
@@ -307,14 +543,14 @@ const guiConfig = {
                 min: -0.1,
                 max: 0.1,
                 step: 0.0001,
-                default: 0
+                default: 0.0025
             },
             normalBias: {
                 name: "Normal Bias",
                 min: -1.0,
                 max: 1.0,
                 step: 0.001,
-                default: 0.1
+                default: 0.0812
             }
         },
         toneMapping: {

@@ -363,7 +363,10 @@ const EventEmitter = forwardRef((props, ref) => {
                 debugLog(`Event '${_name}' triggered but no callbacks were found`);
             }
         }
-
+        if (_name.includes('marker:') || _name.includes('scenario:') || _name.includes('narration:')) {
+            console.log(`%c${_name}`, 'background: #555; color: white; padding: 2px;',
+                _args && _args.length > 0 ? _args[0] : '');
+        }
         return finalResult;
     };
 

@@ -6,8 +6,6 @@
 const guiFolderConfig = {
     // Configuration principale pour l'affichage des dossiers
     foldersVisibility: {
-        // Dossiers principaux
-        "Theatre.js": true,       // Contrôles Theatre.js
         "Visualisation": true,    // Contrôles de visualisation générale
         "Camera": true,           // Contrôles de caméra
         "Render": true,           // Nouveaux contrôles de rendu
@@ -21,6 +19,7 @@ const guiFolderConfig = {
         "Audio": true,            // Contrôles audio
         "Interfaces": true,       // Contrôles des interfaces
         "Utils": true,            // Utilitaires (import/export)
+        "Flashlight": true,      // Contrôles de la lampe torche
 
         // Sous-dossiers (format "parent/enfant")
         "Controls/Auto Rotation": true,
@@ -65,6 +64,7 @@ const guiFolderConfig = {
             // Profil minimal pour une interface épurée
             "Theatre.js": true,
             "Visualisation": true,
+            "Interface": true,
             "Camera": false,
             "Render": false,
             "Controls": false,
@@ -79,9 +79,8 @@ const guiFolderConfig = {
             "Utils": true
         },
         "artist": {
-            // Profil pour les artistes
-            "Theatre.js": false,
             "Visualisation": false,
+            "Interface": true,
             "Camera": true,
             "Render": true,
             "Controls": false,
@@ -93,12 +92,31 @@ const guiFolderConfig = {
             "Objects": false,
             "Audio": false,
             "Interfaces": false,
-            "Utils": false
+            "Utils": false,
+            "Flashlight": true,      // Contrôles de la lampe torche
+
+        },
+        "empty": {
+            "Theatre.js": false,
+            "Visualisation": false,
+            "Interface": false,
+            "Camera": false,
+            "Render": false,
+            "Controls": false,
+            "Scene": false,
+            "Renderer": false,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
+            "Materials": false,
+            "Lights": false,
+            "Effects": false,
+            "Objects": false,
+            "Audio": false,
+            "Interfaces": false,
+            "Utils": false,
+            "Flashlight": false,
         },
         "developer": {
-            // Profil pour les développeurs
-            "Theatre.js": true,
             "Visualisation": true,
+            "Interface": true,
             "Camera": true,
             "Render": true,
             "Controls": true,
@@ -110,12 +128,15 @@ const guiFolderConfig = {
             "Objects": true,
             "Audio": true,
             "Interfaces": true,
-            "Utils": true
+            "Utils": true,
+            "Flashlight": true,      // Contrôles de la lampe torche
+
         },
         "performance": {
             // Profil pour tester les performances
             "Theatre.js": false,
             "Visualisation": true,
+            "Interface": true,
             "Camera": false,
             "Render": true,
             "Controls": false,

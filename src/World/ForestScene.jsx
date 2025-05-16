@@ -4,6 +4,7 @@ import Forest from './Forest';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
 import WaterPlane from './WaterPlane';
+import GuiConfig from "../Config/guiConfig.js";
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
@@ -12,9 +13,6 @@ export default function ForestScene() {
     const {scene, gl} = useThree();
 
     useEffect(() => {
-        // Configurer le renderer
-        // configureRenderer(gl);
-
 
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {
@@ -35,10 +33,6 @@ export default function ForestScene() {
         return () => {
             mapUnsubscribe();
             forestUnsubscribe();
-
-            // Retirer les lumières de la scène
-            scene.remove(ambientLight);
-            scene.remove(mainLight);
         };
     }, [scene, gl]);
 
@@ -48,6 +42,13 @@ export default function ForestScene() {
             console.log('La scène forestière est entièrement chargée');
             // Émettre un événement pour indiquer que tout est prêt
             EventBus.trigger('forest-scene-ready');
+
+            // Afficher les instructions de contrôle
+            console.log(`
+INSTRUCTIONS DE CONTRÔLE:
+- Touche E: Afficher/Masquer le groupe des objets "End"
+- Touche S: Afficher/Masquer le groupe des écrans
+`);
         }
     }, [mapReady, forestReady]);
 
@@ -59,6 +60,7 @@ export default function ForestScene() {
     return (
         <>
             {/*{mapComponent}*/}
+            {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
             {forestComponent}
             {waterComponent}
         </>

@@ -47,7 +47,7 @@ class NarrationManager {
             font-weight: 600;
             font-style: italic;
             text-align: center;
-            z-index: 1000;
+            z-index: 12000;
             padding: 8px 16px;
             pointer-events: none;
             width: 90%;
@@ -57,10 +57,6 @@ class NarrationManager {
 
         document.body.appendChild(this.subtitleElement);
         console.log('NarrationManager: Élément de sous-titre créé');
-
-        // Test d'affichage au démarrage
-        this.showSubtitle("Test des sous-titres - Si vous voyez ce message, tout fonctionne correctement");
-        setTimeout(() => this.hideSubtitle(), 3000);
     }
 
     /**
@@ -72,11 +68,32 @@ class NarrationManager {
         if (!this.subtitleElement) return;
 
         console.log(`NarrationManager: Affichage sous-titre: "${text}"`);
-        this.subtitleElement.textContent = text;
+
+        const processedText = this._processFormattingTags(text);
+
+        // Use innerHTML instead of textContent to allow HTML formatting
+        this.subtitleElement.innerHTML = processedText;
         this.subtitleElement.style.display = 'block';
 
         // Également émettre l'événement pour compatibilité
         EventBus.trigger('subtitle-changed', { text });
+    }
+
+    /**
+     * Traite les balises de formatage spéciales dans le texte
+     * @param {string} text - Texte à traiter
+     * @returns {string} - Texte avec balises HTML
+     */
+    _processFormattingTags(text) {
+        if (!text) return '';
+
+        // Remplacer \strong par <strong>
+        let processedText = text.replace(/\\strong\s(.*?)(?:\n|$)/g, '<strong>$1</strong>');
+
+        // Conserver les sauts de ligne (remplacer \n par <br>)
+        processedText = processedText.replace(/\n/g, '<br>');
+
+        return processedText;
     }
 
     /**
@@ -321,6 +338,8 @@ class NarrationManager {
     async getNarrationList() {
         // Liste statique pour l'instant
         return [
+            { id: 'Scene00_Radio1', label: 'Radio 1 (Introduction)' },
+            { id: 'Scene00_Radio2', label: 'Radio 2 (Introduction)' },
             { id: 'Scene01_Mission', label: 'Mission (Scène 1)' },
             { id: 'Scene02_PanneauInformation', label: 'Panneau d\'information (Scène 2)' },
             { id: 'Scene03_SautAuDessusDeLArbre', label: 'Saut au-dessus de l\'arbre (Scène 3)' },
@@ -329,7 +348,11 @@ class NarrationManager {
             { id: 'Scene06_PassageEn-DessousDeLaBranche', label: 'Passage en-dessous de la branche (Scène 6)' },
             { id: 'Scene07_RemplissageDeLaGourde', label: 'Remplissage de la gourde (Scène 7)' },
             { id: 'Scene08_DecouverteDuVisonMort', label: 'Découverte du vison mort (Scène 8)' },
-            { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' }
+            { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' },
+            { id: 'SceneGenerique', label: 'Générique de fin' },
+            { id: 'Scene99_Message1', label: 'Message 1 (Conclusion)' },
+            { id: 'Scene99_Message2', label: 'Message 2 (Conclusion)' },
+            { id: 'Scene99_Message3', label: 'Message 3 (Conclusion)' },
         ];
     }
 

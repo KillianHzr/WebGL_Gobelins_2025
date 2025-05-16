@@ -45,13 +45,11 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 position = [0, 0, 0],
                                                                 scale = [1, 1, 1],
                                                                 rotation = [0, 0, 0],
-                                                                color = "#5533ff",
 
                                                                 // Props du marqueur
                                                                 markerId = `marker-${Math.random().toString(36).substr(2, 9)}`,
                                                                 markerType = INTERACTION_TYPES.CLICK,
                                                                 markerText = "Interagir",
-                                                                markerColor = "#44ff44",
                                                                 markerOffset = 0.8,
                                                                 markerAxis = 'y',
                                                                 alwaysVisible = false,
@@ -67,7 +65,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
                                                                 // Props d'effet visuel
                                                                 showOutline = true,
-                                                                outlineColor = "#ffffff",
                                                                 outlineThickness = 1.5,
                                                                 outlineIntensity = 1,
                                                                 outlinePulse = true,
@@ -84,12 +81,13 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 children,
                                                                 interfaceToShow = null,
                                                                 postInteractionAnimation = null,
-
                                                             }) {
     // Références
     const modelRef = useRef();
     const isComponentMounted = useRef(true);
     const cleanupFunctions = useRef([]);
+    const [isInInteractionSequence, setIsInInteractionSequence] = useState(false);
+    const outlineVisibleRef = useRef(false);
 
     // État local
     const [hovered, setHovered] = useState(false);
@@ -151,10 +149,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         const effectRef = updateEffectRef.current;
 
-        // Mettre à jour uniquement les paramètres qui ont changé
-        if (effectRef.color !== outlineColor) {
-            effectRef.color = outlineColor;
-        }
 
         if (effectRef.thickness !== outlineThickness) {
             effectRef.thickness = outlineThickness;
@@ -174,7 +168,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         if (!outlinePulse && effectRef.pulseRef) {
             effectRef.pulseRef.current = {value: 0, direction: 0};
         }
-    }, [outlineColor, outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
+    }, [outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
 
     // Surveiller l'état d'interaction de manière optimisée
     useEffect(() => {
@@ -189,7 +183,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         if (isCurrentInteractionTarget) {
-            debugLog(`${markerId} is waiting for interaction: ${interaction.currentStep}`);
+            debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId, isWaitingForInteraction]);
 
@@ -199,8 +193,39 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             setIsInteractionCompleted(false);
         }
     }, [interaction?.currentStep, isInteractionCompleted]);
+    useEffect(() => {
+        const handleInteractionProgress = (data) => {
+            // Si cette progression concerne notre objet
+            if (data.markerId === markerId && data.requiredStep === requiredStep) {
+                console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
 
+                // Marquer que nous sommes dans une séquence d'interactions
+                setIsInInteractionSequence(true);
+
+                // Mettre à jour les états pour refléter que nous sommes prêts pour la prochaine étape
+                setIsInteractionCompleted(false);
+            }
+        };
+
+        const handleSequenceComplete = (data) => {
+            if (data.step === requiredStep) {
+                console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
+                setIsInInteractionSequence(false);
+            }
+        };
+
+        // S'abonner aux événements
+        const progressCleanup = EventBus.on('object:interaction:progress', handleInteractionProgress);
+        const completeCleanup = EventBus.on('interaction-sequence-complete', handleSequenceComplete);
+
+        return () => {
+            progressCleanup();
+            completeCleanup();
+        };
+    }, [markerId, requiredStep]);
     // Gérer l'interaction avec le marqueur - optimisé avec useCallback
+    // Correction dans la fonction handleMarkerInteraction du fichier EasyModelMarker.jsx
+
     const handleMarkerInteraction = useCallback((eventData = {}) => {
         debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
 
@@ -217,50 +242,60 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             });
         }
 
-        // Vérifier si l'interaction est attendue et la compléter
-        if (interaction?.waitingForInteraction && isWaitingForInteraction && !isInteractionCompleted) {
-            // Mettre à jour l'état avant de compléter l'interaction
-            setIsInteractionCompleted(true);
-
+        // Vérifier si l'interaction est attendue - vérifier avec le requiredStep
+        if (interaction?.waitingForInteraction && isWaitingForInteraction &&
+            interaction.currentStep === requiredStep) {
             // Compléter l'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
                 debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
             }
 
-            // Gérer les interfaces spécifiques
+            // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
+                // Important : Obtenir l'état actuel du store directement
+                // au lieu d'utiliser une référence potentiellement obsolète
+                debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
+
+                // Obtenir une référence fraîche au store
                 const store = useStore.getState();
 
-                if (interfaceToShow === 'camera') {
-                    if (typeof store.setShowCaptureInterface === 'function') {
-                        store.setShowCaptureInterface(true);
-                    } else if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
-                        store.interaction.setShowCaptureInterface(true);
-                    } else {
-                        debugLog("Méthode setShowCaptureInterface non trouvée, utilisation d'une alternative");
-                        useStore.setState(state => ({
-                            interaction: {
-                                ...state.interaction,
-                                showCaptureInterface: true
-                            }
-                        }));
-                    }
-                } else if (interfaceToShow === 'scanner') {
-                    if (typeof store.setShowScannerInterface === 'function') {
-                        store.setShowScannerInterface(true);
-                    } else if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
-                        store.interaction.setShowScannerInterface(true);
-                    } else {
-                        debugLog("Méthode setShowScannerInterface non trouvée, utilisation d'une alternative");
-                        useStore.setState(state => ({
-                            interaction: {
-                                ...state.interaction,
-                                showScannerInterface: true
-                            }
-                        }));
-                    }
+                // Afficher l'interface correspondante basée sur le type
+                switch (interfaceToShow) {
+                    case 'scanner':
+                        debugLog(`Affichage de l'interface scanner`);
+                        if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                            store.interaction.setShowScannerInterface(true);
+                        } else {
+                            console.error("L'interface scanner n'est pas disponible dans le store");
+                        }
+                        break;
+                    case 'capture':
+                        debugLog(`Affichage de l'interface capture`);
+                        if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                            store.interaction.setShowCaptureInterface(true);
+                        } else {
+                            console.error("L'interface capture n'est pas disponible dans le store");
+                        }
+                        break;
+                    case 'blackScreen':
+                        debugLog(`Affichage de l'interface blackScreen`);
+                        if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
+                            store.interaction.setShowBlackscreenInterface(true);
+                        } else {
+                            console.error("L'interface blackScreen n'est pas disponible dans le store");
+                        }
+                        break;
+                    default:
+                        console.warn(`Type d'interface non reconnu: ${interfaceToShow}`);
                 }
+
+                // Émettre un événement pour signaler l'affichage d'une interface
+                EventBus.trigger('interface-display-requested', {
+                    interfaceType: interfaceToShow,
+                    markerId: markerId,
+                    requiredStep: requiredStep
+                });
             }
 
             // Si une animation post-interaction est définie, la déclencher
@@ -288,7 +323,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         try {
             EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
                 id: markerId,
-                type: markerType
+                type: markerType,
+                requiredStep: requiredStep,
+                interfaceToShow: interfaceToShow // Ajouter l'interface à afficher dans l'événement
             });
         } catch (error) {
             console.error(`Error triggering interaction complete event for ${markerId}:`, error);
@@ -299,30 +336,103 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         playSound,
         interaction,
         isWaitingForInteraction,
-        isInteractionCompleted,
         interfaceToShow,
         onInteract,
-        postInteractionAnimation
+        postInteractionAnimation,
+        requiredStep
     ]);
 
+
     // Gérer le survol de l'objet
+    // Dans EnhancedObjectMarker.jsx, modifions la fonction handlePointerEnter dans le composant EasyModelMarker
+
     const handlePointerEnter = useCallback(() => {
         console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
 
-        // Vérification spéciale pour AnimalPaws
-        if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-            // Récupérer les interactions complétées du store
-            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+        // Récupérer les interactions complétées du store
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
-            // Vérifier si LeafErable a été complété
-            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                key.includes('thirdStop') ||
-                key.includes('LeafErable')
-            );
+        // Vérifier si cet objet a plusieurs interactions et si cette interaction n'est pas la première
+        if (requiredStep) {
+            const objectKey = markerId.split('-')[0]; // Extraire la clé de l'objet du markerId
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
 
-            if (!leafErableCompleted) {
-                console.log('Survolage de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
-                return; // Ne pas mettre à jour l'état de hovering
+            if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
+                // Trouver l'index de l'interaction actuelle
+                const currentInteractionIndex = objectConfig.interaction.findIndex(
+                    interaction => interaction.requiredStep === requiredStep
+                );
+
+                // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
+                if (currentInteractionIndex > 0) {
+                    // Obtenir l'interaction précédente
+                    const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
+
+                    // Vérifier si l'interaction précédente a été complétée
+                    const previousStepCompleted = Object.keys(completedInteractions).some(key =>
+                        key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep
+                    );
+
+                    // Si l'interaction précédente n'a pas été complétée, ignorer le survol
+                    if (!previousStepCompleted) {
+                        console.log(`Survol de ${markerId} ignoré car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
+                        return; // Ne pas mettre à jour l'état de hovering
+                    }
+                }
+            }
+
+            // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
+            if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
+                // Vérifier si MultipleLeaf a été complété
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirdStop') ||
+                    key.includes('MultipleLeaf')
+                );
+
+                if (!multipleLeafCompleted) {
+                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
+            // Dans la fonction handlePointerEnter
+// Après le bloc pour AnimalPaws
+            if (markerId.includes('JumpRock2') || markerId.includes('twelfthStop')) {
+                // Vérifier si JumpRock1 a été complété
+                const rock1Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('eleventhStop') ||
+                    key.includes('JumpRock1')
+                );
+
+                if (!rock1Completed) {
+                    console.log('Survol de JumpRock2 ignoré car JumpRock1 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
+
+            if (markerId.includes('JumpRock3') || markerId.includes('thirteenthStop')) {
+                // Vérifier si JumpRock2 a été complété
+                const rock2Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('twelfthStop') ||
+                    key.includes('JumpRock2')
+                );
+
+                if (!rock2Completed) {
+                    console.log('Survol de JumpRock3 ignoré car JumpRock2 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
+            }
+
+            if (markerId.includes('JumpRock4') || markerId.includes('fourteenthStop')) {
+                // Vérifier si JumpRock3 a été complété
+                const rock3Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirteenthStop') ||
+                    key.includes('JumpRock3')
+                );
+
+                if (!rock3Completed) {
+                    console.log('Survol de JumpRock4 ignoré car JumpRock3 n\'a pas encore été complété');
+                    return; // Ne pas mettre à jour l'état de hovering
+                }
             }
         }
 
@@ -335,42 +445,44 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             type: 'hover',
             text: markerText
         });
-    }, [markerId, markerText]);
+    }, [markerId, markerText, requiredStep]);
 
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {
-        // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
+        // Ne pas afficher le contour si showOutline est false
         if (!showOutline) {
             return false;
         }
 
-        // NOUVEAU: Vérification spéciale pour AnimalPaws
-        if (markerId.includes('AnimalPaws') || (requiredStep && requiredStep.includes('fifthStop'))) {
-            // Récupérer les interactions complétées du store
-            const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-            // Vérifier si LeafErable a été complété
-            const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                key.includes('thirdStop') ||
-                key.includes('LeafErable')
-            );
-
-            if (!leafErableCompleted) {
-                return false; // Ne pas afficher le contour
-            }
-        }
-
         // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
-        // avant de montrer l'outline au survol
         if (requiredStep) {
             const isCorrectStep = interaction?.currentStep === requiredStep &&
                 interaction?.waitingForInteraction;
 
-            // Afficher le contour seulement si:
-            // - L'objet est en attente d'interaction (isWaitingForInteraction)
-            // - OU si alwaysVisible est true
-            // - OU si l'objet est survolé ET que nous sommes à la bonne étape d'interaction
-            return isWaitingForInteraction || alwaysVisible || (hovered && isCorrectStep);
+            // Si nous sommes à l'étape correcte et en attente d'interaction
+            if (isWaitingForInteraction || (isCorrectStep && !isInteractionCompleted)) {
+                // NOUVEAU: Émettre un événement seulement lors du premier affichage du contour
+                // pour éviter de déclencher plusieurs fois la narration
+                if (!outlineVisibleRef.current) {
+                    outlineVisibleRef.current = true;
+
+                    // Émission d'un événement à la première apparition du contour
+                    EventBus.trigger('outline:appeared', {
+                        markerId: markerId,
+                        requiredStep: requiredStep,
+                        objectKey: modelProps?.userData?.objectKey
+                    });
+                }
+                return true;
+            }
+            // Sinon, n'afficher le contour que si alwaysVisible est true ou si l'élément est survolé
+            else {
+                // Réinitialiser le flag si le contour disparaît
+                if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
+                    outlineVisibleRef.current = false;
+                }
+                return alwaysVisible;
+            }
         } else {
             // Comportement par défaut pour les objets sans requiredStep
             return isWaitingForInteraction || alwaysVisible || hovered;
@@ -382,10 +494,29 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         interaction?.currentStep,
         interaction?.waitingForInteraction,
         isWaitingForInteraction,
+        isInteractionCompleted,
         alwaysVisible,
         hovered,
         markerId
     ]);
+
+    // Nouveau useEffect pour suivre les changements dans l'état d'attente d'interaction
+    useEffect(() => {
+        if (isWaitingForInteraction && requiredStep) {
+            // Utiliser un léger délai pour laisser le temps à l'interface de s'initialiser
+            const timer = setTimeout(() => {
+                // Émettre l'événement d'interaction détectée automatiquement
+                EventBus.trigger('interaction:detected', {
+                    markerId: markerId,
+                    requiredStep: requiredStep,
+                    objectKey: modelProps?.userData?.objectKey,
+                    type: 'waiting-for-interaction'
+                });
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [isWaitingForInteraction, requiredStep, markerId]);
 
     // Handlers pour le survol du marqueur optimisés avec useCallback
     const handleMarkerPointerEnter = useCallback((e) => {
@@ -435,7 +566,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     const markerProps = useMemo(() => ({
         id: markerId,
         markerType: markerType,
-        markerColor: markerColor,
         markerText: markerText,
         onInteract: handleMarkerInteraction,
         viewportMargin: 100,
@@ -451,7 +581,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     }), [
         markerId,
         markerType,
-        markerColor,
         markerText,
         handleMarkerInteraction,
         markerOffset,
@@ -487,8 +616,19 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         );
     }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
 
+    const shouldModelBeVisible = useMemo(() => {
+        // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
+        if (markerType === INTERACTION_TYPES.DISABLE) {
+            return false;
+        }
+        return true;
+    }, [markerType]);
     // Optimiser le rendu conditionnel du modèle par défaut
     const renderDefaultModel = useMemo(() => {
+        if (!shouldModelBeVisible) {
+            return null;
+        }
+
         if (useBox) {
             return (
                 <mesh
@@ -566,8 +706,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [useBox, modelPath, gltf, position, rotation, scale, color, modelProps, nodeProps]);
-
+    }, [shouldModelBeVisible, useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
     return (
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}

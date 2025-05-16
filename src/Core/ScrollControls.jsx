@@ -1,33 +1,85 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
-import {getProject, val} from '@theatre/core';
-import {SheetProvider, useCurrentSheet} from '@theatre/r3f';
-import theatreState from '../../static/theatre/theatreState.json';
+import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import sceneObjectManager from '../Config/SceneObjectManager';
+import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
+import {CameraAnimatorGLB} from './CameraAnimatorGLB';
+import * as THREE from 'three';
 
+const getChaptersWithDistances = () => {
+    return [{
+        id: 'firstStop',
+        name: "Introduction",
+        distance: getDistanceForChapter('firstStop'),
+        completed: false
+    }, {
+        id: 'secondStop',
+        name: "Forêt mystérieuse",
+        distance: getDistanceForChapter('secondStop'),
+        completed: false
+    }, {
+        id: 'thirdStop',
+        name: "Découverte",
+        distance: getDistanceForChapter('thirdStop'),
+        completed: false
+    }, {
+        id: 'fourthStop',
+        name: "Créatures",
+        distance: getDistanceForChapter('fourthStop'),
+        completed: false
+    }, {
+        id: 'fifthStop',
+        name: "Exploration",
+        distance: getDistanceForChapter('fifthStop'),
+        completed: false
+    }, {id: 'sixthStop', name: "Conclusion", distance: getDistanceForChapter('sixthStop'), completed: false}];
+};
 
+// Fonction pour récupérer la distance pour un chapitre donné
+const getDistanceForChapter = (chapterId) => {
+    return sceneObjectManager.getChapterDistance(chapterId);
+};
+
+// Utilisation de la fonction pour initialiser les chapitres
+const CHAPTERS = getChaptersWithDistances();
+const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
+
+// Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
-const DECELERATION = 0.95;
-const MIN_VELOCITY = 0.0001;
-const BASE_SENSITIVITY = 0.01;
+const DECELERATION = 0.85;
+const MIN_VELOCITY = 0.001;
+const BASE_SENSITIVITY = 0.001;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
-export default function ScrollControls({children}) {
-    const project = getProject('WebGL_Gobelins', {state: theatreState});
-    const sheet = project.sheet('Scene');
+// Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
+const getStartChapterFromURL = () => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const chapterId = urlParams.get('chapter');
+        if (chapterId) {
+            const chapterIndex = ACTIVE_CHAPTERS.findIndex(c => c.id === chapterId);
+            if (chapterIndex >= 0) {
+                let cumulativeDistance = 0;
+                for (let i = 0; i <= chapterIndex; i++) {
+                    cumulativeDistance += ACTIVE_CHAPTERS[i].distance;
+                }
+                return cumulativeDistance;
+            }
+        }
+    }
+    return 0; // Position de départ par défaut
+};
 
-    return (
-        <SheetProvider sheet={sheet}>
-            <CameraController>{children}</CameraController>
-        </SheetProvider>
-    );
+export default function ScrollControls({children}) {
+    return <CameraController>{children}</CameraController>;
 }
 
 function CameraController({children}) {
-    const sheet = useCurrentSheet();
-    const sequenceLengthRef = useRef(0);
+    const savedTargetPosition = useRef(null);
+    const cameraAnimatorRef = useRef(null);
     const timelinePositionRef = useRef(0);
+    const timelineLengthRef = useRef(0);
     const scrollVelocity = useRef(0);
     const [scrollDirection, setScrollDirection] = useState(0);
     const [showInteractionButton, setShowInteractionButton] = useState(false);
@@ -35,11 +87,28 @@ function CameraController({children}) {
     const [currentCameraZ, setCurrentCameraZ] = useState(0);
     const [interactionStatus, setInteractionStatus] = useState({});
     const previousAllowScrollRef = useRef(true);
+    const [currentChapter, setCurrentChapter] = useState(0);
+    const [chapterTransitioning, setChapterTransitioning] = useState(false);
+    const isTransitioningRef = useRef(false);
+    const savedInteractionPosition = useRef(null);
+    const handledInteractions = useRef(new Set());
 
+    // Pour suivre si l'initialisation de la caméra GLB est en cours/terminée
+    const glbInitializedRef = useRef(false);
+
+    const transitionQueue = useRef([]);
+    const isProcessingTransition = useRef(false);
     const {size, camera, scene} = useThree();
-    const {debug, updateDebugConfig, getDebugConfigValue, clickListener} = useStore();
+    const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
+    const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
+    const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
+    const END_SCROLL_THRESHOLD = 1; // 98% du scroll considéré comme fin
+    const triggeredInteractionsSet = useRef(new Set());
 
-    // Get interaction state from the store
+    const endGroupVisible = useStore(state => state.endGroupVisible);
+    const screenGroupVisible = useStore(state => state.screenGroupVisible);
+    const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
+    const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
     const isWaitingForInteraction = useStore(state => state.interaction?.waitingForInteraction);
     const allowScroll = useStore(state => state.interaction?.allowScroll !== false);
     const interactionStep = useStore(state => state.interaction?.currentStep);
@@ -48,96 +117,1056 @@ function CameraController({children}) {
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
-
-    // NOUVEAU: Ajouter des états pour partager la position de la timeline et la longueur de la séquence
-    const setTimelinePosition = useStore(state => state.setTimelinePosition) || (pos => {});
-    const setSequenceLength = useStore(state => state.setSequenceLength) || (length => {});
-
-    // Surveiller les changements de allowScroll pour réinitialiser la vélocité
-    useEffect(() => {
-        if (allowScroll && !previousAllowScrollRef.current) {
-            console.log('Scroll réactivé après interaction - réinitialisation de la vélocité');
-            scrollVelocity.current = 0;
-        }
-        previousAllowScrollRef.current = allowScroll;
-    }, [allowScroll]);
-
+    const [initAttempts, setInitAttempts] = useState(0);
+    const maxInitAttempts = 5;
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
+    // Écouter les événements de chargement de la caméra GLB
     useEffect(() => {
-        // Récupérer les placements d'objets interactifs depuis le SceneObjectManager
+        const handleCameraGLBLoaded = (data) => {
+            // console.log('Caméra GLB chargée dans ScrollControls:', data);
+
+            // Si le modèle est disponible dans le store, on l'initialise
+            if (cameraModel) {
+                initializeGLBAnimator(cameraModel);
+            }
+        };
+
+        const handleCameraAnimationLoaded = (data) => {
+            // console.log('Animation de caméra chargée dans ScrollControls:', data);
+
+            // Mettre à jour l'animation si l'animateur est déjà initialisé
+            if (cameraAnimatorRef.current && data.animation) {
+                // console.log('Mise à jour de l\'animation dans l\'animateur existant');
+                // Si nécessaire, réinitialiser l'animateur avec la nouvelle animation
+            }
+        };
+
+        // S'abonner aux événements
+        const cameraGLBSubscription = EventBus.on('camera-glb-loaded', handleCameraGLBLoaded);
+        const cameraAnimationSubscription = EventBus.on('camera-animation-loaded', handleCameraAnimationLoaded);
+
+        return () => {
+            cameraGLBSubscription();
+            cameraAnimationSubscription();
+        };
+    }, [cameraModel]);
+
+    // Ajoutez ce useEffect dans le composant CameraController
+    useEffect(() => {
+        // Gérer l'achèvement d'une interaction DISABLE
+        const handleDisableInteractionComplete = (data) => {
+            if (data.type !== 'disable') return;
+
+            console.log(`[ScrollControls] Interaction DISABLE complétée: ${data.id}`);
+
+            // Récupérer l'étape associée à cette interaction
+            const stepId = data.id.split('-')[0]; // Extraire l'ID de l'étape du markerId
+
+            // Récupérer la distance à déplacer après cette interaction
+            const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
+
+            // Si aucune distance n'est spécifiée, simplement réactiver le scroll
+            if (distanceToMove === 0 || distanceToMove === "none" || distanceToMove === undefined) {
+                console.log(`[ScrollControls] Pas de transition après l'interaction DISABLE ${stepId}`);
+
+                // Réactiver le défilement
+                setTimeout(() => {
+                    if (setAllowScroll) {
+                        setAllowScroll(true);
+                    }
+                }, 500);
+
+                return;
+            }
+
+            // Calculer la position cible
+            const currentPosition = timelinePositionRef.current;
+            const targetPosition = currentPosition + distanceToMove;
+
+            console.log(`[ScrollControls] Avancement après DISABLE: ${distanceToMove}, cible: ${targetPosition}`);
+
+            // Effectuer la transition
+            smoothJumpTo(targetPosition);
+
+            // Notifier les autres composants
+            EventBus.trigger('post-interaction-advancement', {
+                startPosition: currentPosition,
+                distance: distanceToMove,
+                targetPosition: targetPosition,
+                stepId: stepId,
+                interactionType: 'disable'
+            });
+        };
+
+        // Créer un écouteur pour cet événement spécifique
+        const disableInteractionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleDisableInteractionComplete);
+
+        return () => {
+            disableInteractionCompleteSubscription();
+        };
+    }, []);
+
+    // Initialiser l'animateur de caméra GLB
+    const initializeGLBAnimator = (model) => {
+        if (!model || glbInitializedRef.current) return;
+
+        console.log('ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle:',
+            model.scene ? 'Format {scene, animations}' : 'Format direct');
+
+        try {
+            // CORRECTION: Vérifier que nous avons un modèle valide
+            let validModel = model;
+
+            // Si le modèle n'a pas de structure attendue, créer un modèle minimal
+            if (!model.scene && !model.animations) {
+                console.warn("ScrollControls: Modèle dans un format inattendu, création d'un wrapper");
+                validModel = {
+                    scene: model.scene || model || new THREE.Group(),
+                    animations: model.animations || []
+                };
+            }
+
+            // Créer l'animateur GLB avec le modèle
+            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
+
+            // Vérifier si l'initialisation a fonctionné
+            if (cameraAnimatorRef.current.timelineLength > 0) {
+                timelineLengthRef.current = cameraAnimatorRef.current.getLength();
+                console.log(`ScrollControls: Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
+            } else {
+                console.warn("ScrollControls: Animateur GLB initialisé, mais la longueur de timeline est 0. Utilisation d'une valeur par défaut.");
+                timelineLengthRef.current = 52.08; // Valeur par défaut d'après les logs
+
+                // Forcer une longueur de timeline dans l'animateur
+                cameraAnimatorRef.current.timelineLength = timelineLengthRef.current;
+            }
+
+            // Déterminer la position de départ
+            const startChapterPosition = getStartChapterFromURL();
+            timelinePositionRef.current = startChapterPosition;
+            cameraAnimatorRef.current.setPosition(startChapterPosition);
+
+            useStore.getState().setTimelinePosition(startChapterPosition);
+            useStore.getState().setSequenceLength(startChapterPosition);
+            // Exposer les fonctions globalement
+            window.jumpToChapter = jumpToChapter;
+            window.smoothJumpTo = smoothJumpTo;
+            window.doJumpToChapter = doJumpToChapter;
+            window.CHAPTERS = ACTIVE_CHAPTERS;
+
+            // Créer l'interface de progression
+            if (!debug) {
+                createProgressUI();
+            }
+
+            // Configurer le scroll
+            setupScrollHandlers();
+
+            // Marquer comme initialisé
+            glbInitializedRef.current = true;
+
+            // Informer les autres composants
+            EventBus.trigger('camera-animator-ready', {
+                animator: cameraAnimatorRef.current
+            });
+        } catch (error) {
+            console.error('ScrollControls: Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
+
+            // Même en cas d'erreur, créer un animateur minimal
+            if (!glbInitializedRef.current) {
+                console.warn("ScrollControls: Création d'un animateur minimal suite à une erreur");
+
+                // Modèle minimal en cas d'échec
+                const fallbackModel = {
+                    scene: new THREE.Group(),
+                    animations: [{
+                        name: 'Action.004',
+                        duration: 52.08,
+                        tracks: []
+                    }]
+                };
+
+                try {
+                    // Nouvelle tentative avec le modèle minimal
+                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.004');
+                    timelineLengthRef.current = 52.08;
+
+                    // Initialiser les éléments d'interface
+                    if (!debug) {
+                        createProgressUI();
+                    }
+
+                    setupScrollHandlers();
+                    glbInitializedRef.current = true;
+
+                    EventBus.trigger('camera-animator-fallback-ready', {
+                        animator: cameraAnimatorRef.current,
+                        reason: 'error-recovery'
+                    });
+                } catch (fallbackError) {
+                    console.error('ScrollControls: Échec critique de l\'initialisation de la caméra:', fallbackError);
+                }
+            }
+        }
+    };
+
+    // Initialiser l'animateur dès que la caméra ou le modèle est disponible
+    useEffect(() => {
+        // Si déjà initialisé, ne rien faire
+        if (glbInitializedRef.current) {
+            return;
+        }
+
+        // S'il y a une caméra et un modèle, initialiser normalement
+        if (camera && cameraModel) {
+            console.log("ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle disponible");
+            initializeGLBAnimator(cameraModel);
+        }
+        // Sinon, après plusieurs tentatives, créer une caméra "factice"
+        else if (camera && initAttempts >= maxInitAttempts) {
+            console.warn("ScrollControls: Aucun modèle de caméra disponible après plusieurs tentatives, création d'un animateur de secours");
+
+            // Créer un modèle minimal pour l'animation
+            const fallbackModel = {
+                scene: new THREE.Group(),
+                animations: [{
+                    name: 'Action.004',
+                    duration: 52.08, // Durée typique d'après les logs
+                    tracks: []
+                }]
+            };
+
+            // Initialiser avec le modèle de secours
+            console.log("ScrollControls: Initialisation avec modèle de secours");
+            initializeGLBAnimator(fallbackModel);
+
+            // Informer les autres composants
+            EventBus.trigger('camera-animator-fallback-created', {
+                reason: 'no-model-available',
+                fallbackUsed: true
+            });
+        }
+        // Incrémenter le compteur de tentatives et réessayer plus tard
+        else {
+            const newAttemptCount = initAttempts + 1;
+            setInitAttempts(newAttemptCount);
+
+            // Afficher un message uniquement lors des premières tentatives
+            if (newAttemptCount <= 3) {
+                console.log(`ScrollControls: Tentative ${newAttemptCount}/${maxInitAttempts} d'initialisation de CameraAnimatorGLB - en attente du modèle`);
+            }
+
+            // Réessayer après un délai
+            const timer = setTimeout(() => {
+                if (camera && !glbInitializedRef.current) {
+                    // Vérifier à nouveau si le modèle est disponible via window.assetManager
+                    if (window.assetManager && typeof window.assetManager.getItem === 'function') {
+                        const cameraModelFromManager = window.assetManager.getItem('Camera');
+                        if (cameraModelFromManager) {
+                            console.log("ScrollControls: Modèle récupéré depuis AssetManager");
+                            initializeGLBAnimator(cameraModelFromManager);
+                            return;
+                        }
+                    }
+
+                    // Si toujours pas de modèle et c'est la dernière tentative
+                    if (newAttemptCount >= maxInitAttempts) {
+                        console.warn("ScrollControls: Échec d'obtention du modèle de caméra, utilisation du modèle de secours");
+                    }
+                }
+            }, 1000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [camera, cameraModel, initAttempts]);
+
+    // Fonction pour trouver un objet dans la scène par son nom
+    const findObjectByName = (name) => {
+        let targetObject = null;
+        if (name && scene) {
+            // Parcourir la scène pour trouver l'objet avec le nom correspondant
+            scene.traverse((object) => {
+                if (object.name === name) {
+                    targetObject = object;
+                }
+            });
+        }
+        return targetObject;
+    };
+
+    // Récupérer les points d'interaction
+    useEffect(() => {
         const interactivePlacements = sceneObjectManager.getInteractivePlacements();
 
-        // Convertir les placements en points d'interaction
         const interactionPoints = interactivePlacements.map(placement => {
             return {
-                id: placement.requiredStep, // Utiliser l'étape requise comme identifiant
+                id: placement.requiredStep,
                 name: placement.markerText || sceneObjectManager.getStepText(placement.requiredStep),
                 triggers: {
-                    x: placement.position[0], // Position X du modèle
-                    z: placement.position[2]  // Position Z du modèle
+                    x: placement.position[0], z: placement.position[2]
                 },
                 isActive: true,
-                objectKey: placement.objectKey // Référence à l'objet associé
+                objectKey: placement.objectKey
             };
         });
 
         setInteractions(interactionPoints);
-        console.log('Points d\'interaction chargés:', interactionPoints);
+        // console.log('Points d\'interaction chargés:', interactionPoints);
     }, []);
 
-    // Au chargement initial, mettre à jour la longueur de la séquence dans le store
     useEffect(() => {
-        sequenceLengthRef.current = val(sheet.sequence.pointer.length);
-        // NOUVEAU: Partager la longueur de la séquence avec le store
-        if (typeof setSequenceLength === 'function') {
-            setSequenceLength(sequenceLengthRef.current);
+        // Fonction pour gérer les événements d'interaction complète
+        const handleInteractionComplete = (data) => {
+            console.log('[EventListener] Interaction complète reçue:', data);
+
+            // Vérifier si une interface doit être affichée
+            if (data.interfaceToShow) {
+                console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
+
+                // Obtenir une référence fraîche au store
+                const store = useStore.getState();
+
+                // Afficher l'interface correspondante
+                switch (data.interfaceToShow) {
+                    case 'scanner':
+                        if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface scanner');
+                            store.interaction.setShowScannerInterface(true);
+                        }
+                        break;
+                    case 'capture':
+                        if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface capture');
+                            store.interaction.setShowCaptureInterface(true);
+                        }
+                        break;
+                    case 'blackScreen':
+                        if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
+                            console.log('[EventListener] Affichage de l\'interface blackScreen');
+                            store.interaction.setShowBlackscreenInterface(true);
+                        }
+                        break;
+                    default:
+                        console.warn(`[EventListener] Type d'interface non reconnu: ${data.interfaceToShow}`);
+                }
+            }
+        };
+
+        // S'abonner aux événements d'interaction complète
+        const subscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
+
+        // Nettoyage de l'abonnement lors du démontage
+        return () => {
+            subscription();
+        };
+    }, []);
+
+    // Fonction pour vérifier les déclencheurs d'interaction
+    const checkInteractionTriggers = (position) => {
+        // Variable pour stocker l'interaction déclenchée
+        let triggeredInteraction = null;
+
+        // Récupérer la liste des interactions complétées
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+        // Définir une distance maximale
+        const TRIGGER_PROXIMITY = 2.8;
+
+        // Fonction utilitaire pour vérifier les prérequis d'une interaction
+        const checkInteractionPrerequisites = (interaction) => {
+            // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
+            if (interaction.objectKey === 'AnimalPaws') {
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
+
+                if (!multipleLeafCompleted) {
+                    return false;
+                }
+            }
+            // Cas spécifique pour JumpRock2
+            if (interaction.objectKey === 'JumpRock2') {
+                const rock1Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('eleventhStop') ||
+                    key.includes('JumpRock1')
+                );
+
+                if (!rock1Completed) {
+                    return false;
+                }
+            }
+
+            // Cas spécifique pour JumpRock3
+            if (interaction.objectKey === 'JumpRock3') {
+                const rock2Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('twelfthStop') ||
+                    key.includes('JumpRock2')
+                );
+
+                if (!rock2Completed) {
+                    return false;
+                }
+            }
+
+            // Cas spécifique pour JumpRock4
+            if (interaction.objectKey === 'JumpRock4') {
+                const rock3Completed = Object.keys(completedInteractions).some(key =>
+                    key.includes('thirteenthStop') ||
+                    key.includes('JumpRock3')
+                );
+
+                if (!rock3Completed) {
+                    return false;
+                }
+            }
+            // Vérification générique des prérequis basée sur la configuration des objets
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
+
+            if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
+                // Trouver l'index de l'interaction actuelle
+                const currentInteractionIndex = objectConfig.interaction.findIndex(config => config.requiredStep === interaction.id);
+
+                // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
+                if (currentInteractionIndex > 0) {
+                    // Obtenir l'interaction précédente
+                    const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
+
+                    // Vérifier si l'interaction précédente a été complétée
+                    const previousStepCompleted = Object.keys(completedInteractions).some(key => key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep);
+
+                    // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
+                    if (!previousStepCompleted) {
+                        return false;
+                    }
+                }
+            }
+
+            // Tous les prérequis sont satisfaits
+            return true;
+        };
+
+        interactions.forEach(interaction => {
+            // Ignorer les interactions déjà complétées
+            if (!interaction.isActive || completedInteractions[interaction.id]) {
+                return;
+            }
+            if (triggeredInteractionsSet.current.has(interaction.id)) {
+                return;
+            }
+            // Vérifier les prérequis avant de procéder
+            if (!checkInteractionPrerequisites(interaction)) {
+                return;
+            }
+
+            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
+            const dx = position.x - interaction.triggers.x;
+            const dz = position.z - interaction.triggers.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // Si la distance est inférieure au seuil ET que le défilement est autorisé
+            if (distance < TRIGGER_PROXIMITY && allowScroll && !chapterTransitioning) {
+                // Stocker l'interaction déclenchée pour le log
+                triggeredInteraction = interaction;
+
+                triggeredInteractionsSet.current.add(interaction.id);
+
+                // Récupérer l'objet associé à cette interaction
+                const relatedObjectKey = interaction.objectKey;
+                const placement = sceneObjectManager.getPlacements({
+                    objectKey: relatedObjectKey, requiredStep: interaction.id
+                })[0];
+
+                // Trouver l'objet cible dans la scène si spécifié
+                const targetObject = placement?.targetId ? findObjectByName(placement.targetId) : null;
+
+                // Bloquer le défilement
+                setAllowScroll(false);
+
+                // CORRECTION: Stocker la position actuelle de la timeline pour éviter tout mouvement
+                // Cela permet de garder la caméra exactement à la position où l'interaction a été déclenchée
+                const currentTimelinePosition = timelinePositionRef.current;
+
+                // NOUVEAU: Ajouter un événement pour rétablir la position si nécessaire
+                EventBus.trigger('interaction-position-saved', {
+                    position: currentTimelinePosition, interactionId: interaction.id
+                });
+
+                // Indiquer que nous attendons une interaction de l'utilisateur
+                setWaitingForInteraction(true);
+
+                // Enregistrer l'étape actuelle
+                setCurrentStep(interaction.id);
+
+                // Stocker la référence à l'objet cible dans le store
+                setInteractionTarget(targetObject);
+
+                // Mettre à jour l'état local
+                setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
+
+                // NOUVEAU: Émettre un événement d'interaction détectée pour déclencher la narration automatiquement
+                EventBus.trigger('interaction:detected', {
+                    requiredStep: interaction.id,
+                    objectKey: relatedObjectKey,
+                    position: position,
+                    distance: distance,
+                    type: 'auto-detected'
+                });
+            }
+            setTimeout(() => {
+                triggeredInteractionsSet.current.delete(interaction.id);
+            }, 1000);
+        });
+
+        // Afficher le log uniquement si une interaction est déclenchée
+        if (triggeredInteraction) {
+            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+
+            // Mettre à jour le chapitre actuel en fonction de l'interaction
+            updateCurrentChapter();
         }
-    }, [sheet, setSequenceLength]);
+    };
 
-    useEffect(() => {
-        // Ajouter le contrôle de la caméra via Theatre.js
-        if (camera && sheet) {
-            // Créer un objet pour stocker les paramètres de la caméra
-            const obj = sheet.object('Camera', {
-                position: {
-                    x: camera.position.x,
-                    y: camera.position.y,
-                    z: camera.position.z
-                },
-                rotation: {
-                    x: camera.rotation.x,
-                    y: camera.rotation.y,
-                    z: camera.rotation.z
-                }
-            });
+    // Trouver le chapitre actuel en fonction de la position
+    const updateCurrentChapter = () => {
+        if (chapterTransitioning) return;
 
-            // Écouter les modifications de Theatre.js et les appliquer à la caméra
-            const unsubscribe = obj.onValuesChange((values) => {
-                if (values.position) {
-                    camera.position.x = values.position.x;
-                    camera.position.y = values.position.y;
-                    camera.position.z = values.position.z;
-                }
-                if (values.rotation) {
-                    camera.rotation.x = values.rotation.x;
-                    camera.rotation.y = values.rotation.y;
-                    camera.rotation.z = values.rotation.z;
-                }
-                camera.updateProjectionMatrix();
-            });
+        // Utiliser la position actuelle ou sauvegardée pour le calcul
+        const position = timelinePositionRef.current;
+        let newChapterIndex = 0;
+        let cumulativeDistance = 0;
 
-            // Nettoyer l'abonnement
-            return () => {
-                unsubscribe();
-            };
+        // Parcourir les chapitres pour déterminer lequel correspond à la position actuelle
+        for (let i = 0; i < ACTIVE_CHAPTERS.length; i++) {
+            cumulativeDistance += ACTIVE_CHAPTERS[i].distance;
+            if (position < cumulativeDistance) {
+                break;
+            }
+            newChapterIndex = i;
         }
-    }, [camera, sheet]);
+
+        if (newChapterIndex !== currentChapter) {
+            setCurrentChapter(newChapterIndex);
+            // console.log(`Chapitre actuel mis à jour: ${newChapterIndex} (${ACTIVE_CHAPTERS[newChapterIndex].name})`);
+
+            // Marquer les chapitres précédents comme complétés
+            const updatedACTIVE_CHAPTERS = [...ACTIVE_CHAPTERS];
+            for (let i = 0; i <= newChapterIndex; i++) {
+                updatedACTIVE_CHAPTERS[i].completed = true;
+            }
+        }
+    };
+
+    // Ajouter un écouteur pour le début d'interaction
+    useEffect(() => {
+        const interactionPositionSavedSubscription = EventBus.on('interaction-position-saved', (data) => {
+            savedInteractionPosition.current = data.position;
+            // console.log(`Position d'interaction sauvegardée: ${data.position} pour ${data.interactionId}`);
+        });
+
+        // Ne pas réinitialiser la position sauvegardée lors de l'interaction complétée
+        // Nous voulons maintenir la position où l'interaction a eu lieu
+        const interactionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, () => {
+            // Ne pas réinitialiser savedInteractionPosition.current ici
+            // Nous gardons la même position pour continuer à partir de là
+            // console.log(`Interaction complétée, reprise du scroll à la position: ${timelinePositionRef.current}`);
+        });
+
+        return () => {
+            interactionPositionSavedSubscription();
+            interactionCompleteSubscription();
+        };
+    }, []);
+
 
     useEffect(() => {
-        sequenceLengthRef.current = val(sheet.sequence.pointer.length);
+        // Function that will be called when an interaction is completed
+        const handleInteractionComplete = (data) => {
+            const interactionId = data?.id || '';
 
+            // Si cette interaction a déjà été traitée, ignorer
+            if (handledInteractions.current.has(interactionId)) {
+                // console.log(`Ignorer le traitement en double pour l'interaction: ${interactionId}`);
+                return;
+            }
+
+            // Marquer cette interaction comme traitée
+            handledInteractions.current.add(interactionId);
+
+            // Réinitialiser après un délai
+            setTimeout(() => {
+                handledInteractions.current.delete(interactionId);
+            }, 2000);  // Suffisamment long pour couvrir tous les événements en double potentiels
+
+            // Traitement simplifié pour la transition après l'interaction
+            setTimeout(() => {
+                const currentPosition = timelinePositionRef.current;
+                const stepId = interactionId.split('-')[0];
+                const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
+
+                if (distanceToMove === 0) {
+                    // console.log(`Aucune transition de chapitre pour l'étape: ${stepId} (distance 0 ou "none" ou non définie)`);
+
+                    // Ajouter un événement explicite pour informer les autres systèmes
+                    EventBus.trigger('no-transition-for-step', {
+                        stepId: stepId, reason: 'zero-distance'
+                    });
+
+                    // Réactiver le défilement après un court délai
+                    setTimeout(() => {
+                        if (setAllowScroll) {
+                            setAllowScroll(true);
+                        }
+                    }, 500);
+
+                    return;
+                }
+                // console.log(`Distance d'avancement choisie: ${distanceToMove} pour l'étape: ${stepId}`);
+
+                // Calculer la position cible
+                const targetPosition = currentPosition + distanceToMove;
+                // console.log(`Position cible: ${targetPosition}`);
+
+                // Effectuer la transition
+                smoothJumpTo(targetPosition);
+
+                // Notifier les autres composants
+                EventBus.trigger('post-interaction-advancement', {
+                    startPosition: currentPosition,
+                    distance: distanceToMove,
+                    targetPosition: targetPosition,
+                    stepId: stepId
+                });
+            }, 1000);
+        };
+
+        // Set up multiple event listeners to catch the completion event however it's emitted
+        const interactionCompleteSubscription1 = EventBus.on('INTERACTION_COMPLETE', handleInteractionComplete);
+        const interactionCompleteSubscription2 = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
+        const interactionCompleteSubscription3 = EventBus.on('marker:interaction:complete', handleInteractionComplete);
+
+        // Clean up listeners on unmount
+        return () => {
+            // console.log("Cleaning up INTERACTION_COMPLETE handlers");
+            interactionCompleteSubscription1();
+            interactionCompleteSubscription2();
+            interactionCompleteSubscription3();
+            triggeredInteractionsSet.current.clear();
+
+        };
+    }, []);
+
+    useEffect(() => {
+        // Listen for chapter jump requests from the GUI
+        const guiJumpSubscription = EventBus.on('gui-chapter-jump-initiated', (data) => {
+            // Check if we're currently in a transition
+            if (isTransitioningRef.current) {
+                // Force reset transition state
+                isTransitioningRef.current = false;
+                setChapterTransitioning(false);
+            }
+
+            // Find the chapter index based on name
+            const chapterIndex = ACTIVE_CHAPTERS.findIndex(chapter => chapter.name === data.chapterName);
+            if (chapterIndex !== -1) {
+                jumpToChapter(chapterIndex);
+            }
+        });
+
+        // Listen for direct transition requests
+        const directTransitionSubscription = EventBus.on('direct-transition-to-position', (data) => {
+            // Force reset transition state
+            isTransitioningRef.current = false;
+            setChapterTransitioning(false);
+
+            // Execute the transition
+            smoothJumpTo(data.position);
+        });
+
+        return () => {
+            guiJumpSubscription();
+            directTransitionSubscription();
+        };
+    }, []);
+
+    // Fonctions pour gérer le défilement et les transitions
+    const smoothJumpTo = (targetPosition) => {
+        // Ajouter la transition à la file d'attente
+        transitionQueue.current.push(targetPosition);
+
+        // Si une transition est déjà en cours, ne pas en démarrer une nouvelle
+        if (isProcessingTransition.current) {
+            return;
+        }
+
+        // Traiter la file d'attente de transitions
+        processTransitionQueue();
+    };
+
+    // Fonction pour traiter les transitions en file d'attente une par une
+    const processTransitionQueue = () => {
+        // Si la file est vide, sortir
+        if (transitionQueue.current.length === 0) {
+            isProcessingTransition.current = false;
+            return;
+        }
+
+        // Marquer qu'une transition est en cours
+        isProcessingTransition.current = true;
+
+        // Récupérer la prochaine position cible
+        const targetPosition = transitionQueue.current[0];
+
+        // NOUVEAU: Désactiver explicitement la correction de position pendant cette transition
+        const savedInteractionPositionBackup = savedInteractionPosition.current;
+        savedInteractionPosition.current = null;
+
+        // Marquer le début de la transition
+        isTransitioningRef.current = true;
+        setChapterTransitioning(true);
+
+        // Réinitialiser la vélocité de défilement
+        scrollVelocity.current = 0;
+
+        // Sauvegarder les positions et rotations de départ et d'arrivée
+        const startPosition = {...camera.position.clone()};
+        const startRotation = {...camera.rotation.clone()};
+
+        // Pour calculer la position cible, nous devons déterminer où la caméra
+        // serait si nous étions directement à la position ciblée sur la timeline
+
+        // Stocker la position actuelle pour restauration
+        const currentTimelinePos = timelinePositionRef.current;
+
+        // MODIFICATION: Utiliser une approche différente pour obtenir les positions cibles
+        // Créer un état temporaire pour la caméra
+        const tempCamera = camera.clone();
+        const originalPosition = camera.position.clone();
+        const originalRotation = camera.rotation.clone();
+
+        // Temporairement mettre à jour la position
+        timelinePositionRef.current = targetPosition;
+        // Utiliser updateCamera pour calculer la nouvelle position
+        const targetCameraState = cameraAnimatorRef.current.updateCamera();
+
+        // Restaurer la caméra à sa position d'origine
+        camera.position.copy(originalPosition);
+        camera.rotation.copy(originalRotation);
+        camera.updateMatrixWorld();
+
+        // Restaurer la position initiale de la timeline
+        timelinePositionRef.current = currentTimelinePos;
+        // Maintenant nous avons les positions de départ et d'arrivée
+        const endPosition = targetCameraState.position;
+        const endRotation = targetCameraState.rotation;
+
+        // Durée de la transition
+        const DURATION = 2000; // 2 secondes
+        const startTime = performance.now();
+
+        // Fonction pour terminer la transition actuelle et passer à la suivante
+        const finishCurrentTransition = () => {
+            // Important: réinitialiser explicitement tous les drapeaux de transition
+            isTransitioningRef.current = false;
+            setChapterTransitioning(false);
+
+            // NOUVEAU: Restaurer la position d'interaction si nécessaire
+            if (savedInteractionPositionBackup !== null) {
+                savedInteractionPosition.current = targetPosition;
+            }
+
+            // Retirer la transition actuelle de la file
+            transitionQueue.current.shift();
+
+            // Vérifier à nouveau si nous pouvons traiter la file d'attente
+            if (!isTransitioningRef.current && !chapterTransitioning) {
+                processTransitionQueue();
+            } else {
+                // Forcer la réinitialisation des drapeaux si toujours actifs
+                isTransitioningRef.current = false;
+                setChapterTransitioning(false);
+                processTransitionQueue();
+            }
+        };
+
+        // Fonction d'animation qui sera appelée à chaque frame
+        const animate = (time) => {
+            // Si une interruption forcée a été demandée, il faut terminer proprement
+            if (!isTransitioningRef.current) {
+                // S'assurer que nous ne laissons pas la caméra dans un état intermédiaire
+                timelinePositionRef.current = targetPosition;
+                cameraAnimatorRef.current.setPosition(targetPosition);
+
+                useStore.getState().setTimelinePosition(targetPosition);
+                useStore.getState().setSequenceLength(targetPosition);
+                finishCurrentTransition();
+                return;
+            }
+
+            // Calculer la progression (de 0 à 1)
+            const elapsed = time - startTime;
+            const progress = Math.min(elapsed / DURATION, 1);
+
+            // Interpolation linéaire directe des positions
+            camera.position.x = startPosition.x + (endPosition.x - startPosition.x) * progress;
+            camera.position.y = startPosition.y + (endPosition.y - startPosition.y) * progress;
+            camera.position.z = startPosition.z + (endPosition.z - startPosition.z) * progress;
+
+            // Interpolation linéaire des rotations
+            camera.rotation.x = startRotation.x + (endRotation.x - startRotation.x) * progress;
+            camera.rotation.y = startRotation.y + (endRotation.y - startRotation.y) * progress;
+            camera.rotation.z = startRotation.z + (endRotation.z - startRotation.z) * progress;
+
+            // Mettre à jour la matrice de la caméra
+            camera.updateMatrixWorld();
+
+            // Mettre à jour progressivement la position de la timeline
+            timelinePositionRef.current = currentTimelinePos + (targetPosition - currentTimelinePos) * progress;
+
+            // Mettre à jour l'indicateur visuel de progression
+            updateProgressIndicator(timelinePositionRef.current);
+
+            // Continuer l'animation jusqu'à la fin
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                // Animation terminée
+                // Fixer la position finale exacte
+                timelinePositionRef.current = targetPosition;
+                cameraAnimatorRef.current.setPosition(targetPosition);
+
+                useStore.getState().setTimelinePosition(targetPosition);
+                useStore.getState().setSequenceLength(targetPosition);
+                // Notifier la fin de transition
+                EventBus.trigger('distance-transition-complete', {
+                    finalPosition: targetPosition
+                });
+
+                EventBus.trigger('chapter-transition-complete', {
+                    position: targetPosition, finalPosition: targetPosition
+                });
+
+                // Sauvegarder la position finale
+                savedTargetPosition.current = targetPosition;
+
+                // NOUVEAU: Stocker la position finale comme position d'interaction uniquement si nécessaire
+                if (savedInteractionPositionBackup !== null) {
+                    savedInteractionPosition.current = targetPosition;
+                }
+
+                // Réinitialiser les états après un court délai
+                setAllowScroll(true);
+                setChapterTransitioning(false);
+                isTransitioningRef.current = false;
+
+                // Terminer la transition actuelle et passer à la suivante
+                finishCurrentTransition();
+            }
+        };
+
+        // Démarrer l'animation
+        requestAnimationFrame(animate);
+    };
+
+    const updateProgressIndicator = (position) => {
+        const timelineLength = timelineLengthRef.current;
+        const progressPercentage = timelineLength > 0 ? (position / timelineLength) * 100 : 0;
+
+        const indicator = document.getElementById('progress-indicator');
+        if (indicator) {
+            indicator.style.width = `${progressPercentage}%`;
+        }
+    };
+
+    // Fix for the jumpToChapter function
+    const jumpToChapter = (index) => {
+        if (index >= 0 && index < ACTIVE_CHAPTERS.length) {
+            const chapter = ACTIVE_CHAPTERS[index];
+            const distanceToMove = sceneObjectManager.getChapterDistance(chapter.id);
+
+            // Si une transition est déjà en cours, forcer sa réinitialisation
+            if (isTransitioningRef.current || chapterTransitioning) {
+                // Forcer la réinitialisation complète de toutes les transitions
+                EventBus.trigger('force-reset-all-transitions');
+
+                doJumpToChapter(distanceToMove);
+                return true;
+            } else {
+                return doJumpToChapter(distanceToMove);
+            }
+        } else {
+            console.error(`Index de distance invalide: ${index}`);
+            return false;
+        }
+    };
+
+    const checkDisableInteractions = (cameraPosition) => {
+        // Récupérer la liste des interactions complétées
+        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+
+        // Ne pas vérifier les interactions DISABLE si nous sommes en transition
+        if (chapterTransitioning || isTransitioningRef.current) return;
+
+        // Parcourir les interactions pour trouver des points d'interaction DISABLE à proximité
+        interactions.forEach(interaction => {
+            // Ignorer les interactions déjà complétées
+            if (!interaction.isActive || completedInteractions[interaction.id]) {
+                return;
+            }
+
+            // Vérifier si cette interaction est de type DISABLE
+            const placement = sceneObjectManager.getPlacements({
+                objectKey: interaction.objectKey,
+                requiredStep: interaction.id
+            })[0];
+
+            if (!placement) return;
+
+            // Vérifier le type d'interaction via l'objet du catalogue
+            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
+            if (!objectConfig || !objectConfig.interaction) return;
+
+            // Vérifier si c'est une interaction DISABLE
+            let isDisableType = false;
+            let interactionConfig = null;
+
+            if (Array.isArray(objectConfig.interaction)) {
+                interactionConfig = objectConfig.interaction.find(int =>
+                    int.requiredStep === interaction.id && int.type === 'disable');
+                isDisableType = !!interactionConfig;
+            } else {
+                isDisableType = objectConfig.interaction.type === 'disable';
+                interactionConfig = isDisableType ? objectConfig.interaction : null;
+            }
+
+            if (!isDisableType) return;
+
+            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
+            const dx = cameraPosition.x - interaction.triggers.x;
+            const dz = cameraPosition.z - interaction.triggers.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // Distance de proximité pour les interactions DISABLE (peut être ajustée)
+            const DISABLE_PROXIMITY = 3.5;
+
+            // Si la caméra est proche d'un point d'interaction DISABLE et le scroll s'est arrêté
+            if (distance < DISABLE_PROXIMITY && !allowScroll) {
+                console.log(`[ScrollControls] Point d'interaction DISABLE détecté: ${interaction.id}`);
+
+                // Émettre un événement pour montrer le marqueur DISABLE
+                EventBus.trigger('disable-interaction:show', {
+                    id: interaction.id,
+                    requiredStep: interaction.id,
+                    objectKey: interaction.objectKey,
+                    position: {
+                        x: interaction.triggers.x,
+                        y: 0, // Hauteur par défaut
+                        z: interaction.triggers.z
+                    }
+                });
+            }
+        });
+    };
+
+    function doJumpToChapter(distance) {
+        // NOUVEAU: Sauvegarder l'état actuel avant toute opération
+        const wasWaitingForInteraction = isWaitingForInteraction;
+
+        // Récupérer la position actuelle comme point de départ
+        const currentPosition = timelinePositionRef.current;
+        // Calculer la position cible en ajoutant la distance
+        const targetPosition = currentPosition + distance;
+
+        // NOUVEAU: Si nous étions en attente d'interaction, désactiver temporairement cet état
+        if (wasWaitingForInteraction) {
+            setWaitingForInteraction(false);
+        }
+
+        // Désactiver le scroll pendant la transition
+        if (setAllowScroll) {
+            setAllowScroll(false);
+        }
+
+        // Nettoyer les transitions précédentes si nécessaire
+        // Vider complètement la file d'attente existante
+        transitionQueue.current = [];
+        isProcessingTransition.current = false;
+        isTransitioningRef.current = false;
+        setChapterTransitioning(false);
+
+        // Notifier du début de la transition
+        EventBus.trigger('distance-transition-started', {
+            startPosition: currentPosition, distance: distance, targetPosition: targetPosition
+        });
+
+        // NOUVEAU: Suspendre temporairement la correction de position
+        const savedInteractionPositionBackup = savedInteractionPosition.current;
+        savedInteractionPosition.current = null;
+
+        // Effectuer la transition fluide
+        smoothJumpTo(targetPosition);
+
+        return true;
+    }
+
+    // Animation frame pour mettre à jour la caméra en fonction du scroll
+    useAnimationFrame(() => {
+        if (!camera || !cameraAnimatorRef.current) return;
+
+        const cameraPosition = {
+            x: camera.position.x, y: camera.position.y, z: camera.position.z
+        };
+
+        setCurrentCameraZ(cameraPosition.z);
+
+        // Vérifier les déclencheurs d'interaction
+        checkInteractionTriggers(cameraPosition);
+
+        if (!allowScroll) {
+            checkDisableInteractions(cameraPosition);
+        }
+
+        // 1. Calcul du mouvement - uniquement si le défilement est autorisé
+        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !chapterTransitioning) {
+            // Mettre à jour la position basée sur la vélocité
+            timelinePositionRef.current += scrollVelocity.current;
+
+            // Décelération de la vélocité
+            scrollVelocity.current *= DECELERATION;
+        }
+
+        // 2. Bornes et application
+        if (!allowScroll && savedInteractionPosition.current !== null) {
+            // Si nous sommes en interaction, forcer la position sauvegardée
+            timelinePositionRef.current = savedInteractionPosition.current;
+        } else {
+            // Sinon, limiter la position dans les bornes
+            timelinePositionRef.current = Math.max(0, Math.min(timelineLengthRef.current, timelinePositionRef.current));
+        }
+
+        // 3. Toujours appliquer la position au CameraAnimator
+        cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
+        // console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
+        const normalizedPosition = timelinePositionRef.current / timelineLengthRef.current;
+        EventBus.trigger('timeline-position-normalized', {
+            position: normalizedPosition,
+            rawPosition: timelinePositionRef.current,
+            totalLength: timelineLengthRef.current
+        });
+        // Mettre à jour l'indicateur de progression
+        updateProgressIndicator(timelinePositionRef.current);
+
+        // Détection de la fin du scroll
+        const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
+        const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
+
+
+    }, 'camera');
+
+    // Fonction pour configurer les gestionnaires d'événements de défilement
+    const setupScrollHandlers = () => {
         let lastWheelTimestamp = 0;
         let recentWheelEvents = [];
         const MAX_WHEEL_SAMPLES = 5;
@@ -145,9 +1174,7 @@ function CameraController({children}) {
         const normalizeWheelDelta = (e) => {
             const now = performance.now();
             recentWheelEvents.push({
-                deltaY: e.deltaY,
-                timestamp: now,
-                deltaMode: e.deltaMode
+                deltaY: e.deltaY, timestamp: now, deltaMode: e.deltaMode
             });
 
             if (recentWheelEvents.length > MAX_WHEEL_SAMPLES) {
@@ -182,19 +1209,20 @@ function CameraController({children}) {
         let lastTouchY = 0;
 
         const handleTouchStart = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
             touchStartY = e.touches[0].clientY;
             lastTouchY = touchStartY;
         };
 
         const handleTouchMove = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
 
             const currentY = e.touches[0].clientY;
             const deltaY = lastTouchY - currentY;
             lastTouchY = currentY;
 
             const direction = Math.sign(deltaY);
+
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
@@ -204,7 +1232,7 @@ function CameraController({children}) {
         };
 
         const handleWheel = (e) => {
-            if (!allowScroll) return;
+            if (!allowScroll || chapterTransitioning) return;
 
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
@@ -224,331 +1252,75 @@ function CameraController({children}) {
             canvasElement.addEventListener('touchstart', handleTouchStart, {passive: false});
             canvasElement.addEventListener('touchmove', handleTouchMove, {passive: false});
         }
-
-        const createUI = () => {
-            if (!document.getElementById('scroll-debug-indicator')) {
-                const indicator = document.createElement('div');
-                indicator.id = 'scroll-debug-indicator';
-                indicator.style.position = 'fixed';
-                indicator.style.bottom = '20px';
-                indicator.style.right = '20px';
-                indicator.style.padding = '8px 12px';
-                indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-                indicator.style.color = '#00ff00';
-                indicator.style.fontFamily = 'sans-serif';
-                indicator.style.fontSize = '14px';
-                indicator.style.borderRadius = '4px';
-                indicator.style.zIndex = '100';
-                indicator.style.transition = 'color 0.3s ease';
-                indicator.textContent = 'Scroll actif';
-                document.body.appendChild(indicator);
-            }
-
-            if (!document.getElementById('interaction-button')) {
-                const button = document.createElement('button');
-                button.id = 'interaction-button';
-                button.style.position = 'fixed';
-                button.style.top = '50%';
-                button.style.left = '50%';
-                button.style.transform = 'translate(-50%, -50%)';
-                button.style.padding = '15px 30px';
-                button.style.backgroundColor = '#4383f5';
-                button.style.color = 'white';
-                button.style.border = 'none';
-                button.style.borderRadius = '8px';
-                button.style.fontSize = '18px';
-                button.style.fontWeight = 'bold';
-                button.style.cursor = 'pointer';
-                button.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.3)';
-                button.style.transition = 'all 0.3s ease';
-                button.style.display = 'none';
-                button.style.zIndex = '100';
-                button.textContent = 'Interaction';
-
-                button.addEventListener('mouseover', () => {
-                    button.style.backgroundColor = '#306ad6';
-                });
-
-                button.addEventListener('mouseout', () => {
-                    button.style.backgroundColor = '#4383f5';
-                });
-
-                button.addEventListener('click', completeInteraction);
-
-                document.body.appendChild(button);
-            }
-
-            if (!document.getElementById('countdown-element')) {
-                const countdownEl = document.createElement('div');
-                countdownEl.id = 'countdown-element';
-                countdownEl.style.position = 'fixed';
-                countdownEl.style.top = '50%';
-                countdownEl.style.left = '50%';
-                countdownEl.style.transform = 'translate(-50%, -50%)';
-                countdownEl.style.fontSize = '36px';
-                countdownEl.style.fontWeight = 'bold';
-                countdownEl.style.color = 'white';
-                countdownEl.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.5)';
-                countdownEl.style.display = 'none';
-                countdownEl.style.zIndex = '100';
-                document.body.appendChild(countdownEl);
-            }
-
-            if (!document.getElementById('timeline-progress')) {
-                const progressBar = document.createElement('div');
-                progressBar.id = 'timeline-progress';
-                progressBar.style.position = 'fixed';
-                progressBar.style.bottom = '10px';
-                progressBar.style.left = '10px';
-                progressBar.style.right = '10px';
-                progressBar.style.height = '4px';
-                progressBar.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                progressBar.style.borderRadius = '2px';
-                progressBar.style.zIndex = '100';
-
-                const progressIndicator = document.createElement('div');
-                progressIndicator.id = 'progress-indicator';
-                progressIndicator.style.height = '100%';
-                progressIndicator.style.width = '0%';
-                progressIndicator.style.backgroundColor = 'white';
-                progressIndicator.style.borderRadius = '2px';
-                progressIndicator.style.transition = 'width 0.05s ease-out';
-
-                progressBar.appendChild(progressIndicator);
-                document.body.appendChild(progressBar);
-            }
-        };
-
-        createUI();
-
-        return () => {
-            if (canvasElement) {
-                canvasElement.removeEventListener('wheel', handleWheel);
-                canvasElement.removeEventListener('touchstart', handleTouchStart);
-                canvasElement.removeEventListener('touchmove', handleTouchMove);
-            }
-
-            ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.remove();
-            });
-        };
-    }, [sheet, allowScroll]);
-
-    // Update UI based on interaction state
-    useEffect(() => {
-        const debugIndicator = document.getElementById('scroll-debug-indicator');
-        if (debugIndicator) {
-            debugIndicator.textContent = allowScroll ? 'Scroll actif' : 'Scroll inactif';
-            debugIndicator.style.color = allowScroll ? '#00ff00' : '#ff0000';
-        }
-
-        const instruction = document.getElementById('interaction-instruction');
-        if (instruction) {
-            if (isWaitingForInteraction) {
-                const currentInteraction = interactions.find(i => i.id === interactionStep);
-                if (currentInteraction) {
-                    const objectConfig = sceneObjectManager.getObjectFromCatalog(currentInteraction.objectKey);
-                    if (objectConfig && objectConfig.interaction) {
-                        let instructionText = 'Interagir pour continuer';
-                        if (objectConfig.interaction.type === 'click') {
-                            instructionText = 'Cliquez pour continuer';
-                        } else if (objectConfig.interaction.type === 'drag') {
-                            instructionText = 'Glissez pour continuer';
-                        }
-                        instruction.textContent = instructionText;
-                    }
-                }
-                instruction.style.display = 'block';
-            } else {
-                instruction.style.display = 'none';
-            }
-        }
-
-        // Vérifier si l'écoute n'est pas déjà active
-        if (clickListener && !clickListener.isListening && typeof clickListener.startListening === 'function') {
-            clickListener.startListening();
-        }
-    }, [allowScroll, isWaitingForInteraction, interactionStep, clickListener, interactions]);
-
-    // Fonction pour trouver un objet dans la scène par son nom
-    const findObjectByName = (name) => {
-        let targetObject = null;
-        if (name && scene) {
-            // Parcourir la scène pour trouver l'objet avec le nom correspondant
-            scene.traverse((object) => {
-                if (object.name === name) {
-                    targetObject = object;
-                }
-            });
-        }
-        return targetObject;
     };
 
-    const checkInteractionTriggers = (position) => {
-        // Variable pour stocker l'interaction déclenchée
-        let triggeredInteraction = null;
+    // Créer UI pour les progrès généraux
+    const createProgressUI = () => {
+        if (!document.getElementById('scroll-debug-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'scroll-debug-indicator';
+            indicator.style.position = 'fixed';
+            indicator.style.bottom = '20px';
+            indicator.style.right = '20px';
+            indicator.style.padding = '8px 12px';
+            indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+            indicator.style.color = '#00ff00';
+            indicator.style.fontFamily = 'sans-serif';
+            indicator.style.fontSize = '14px';
+            indicator.style.borderRadius = '4px';
+            indicator.style.zIndex = '100';
+            indicator.style.transition = 'color 0.3s ease';
+            indicator.textContent = 'Scroll actif';
+            document.body.appendChild(indicator);
+        }
 
-        // Récupérer la liste des interactions complétées avec une valeur par défaut
-        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+        if (!document.getElementById('timeline-progress')) {
+            const progressBar = document.createElement('div');
+            progressBar.id = 'timeline-progress';
+            progressBar.style.position = 'fixed';
+            progressBar.style.bottom = '10px';
+            progressBar.style.left = '10px';
+            progressBar.style.right = '10px';
+            progressBar.style.height = '4px';
+            progressBar.style.backgroundColor = 'rgba(255,255,255,0.2)';
+            progressBar.style.borderRadius = '2px';
+            progressBar.style.zIndex = '100';
 
-        // Définir une distance maximale pour considérer qu'on est "proche" du trigger
-        const TRIGGER_PROXIMITY = 2.0; // Ajuster cette valeur selon les besoins
+            const progressIndicator = document.createElement('div');
+            progressIndicator.id = 'progress-indicator';
+            progressIndicator.style.height = '100%';
+            progressIndicator.style.width = '0%';
+            progressIndicator.style.backgroundColor = 'white';
+            progressIndicator.style.borderRadius = '2px';
+            progressIndicator.style.transition = 'width 0.05s ease-out';
 
-        interactions.forEach(interaction => {
-            // Ignorer les interactions déjà complétées
-            if (!interaction.isActive || completedInteractions[interaction.id]) {
-                return;
-            }
+            progressBar.appendChild(progressIndicator);
+            document.body.appendChild(progressBar);
+        }
+    };
 
-            // NOUVEAU: Vérification spéciale pour AnimalPaws
-            if (interaction.objectKey === 'AnimalPaws') {
-                // Vérifier si LeafErable a été complété en cherchant dans les interactions complétées
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirdStop') || // Le requiredStep de LeafErable
-                    key.includes('LeafErable')   // L'objectKey
-                );
-
-                if (!leafErableCompleted) {
-                    // console.log('Interaction avec AnimalPaws ignorée car LeafErable n\'a pas encore été complété');
-                    return; // Ignorer cette interaction
-                }
-            }
-
-            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
-            const dx = position.x - interaction.triggers.x;
-            const dz = position.z - interaction.triggers.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-
-            // Si la distance est inférieure au seuil ET que le défilement est autorisé
-            if (distance < TRIGGER_PROXIMITY && allowScroll) {
-                // Stocker l'interaction déclenchée pour le log
-                triggeredInteraction = interaction;
-
-                // Récupérer l'objet associé à cette interaction
-                const relatedObjectKey = interaction.objectKey;
-                const placement = sceneObjectManager.getPlacements({
-                    objectKey: relatedObjectKey,
-                    requiredStep: interaction.id
-                })[0];
-
-                // Trouver l'objet cible dans la scène si spécifié
-                const targetObject = placement?.targetId ?
-                    findObjectByName(placement.targetId) : null;
-
-                // Bloquer le défilement
-                setAllowScroll(false);
-
-                // Réinitialiser la vélocité pour éviter tout mouvement résiduel
-                scrollVelocity.current = 0;
-
-                // Indiquer que nous attendons une interaction de l'utilisateur
-                setWaitingForInteraction(true);
-
-                // Enregistrer l'étape actuelle
-                setCurrentStep(interaction.id);
-
-                // Stocker la référence à l'objet cible dans le store
-                setInteractionTarget(targetObject);
-
-                // Mettre à jour l'état local
-                setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
-            }
+    const cleanupUI = () => {
+        // Supprimer tous les éléments d'interface créés
+        ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction', 'chapter-navigation'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.remove();
         });
 
-        // Afficher le log uniquement si une interaction est déclenchée
-        if (triggeredInteraction) {
-            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(
-                Math.pow(position.x - triggeredInteraction.triggers.x, 2) +
-                Math.pow(position.z - triggeredInteraction.triggers.z, 2)
-            ).toFixed(2)} unités`);
-        }
-    };
-
-    const startCountdown = () => {
-        setCountdown(5);
-
-        const interval = setInterval(() => {
-            setCountdown(prevCount => {
-                if (prevCount <= 1) {
-                    clearInterval(interval);
-                    setAllowScroll(true);
-                    return null;
-                }
-                return prevCount - 1;
+        // Nettoyer les écouteurs d'événements
+        const canvasElement = document.querySelector('canvas');
+        if (canvasElement) {
+            // Note: Ces gestionnaires sont définis dans setupScrollHandlers,
+            // nous devrions idéalement les stocker dans des refs pour un nettoyage précis
+            canvasElement.removeEventListener('wheel', () => {
             });
-        }, 1000);
+            canvasElement.removeEventListener('touchstart', () => {
+            });
+            canvasElement.removeEventListener('touchmove', () => {
+            });
+        }
     };
 
-    useEffect(() => {
-        const countdownEl = document.getElementById('countdown-element');
-        if (countdownEl) {
-            if (countdown !== null) {
-                countdownEl.textContent = `Scroll actif dans ${countdown}...`;
-                countdownEl.style.display = 'block';
-
-                if (countdown === 0) {
-                    countdownEl.style.opacity = '1';
-                    countdownEl.style.transition = 'opacity 1s ease';
-
-                    setTimeout(() => {
-                        countdownEl.style.opacity = '0';
-                        setTimeout(() => {
-                            countdownEl.style.display = 'none';
-                            countdownEl.style.opacity = '1';
-                        }, 1000);
-                    }, 500);
-                }
-            } else {
-                countdownEl.style.display = 'none';
-            }
-        }
-    }, [countdown]);
-
-    useFrame(() => {
-        if (!camera) return;
-
-        const cameraPosition = {
-            x: camera.position.x,
-            y: camera.position.y,
-            z: camera.position.z
-        };
-
-        setCurrentCameraZ(cameraPosition.z);
-
-        // Vérifier les déclencheurs d'interaction
-        checkInteractionTriggers(cameraPosition);
-
-        // Ne mettre à jour la position de la timeline que si le défilement est autorisé
-        if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll) {
-            timelinePositionRef.current += scrollVelocity.current;
-            timelinePositionRef.current = Math.max(0, Math.min(sequenceLengthRef.current, timelinePositionRef.current));
-            sheet.sequence.position = timelinePositionRef.current;
-
-            // NOUVEAU: Partager la position de la timeline avec le store
-            if (typeof setTimelinePosition === 'function') {
-                setTimelinePosition(timelinePositionRef.current);
-            }
-
-            scrollVelocity.current *= DECELERATION;
-        }
-
-        const progressPercentage = sequenceLengthRef.current > 0
-            ? (timelinePositionRef.current / sequenceLengthRef.current) * 100
-            : 0;
-
-        const indicator = document.getElementById('progress-indicator');
-        if (indicator) {
-            indicator.style.width = `${progressPercentage}%`;
-        }
-    });
-
-    return (
-        <>
-            {children}
-        </>
-    );
+    return (<>
+        {children}
+    </>);
 }

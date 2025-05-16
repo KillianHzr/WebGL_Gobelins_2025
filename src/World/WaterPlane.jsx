@@ -1,8 +1,8 @@
 import React, { useRef, useMemo, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import sceneObjectManager from '../Config/SceneObjectManager';
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 export default function WaterPlane() {
     const modelRef = useRef();
@@ -232,11 +232,12 @@ export default function WaterPlane() {
     }, [waterModel, waterShader]);
 
     // Animer le shader
-    useFrame(() => {
+    useAnimationFrame(() => {
         if (waterShader) {
             waterShader.uniforms.time.value = clock.current.getElapsedTime() * FLOW_SPEED;
         }
-    });
+    }, 'animation'); // Catégorie 'animation'
+
 
     return (
         <group
