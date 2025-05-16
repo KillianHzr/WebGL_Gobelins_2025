@@ -1148,7 +1148,7 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
-        console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
+        // console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
         const normalizedPosition = timelinePositionRef.current / timelineLengthRef.current;
         EventBus.trigger('timeline-position-normalized', {
             position: normalizedPosition,
