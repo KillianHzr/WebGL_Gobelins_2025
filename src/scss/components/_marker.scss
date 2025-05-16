@@ -34,10 +34,9 @@
         border: 1.5px solid #F9FEFF;
         pointer-events: auto;
         &.disable {
-            transition: opacity 0.3s ease;
-            &:hover {
-                opacity: 0.7;
-            }
+            opacity: 0.4;
+            right: 33vw;
+            top: 33vh;
         }
 
         &-inner {
