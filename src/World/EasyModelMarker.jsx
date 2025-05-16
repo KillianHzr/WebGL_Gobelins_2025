@@ -481,7 +481,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
                     outlineVisibleRef.current = false;
                 }
-                return alwaysVisible || hovered;
+                return alwaysVisible;
             }
         } else {
             // Comportement par défaut pour les objets sans requiredStep
