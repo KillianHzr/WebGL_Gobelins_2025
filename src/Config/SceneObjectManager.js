@@ -523,7 +523,7 @@ class SceneObjectManager {
                 }],
                 defaultPlacement: {
                     position: [56.50845, 0, -131.60712],
-                    rotation: [-3.09, 180 + 55.03315, -3.10794],
+                    rotation: [-3.09, 270 + 55.03315, -3.10794],
                     scale: [0.13, 0.13, 0.13],
                 }
             }
