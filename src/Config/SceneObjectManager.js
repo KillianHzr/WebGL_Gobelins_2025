@@ -277,91 +277,111 @@ class SceneObjectManager {
             //         position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
             //     }
             // },
+
+
+            // /**
+            //  * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
+            //  * Révélation principale et message environnemental
+            //  * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
+            //  *  - Explication du problème de pénurie d'eau
+            //  */
+            //
+            // 'RiverCheckpoint': {
+            //     id: 'Screen',
+            //     path: '/models/digital/screen/Screen.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DISABLE,
+            //         text: "Maintiens",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.3,
+            //         requiredStep: 'seventeenStop'
+            //     }],
+            //     defaultPlacement: {
+            //         // position: [0.42004, -0.70173, -141.44714],
+            //         position: [0.1004, -0.70173, -141.54714],
+            //         // position: [0.108, -0.702, -141.176],
+            //         // position: [-39.47393, 0.2628, 83.18371],
+            //         rotation: [0, 0, 0],
+            //         scale: [1, 1, 1],
+            //     }
+            // },
+
+
             // /**
             //  * SCÈNE 06 - OBSTACLE DE LA BRANCHE
             //  * Apprentissage du mouvement vertical inverse
             //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
             //  * Effet: Animation de passage sous la branche
             //  */
-            // 'ThinTrunkInteractive': {
-            //     id: 'TrunkLarge',
-            //     path: '/models/forest/tree/Obstacle2Tree.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_DOWN,
-            //         text: "Tire",
-            //         offset: -0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.6,
-            //         requiredStep: 'fourthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
-            //     }
-            // }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
-            // 'BigRock': {
-            //     id: 'BigRock',
-            //     path: '/models/rock/BigRock.glb',
-            //     scale: [0.12371, 0.12371, 0.12371],
-            //     interactive: false,
-            //     useTextures: true, // animations: {
-            //     //     // Animation "move" qui sera jouée automatiquement
-            //     //     'Action.001.001': {
-            //     //         autoplay: true,            // Cette animation démarrera automatiquement
-            //     //         defaultLoop: true,         // Par défaut en boucle
-            //     //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
-            //     //         defaultTimeScale: 1.0      // Vitesse normale
-            //     //     },
-            //     // },
-            //     defaultPlacements: [{
-            //         position: [-42.79226, 0.06409, -116.47688],
-            // rotation: [-3.14159, -52.79977, -3.14159],
-            // scale: [0.1371, 0.1371, 0.1371],
-            //     }]
-            // },
-            // 'TreeStump': {
-            //     id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [-41.25625, 0.06409, -115.15076],
-            //         rotation: [-3.14159, 40.80581, -3.14159],
-            //         scale: [0.07507, 0.07507, 0.07507],
-            //     }]
-            // },
-
-            /**
-             * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
-             * Révélation principale et message environnemental
-             * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
-             *  - Explication du problème de pénurie d'eau
-             */
-
-            'RiverCheckpoint': {
-                id: 'Screen',
-                path: '/models/digital/screen/Screen.glb',
+            'ThinTrunkInteractive': {
+                id: 'TrunkLarge',
+                path: '/models/forest/tree/Obstacle2Tree.glb',
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.DISABLE,
-                    text: "Maintiens",
+                    type: INTERACTION_TYPES.DRAG_DOWN,
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 0.3,
-                    requiredStep: 'seventeenStop'
+                    chapterDistance: 0.6,
+                    requiredStep: 'fourthStop'
                 }],
                 defaultPlacement: {
-                    // position: [0.42004, -0.70173, -141.44714],
-                    position: [0.1004, -0.70173, -141.54714],
-                    // position: [0.108, -0.702, -141.176],
-                    // position: [-39.47393, 0.2628, 83.18371],
-                    rotation: [0, 0, 0],
+                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
+                }
+            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+
+            'VisonRun': {
+                id: 'VisonRun',
+                path: '/models/primary/VisonRun.glb',
+                scale: [0.04874, 0.04874, 0.04874],
+                interactive: true,
+                useTextures: false,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "capture",
+                    chapterDistance: 0.28,
+                    requiredStep: 'sixthStop'
+                }],
+                defaultPlacement: {
+                    position: [51.67054, 0.04409, -134.37912],
+                    rotation: [-3.14159, 25.90977, -3.14159],
                     scale: [1, 1, 1],
+                    outlinePulse: false,
                 }
             },
+
+            'BigRock': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.glb',
+                scale: [0.12371, 0.12371, 0.12371],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-42.79226, 0.06409, -116.47688],
+                    rotation: [-3.14159, -52.79977, -3.14159],
+                    scale: [0.1371, 0.1371, 0.1371],
+                }]
+            },
+            'TreeStump': {
+                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-41.25625, 0.06409, -115.15076],
+                    rotation: [-3.14159, 40.80581, -3.14159],
+                    scale: [0.07507, 0.07507, 0.07507],
+                }]
+            },
+
 
 
             /**
@@ -370,9 +390,6 @@ class SceneObjectManager {
              *  - CLICK "Immortalise le moment" pour prendre photo
              *  - Flash d'appareil photo et transition vers scène suivante
              */
-
-
-
 
             'Vison': {
                 id: 'Vison',
@@ -396,7 +413,6 @@ class SceneObjectManager {
                     outlinePulse: false,
                 }
             },
-
 
             //
             // 'VisonRun': {
@@ -480,62 +496,62 @@ class SceneObjectManager {
              *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
              *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
              */
-                'DigitalDirectionPanelEndInteractive': {
-                    id: 'DigitalDirectionPanel',
-                    path: '/models/primary/DigitalDirectionPanel.glb',
+            'DigitalDirectionPanelEndInteractive': {
+                id: 'DigitalDirectionPanel',
+                path: '/models/primary/DigitalDirectionPanel.glb',
+                scale: [0.55, 0.55, 0.55],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.1,
+                    requiredStep: 'tenthStop'
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'tenthStopEnd'
+                }],
+                defaultPlacement: {
+                    position: [55.10253, 0, -134.2177],
+                    rotation: [0, 135 + 58.43814, 0],
                     scale: [0.55, 0.55, 0.55],
-                    interactive: true,
-                    useTextures: true,
-                    interaction: [{
-                        type: INTERACTION_TYPES.CLICK,
-                        text: "Clique",
-
-                        offset: 0.5,
-                        axis: "y",
-                        interfaceToShow: "none",
-                        chapterDistance: 0.1,
-                        requiredStep: 'tenthStop'
-                    }, {
-                        type: INTERACTION_TYPES.LONG_PRESS,
-                        text: "Maintiens",
-
-                        offset: 0.5,
-                        axis: "y",
-                        interfaceToShow: "none",
-                        chapterDistance: 0.5,
-                        requiredStep: 'tenthStopEnd'
-                    }],
-                    defaultPlacement: {
-                        position: [55.10253, 0, -134.2177],
-                        rotation: [0,  135 + 58.43814, 0],
-                        scale: [0.55, 0.55, 0.55],
-                        outlinePulse: false,
-                    }
-                }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
-                // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-
-
-                'RadioInteractive': {
-                    id: 'Radio',
-                    path: '/models/primary/Radio.glb',
-                    interactive: true,
-                    useTextures: false,
-                    scale: [0.13, 0.13, 0.13],
-                    interaction: [{
-                        type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-                        text: "Maintiens",
-                        offset: 0.5,
-                        axis: "y",
-                        interfaceToShow: "blackScreen",
-                        requiredStep: 'seventhStop',
-                    }],
-                    defaultPlacement: {
-                        position: [56.50845, 0, -131.60712],
-                        rotation: [-3.09, 180 + 55.03315, -3.10794],
-                        scale: [0.13, 0.13, 0.13],
-                    }
+                    outlinePulse: false,
                 }
-                // seventhStop au click -> voile noir sur tout l'écran
+            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
+
+            'RadioInteractive': {
+                id: 'Radio',
+                path: '/models/primary/Radio.glb',
+                interactive: true,
+                useTextures: false,
+                scale: [0.13, 0.13, 0.13],
+                interaction: [{
+                    type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "blackScreen",
+                    requiredStep: 'seventhStop',
+                }],
+                defaultPlacement: {
+                    position: [56.50845, 0, -131.60712],
+                    rotation: [-3.09, 180 + 55.03315, -3.10794],
+                    scale: [0.13, 0.13, 0.13],
+                }
+            }
+            // seventhStop au click -> voile noir sur tout l'écran
 
 
         };
@@ -586,6 +602,7 @@ class SceneObjectManager {
         // Renvoyer l'interaction actuelle
         return objectConfig.interaction[currentIndex];
     }
+
     getInteractiveObjectInterfaces() {
         const interfaces = {};
 
@@ -623,7 +640,7 @@ class SceneObjectManager {
         console.log('*** Exécution de handleThirdStopCompletion ***');
 
         // Trouver l'emplacement de MultipleLeaf avec plus de détails de débogage
-        const leafPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
+        const leafPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
         console.log('Placements MultipleLeaf trouvés:', leafPlacements);
 
         if (leafPlacements && leafPlacements.length > 0) {
@@ -672,7 +689,7 @@ class SceneObjectManager {
             console.log('Résultat de la mise à jour:', updateResult);
 
             // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
-            const updatedPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
+            const updatedPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
             if (updatedPlacements && updatedPlacements.length > 0) {
                 console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
             }
@@ -687,6 +704,7 @@ class SceneObjectManager {
             console.warn('Objet MultipleLeaf non trouvé lors de la complétion de thirdStop');
         }
     }
+
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});
@@ -926,7 +944,6 @@ class SceneObjectManager {
     }
 
 
-
     // Ajouter un nouvel objet au catalogue
     addObjectToCatalog(key, config) {
         if (this.objectCatalog[key]) {
@@ -1114,6 +1131,7 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
+
     configureGround(groundObject, useMaskImage = true) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
@@ -1191,6 +1209,7 @@ class SceneObjectManager {
             return null;
         }
     }
+
     // Appliquer les textures à un objet
     async applyTexturesToObject(placement, modelObject) {
         if (!placement || !modelObject) return;
@@ -1250,7 +1269,6 @@ class SceneObjectManager {
             return true;
         });
     }
-
 
 
     // Récupérer uniquement les placements d'objets interactifs
