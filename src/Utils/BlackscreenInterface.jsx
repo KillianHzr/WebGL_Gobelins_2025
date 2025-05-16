@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import useStore from '../Store/useStore';
 import { audioManager } from './AudioManager';
+import {EventBus} from "./EventEmitter.jsx";
 
 export default function BlackscreenInterface() {
     const [isVisible, setIsVisible] = useState(false);
@@ -50,6 +51,31 @@ export default function BlackscreenInterface() {
             setIsVisible(false);
         }
     }, [interaction?.showBlackscreenInterface, interaction, triggerEnding]);
+
+    useEffect(() => {
+        const handleCaptureComplete = () => {
+            console.log("Capture interface completed, transitioning to digital ambience");
+
+            // Transition vers l'ambiance digitale
+            if (window.audioManager && typeof window.audioManager.playDigitalAmbience === 'function') {
+                window.audioManager.playDigitalAmbience(3000); // Fondu sur 3 secondes
+            } else if (window.parent && window.parent.audioManager &&
+                typeof window.parent.audioManager.playDigitalAmbience === 'function') {
+                window.parent.audioManager.playDigitalAmbience(3000);
+            }
+        };
+
+        // S'abonner à l'événement de complétion de l'interface de capture
+        const subscription = EventBus.on('interface-action', (data) => {
+            if (data.type === 'capture' && data.action === 'close' && data.result === 'complete') {
+                handleCaptureComplete();
+            }
+        });
+
+        return () => {
+            subscription();
+        };
+    }, []);
 
     // Ne rien rendre si l'interface n'est pas visible
     if (!isVisible) return null;

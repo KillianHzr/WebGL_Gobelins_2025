@@ -87,6 +87,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     const isComponentMounted = useRef(true);
     const cleanupFunctions = useRef([]);
     const [isInInteractionSequence, setIsInInteractionSequence] = useState(false);
+    const outlineVisibleRef = useRef(false);
 
     // État local
     const [hovered, setHovered] = useState(false);
@@ -382,14 +383,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-                // Vérifier si LeafErable a été complété
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                // Vérifier si MultipleLeaf a été complété
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
                     key.includes('thirdStop') ||
-                    key.includes('LeafErable')
+                    key.includes('MultipleLeaf')
                 );
 
-                if (!leafErableCompleted) {
-                    console.log('Survol de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
+                if (!multipleLeafCompleted) {
+                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -448,7 +449,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {
-        // Ne pas afficher le contour si le marqueur est survolé ou si showOutline est false
+        // Ne pas afficher le contour si showOutline est false
         if (!showOutline) {
             return false;
         }
@@ -458,7 +459,30 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             const isCorrectStep = interaction?.currentStep === requiredStep &&
                 interaction?.waitingForInteraction;
 
-            return isWaitingForInteraction || alwaysVisible || (hovered && isCorrectStep);
+            // Si nous sommes à l'étape correcte et en attente d'interaction
+            if (isWaitingForInteraction || (isCorrectStep && !isInteractionCompleted)) {
+                // NOUVEAU: Émettre un événement seulement lors du premier affichage du contour
+                // pour éviter de déclencher plusieurs fois la narration
+                if (!outlineVisibleRef.current) {
+                    outlineVisibleRef.current = true;
+
+                    // Émission d'un événement à la première apparition du contour
+                    EventBus.trigger('outline:appeared', {
+                        markerId: markerId,
+                        requiredStep: requiredStep,
+                        objectKey: modelProps?.userData?.objectKey
+                    });
+                }
+                return true;
+            }
+            // Sinon, n'afficher le contour que si alwaysVisible est true ou si l'élément est survolé
+            else {
+                // Réinitialiser le flag si le contour disparaît
+                if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
+                    outlineVisibleRef.current = false;
+                }
+                return alwaysVisible;
+            }
         } else {
             // Comportement par défaut pour les objets sans requiredStep
             return isWaitingForInteraction || alwaysVisible || hovered;
@@ -470,10 +494,29 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         interaction?.currentStep,
         interaction?.waitingForInteraction,
         isWaitingForInteraction,
+        isInteractionCompleted,
         alwaysVisible,
         hovered,
         markerId
     ]);
+
+    // Nouveau useEffect pour suivre les changements dans l'état d'attente d'interaction
+    useEffect(() => {
+        if (isWaitingForInteraction && requiredStep) {
+            // Utiliser un léger délai pour laisser le temps à l'interface de s'initialiser
+            const timer = setTimeout(() => {
+                // Émettre l'événement d'interaction détectée automatiquement
+                EventBus.trigger('interaction:detected', {
+                    markerId: markerId,
+                    requiredStep: requiredStep,
+                    objectKey: modelProps?.userData?.objectKey,
+                    type: 'waiting-for-interaction'
+                });
+            }, 100);
+
+            return () => clearTimeout(timer);
+        }
+    }, [isWaitingForInteraction, requiredStep, markerId]);
 
     // Handlers pour le survol du marqueur optimisés avec useCallback
     const handleMarkerPointerEnter = useCallback((e) => {
@@ -573,8 +616,19 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         );
     }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
 
+    const shouldModelBeVisible = useMemo(() => {
+        // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
+        if (markerType === INTERACTION_TYPES.DISABLE) {
+            return false;
+        }
+        return true;
+    }, [markerType]);
     // Optimiser le rendu conditionnel du modèle par défaut
     const renderDefaultModel = useMemo(() => {
+        if (!shouldModelBeVisible) {
+            return null;
+        }
+
         if (useBox) {
             return (
                 <mesh
@@ -652,8 +706,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
-
+    }, [shouldModelBeVisible, useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
     return (
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}

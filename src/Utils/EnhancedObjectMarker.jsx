@@ -60,12 +60,19 @@ export const ModelMarker = React.memo(function ModelMarker({
     // MODIFIÉ: Vérifier si le marqueur doit être affiché basé sur l'état d'interaction actuelle et l'historique
     const shouldShowMarker = (
         // Ne pas montrer si l'étape a déjà été complétée
-        !interactionCompleted &&
+        !interactionCompleted && (
+            // Cas spécial pour le type DISABLE : toujours afficher quand l'interaction est disponible
+            (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
+                (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
-        // Conditions standards d'affichage (simplifié)
-        ((isHovered || isMarkerHovered) &&
-            showMarkerOnHover &&
-            (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+            // Condition modifiée : montrer le marqueur quand le stop est activé (même sans hover)
+            (interaction?.waitingForInteraction && interaction.currentStep === requiredStep) ||
+
+            // Condition standard pour les autres types (basée sur le hover)
+            ((isHovered || isMarkerHovered) &&
+                showMarkerOnHover &&
+                (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep)))
+        )
     );
 
     // Gérer le clic sur l'objet
@@ -290,7 +297,8 @@ export const INTERACTION_TYPES = {
     DRAG_LEFT: 'dragLeft',
     DRAG_RIGHT: 'dragRight',
     DRAG_UP: 'dragUp',
-    DRAG_DOWN: 'dragDown'
+    DRAG_DOWN: 'dragDown',
+    DISABLE: 'disable',
 };
 
 export const useOptimalMarkerPosition = (objectRef, options = {}) => {
@@ -684,9 +692,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
 
         longPressTimeoutRef.current = setTimeout(() => {
             if (audioManager) {
-                audioManager.playSound('click', {
-                    volume: 0.8, fade: true, fadeTime: 400
-                });
+                // audioManager.playSound('click', {
+                //     volume: 0.8, fade: true, fadeTime: 400
+                // });
             }
 
             if (onClick) {
@@ -764,9 +772,9 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
         }
 
         if (audioManager) {
-            audioManager.playSound('click', {
-                volume: 0.8
-            });
+            // audioManager.playSound('click', {
+            //     volume: 0.8
+            // });
         }
 
         if (onClick) {
@@ -877,6 +885,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             }
         }
     };
+
 
     const handleDragEnd = () => {
         if (!isDraggingRef.current) return;
@@ -1172,6 +1181,153 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         </div>
                     </div>
                 </Html>)}
+
+            // Dans EnhancedObjectMarker.jsx, modifiez le rendu des marqueurs de type DISABLE
+            // Recherchez ce code (ligne 1084 environ) :
+
+            {markerType === INTERACTION_TYPES.DISABLE && (
+                <Html
+                    className="marker-button disable"
+                    position={[0, 0, 0.002]}
+                    center
+                >
+                    <div
+                        className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
+                        onMouseEnter={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(true);
+
+                            // Déclencher l'interaction directement au survol
+                            if (onClick) {
+                                onClick({
+                                    type: 'hover'
+                                });
+                            }
+
+                            // Émettre l'événement d'interaction complète
+                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                                id, type: markerType
+                            });
+
+                            if (onPointerEnter) onPointerEnter(e);
+                        }}
+                        onMouseLeave={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(false);
+                            if (onPointerLeave) onPointerLeave(e);
+                        }}
+                        // Pour le support tactile
+                        onTouchStart={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(true);
+
+                            // Déclencher l'interaction au toucher sur mobile
+                            if (onClick) {
+                                onClick({
+                                    type: 'touch'
+                                });
+                            }
+
+                            // Émettre l'événement d'interaction complète
+                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                                id, type: markerType
+                            });
+                        }}
+                    >
+                        <div className="marker-button-inner-text">
+                            {text}
+                        </div>
+                        <div
+                            className="marker-button-inner-progress"
+                            style={{
+                                width: '72px',
+                                height: '72px',
+                                opacity: 0.7,
+                            }}
+                        />
+                    </div>
+                </Html>
+            )}
+
+            // Et remplacez-le par ce code :
+
+            {markerType === INTERACTION_TYPES.DISABLE && (
+                <Html
+                    className="marker-button disable center-screen"
+                    position={[0, 0, 0.002]}
+                    center
+                    // Utiliser fullscreen=true pour positionner relativement à l'écran entier
+                    fullscreen={true}
+                    // Enlever le comportement "distanceFactor" pour que la taille ne change pas avec la distance
+                    distanceFactor={10}
+                    // Assurer que le marqueur est au-dessus des autres éléments
+                    zIndexRange={[9999, 10000]}
+                    // Style pour centrer dans l'écran
+                    style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        pointerEvents: 'auto'
+                    }}
+                >
+                    <div
+                        className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
+                        onMouseEnter={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(true);
+
+                            // Déclencher l'interaction directement au survol
+                            if (onClick) {
+                                onClick({
+                                    type: 'hover'
+                                });
+                            }
+
+                            // Émettre l'événement d'interaction complète
+                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                                id, type: markerType
+                            });
+
+                            if (onPointerEnter) onPointerEnter(e);
+                        }}
+                        onMouseLeave={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(false);
+                            if (onPointerLeave) onPointerLeave(e);
+                        }}
+                        // Pour le support tactile
+                        onTouchStart={(e) => {
+                            stopAllPropagation(e);
+                            setButtonHovered(true);
+
+                            // Déclencher l'interaction au toucher sur mobile
+                            if (onClick) {
+                                onClick({
+                                    type: 'touch'
+                                });
+                            }
+
+                            // Émettre l'événement d'interaction complète
+                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
+                                id, type: markerType
+                            });
+                        }}
+                    >
+                        <div className="marker-button-inner-text">
+                            {text}
+                        </div>
+                        <div
+                            className="marker-button-inner-progress"
+                            style={{
+                                width: '72px',
+                                height: '72px',
+                                opacity: 0.7,
+                            }}
+                        />
+                    </div>
+                </Html>
+            )}
         </group>
     </>);
 });

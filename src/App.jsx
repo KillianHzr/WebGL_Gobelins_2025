@@ -121,6 +121,7 @@ export default function App() {
     };
 
     // Callback when user clicks "Découvre ta mission" button
+// Dans App.jsx, modifiez la fonction handleEnterExperience comme suit
     const handleEnterExperience = () => {
         console.log("User entered experience - preparing transition");
         narrationEndedRef.current = false;
@@ -130,66 +131,94 @@ export default function App() {
 
         // Set up the black screen transition first
         setTimeout(() => {
-            console.log("Black screen transition in progress - preparing to play Scene00_Radio1");
+            console.log("Black screen transition in progress - preparing to play radio on sound");
 
-            // Set up a listener for the narration ended event
-            const narrationEndedListener = EventBus.on('narration-ended', (data) => {
-                if (data && data.narrationId === 'Scene00_Radio1') {
-                    console.log("Scene00_Radio1 narration completed, playing Scene00_Radio2 after delay");
+            // Jouer le son radio_on.wav
+            if (window.audioManager && typeof window.audioManager.playSound === 'function') {
+                window.audioManager.playSound('radio-on');
+                console.log("Playing radio on sound");
+            }
 
-                    // Attendre 1 seconde avant de jouer Scene00_Radio2
-                    setTimeout(() => {
-                        narrationManager.playNarration('Scene00_Radio2');
-                        console.log("Lecture de la narration Scene00_Radio2");
-                    }, 500);
-                }
-                else if (data && data.narrationId === 'Scene00_Radio2') {
-                    console.log("Scene00_Radio2 narration completed, proceeding to 3D scene");
-                    narrationEndedRef.current = true;
-
-                    // Transition to 3D scene after narration ends
-                    setShowExperience(true);
-
-                    // Focus on canvas after showing it
-                    if (canvasRef.current) {
-                        canvasRef.current.focus();
-                    }
-
-                    // Play the next narration after showing the 3D scene
-                    setTimeout(() => {
-                        narrationManager.playNarration('Scene01_Mission');
-                        console.log("Lecture de la narration Scene01_Mission après transition");
-                    }, 2000);
-                }
-            });
-
-            // Play the Scene00_Radio1 narration
-            narrationManager.playNarration('Scene00_Radio1');
-            console.log("Lecture de la narration Scene00_Radio1 pendant l'écran noir");
-
-            // Fallback in case the narration-ended events aren't fired
-            // Augmenter la durée pour tenir compte des deux narrations + délai
-            const defaultDuration = 60000; // 60 seconds in ms
+            // Attendre 1 seconde avant de jouer la première narration
             setTimeout(() => {
-                if (!narrationEndedRef.current) {
-                    console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
-                    narrationEndedRef.current = true;
+                console.log("Delay complete, playing Scene00_Radio1 narration");
 
-                    // Transition to 3D scene after the fallback duration
-                    setShowExperience(true);
+                // Set up a listener for the narration ended event
+                const narrationEndedListener = EventBus.on('narration-ended', (data) => {
+                    if (data && data.narrationId === 'Scene00_Radio1') {
+                        console.log("Scene00_Radio1 narration completed, playing Scene00_Radio2 after delay");
 
-                    // Focus on canvas after showing it
-                    if (canvasRef.current) {
-                        canvasRef.current.focus();
+                        // Attendre 1 seconde avant de jouer Scene00_Radio2
+                        setTimeout(() => {
+                            narrationManager.playNarration('Scene00_Radio2');
+                            console.log("Lecture de la narration Scene00_Radio2");
+                        }, 500);
                     }
+                    else if (data && data.narrationId === 'Scene00_Radio2') {
+                        console.log("Scene00_Radio2 narration completed, playing radio off sound");
 
-                    // Play the next narration after showing the 3D scene
-                    setTimeout(() => {
-                        narrationManager.playNarration('Scene01_Mission');
-                        console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
-                    }, 2000);
-                }
-            }, defaultDuration);
+                        // Jouer le son radio_off.wav après la fin de la deuxième narration
+                        if (window.audioManager && typeof window.audioManager.playSound === 'function') {
+                            window.audioManager.playSound('radio-off');
+                            console.log("Playing radio off sound");
+                        }
+
+                        // Attendre que le son radio off se termine avant de continuer
+                        setTimeout(() => {
+                            console.log("Radio off sound complete, proceeding to 3D scene");
+                            narrationEndedRef.current = true;
+
+                            // Transition to 3D scene after narration ends
+                            setShowExperience(true);
+
+                            // Focus on canvas after showing it
+                            if (canvasRef.current) {
+                                canvasRef.current.focus();
+                            }
+
+                            // Démarrer l'ambiance nature en fondu
+                            if (audioManager && typeof audioManager.playNatureAmbience === 'function') {
+                                console.log("Starting nature ambience after radio narrations");
+                                audioManager.playNatureAmbience(3000); // Fondu sur 3 secondes
+                            }
+
+                            // Play the next narration after showing the 3D scene
+                            setTimeout(() => {
+                                narrationManager.playNarration('Scene01_Mission');
+                                console.log("Lecture de la narration Scene01_Mission après transition");
+                            }, 2000);
+                        }, 1000); // Attendre 1 seconde pour le son radio off
+                    }
+                });
+
+                // Play the Scene00_Radio1 narration
+                narrationManager.playNarration('Scene00_Radio1');
+                console.log("Lecture de la narration Scene00_Radio1 pendant l'écran noir");
+
+                // Fallback in case the narration-ended events aren't fired
+                // Augmenter la durée pour tenir compte des deux narrations + délai
+                const defaultDuration = 60000; // 60 seconds in ms
+                setTimeout(() => {
+                    if (!narrationEndedRef.current) {
+                        console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
+                        narrationEndedRef.current = true;
+
+                        // Transition to 3D scene after the fallback duration
+                        setShowExperience(true);
+
+                        // Focus on canvas after showing it
+                        if (canvasRef.current) {
+                            canvasRef.current.focus();
+                        }
+
+                        // Play the next narration after showing the 3D scene
+                        setTimeout(() => {
+                            narrationManager.playNarration('Scene01_Mission');
+                            console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
+                        }, 2000);
+                    }
+                }, defaultDuration);
+            }, 1000); // Délai d'1 seconde avant de jouer la première narration
         }, 800); // This should match when the black screen is at full opacity
     };
 

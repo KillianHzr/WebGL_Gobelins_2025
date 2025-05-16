@@ -528,6 +528,18 @@ class TextureManager {
             envMapIntensity: 0.08
         });
 
+        this.addTextureMapping('DirectionPanel', 'primary', null, {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 1.0
+        });
+
+        this.addTextureMapping('DigitalDirectionPanel', 'primary', null, {
+            roughness: 1.0,
+            metalness: 0.59,
+            envMapIntensity: 1.0
+        });
+
         this.addTextureMapping('TrunkLarge', 'forest/tree', null, {
             roughness: 0.78,
             metalness: 0.71,
@@ -679,15 +691,6 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addPlantTexture('MultipleLeaf', 'primary', {
-
-            roughness: 0.7,
-            metalness: 0.0,
-            // envMapIntensity: 0.46,
-            castShadow: true,
-
-            receivedShadow: true,
-        });
         this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
@@ -764,11 +767,6 @@ class TextureManager {
             castShadow: true,
 
             receivedShadow: true,
-        });
-        this.addPlantTexture('LeafErable', 'primary', {
-            roughness: 0.96,
-            // metalness: 0.4,
-            // envMapIntensity: 0.25
         });
         this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96,
@@ -3640,8 +3638,7 @@ class TextureManager {
         // Mappings spécifiques pour certains modèles
         const specialMappings = {
             'ObstacleTree': 'TrunkLarge',
-            'Obstacle2Tree': 'TrunkThin',
-            'MultipleLeaf': 'LeafErable'
+            'Obstacle2Tree': 'TrunkThin'
         };
 
         if (specialMappings[modelId]) {
