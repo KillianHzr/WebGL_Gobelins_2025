@@ -89,7 +89,12 @@ class SceneObjectManager {
                     axis: "y",
                     interfaceToShow: "none",
                     chapterDistance: 0.5,
-                    requiredStep: 'initialStartStop'
+                    requiredStep: 'initialStartStop',
+                    // Ajouter cette fonction callback pour jouer la narration dès l'interaction
+                    onInteract: () => {
+                        console.log("Long press sur le panneau d'information - lancement narration");
+                        narrationManager.playNarration('Scene02_PanneauInformation');
+                    }
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Maintiens",
@@ -481,16 +486,19 @@ class SceneObjectManager {
                 interaction: [{
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Maintiens",
-
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
                     chapterDistance: 0.1,
-                    requiredStep: 'tenthStop'
+                    requiredStep: 'tenthStop',
+                    // Ajouter cette fonction callback pour jouer la narration dès l'interaction
+                    onInteract: () => {
+                        console.log("Long press sur le panneau digital - lancement narration");
+                        narrationManager.playNarration('Scene09_ClairiereDigitalisee');
+                    }
                 }, {
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Maintiens",
-
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "none",
@@ -503,7 +511,7 @@ class SceneObjectManager {
                     scale: [0.55, 0.55, 0.55],
                     outlinePulse: false,
                 }
-            }, // tenthStop au click -> progression dans la timeline pour rotation de la caméra vers le panneau + zoom sur le panneau
+            },
             // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
 
 
