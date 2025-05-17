@@ -3,6 +3,7 @@ import {Howl, Howler} from 'howler';
 import useStore from '../Store/useStore';
 import { narrationManager } from './NarrationManager';
 import { EventBus } from './EventEmitter';
+import RandomAmbientSounds from './RandomAmbientSounds';
 
 // Classe centrale pour gérer l'audio de l'application
 class AudioManager {
@@ -15,6 +16,9 @@ class AudioManager {
         this.fadeTime = 1000;
         this.ambienceVolume = 1;
         this.currentAmbience = null;
+
+        // Ajouter le système de sons aléatoires
+        this.randomAmbientSounds = null;
 
         // Système d'ambiances de rivière
         this.riverSounds = {
@@ -52,6 +56,9 @@ class AudioManager {
 
         // Charger les sons ici
         this.loadSounds();
+
+        // Initialiser le système de sons aléatoires
+        this.randomAmbientSounds = new RandomAmbientSounds(this).init();
 
         // Initialiser le gestionnaire de narration
         narrationManager.init();
@@ -292,6 +299,11 @@ class AudioManager {
 
             // Logs de vérification
             console.log("NATURE AMBIENCE STARTED WITH VOLUME:", this.natureAmbience.volume());
+
+            // NOUVEAU: Démarrer le système de sons aléatoires
+            if (this.randomAmbientSounds) {
+                this.randomAmbientSounds.start();
+            }
 
             // IMPORTANT: Activer le système de rivière et démarrer river1 ici
             console.log("RIVER SOUND: Activating river sounds system along with nature ambience");
@@ -542,6 +554,11 @@ class AudioManager {
         console.log(`RADICAL CHANGE: Switching to digital ambience`);
 
         try {
+            // NOUVEAU: Arrêter le système de sons aléatoires
+            if (this.randomAmbientSounds) {
+                this.randomAmbientSounds.stop();
+            }
+
             // Arrêter tous les sons de rivière
             this.stopAllRiverSounds(fadeTime);
 
@@ -787,6 +804,22 @@ class AudioManager {
             (this.currentAmbience && this.currentAmbience.playing());
     }
 
+    // Méthodes pour configurer les sons aléatoires
+    updateRandomSoundConfig(soundId, config) {
+        if (this.randomAmbientSounds) {
+            return this.randomAmbientSounds.updateSoundConfig(soundId, config);
+        }
+        return false;
+    }
+
+    updateAllRandomSoundsConfig(config) {
+        if (this.randomAmbientSounds) {
+            this.randomAmbientSounds.updateConfig(config);
+            return true;
+        }
+        return false;
+    }
+
     // Nettoyage des ressources
     dispose() {
         console.log('Disposing AudioManager');
@@ -803,6 +836,12 @@ class AudioManager {
         if (this.digitalAmbience) {
             this.digitalAmbience.stop();
             this.digitalAmbience = null;
+        }
+
+        // NOUVEAU: Arrêter et nettoyer le système de sons aléatoires
+        if (this.randomAmbientSounds) {
+            this.randomAmbientSounds.stop();
+            this.randomAmbientSounds = null;
         }
 
         this.currentAmbience = null;
@@ -854,12 +893,27 @@ export default function AudioManagerComponent() {
             }
         };
 
+        // NOUVEAU: Exposer les fonctions pour configurer les sons aléatoires
+        window.updateRandomSoundConfig = (soundId, config) => {
+            if (audioManager) {
+                return audioManager.updateRandomSoundConfig(soundId, config);
+            }
+        };
+
+        window.updateAllRandomSoundsConfig = (config) => {
+            if (audioManager) {
+                return audioManager.updateAllRandomSoundsConfig(config);
+            }
+        };
+
         // Nettoyage lors du démontage
         return () => {
             audioManager.dispose();
             // Nettoyer les fonctions globales
             delete window.setRiverVolumes;
             delete window.forcePlayRiverSound;
+            delete window.updateRandomSoundConfig;
+            delete window.updateAllRandomSoundsConfig;
         };
     }, []);
 
