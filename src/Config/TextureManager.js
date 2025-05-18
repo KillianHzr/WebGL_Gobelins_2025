@@ -51,16 +51,16 @@ class TextureManager {
 
         // Paramètres d'optimisation
         this.optimizationConfig = {
-            mergeThreshold: 1,           // Nombre d'instances avant de considérer une fusion
-            maxTextureSize: 1024,        // Taille maximum de texture en pixels
+            mergeThreshold: 1,           // Réduit à 1 pour fusionner plus de matériaux similaires
+            maxTextureSize: 2048,        // Augmenté pour de meilleures textures sur les objets importants
             distanceThresholds: {        // Seuils de distance pour LOD
-                high: 15,
-                medium: 25,
+                high: 25,                // Augmenté pour utiliser haute résolution plus longtemps
+                medium: 50,              // Augmenté pour maintenir une qualité acceptable à distance
                 low: Infinity
             },
             instanceMergeDistance: 100,  // Distance max pour une fusion d'instance
             autoMergeEnabled: true,      // Activer la fusion automatique
-            memoryBudget: 500,           // Budget mémoire en MB pour les textures
+            memoryBudget: 1000,          // Augmenté à 1000MB pour plus de textures haute qualité
             materialMergeEnabled: true,  // Activer la fusion de matériaux similaires
             materialSimilarityThreshold: 0.85 // Seuil de similarité pour fusionner des matériaux (0.0-1.0)
         };
@@ -79,7 +79,7 @@ class TextureManager {
         this.defaultMaterialProperties = {
             roughness: 0.8,
             metalness: 0.1,
-            envMapIntensity: 0.5,
+            envMapIntensity: 0.8,
             aoIntensity: 0.5,
             normalScale: 1.0,
             displacementScale: 0.0,

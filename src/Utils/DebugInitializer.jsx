@@ -20,7 +20,7 @@ const CHAPTERS = [
 ];
 
 // Profil par défaut
-const DEFAULT_PROFILE = 'developer';
+const DEFAULT_PROFILE = 'artist';
 
 /**
  * Component that initializes debug features based on URL hash
@@ -502,9 +502,9 @@ const DebugInitializer = () => {
         endingFolder.add(endingControls, 'triggerEnding')
             .name('Trigger Full Ending');
 
-        if (guiConfig.gui.closeFolders) {
-            endingFolder.close();
-        }
+        // if (guiConfig.gui.closeFolders) {
+            endingFolder.hide();
+        // }
     }, []);
 
     // Setup des contrôles d'interface
@@ -610,9 +610,9 @@ const DebugInitializer = () => {
             interactionPointsFolder.add(errorObj, 'message').name("ERREUR").disable();
         }
 
-        if (guiConfig.gui.closeFolders) {
-            interactionPointsFolder.close();
-        }
+        // if (guiConfig.gui.closeFolders) {
+            interactionPointsFolder.hide();
+        // }
     }, [teleportCamera]);
 
     // Setup des contrôles de chapitres
@@ -665,11 +665,11 @@ const DebugInitializer = () => {
         const utilsSection = chaptersFolder.addFolder('Utilitaires');
         utilsSection.add(chapterSettings, 'resetScrollVelocity').name('Arrêter défilement');
 
-        if (guiConfig.gui.closeFolders) {
-            chaptersFolder.close();
-            navigationSection.close();
-            utilsSection.close();
-        }
+        // if (guiConfig.gui.closeFolders) {
+            chaptersFolder.hide();
+            navigationSection.hide();
+            utilsSection.hide();
+        // }
     }, [jumpToChapter]);
 
     // Initialisation principale

@@ -146,8 +146,8 @@ export default function PostProcessing() {
             }
 
             // Fermer les dossiers par défaut
-            grainFolder.close();
-            ppFolder.close();
+            grainFolder.hide();
+            ppFolder.hide();
         }
 
         // Cleanup

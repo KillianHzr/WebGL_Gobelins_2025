@@ -21,6 +21,8 @@ export default function MaterialControls() {
     const originalMeshStates = useRef({});  // Pour stocker l'état original des meshes
     const [materialsReady, setMaterialsReady] = useState(false);
     const materialToModelMap = useRef(new Map()); // Pour stocker la relation entre matériaux et modèles
+    const fileInputRef = useRef(null); // Référence pour l'input file
+    const currentTextureTargetRef = useRef(null); // Pour stocker la cible de l'upload en cours
 
     // Options pour les propriétés avec valeurs discrètes
     const sideOptions = {
@@ -518,6 +520,108 @@ export default function MaterialControls() {
         });
     };
 
+    // Fonction pour gérer le remplacement d'une texture par une image uploadée
+    const handleTextureUpload = (event, material, textureName) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Récupérer l'ancienne texture pour copier ses paramètres
+        const oldTexture = material[textureName];
+        if (!oldTexture) {
+            console.warn(`No texture found for ${textureName} in material ${material._objectName}`);
+            return;
+        }
+
+        // Créer une URL pour l'image
+        const imageUrl = URL.createObjectURL(file);
+
+        // Créer une nouvelle texture
+        const loader = new THREE.TextureLoader();
+        loader.load(
+            imageUrl,
+            (newTexture) => {
+                // Copier les paramètres de l'ancienne texture
+                if (oldTexture.repeat) newTexture.repeat.copy(oldTexture.repeat);
+                if (oldTexture.offset) newTexture.offset.copy(oldTexture.offset);
+                if (oldTexture.center) newTexture.center.copy(oldTexture.center);
+                newTexture.rotation = oldTexture.rotation;
+                newTexture.wrapS = oldTexture.wrapS;
+                newTexture.wrapT = oldTexture.wrapT;
+                newTexture.encoding = oldTexture.encoding;
+                newTexture.flipY = oldTexture.flipY;
+                newTexture.premultiplyAlpha = oldTexture.premultiplyAlpha;
+                newTexture.format = oldTexture.format;
+                newTexture.type = oldTexture.type;
+                newTexture.minFilter = oldTexture.minFilter;
+                newTexture.magFilter = oldTexture.magFilter;
+                newTexture.anisotropy = oldTexture.anisotropy;
+
+                // Appliquer la nouvelle texture au matériau
+                material[textureName] = newTexture;
+
+                // Marquer la texture et le matériau comme nécessitant une mise à jour
+                newTexture.needsUpdate = true;
+                material.needsUpdate = true;
+
+                console.log(`Successfully replaced ${textureName} with uploaded image for ${material._objectName}`);
+
+                // Libérer l'URL
+                URL.revokeObjectURL(imageUrl);
+
+                // Forcer le rendu pour voir les changements
+                if (gl && gl.render && scene) {
+                    const camera = scene.getObjectByProperty('isCamera', true) ||
+                        scene.children.find(child => child.isCamera);
+                    if (camera) gl.render(scene, camera);
+                }
+            },
+            undefined,
+            (error) => {
+                console.error(`Error loading texture: ${error.message}`);
+                URL.revokeObjectURL(imageUrl);
+            }
+        );
+    };
+
+    // Créer un input file caché pour l'upload
+    const createHiddenFileInput = () => {
+        // Supprimer l'ancien input s'il existe
+        if (fileInputRef.current) {
+            document.body.removeChild(fileInputRef.current);
+        }
+
+        // Créer un nouvel input file
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.style.display = 'none';
+        document.body.appendChild(input);
+
+        // Ajouter un écouteur pour gérer la sélection de fichier
+        input.addEventListener('change', (event) => {
+            if (currentTextureTargetRef.current) {
+                const { material, textureName } = currentTextureTargetRef.current;
+                handleTextureUpload(event, material, textureName);
+                currentTextureTargetRef.current = null;
+            }
+        });
+
+        fileInputRef.current = input;
+    };
+
+    // Fonction pour déclencher l'upload d'une texture
+    const triggerTextureUpload = (material, textureName) => {
+        if (!fileInputRef.current) {
+            createHiddenFileInput();
+        }
+
+        // Stocker la cible actuelle de l'upload
+        currentTextureTargetRef.current = { material, textureName };
+
+        // Déclencher le dialogue de sélection de fichier
+        fileInputRef.current.click();
+    };
+
     // Observer les changements dans le mode debug
     useEffect(() => {
         if (debug?.active && materialsReady) {
@@ -542,6 +646,18 @@ export default function MaterialControls() {
 
         return () => clearInterval(checkMaterialsReadyInterval);
     }, [scene, debug]);
+
+    // Créer l'input file caché au chargement du composant
+    useEffect(() => {
+        createHiddenFileInput();
+
+        // Nettoyage lors du démontage
+        return () => {
+            if (fileInputRef.current) {
+                document.body.removeChild(fileInputRef.current);
+            }
+        };
+    }, []);
 
     // Initialisation des contrôles GUI pour les matériaux
     useEffect(() => {
@@ -1426,8 +1542,16 @@ export default function MaterialControls() {
                                     offsetX: texture.offset ? texture.offset.x : 0,
                                     offsetY: texture.offset ? texture.offset.y : 0,
                                     rotation: texture.rotation || 0,
-                                    flipY: texture.flipY !== undefined ? texture.flipY : true
+                                    flipY: texture.flipY !== undefined ? texture.flipY : true,
+                                    // Nouvelle action pour déclencher l'upload
+                                    uploadTexture: () => {
+                                        triggerTextureUpload(material, name);
+                                    }
                                 };
+
+                                // Bouton pour remplacer la texture
+                                textureFolder.add(textureControls, 'uploadTexture')
+                                    .name('Upload New Texture');
 
                                 // Enable/disable texture
                                 textureFolder.add(textureControls, 'enabled')
@@ -1667,7 +1791,7 @@ export default function MaterialControls() {
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 10000); // Augmenté à 10 secondes pour plus de fiabilité
+        }, 1000); // Délai d'initialisation
 
         // Nettoyage
         return () => {

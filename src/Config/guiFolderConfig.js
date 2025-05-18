@@ -11,7 +11,7 @@ const guiFolderConfig = {
         "Render": true,           // Nouveaux contrôles de rendu
         "Controls": true,         // Contrôles de navigation
         "Scene": true,            // Contrôles de scène
-        "Renderer": true,         // Contrôles du renderer
+        "Renderer": false,        // Contrôles du renderer
         "Materials": true,        // Contrôles des matériaux
         "Lights": true,           // Contrôles des lumières
         "Effects": true,          // Contrôles des effets
@@ -19,7 +19,7 @@ const guiFolderConfig = {
         "Audio": true,            // Contrôles audio
         "Interfaces": true,       // Contrôles des interfaces
         "Utils": true,            // Utilitaires (import/export)
-        "Flashlight": true,      // Contrôles de la lampe torche
+        "Flashlight": true,       // Contrôles de la lampe torche
 
         // Sous-dossiers (format "parent/enfant")
         "Controls/Auto Rotation": true,
@@ -80,20 +80,20 @@ const guiFolderConfig = {
         },
         "artist": {
             "Visualisation": false,
-            "Interface": true,
-            "Camera": true,
-            "Render": true,
+            "Interface": false,
+            "Camera": false,
+            "Render": false,
             "Controls": false,
             "Scene": false,
-            "Renderer": true,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
+            "Renderer": false,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
             "Materials": true,
-            "Lights": true,
+            "Lights": false,
             "Effects": false,
             "Objects": false,
             "Audio": false,
             "Interfaces": false,
             "Utils": false,
-            "Flashlight": true,      // Contrôles de la lampe torche
+            "Flashlight": false,      // Contrôles de la lampe torche
 
         },
         "empty": {
