@@ -24,6 +24,7 @@ import SceneFog from "./Core/SceneFog.jsx";
 import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
 import {useAnimationFrame} from "./Utils/AnimationManager.js";
+import LightDebugger from "./Config/LightDebugger.jsx";
 
 // Helper pour les logs conditionnels
 const debugLog = (message, ...args) => {
@@ -274,7 +275,7 @@ export default function Experience() {
             <NarrationTriggers/>
             {/*<CameraSwitcher/>*/}
             <SceneFog />
-
+            {debug && <LightDebugger />}
             {debug && <Stats />}
             {debug && <Debug />}
 

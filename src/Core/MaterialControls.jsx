@@ -1731,7 +1731,7 @@ export default function MaterialControls() {
                                         if (material.metalness !== undefined) material.metalness = defaultProps.metalness;
                                         if (material.envMapIntensity !== undefined) material.envMapIntensity = defaultProps.envMapIntensity;
                                         if (material.aoMapIntensity !== undefined) material.aoMapIntensity = defaultProps.aoIntensity;
-                                        if (material.normalScale) {
+                                        if (material.normalScale !== undefined) {
                                             material.normalScale.x = defaultProps.normalScale;
                                             material.normalScale.y = defaultProps.normalScale;
                                         }

@@ -79,15 +79,15 @@ const guiFolderConfig = {
             "Utils": true
         },
         "artist": {
-            "Visualisation": false,
+            "Visualisation": true,
             "Interface": false,
             "Camera": false,
             "Render": false,
             "Controls": false,
             "Scene": false,
-            "Renderer": false,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
+            "Renderer": true,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
             "Materials": true,
-            "Lights": false,
+            "Lights": true,
             "Effects": false,
             "Objects": false,
             "Audio": false,
