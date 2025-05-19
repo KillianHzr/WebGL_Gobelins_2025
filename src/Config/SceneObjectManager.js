@@ -1114,25 +1114,21 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
-    configureGround(groundObject, useMaskImage = true) {
+    configureGround(groundObject, useDepthSystem = true) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
             return false;
         }
 
-        console.log("Configuration du terrain:", groundObject.name || "sans nom");
+        console.log("Configuration du terrain avec système basé sur la hauteur:", groundObject.name || "sans nom");
 
         if (textureManager) {
-            // Utiliser l'approche avec image masque ou l'approche avec points manuels
-            if (useMaskImage) {
-                // Utiliser l'image comme masque pour les chemins
-                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
-                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
-                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
-            } else {
-                // Utiliser l'approche originale avec points manuels
-                return textureManager.setupGroundWithPaths(groundObject);
-            }
+            // Utiliser notre nouvelle méthode basée uniquement sur la hauteur
+            return textureManager.setupGroundBasedOnHeight(groundObject, {
+                heightThreshold: 0.15,    // 15% au-dessus de la hauteur minimale = seuil entre route et herbe
+                transitionZone: 0.05,     // 5% de la plage de hauteur = zone de transition
+                invertHeight: true       // false = les parties basses sont des routes
+            });
         }
 
         return false;
@@ -1183,7 +1179,7 @@ class SceneObjectManager {
         });
 
         if (groundObject) {
-            console.log("Terrain trouvé, configuration automatique...");
+            console.log("Terrain trouvé, configuration automatique avec système basé sur la profondeur...");
             this.configureGround(groundObject);
             return groundObject;
         } else {
@@ -1192,6 +1188,11 @@ class SceneObjectManager {
         }
     }
     // Appliquer les textures à un objet
+    /**
+     * Applique les textures à un objet, avec un traitement spécial pour le terrain
+     * @param {Object} placement - Données de placement de l'objet
+     * @param {Object} modelObject - L'objet 3D auquel appliquer les textures
+     */
     async applyTexturesToObject(placement, modelObject) {
         if (!placement || !modelObject) return;
 
@@ -1201,7 +1202,8 @@ class SceneObjectManager {
         // Traitement spécial pour le terrain (Ground)
         if (placement.objectKey === 'Ground') {
             console.log("Détection de l'objet terrain dans applyTexturesToObject");
-            return this.configureGround(modelObject);
+            // Utiliser la nouvelle méthode basée sur la profondeur
+            return this.configureGround(modelObject, true);
         }
 
         // Traitement standard pour les autres objets
@@ -1210,7 +1212,6 @@ class SceneObjectManager {
             await textureManager.applyTexturesToModel(modelId, modelObject);
         }
     }
-
     // Récupérer tous les placements
     getAllPlacements() {
         return this.placements;

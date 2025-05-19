@@ -470,54 +470,193 @@ class TextureManager {
         // Initialiser les textures si nécessaire
         this.initializeGroundTextures();
 
-        // Appliquer les textures au terrain
-        this.applyGroundTexturesDirectly(groundObject);
+        // Options pour le texturage basé sur la profondeur
+        const options = {
+            depthThreshold: 0.15,     // Seuil relatif (0-1) pour la profondeur
+            transitionZone: 0.05,     // Zone de transition pour un mélange doux
+            roadValue: 0.0,           // Valeur pour les routes
+            grassValue: 0.0,          // Valeur pour l'herbe
+            invertDepth: true,       // Les zones basses sont des routes
+            yOffset: 0,               // Ajuster si le terrain n'est pas centré à Y=0
+            // Définir explicitement des chemins supplémentaires pour guider la génération
+            forcedPaths: [
+                {
+                    points: [
+                        [-9, 13],      // Panneau de départ
+                        [-5, 5],
+                        [0, -5],
+                        [2, -12],      // Premier tronc
+                        [-2, -25],
+                        [-5, -40],
+                        [-6.9, -55.5], // Zone des feuilles/empreintes
+                        [-15, -65],
+                        [-25, -75],
+                        [-30.5, -77],  // Zone des rochers de rivière
+                        [-35, -90],
+                        [-38, -105],
+                        [-41, -115.5], // Zone du tronc fin
+                        [-20, -120],
+                        [10, -125],
+                        [35, -128],
+                        [52, -130]     // Vison
+                    ],
+                    width: 2.5        // Largeur du chemin principal
+                },
+                // Chemins secondaires
+                {
+                    points: [[-6.9, -55.5], [-10, -60], [-15, -62]],
+                    width: 1.2
+                },
+                {
+                    points: [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]],
+                    width: 1.5
+                }
+            ]
+        };
 
-        // Définir le chemin principal
-        const mainPath = [
-            [-9, 13], // Panneau de départ
-            [-5, 5],
-            [0, -5],
-            [2, -12], // Premier tronc
-            [-2, -25],
-            [-5, -40],
-            [-6.9, -55.5], // Zone des feuilles/empreintes
-            [-15, -65],
-            [-25, -75],
-            [-30.5, -77], // Zone des rochers de rivière
-            [-35, -90],
-            [-38, -105],
-            [-41, -115.5], // Zone du tronc fin
-            [-20, -120],
-            [10, -125],
-            [35, -128],
-            [52, -130] // Vison
-        ];
+        // Utiliser la nouvelle méthode de texturage basée sur la profondeur
+        return this.setupGroundWithDepthBasedTexturing(groundObject, options);
+    }
 
-        // Définir le chemin principal
-        this.defineGroundPath(groundObject, mainPath, {
-            width: 2.0,
-            roadValue: 0.9,
-            falloff: 1.5
+
+    /**
+     * Visualisation des zones de profondeur pour le débogage
+     * @param {Object} groundObject - L'objet terrain
+     * @param {Object} options - Options de configuration
+     */
+    createDepthVisualizationMaterial(groundObject, options = {}) {
+        // Options de visualisation
+        const config = {
+            depthThreshold: options.depthThreshold || 0.2,
+            transitionZone: options.transitionZone || 0.1,
+            yOffset: options.yOffset || 0,
+            colorLow: options.colorLow || [0.6, 0.6, 0.6],    // Gris pour les parties basses (routes)
+            colorMid: options.colorMid || [0.3, 0.5, 0.3],    // Vert-jaune pour la transition
+            colorHigh: options.colorHigh || [0.1, 0.6, 0.1],  // Vert pour les parties hautes (herbe)
+            wireframe: options.wireframe || false,
+            forcedPaths: options.forcedPaths || []
+        };
+
+        // Créer un matériau de débogage
+        const material = new MeshBasicMaterial({
+            vertexColors: true,
+            side: DoubleSide,
+            wireframe: config.wireframe
         });
 
-        // Définir les chemins secondaires
-        const secondaryPaths = [
-            // Vers les empreintes
-            [[-6.9, -55.5], [-10, -60], [-15, -62]],
-            // Autour des rochers
-            [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]]
-        ];
+        // Trouver les limites de hauteur
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
 
-        secondaryPaths.forEach(path => {
-            this.defineGroundPath(groundObject, path, {
-                width: 1.2,
-                roadValue: 0.7,
-                falloff: 1.0
-            });
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
         });
 
-        return true;
+        console.log(`Visualisation - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer un seuil adaptatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.depthThreshold * heightRange);
+
+        console.log(`Visualisation - Seuil: ${effectiveThreshold.toFixed(3)}`);
+
+        // Appliquer les couleurs de visualisation
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                // Sauvegarder le matériau original
+                if (!node.userData.originalMaterial) {
+                    node.userData.originalMaterial = node.material;
+                }
+
+                // S'assurer que les vertex colors existent
+                this.ensureVertexColors(node);
+
+                const positions = node.geometry.attributes.position;
+                const colors = node.geometry.attributes.color;
+                const count = positions.count;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const x = positions.getX(i);
+                    const y = positions.getY(i) + config.yOffset;
+                    const z = positions.getZ(i);
+
+                    let debugColor;
+
+                    // Vérifier d'abord si le vertex est dans une zone de chemin forcé
+                    let isInForcedPath = false;
+                    for (const path of config.forcedPaths) {
+                        if (this._isPointNearPath(x, z, path, path.width || 2.0)) {
+                            // Rouge vif pour les chemins forcés
+                            debugColor = [0.8, 0.2, 0.2];
+                            isInForcedPath = true;
+                            break;
+                        }
+                    }
+
+                    if (!isInForcedPath) {
+                        if (y < effectiveThreshold) {
+                            // Zone basse (route) - Gris
+                            debugColor = [...config.colorLow];
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition - gradient
+                            const t = (y - effectiveThreshold) / config.transitionZone;
+                            debugColor = [
+                                config.colorLow[0] * (1-t) + config.colorMid[0] * t,
+                                config.colorLow[1] * (1-t) + config.colorMid[1] * t,
+                                config.colorLow[2] * (1-t) + config.colorMid[2] * t
+                            ];
+                        } else if (y < effectiveThreshold + config.transitionZone * 2) {
+                            // Zone de transition supérieure
+                            const t = (y - (effectiveThreshold + config.transitionZone)) / config.transitionZone;
+                            debugColor = [
+                                config.colorMid[0] * (1-t) + config.colorHigh[0] * t,
+                                config.colorMid[1] * (1-t) + config.colorHigh[1] * t,
+                                config.colorMid[2] * (1-t) + config.colorHigh[2] * t
+                            ];
+                        } else {
+                            // Zone haute (herbe) - Vert
+                            debugColor = [...config.colorHigh];
+                        }
+                    }
+
+                    // Appliquer la couleur de débogage
+                    colors.setXYZ(i, debugColor[0], debugColor[1], debugColor[2]);
+                }
+
+                colors.needsUpdate = true;
+                node.material = material;
+            }
+        });
+
+        console.log("Matériau de visualisation de profondeur appliqué");
+        return material;
+    }
+
+    /**
+     * Restaure le matériau original après visualisation
+     * @param {Object} groundObject - L'objet terrain
+     */
+    restoreGroundMaterial(groundObject) {
+        if (!groundObject) return;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.userData.originalMaterial) {
+                node.material = node.userData.originalMaterial;
+                delete node.userData.originalMaterial;
+            }
+        });
+
+        console.log("Matériau de terrain original restauré");
     }
     // Initialisation des textures basée sur la structure de fichiers
     initializeTextures() {
@@ -526,18 +665,6 @@ class TextureManager {
             roughness: 1.0,
             metalness: 0.59,
             envMapIntensity: 0.08
-        });
-
-        this.addTextureMapping('DirectionPanel', 'primary', null, {
-            roughness: 1.0,
-            metalness: 0.59,
-            envMapIntensity: 1.0
-        });
-
-        this.addTextureMapping('DigitalDirectionPanel', 'primary', null, {
-            roughness: 1.0,
-            metalness: 0.59,
-            envMapIntensity: 1.0
         });
 
         this.addTextureMapping('TrunkLarge', 'forest/tree', null, {
@@ -1988,6 +2115,58 @@ class TextureManager {
     }
 
     /**
+     * Configure le terrain en utilisant la profondeur des vertices pour déterminer la texture
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    async setupGroundWithDepthBasedTexturing(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithDepthBasedTexturing: objet terrain manquant");
+            return false;
+        }
+
+        console.log("REDIRECTION: Utilisation de la méthode basée uniquement sur la hauteur");
+
+        // Rediriger vers notre nouvelle méthode simplifiée
+        return this.setupGroundBasedOnHeight(groundObject, {
+            heightThreshold: 0.63,
+            transitionZone: 0.02,
+            invertHeight: false,
+            yOffset: 0.5
+        });
+    }
+
+    /**
+     * Vérifie si un point est proche d'un chemin défini par des points
+     * @param {Number} x - Coordonnée X du point
+     * @param {Number} z - Coordonnée Z du point
+     * @param {Array} path - Tableau de points définissant le chemin
+     * @param {Number} width - Largeur du chemin
+     * @returns {Boolean} - true si le point est proche du chemin
+     */
+    _isPointNearPath(x, z, path, width = 2.0) {
+        // Vérifier si le chemin a des points
+        if (!path || !path.points || path.points.length < 2) return false;
+
+        // Pour chaque segment du chemin
+        for (let i = 0; i < path.points.length - 1; i++) {
+            const [x1, z1] = path.points[i];
+            const [x2, z2] = path.points[i + 1];
+
+            // Calculer la distance du point au segment
+            const distance = this._distanceToSegment(x, z, x1, z1, x2, z2);
+
+            // Si la distance est inférieure à la moitié de la largeur, le point est sur le chemin
+            if (distance <= width / 2) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Méthode clé: Applique un matériau fusionné à un modèle déjà chargé/instancié
      * Cette méthode est le cœur de l'optimisation pour les modèles existants
      */
@@ -3325,63 +3504,170 @@ class TextureManager {
         console.log("Masque de chemin appliqué avec succès aux vertex colors");
     }
     /**
-     * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
+     * @deprecated Utiliser setupGroundWithDepthBasedTexturing à la place
+     * Cette méthode est conservée pour compatibilité mais redirige vers la nouvelle approche
      */
-    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_grass.png') {
-        // Initialiser les textures avec toutes les maps
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
+        console.warn("setupGroundWithPathsMask est dépréciée, redirection vers setupGroundWithDepthBasedTexturing");
+
+        // Rediriger vers la nouvelle méthode basée sur la profondeur
+        return this.setupGroundWithDepthBasedTexturing(groundObject, {
+            depthThreshold: 0.15,
+            transitionZone: 0.05,
+            roadValue: 0.9,
+            grassValue: 0.0,
+            // Utiliser des chemins forcés pour garantir la même apparence qu'avec l'image masque
+            forcedPaths: [
+                {
+                    points: [
+                        [-9, 13],      // Panneau de départ
+                        [-5, 5],
+                        [0, -5],
+                        [2, -12],      // Premier tronc
+                        [-2, -25],
+                        [-5, -40],
+                        [-6.9, -55.5], // Zone des feuilles/empreintes
+                        [-15, -65],
+                        [-25, -75],
+                        [-30.5, -77],  // Zone des rochers de rivière
+                        [-35, -90],
+                        [-38, -105],
+                        [-41, -115.5], // Zone du tronc fin
+                        [-20, -120],
+                        [10, -125],
+                        [35, -128],
+                        [52, -130]     // Vison
+                    ],
+                    width: 2.5
+                },
+                // Chemins secondaires
+                {
+                    points: [[-6.9, -55.5], [-10, -60], [-15, -62]],
+                    width: 1.2
+                },
+                {
+                    points: [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]],
+                    width: 1.5
+                }
+            ]
+        });
+    }
+
+    /**
+     * Applique les textures au terrain uniquement en fonction de la hauteur des vertices
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundBasedOnHeight(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundBasedOnHeight: objet terrain manquant");
+            return false;
+        }
+
+        console.log("Configuration du terrain basée uniquement sur la hauteur des vertices");
+
+        // Initialiser les textures si nécessaire
         this.initializeGroundTextures();
 
-        console.log("Configuration du terrain avec masque de chemin et toutes les maps");
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.1,     // Seuil relatif (0-1) pour la hauteur
+            transitionZone: options.transitionZone || 0.05,      // Zone de transition entre route et herbe
+            roadValue: options.roadValue || 0.9,                 // Valeur pour les routes (0-1)
+            grassValue: options.grassValue || 0.0,               // Valeur pour l'herbe (0-1)
+            invertHeight: options.invertHeight || false,         // Si true, les parties hautes sont des routes
+            yOffset: options.yOffset || 0                        // Ajuster si le terrain n'est pas centré à Y=0
+        };
 
-        // Vérifier que les textures sont correctement configurées
-        if (!this.hasTextures('ForestGrass') || !this.hasTextures('ForestRoad')) {
-            console.error("Textures manquantes pour le terrain. Vérifiez les chemins.");
-            return false;
-        }
+        // Créer le matériau de terrain
+        const material = this.createGroundMaterial();
 
-        // Vérifier que tous les fichiers sont présents
-        const grassTextures = this.texturePaths['ForestGrass'];
-        const roadTextures = this.texturePaths['ForestRoad'];
+        // Trouver les limites de hauteur du terrain pour calibrage
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
 
-        console.log("Textures configurées:", {
-            grass: Object.keys(grassTextures),
-            road: Object.keys(roadTextures)
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
         });
 
-        // Appliquer les textures avec le masque
-        try {
-            // Créer d'abord le matériau avancé qui utilise toutes les maps
-            const material = this.createGroundMaterial();
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
 
-            // Appliquer le matériau à tous les mesh du terrain
-            let appliedCount = 0;
-            groundObject.traverse((node) => {
-                if (node.isMesh) {
-                    // S'assurer que le mesh a des vertex colors initialisés
-                    this.ensureVertexColors(node);
+        // Calculer un seuil absolu à partir du seuil relatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
 
-                    // Appliquer le matériau
-                    node.material = material;
-                    appliedCount++;
+        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
 
-                    // S'assurer que les UV2 sont configurés pour l'aoMap
-                    if (!node.geometry.attributes.uv2 && node.geometry.attributes.uv) {
-                        node.geometry.setAttribute('uv2', node.geometry.attributes.uv);
+        // Appliquer les vertex colors basés sur la hauteur
+        let appliedCount = 0;
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // S'assurer que les vertex colors existent
+                this.ensureVertexColors(node);
+
+                if (node.geometry && node.geometry.attributes.position) {
+                    const positions = node.geometry.attributes.position;
+                    const colors = node.geometry.attributes.color;
+                    const count = positions.count;
+
+                    // Pour chaque vertex
+                    for (let i = 0; i < count; i++) {
+                        const y = positions.getY(i) + config.yOffset;
+
+                        // Déterminer si c'est une route ou de l'herbe basé uniquement sur la hauteur
+                        let roadFactor = 0;
+
+                        if (config.invertHeight) {
+                            // Si inversé: les parties hautes sont des routes
+                            if (y > effectiveThreshold) {
+                                roadFactor = config.roadValue;
+                            } else if (y > effectiveThreshold - config.transitionZone) {
+                                // Zone de transition
+                                const t = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                                roadFactor = config.grassValue + t * (config.roadValue - config.grassValue);
+                            } else {
+                                roadFactor = config.grassValue;
+                            }
+                        } else {
+                            // Comportement par défaut: les parties basses sont des routes
+                            if (y < effectiveThreshold) {
+                                roadFactor = config.roadValue;
+                            } else if (y < effectiveThreshold + config.transitionZone) {
+                                // Zone de transition
+                                const t = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                                roadFactor = config.grassValue + t * (config.roadValue - config.grassValue);
+                            } else {
+                                roadFactor = config.grassValue;
+                            }
+                        }
+
+                        // Mettre à jour la couleur du vertex (canal R pour le mélange route/herbe)
+                        // Préserver les canaux G et B existants
+                        colors.setXYZ(i, roadFactor, colors.getY(i), colors.getZ(i));
                     }
+
+                    // Marquer les couleurs comme modifiées
+                    colors.needsUpdate = true;
                 }
-            });
 
-            console.log(`Matériau appliqué à ${appliedCount} mesh(es)`);
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
 
-            // Appliquer le masque d'image pour définir les vertex colors
-            await this.applyMaskImageToGround(groundObject, maskImagePath);
-
-            console.log("Configuration du terrain terminée avec succès");
-            return true;
-        } catch (error) {
-            console.error("Erreur lors de la configuration du terrain:", error);
-            return false;
-        }
+        console.log(`Textures basées sur la hauteur appliquées à ${appliedCount} mesh(es)`);
+        return true;
     }
     /**
      * Créer un modèle fusionné à partir d'un groupe d'instances
