@@ -24,15 +24,15 @@ const baseAssets = [
         url: ''
     },
 
-    // Éléments de base de la scène
-    {
-        name: 'Ground',
-        type: 'gltf',
-        path: '/models/Ground.glb',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
+    // // Éléments de base de la scène
+    // {
+    //     name: 'Ground',
+    //     type: 'gltf',
+    //     path: '/models/Ground.glb',
+    //     license: 'CC-BY',
+    //     author: 'Author',
+    //     url: ''
+    // },
 
     // Objets primaires (interactifs et statiques)
     {

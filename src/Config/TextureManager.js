@@ -92,43 +92,6 @@ class TextureManager {
 
     }
 
-    initializeGroundTextures() {
-        console.log("Initialisation des textures complètes pour le terrain");
-
-        // Définir les textures pour l'herbe avec toutes les maps
-        this.addTextureMapping('ForestGrass', 'ground', 'ForestGrass', {
-            roughness: 1.0,
-            metalness: 0.05,
-            envMapIntensity: 0.2,
-            normalScale: 1.0
-        });
-
-        // Définir les textures pour le chemin avec toutes les maps
-        this.addTextureMapping('ForestRoad', 'ground', 'ForestRoad', {
-            roughness: 0.9,
-            metalness: 0.1,
-            envMapIntensity: 0.3,
-            normalScale: 1.2
-        });
-
-        // Configuration spéciale pour Ground qui utilise ForestGrass et ForestRoad
-        this.texturePaths['Ground'] = {
-            grass: this.texturePaths['ForestGrass'],
-            road: this.texturePaths['ForestRoad']
-        };
-
-        // Ajouter une propriété pour indiquer que c'est un terrain avec chemin
-        this.materialProperties['Ground'] = {
-            ...this.defaultMaterialProperties,
-            isGround: true,
-            vertexColors: true,
-            roughness: 0.95,
-            metalness: 1.0,
-            envMapIntensity: 0.05
-        };
-
-        console.log("Textures de terrain initialisées avec toutes les maps disponibles");
-    }
 
 
     ensureVertexColors(meshNode) {
@@ -2479,10 +2442,6 @@ class TextureManager {
             return false;
         }
 
-        console.log("Configuration du terrain basée uniquement sur la hauteur des vertices");
-
-        // Initialiser les textures si nécessaire
-        this.initializeGroundTextures();
 
         // Options par défaut
         const config = {
