@@ -3,12 +3,12 @@ import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import {useAnimationFrame} from "../Utils/AnimationManager.js";
+import { useAnimationFrame } from "../Utils/AnimationManager.js";
+import { EventBus } from "../Utils/EventEmitter.jsx";
 
 /**
  * Flashlight Component - World/Flashlight.jsx
- * Version optimisée: crée la lumière avec intensité 0 au démarrage,
- * puis l'active à la bonne intensité au point de timeline requis
+ * Version optimisée avec correction des problèmes de boucle infinie de rendu
  */
 export default function Flashlight() {
     const { camera, scene, gl } = useThree();
@@ -16,26 +16,36 @@ export default function Flashlight() {
     const flashlightTargetRef = useRef(new THREE.Object3D());
     const configRef = useRef(guiConfig.flashlight);
 
-    // Référence pour les états d'initialisation
+    // Références pour éviter les mises à jour d'état excessives
     const initializedRef = useRef(false);
     const guiInitializedRef = useRef(false);
+    const normalizedPositionRef = useRef(0);
+    const targetIntensityRef = useRef(0);
+    const currentIntensityRef = useRef(0);
+    const forceUpdateRef = useRef(0);
 
     // État pour stocker l'intensité normale (pour pouvoir y revenir)
     const [normalIntensity] = useState(configRef.current.intensity.default);
 
-    // État pour stocker les paramètres de direction avec les nouvelles valeurs par défaut
+    // Configuration des seuils d'activation de la lampe torche (en référence pour éviter les re-rendus)
+    const flashlightThresholdsRef = useRef({
+        startActivation: 0.65,  // Commence à apparaître à 65% du parcours
+        fullActivation: 0.8     // Atteint sa pleine intensité à 80% du parcours
+    });
+
+    // État pour stocker les paramètres de direction
     const [directionParams, setDirectionParams] = useState({
         offsetX: 0,           // Direction X: 0
-        offsetY: 0,           // Direction Y: 0
-        offsetZ: -0.3,        // Direction Z: -0.3
+        offsetY: -0.03,           // Direction Y: 0
+        offsetZ: -0.25,        // Direction Z: -0.3
         distance: 1           // Distance cible: 1
     });
 
     // État pour stocker les paramètres avancés
     const [advancedParams, setAdvancedParams] = useState({
-        angle: 0.51179,       // Angle: 0.51179
+        angle: 0.25,       // Angle: 0.51179
         penumbra: 1,          // Douceur des bords: 1
-        distance: 5,          // Distance: 5
+        distance: 15,          // Distance: 5
         decay: 1.1            // Atténuation: 1.1
     });
 
@@ -45,14 +55,25 @@ export default function Flashlight() {
     const debug = useStore(state => state.debug);
     const gui = useStore(state => state.gui);
 
-    // Accéder à la position de défilement et la longueur totale
-    const timelinePosition = useStore(state => state.timelinePosition);
-    const sequenceLength = useStore(state => state.sequenceLength);
+    // Écouter l'événement de position normalisée de la timeline - SANS mise à jour d'état
+    useEffect(() => {
+        const handleTimelinePositionUpdate = (data) => {
+            // Utiliser une référence au lieu d'un setState pour éviter les boucles de rendu
+            normalizedPositionRef.current = data.position;
+        };
+
+        // S'abonner à l'événement
+        const subscription = EventBus.on('timeline-position-normalized', handleTimelinePositionUpdate);
+
+        // Nettoyage
+        return () => {
+            subscription();
+        };
+    }, []);
 
     // INITIALISATION - création de la cible
     useEffect(() => {
         if (!initializedRef.current) {
-
             // Ajouter la cible à la scène
             scene.add(flashlightTargetRef.current);
             flashlightTargetRef.current.name = "flashlightTarget";
@@ -68,7 +89,7 @@ export default function Flashlight() {
             const targetPosition = camera.position.clone().add(direction.multiplyScalar(directionParams.distance));
             flashlightTargetRef.current.position.copy(targetPosition);
 
-            // Initialiser l'état dans le store
+            // Initialiser l'état dans le store (une seule fois)
             updateFlashlightState({
                 autoActivate: true,
                 active: true, // La lumière est toujours active mais à intensité zéro
@@ -93,7 +114,6 @@ export default function Flashlight() {
     // Configuration de la flashlight une fois créée
     useEffect(() => {
         if (!flashlightRef.current) return;
-
 
         // Configuration des paramètres
         const flashlight = flashlightRef.current;
@@ -133,9 +153,9 @@ export default function Flashlight() {
             preloadState: 'ready'
         });
 
-
     }, [flashlightRef.current, scene, camera, gl, updateFlashlightState, advancedParams]);
 
+    // GUI setup (inchangé sauf pour utiliser les refs au lieu des états)
     useEffect(() => {
         if (debug?.active && gui && !guiInitializedRef.current) {
             let flashlightFolder = gui.folders?.find(folder => folder.name === 'Flashlight');
@@ -151,6 +171,10 @@ export default function Flashlight() {
                     intensity: flashlightState.intensity || 0,
                     normalIntensity: flashlightState.normalIntensity || configRef.current.intensity.default,
                     color: configRef.current.color.default,
+
+                    // Nouveaux paramètres de seuil
+                    startActivationThreshold: flashlightThresholdsRef.current.startActivation,
+                    fullActivationThreshold: flashlightThresholdsRef.current.fullActivation,
 
                     // Paramètres avancés
                     angle: advancedParams.angle,
@@ -174,23 +198,19 @@ export default function Flashlight() {
                     shadowNormalBias: configRef.current.shadows.normalBias.default
                 };
 
-                // SECTION: CONTRÔLES DE BASE
-                // -----------------------------------
-
                 // Activer/désactiver manuellement
                 flashlightFolder.add(flashlightProxy, 'active')
                     .name('Activer')
                     .onChange(value => {
                         if (flashlightRef.current) {
                             // Si actif, utiliser l'intensité normale, sinon mettre à 0
-                            flashlightRef.current.intensity = value
-                                ? flashlightProxy.normalIntensity
-                                : 0;
+                            const newIntensity = value ? flashlightProxy.normalIntensity : 0;
+                            targetIntensityRef.current = newIntensity;
 
                             // Mettre à jour l'état
                             updateFlashlightState({
                                 active: value,
-                                intensity: value ? flashlightProxy.normalIntensity : 0,
+                                intensity: newIntensity,
                                 manuallyToggled: true
                             });
                         }
@@ -206,6 +226,32 @@ export default function Flashlight() {
                         });
                     });
 
+                // Seuil de début d'activation
+                flashlightFolder.add(
+                    flashlightProxy,
+                    'startActivationThreshold',
+                    0,
+                    1,
+                    0.01
+                )
+                    .name('Seuil début activation')
+                    .onChange(value => {
+                        flashlightThresholdsRef.current.startActivation = value;
+                    });
+
+                // Seuil d'activation complète
+                flashlightFolder.add(
+                    flashlightProxy,
+                    'fullActivationThreshold',
+                    0,
+                    1,
+                    0.01
+                )
+                    .name('Seuil activation complète')
+                    .onChange(value => {
+                        flashlightThresholdsRef.current.fullActivation = value;
+                    });
+
                 // Intensité actuelle
                 const intensityController = flashlightFolder.add(
                     flashlightProxy,
@@ -217,8 +263,10 @@ export default function Flashlight() {
                     .name('Intensité actuelle')
                     .onChange(value => {
                         if (flashlightRef.current) {
-                            flashlightRef.current.intensity = value;
+                            targetIntensityRef.current = value;
                             updateFlashlightState({ intensity: value });
+                            // Force un re-rendu sans update state
+                            forceUpdateRef.current++;
                         }
                     });
 
@@ -235,7 +283,7 @@ export default function Flashlight() {
                         updateFlashlightState({ normalIntensity: value });
                         // Si la lampe est active, mettre à jour aussi l'intensité actuelle
                         if (flashlightRef.current && flashlightProxy.active) {
-                            flashlightRef.current.intensity = value;
+                            targetIntensityRef.current = value;
                             flashlightProxy.intensity = value;
                             intensityController.setValue(value);
                             updateFlashlightState({ intensity: value });
@@ -251,8 +299,7 @@ export default function Flashlight() {
                         }
                     });
 
-                // SECTION: DIRECTION (NOUVEAU)
-                // -----------------------------------
+                // SECTION: DIRECTION
                 const directionFolder = flashlightFolder.addFolder('Direction');
 
                 // Direction X
@@ -344,7 +391,6 @@ export default function Flashlight() {
                     });
 
                 // SECTION: PARAMÈTRES AVANCÉS
-                // -----------------------------------
                 const advancedFolder = flashlightFolder.addFolder('Paramètres avancés');
 
                 // Angle
@@ -424,7 +470,6 @@ export default function Flashlight() {
                     });
 
                 // SECTION: OMBRES
-                // -----------------------------------
                 const shadowsFolder = flashlightFolder.addFolder('Ombres');
 
                 // Activer/désactiver les ombres
@@ -484,7 +529,6 @@ export default function Flashlight() {
                     });
 
                 // SECTION: DIAGNOSTIC
-                // -----------------------------------
                 const diagnosticFolder = flashlightFolder.addFolder('Diagnostic');
 
                 // Afficher l'état de préchargement (lecture seule)
@@ -508,8 +552,8 @@ export default function Flashlight() {
 
                 // Fermer les sous-dossiers par défaut si configuré
                 if (guiConfig.gui.closeFolders) {
-                    directionFolder.open(); // Garder le dossier Direction ouvert pour faciliter l'accès
-                    advancedFolder.open(); // Garder le dossier Paramètres avancés ouvert
+                    directionFolder.open();
+                    advancedFolder.open();
                     shadowsFolder.close();
                     diagnosticFolder.close();
                 }
@@ -519,59 +563,76 @@ export default function Flashlight() {
         }
     }, [debug, gui, flashlightState, updateFlashlightState, directionParams, advancedParams]);
 
-    // ACTIVATION AUTOMATIQUE DE L'INTENSITÉ en fonction de la timeline
-    useEffect(() => {
-        // Vérifier si on doit activer/désactiver
-        if (!flashlightState.autoActivate || sequenceLength <= 0 || flashlightState.manuallyToggled) return;
-
-        // Calculer le seuil d'activation (70% de la séquence)
-        const activationThreshold = sequenceLength * 0.7;
-
-        // Activer l'intensité à 70% de la timeline
-        if (timelinePosition >= activationThreshold &&
-            flashlightRef.current &&
-            flashlightRef.current.intensity === 0) {
-
-            // Utiliser requestAnimationFrame pour synchroniser avec le cycle de rendu
-            requestAnimationFrame(() => {
-                const targetIntensity = flashlightState.normalIntensity || normalIntensity;
-
-                // Mettre à jour l'intensité réelle
-                if (flashlightRef.current) {
-                    flashlightRef.current.intensity = targetIntensity;
-                }
-
-                // Mettre à jour l'état
-                updateFlashlightState({
-                    intensity: targetIntensity,
-                    manuallyToggled: false
-                });
-
-            });
-        }
-        // Désactiver l'intensité en revenant sous le seuil
-        else if (timelinePosition < activationThreshold &&
-            flashlightRef.current &&
-            flashlightRef.current.intensity > 0) {
-
-            requestAnimationFrame(() => {
-                // Remettre l'intensité à zéro
-                if (flashlightRef.current) {
-                    flashlightRef.current.intensity = 0;
-                }
-
-                // Mettre à jour l'état
-                updateFlashlightState({
-                    intensity: 0,
-                    manuallyToggled: false
-                });
-            });
-        }
-    }, [timelinePosition, sequenceLength, flashlightState, updateFlashlightState, normalIntensity, flashlightRef]);
-
-    // Mettre à jour la position et la rotation à chaque frame
+    // Animation et logique de mise à jour
+    // IMPORTANT: Nous utilisons useAnimationFrame à la place de useEffect pour éviter les boucles infinies
     useAnimationFrame(() => {
-        if (flashlightRef.current && flashlightTargetRef.current) {
+        if (!flashlightRef.current) return;
+
+        // ACTIVATION AUTOMATIQUE DE L'INTENSITÉ - intégrée dans l'animation frame pour éviter les setState
+        if (flashlightState.autoActivate && !flashlightState.manuallyToggled) {
+            const thresholds = flashlightThresholdsRef.current;
+            const position = normalizedPositionRef.current;
+
+            if (position >= thresholds.startActivation) {
+                let intensity = 0;
+
+                if (position >= thresholds.fullActivation) {
+                    // Pleine intensité
+                    intensity = flashlightState.normalIntensity || normalIntensity;
+                } else {
+                    // Intensité progressive entre les seuils de début et de fin
+                    const progressFactor = (position - thresholds.startActivation) /
+                        (thresholds.fullActivation - thresholds.startActivation);
+                    intensity = (flashlightState.normalIntensity || normalIntensity) * progressFactor;
+                }
+
+                // Mettre à jour l'intensité cible sans setState
+                targetIntensityRef.current = intensity;
+
+                // Mettre à jour l'état dans le store moins fréquemment
+                if (Math.abs(flashlightState.intensity - intensity) > 0.05) {
+                    updateFlashlightState({
+                        intensity: intensity,
+                    });
+                }
+            } else if (position < thresholds.startActivation && targetIntensityRef.current > 0) {
+                // Désactiver progressivement
+                targetIntensityRef.current = 0;
+
+                // Mise à jour du store
+                if (flashlightState.intensity > 0.05) {
+                    updateFlashlightState({
+                        intensity: 0,
+                    });
+                }
+            }
+        }
+
+        // Transition fluide de l'intensité
+        if (Math.abs(currentIntensityRef.current - targetIntensityRef.current) > 0.001) {
+            // Facteur de lissage (plus petit = plus lent)
+            const smoothingFactor = 0.1;
+
+            // Calculer la nouvelle intensité en interpolant
+            const newIntensity = THREE.MathUtils.lerp(
+                currentIntensityRef.current,
+                targetIntensityRef.current,
+                smoothingFactor
+            );
+
+            // Mettre à jour la référence d'intensité actuelle
+            currentIntensityRef.current = newIntensity;
+
+            // Appliquer à la lumière
+            flashlightRef.current.intensity = newIntensity;
+        } else if (currentIntensityRef.current !== targetIntensityRef.current) {
+            // Snap à la valeur exacte si on est très proche
+            currentIntensityRef.current = targetIntensityRef.current;
+            flashlightRef.current.intensity = targetIntensityRef.current;
+        }
+
+        // Mise à jour de la position et orientation de la lampe
+        if (flashlightTargetRef.current) {
             // Position de la lampe par rapport à la caméra
             const offsetPosition = new THREE.Vector3(0.0, 0.0, 0.0);
             offsetPosition.applyQuaternion(camera.quaternion);
@@ -590,6 +651,20 @@ export default function Flashlight() {
             const targetPosition = camera.position.clone().add(direction.multiplyScalar(directionParams.distance));
             flashlightTargetRef.current.position.copy(targetPosition);
             flashlightTargetRef.current.updateMatrixWorld();
+
+            // Ajuster dynamiquement la couleur en fonction de l'intensité
+            if (flashlightRef.current.intensity > 0) {
+                const normalizedIntensity = flashlightRef.current.intensity / normalIntensity;
+                const warmColor = new THREE.Color("#ffbb77"); // Couleur chaude à faible intensité
+                const brightColor = new THREE.Color("#ffffff"); // Couleur blanche à pleine intensité
+
+                const resultColor = new THREE.Color();
+                resultColor.r = THREE.MathUtils.lerp(warmColor.r, brightColor.r, normalizedIntensity);
+                resultColor.g = THREE.MathUtils.lerp(warmColor.g, brightColor.g, normalizedIntensity);
+                resultColor.b = THREE.MathUtils.lerp(warmColor.b, brightColor.b, normalizedIntensity);
+
+                flashlightRef.current.color.copy(resultColor);
+            }
         }
     }, 'camera');
 

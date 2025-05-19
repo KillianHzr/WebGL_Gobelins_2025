@@ -470,54 +470,193 @@ class TextureManager {
         // Initialiser les textures si nécessaire
         this.initializeGroundTextures();
 
-        // Appliquer les textures au terrain
-        this.applyGroundTexturesDirectly(groundObject);
+        // Options pour le texturage basé sur la profondeur
+        const options = {
+            depthThreshold: 0.15,     // Seuil relatif (0-1) pour la profondeur
+            transitionZone: 0.05,     // Zone de transition pour un mélange doux
+            roadValue: 0.0,           // Valeur pour les routes
+            grassValue: 0.0,          // Valeur pour l'herbe
+            invertDepth: true,       // Les zones basses sont des routes
+            yOffset: 0,               // Ajuster si le terrain n'est pas centré à Y=0
+            // Définir explicitement des chemins supplémentaires pour guider la génération
+            forcedPaths: [
+                {
+                    points: [
+                        [-9, 13],      // Panneau de départ
+                        [-5, 5],
+                        [0, -5],
+                        [2, -12],      // Premier tronc
+                        [-2, -25],
+                        [-5, -40],
+                        [-6.9, -55.5], // Zone des feuilles/empreintes
+                        [-15, -65],
+                        [-25, -75],
+                        [-30.5, -77],  // Zone des rochers de rivière
+                        [-35, -90],
+                        [-38, -105],
+                        [-41, -115.5], // Zone du tronc fin
+                        [-20, -120],
+                        [10, -125],
+                        [35, -128],
+                        [52, -130]     // Vison
+                    ],
+                    width: 2.5        // Largeur du chemin principal
+                },
+                // Chemins secondaires
+                {
+                    points: [[-6.9, -55.5], [-10, -60], [-15, -62]],
+                    width: 1.2
+                },
+                {
+                    points: [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]],
+                    width: 1.5
+                }
+            ]
+        };
 
-        // Définir le chemin principal
-        const mainPath = [
-            [-9, 13], // Panneau de départ
-            [-5, 5],
-            [0, -5],
-            [2, -12], // Premier tronc
-            [-2, -25],
-            [-5, -40],
-            [-6.9, -55.5], // Zone des feuilles/empreintes
-            [-15, -65],
-            [-25, -75],
-            [-30.5, -77], // Zone des rochers de rivière
-            [-35, -90],
-            [-38, -105],
-            [-41, -115.5], // Zone du tronc fin
-            [-20, -120],
-            [10, -125],
-            [35, -128],
-            [52, -130] // Vison
-        ];
+        // Utiliser la nouvelle méthode de texturage basée sur la profondeur
+        return this.setupGroundWithDepthBasedTexturing(groundObject, options);
+    }
 
-        // Définir le chemin principal
-        this.defineGroundPath(groundObject, mainPath, {
-            width: 2.0,
-            roadValue: 0.9,
-            falloff: 1.5
+
+    /**
+     * Visualisation des zones de profondeur pour le débogage
+     * @param {Object} groundObject - L'objet terrain
+     * @param {Object} options - Options de configuration
+     */
+    createDepthVisualizationMaterial(groundObject, options = {}) {
+        // Options de visualisation
+        const config = {
+            depthThreshold: options.depthThreshold || 0.2,
+            transitionZone: options.transitionZone || 0.1,
+            yOffset: options.yOffset || 0,
+            colorLow: options.colorLow || [0.6, 0.6, 0.6],    // Gris pour les parties basses (routes)
+            colorMid: options.colorMid || [0.3, 0.5, 0.3],    // Vert-jaune pour la transition
+            colorHigh: options.colorHigh || [0.1, 0.6, 0.1],  // Vert pour les parties hautes (herbe)
+            wireframe: options.wireframe || false,
+            forcedPaths: options.forcedPaths || []
+        };
+
+        // Créer un matériau de débogage
+        const material = new MeshBasicMaterial({
+            vertexColors: true,
+            side: DoubleSide,
+            wireframe: config.wireframe
         });
 
-        // Définir les chemins secondaires
-        const secondaryPaths = [
-            // Vers les empreintes
-            [[-6.9, -55.5], [-10, -60], [-15, -62]],
-            // Autour des rochers
-            [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]]
-        ];
+        // Trouver les limites de hauteur
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
 
-        secondaryPaths.forEach(path => {
-            this.defineGroundPath(groundObject, path, {
-                width: 1.2,
-                roadValue: 0.7,
-                falloff: 1.0
-            });
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
         });
 
-        return true;
+        console.log(`Visualisation - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer un seuil adaptatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.depthThreshold * heightRange);
+
+        console.log(`Visualisation - Seuil: ${effectiveThreshold.toFixed(3)}`);
+
+        // Appliquer les couleurs de visualisation
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                // Sauvegarder le matériau original
+                if (!node.userData.originalMaterial) {
+                    node.userData.originalMaterial = node.material;
+                }
+
+                // S'assurer que les vertex colors existent
+                this.ensureVertexColors(node);
+
+                const positions = node.geometry.attributes.position;
+                const colors = node.geometry.attributes.color;
+                const count = positions.count;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const x = positions.getX(i);
+                    const y = positions.getY(i) + config.yOffset;
+                    const z = positions.getZ(i);
+
+                    let debugColor;
+
+                    // Vérifier d'abord si le vertex est dans une zone de chemin forcé
+                    let isInForcedPath = false;
+                    for (const path of config.forcedPaths) {
+                        if (this._isPointNearPath(x, z, path, path.width || 2.0)) {
+                            // Rouge vif pour les chemins forcés
+                            debugColor = [0.8, 0.2, 0.2];
+                            isInForcedPath = true;
+                            break;
+                        }
+                    }
+
+                    if (!isInForcedPath) {
+                        if (y < effectiveThreshold) {
+                            // Zone basse (route) - Gris
+                            debugColor = [...config.colorLow];
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition - gradient
+                            const t = (y - effectiveThreshold) / config.transitionZone;
+                            debugColor = [
+                                config.colorLow[0] * (1-t) + config.colorMid[0] * t,
+                                config.colorLow[1] * (1-t) + config.colorMid[1] * t,
+                                config.colorLow[2] * (1-t) + config.colorMid[2] * t
+                            ];
+                        } else if (y < effectiveThreshold + config.transitionZone * 2) {
+                            // Zone de transition supérieure
+                            const t = (y - (effectiveThreshold + config.transitionZone)) / config.transitionZone;
+                            debugColor = [
+                                config.colorMid[0] * (1-t) + config.colorHigh[0] * t,
+                                config.colorMid[1] * (1-t) + config.colorHigh[1] * t,
+                                config.colorMid[2] * (1-t) + config.colorHigh[2] * t
+                            ];
+                        } else {
+                            // Zone haute (herbe) - Vert
+                            debugColor = [...config.colorHigh];
+                        }
+                    }
+
+                    // Appliquer la couleur de débogage
+                    colors.setXYZ(i, debugColor[0], debugColor[1], debugColor[2]);
+                }
+
+                colors.needsUpdate = true;
+                node.material = material;
+            }
+        });
+
+        console.log("Matériau de visualisation de profondeur appliqué");
+        return material;
+    }
+
+    /**
+     * Restaure le matériau original après visualisation
+     * @param {Object} groundObject - L'objet terrain
+     */
+    restoreGroundMaterial(groundObject) {
+        if (!groundObject) return;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.userData.originalMaterial) {
+                node.material = node.userData.originalMaterial;
+                delete node.userData.originalMaterial;
+            }
+        });
+
+        console.log("Matériau de terrain original restauré");
     }
     // Initialisation des textures basée sur la structure de fichiers
     initializeTextures() {
@@ -679,15 +818,6 @@ class TextureManager {
 
             receivedShadow: true,
         });
-        this.addPlantTexture('MultipleLeaf', 'primary', {
-
-            roughness: 0.7,
-            metalness: 0.0,
-            // envMapIntensity: 0.46,
-            castShadow: true,
-
-            receivedShadow: true,
-        });
         this.addPlantTexture('animalPaws', 'primary', {
 
             roughness: 0.7,
@@ -764,11 +894,6 @@ class TextureManager {
             castShadow: true,
 
             receivedShadow: true,
-        });
-        this.addPlantTexture('LeafErable', 'primary', {
-            roughness: 0.96,
-            // metalness: 0.4,
-            // envMapIntensity: 0.25
         });
         this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96,
@@ -1855,20 +1980,12 @@ class TextureManager {
     }
 
     // Version privée de applyTexturesToMaterial pour usage interne
-    // Modify the _applyTexturesToMaterial method to ensure black for untextured areas
     _applyTexturesToMaterial(material, textures, options = {}) {
         if (!material || !textures) return;
-
-        // Default to black for untextured areas
-        material.color.set('#000000');
-
-        // Set the rest of the material configuration as usual...
-        // [Original method content continues here]
-
-        // Get the material-specific properties
+        // Récupérer les propriétés spécifiques du matériau
         const materialProps = this.getMaterialProperties(options.modelId || '');
 
-        // Default configuration with LOD and specific properties
+        // Configuration par défaut avec LOD et propriétés spécifiques
         const config = {
             aoIntensity: materialProps.aoIntensity || 0.5,
             useDisplacement: false,
@@ -1966,52 +2083,29 @@ class TextureManager {
                 material.alphaTest = 0.5;
 
                 material.side = DoubleSide;
+
+                // Débogage spécifique pour TreeRoof
+                if (options.modelId === 'TreeRoof') {
+                    console.log("Application spécifique de Alpha pour TreeRoof:", textures.alpha);
+                    console.log("Configuration matériau TreeRoof:", material);
+                }
             } else if (textures.opacity) {
                 material.alphaMap = textures.opacity;
                 this.configureTexture(material.alphaMap, 'opacity');
                 material.transparent = true;
                 material.alphaTest = 0.5;
             }
-
-            // Set up shader modification to handle untextured areas
-            const originalOnBeforeCompile = material.onBeforeCompile;
-            material.onBeforeCompile = (shader) => {
-                // Call the original onBeforeCompile if it exists
-                if (originalOnBeforeCompile) {
-                    originalOnBeforeCompile(shader);
+// Ajout de l'environnement mapping - seulement pour les LOD medium et high
+            if (config.useEnvMap && config.lod !== 'low') {
+                const envMapTexture = window.assetManager?.getItem('EnvironmentMap');
+                if (envMapTexture) {
+                    material.envMap = envMapTexture;
+                    material.envMapIntensity = config.envMapIntensity *
+                        (config.lod === 'high' ? 1.0 : 0.5); // Réduire l'intensité pour medium
+                    material.needsUpdate = true;
+                    // console.log(`EnvMap appliquée avec une intensité de ${material.envMapIntensity}`);
                 }
-
-                // Add our custom shader modifications for handling untextured areas
-                // Only add if not already present
-                if (!shader.fragmentShader.includes('getTextureColor(')) {
-                    const fragmentShaderModification = `
-                    // Handle untextured areas (outside UV coordinates or without a texture)
-                    vec4 getTextureColor(sampler2D map, vec2 uv) {
-                        // Check if UV is within valid range (0-1)
-                        if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-                            return vec4(0.0, 0.0, 0.0, 1.0); // Return black for invalid UVs
-                        }
-                        return texture2D(map, uv);
-                    }
-                `;
-
-                    // Insert our modification after the common section
-                    shader.fragmentShader = shader.fragmentShader.replace(
-                        '#include <common>',
-                        '#include <common>\n' + fragmentShaderModification
-                    );
-
-                    // Replace texture2D calls with our getTextureColor function for main textures
-                    // We only do this for the main map to avoid affecting other textures
-                    if (material.map) {
-                        // Find and replace only texture2D calls that use the main texture map
-                        shader.fragmentShader = shader.fragmentShader.replace(
-                            /texture2D\(\s*map\s*,\s*([a-zA-Z0-9_\.]+)\s*\)/g,
-                            'getTextureColor(map, $1)'
-                        );
-                    }
-                }
-            };
+            }
 
             // Mettre à jour le matériau
             material.needsUpdate = true;
@@ -2020,7 +2114,57 @@ class TextureManager {
         }
     }
 
+    /**
+     * Configure le terrain en utilisant la profondeur des vertices pour déterminer la texture
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    async setupGroundWithDepthBasedTexturing(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithDepthBasedTexturing: objet terrain manquant");
+            return false;
+        }
 
+        console.log("REDIRECTION: Utilisation de la méthode basée uniquement sur la hauteur");
+
+        // Rediriger vers notre nouvelle méthode simplifiée
+        return this.setupGroundBasedOnHeight(groundObject, {
+            heightThreshold: 0.63,
+            transitionZone: 0.02,
+            invertHeight: false,
+            yOffset: 0.5
+        });
+    }
+
+    /**
+     * Vérifie si un point est proche d'un chemin défini par des points
+     * @param {Number} x - Coordonnée X du point
+     * @param {Number} z - Coordonnée Z du point
+     * @param {Array} path - Tableau de points définissant le chemin
+     * @param {Number} width - Largeur du chemin
+     * @returns {Boolean} - true si le point est proche du chemin
+     */
+    _isPointNearPath(x, z, path, width = 2.0) {
+        // Vérifier si le chemin a des points
+        if (!path || !path.points || path.points.length < 2) return false;
+
+        // Pour chaque segment du chemin
+        for (let i = 0; i < path.points.length - 1; i++) {
+            const [x1, z1] = path.points[i];
+            const [x2, z2] = path.points[i + 1];
+
+            // Calculer la distance du point au segment
+            const distance = this._distanceToSegment(x, z, x1, z1, x2, z2);
+
+            // Si la distance est inférieure à la moitié de la largeur, le point est sur le chemin
+            if (distance <= width / 2) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * Méthode clé: Applique un matériau fusionné à un modèle déjà chargé/instancié
@@ -2490,22 +2634,15 @@ class TextureManager {
      * Version améliorée: Appliquer les textures à un modèle
      * avec support pour la fusion et le LOD
      */
-    // Override the existing applyTexturesToModel method to include cleaning
     async applyTexturesToModel(modelId, modelObject, options = {}) {
         if (!modelObject) return;
 
-        // Apply the cleaning step if requested (default to true)
-        const shouldClean = options.clean !== undefined ? options.clean : true;
-        if (shouldClean) {
-            this.cleanModelBeforeTexturing(modelObject);
-        }
-
-        // Continue with the original method
+        // Traitement spécial pour les modèles déjà instanciés
         if (options.optimizeInstances) {
             return this.applyMergedMaterialToModel(modelObject, options);
         }
 
-        // Try to find textures based on the model name if not defined
+        // Essayer de trouver des textures basées sur le nom du modèle si non définies
         if (!this.hasTextures(modelId)) {
             const baseModelId = this.extractBaseModelId(modelId);
             if (baseModelId && baseModelId !== modelId && this.hasTextures(baseModelId)) {
@@ -2517,17 +2654,17 @@ class TextureManager {
             }
         }
 
-        // Add the current LOD level to options
+        // Ajouter le niveau de LOD actuel aux options
         const optionsWithLOD = {
             ...options,
             lod: options.lod || this.determineLODForObject(modelObject),
-            modelId: modelId // Add the model ID to access custom properties
+            modelId: modelId // Ajouter l'ID du modèle pour accéder aux propriétés personnalisées
         };
 
-        // Get or create a shared material
+        // Récupérer ou créer un matériau partagé
         const material = this.getMaterial(modelId, optionsWithLOD);
 
-        // Apply material-specific properties for this model
+        // Appliquer les propriétés du matériau spécifiques à ce modèle
         const materialProps = this.getMaterialProperties(modelId);
         if (materialProps && !options.skipCustomProperties) {
             this._applyMaterialProperties(material, materialProps);
@@ -2535,15 +2672,15 @@ class TextureManager {
                 `roughness=${materialProps.roughness}, metalness=${materialProps.metalness}, envMapIntensity=${materialProps.envMapIntensity}`);
         }
 
-        // Traverse all materials in the model
+        // Parcourir tous les matériaux du modèle
         modelObject.traverse((node) => {
             if (node.isMesh && node.material) {
                 const materials = Array.isArray(node.material) ? node.material : [node.material];
 
-                // Replace all materials with our shared material
+                // Remplacer tous les matériaux par notre matériau partagé
                 if (Array.isArray(node.material)) {
                     for (let i = 0; i < node.material.length; i++) {
-                        // Preserve special materials if needed
+                        // Préserver les matériaux spéciaux si nécessaire
                         if (options.preserveSpecialMaterials &&
                             (node.material[i].userData.isSpecial || node.material[i].name?.includes('Special'))) {
                             continue;
@@ -2551,14 +2688,14 @@ class TextureManager {
                         node.material[i] = material;
                     }
                 } else {
-                    // Preserve special materials if needed
+                    // Préserver les matériaux spéciaux si nécessaire
                     if (!(options.preserveSpecialMaterials &&
                         (node.material.userData.isSpecial || node.material.name?.includes('Special')))) {
                         node.material = material;
                     }
                 }
 
-                // Enable UV2 for aoMap if needed
+                // Activer les UV2 pour l'aoMap si nécessaire
                 if (node.geometry &&
                     !node.geometry.attributes.uv2 &&
                     node.geometry.attributes.uv) {
@@ -2567,7 +2704,7 @@ class TextureManager {
             }
         });
 
-        // Track this instance
+        // Suivre cette instance
         this.trackInstance(modelId, modelObject);
 
         console.log(`Matériau appliqué au modèle ${modelId} avec LOD ${optionsWithLOD.lod}`);
@@ -3078,7 +3215,7 @@ class TextureManager {
      * @param {String} maskImagePath - Chemin vers l'image masque en noir et blanc
      * @returns {Promise} - Une promesse résolue quand les textures sont appliquées
      */
-    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
+    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_grass.png') {
         if (!groundObject) {
             console.error("applyGroundTexturesWithMask: objet terrain manquant");
             return false;
@@ -3367,63 +3504,170 @@ class TextureManager {
         console.log("Masque de chemin appliqué avec succès aux vertex colors");
     }
     /**
-     * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
+     * @deprecated Utiliser setupGroundWithDepthBasedTexturing à la place
+     * Cette méthode est conservée pour compatibilité mais redirige vers la nouvelle approche
      */
-    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
-        // Initialiser les textures avec toutes les maps
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
+        console.warn("setupGroundWithPathsMask est dépréciée, redirection vers setupGroundWithDepthBasedTexturing");
+
+        // Rediriger vers la nouvelle méthode basée sur la profondeur
+        return this.setupGroundWithDepthBasedTexturing(groundObject, {
+            depthThreshold: 0.15,
+            transitionZone: 0.05,
+            roadValue: 0.9,
+            grassValue: 0.0,
+            // Utiliser des chemins forcés pour garantir la même apparence qu'avec l'image masque
+            forcedPaths: [
+                {
+                    points: [
+                        [-9, 13],      // Panneau de départ
+                        [-5, 5],
+                        [0, -5],
+                        [2, -12],      // Premier tronc
+                        [-2, -25],
+                        [-5, -40],
+                        [-6.9, -55.5], // Zone des feuilles/empreintes
+                        [-15, -65],
+                        [-25, -75],
+                        [-30.5, -77],  // Zone des rochers de rivière
+                        [-35, -90],
+                        [-38, -105],
+                        [-41, -115.5], // Zone du tronc fin
+                        [-20, -120],
+                        [10, -125],
+                        [35, -128],
+                        [52, -130]     // Vison
+                    ],
+                    width: 2.5
+                },
+                // Chemins secondaires
+                {
+                    points: [[-6.9, -55.5], [-10, -60], [-15, -62]],
+                    width: 1.2
+                },
+                {
+                    points: [[-30.5, -77], [-28, -78], [-31, -80], [-33, -77]],
+                    width: 1.5
+                }
+            ]
+        });
+    }
+
+    /**
+     * Applique les textures au terrain uniquement en fonction de la hauteur des vertices
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundBasedOnHeight(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundBasedOnHeight: objet terrain manquant");
+            return false;
+        }
+
+        console.log("Configuration du terrain basée uniquement sur la hauteur des vertices");
+
+        // Initialiser les textures si nécessaire
         this.initializeGroundTextures();
 
-        console.log("Configuration du terrain avec masque de chemin et toutes les maps");
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.1,     // Seuil relatif (0-1) pour la hauteur
+            transitionZone: options.transitionZone || 0.05,      // Zone de transition entre route et herbe
+            roadValue: options.roadValue || 0.9,                 // Valeur pour les routes (0-1)
+            grassValue: options.grassValue || 0.0,               // Valeur pour l'herbe (0-1)
+            invertHeight: options.invertHeight || false,         // Si true, les parties hautes sont des routes
+            yOffset: options.yOffset || 0                        // Ajuster si le terrain n'est pas centré à Y=0
+        };
 
-        // Vérifier que les textures sont correctement configurées
-        if (!this.hasTextures('ForestGrass') || !this.hasTextures('ForestRoad')) {
-            console.error("Textures manquantes pour le terrain. Vérifiez les chemins.");
-            return false;
-        }
+        // Créer le matériau de terrain
+        const material = this.createGroundMaterial();
 
-        // Vérifier que tous les fichiers sont présents
-        const grassTextures = this.texturePaths['ForestGrass'];
-        const roadTextures = this.texturePaths['ForestRoad'];
+        // Trouver les limites de hauteur du terrain pour calibrage
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
 
-        console.log("Textures configurées:", {
-            grass: Object.keys(grassTextures),
-            road: Object.keys(roadTextures)
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
         });
 
-        // Appliquer les textures avec le masque
-        try {
-            // Créer d'abord le matériau avancé qui utilise toutes les maps
-            const material = this.createGroundMaterial();
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
 
-            // Appliquer le matériau à tous les mesh du terrain
-            let appliedCount = 0;
-            groundObject.traverse((node) => {
-                if (node.isMesh) {
-                    // S'assurer que le mesh a des vertex colors initialisés
-                    this.ensureVertexColors(node);
+        // Calculer un seuil absolu à partir du seuil relatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
 
-                    // Appliquer le matériau
-                    node.material = material;
-                    appliedCount++;
+        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
 
-                    // S'assurer que les UV2 sont configurés pour l'aoMap
-                    if (!node.geometry.attributes.uv2 && node.geometry.attributes.uv) {
-                        node.geometry.setAttribute('uv2', node.geometry.attributes.uv);
+        // Appliquer les vertex colors basés sur la hauteur
+        let appliedCount = 0;
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // S'assurer que les vertex colors existent
+                this.ensureVertexColors(node);
+
+                if (node.geometry && node.geometry.attributes.position) {
+                    const positions = node.geometry.attributes.position;
+                    const colors = node.geometry.attributes.color;
+                    const count = positions.count;
+
+                    // Pour chaque vertex
+                    for (let i = 0; i < count; i++) {
+                        const y = positions.getY(i) + config.yOffset;
+
+                        // Déterminer si c'est une route ou de l'herbe basé uniquement sur la hauteur
+                        let roadFactor = 0;
+
+                        if (config.invertHeight) {
+                            // Si inversé: les parties hautes sont des routes
+                            if (y > effectiveThreshold) {
+                                roadFactor = config.roadValue;
+                            } else if (y > effectiveThreshold - config.transitionZone) {
+                                // Zone de transition
+                                const t = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                                roadFactor = config.grassValue + t * (config.roadValue - config.grassValue);
+                            } else {
+                                roadFactor = config.grassValue;
+                            }
+                        } else {
+                            // Comportement par défaut: les parties basses sont des routes
+                            if (y < effectiveThreshold) {
+                                roadFactor = config.roadValue;
+                            } else if (y < effectiveThreshold + config.transitionZone) {
+                                // Zone de transition
+                                const t = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                                roadFactor = config.grassValue + t * (config.roadValue - config.grassValue);
+                            } else {
+                                roadFactor = config.grassValue;
+                            }
+                        }
+
+                        // Mettre à jour la couleur du vertex (canal R pour le mélange route/herbe)
+                        // Préserver les canaux G et B existants
+                        colors.setXYZ(i, roadFactor, colors.getY(i), colors.getZ(i));
                     }
+
+                    // Marquer les couleurs comme modifiées
+                    colors.needsUpdate = true;
                 }
-            });
 
-            console.log(`Matériau appliqué à ${appliedCount} mesh(es)`);
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
 
-            // Appliquer le masque d'image pour définir les vertex colors
-            await this.applyMaskImageToGround(groundObject, maskImagePath);
-
-            console.log("Configuration du terrain terminée avec succès");
-            return true;
-        } catch (error) {
-            console.error("Erreur lors de la configuration du terrain:", error);
-            return false;
-        }
+        console.log(`Textures basées sur la hauteur appliquées à ${appliedCount} mesh(es)`);
+        return true;
     }
     /**
      * Créer un modèle fusionné à partir d'un groupe d'instances
@@ -3519,300 +3763,6 @@ class TextureManager {
         this.stats.instancesMerged += instances.length;
 
         return mergedGroup;
-    }
-
-    /**
-     * Applies ground textures with a mask that can be transformed (scaled, offset, rotated)
-     * @param {Object} groundObject - The 3D ground object
-     * @param {String} maskImagePath - Path to the mask image
-     * @param {Object} transformOptions - Options for transforming the mask
-     * @returns {Promise} - Resolves when the textures are applied
-     */
-    async applyGroundTexturesWithMaskTransformed(groundObject, maskImagePath = '/textures/ground/mask_road.png', transformOptions = {}) {
-        if (!groundObject) {
-            console.error("applyGroundTexturesWithMaskTransformed: ground object missing");
-            return false;
-        }
-
-        console.log("Applying ground textures with transformed mask:", transformOptions);
-
-        // Initialize textures if needed
-        this.initializeGroundTextures();
-
-        // Create or get the ground material
-        const material = this.createGroundMaterial();
-
-        // Apply the material to all ground meshes
-        let appliedCount = 0;
-        groundObject.traverse((node) => {
-            if (node.isMesh) {
-                // Initialize vertex colors
-                this.ensureVertexColors(node);
-
-                // Apply the material
-                node.material = material;
-                appliedCount++;
-            }
-        });
-
-        // Apply the transformed mask
-        try {
-            await this.applyMaskImageToGroundWithTransform(groundObject, maskImagePath, transformOptions);
-            console.log(`Transformed mask applied and material configured on ${appliedCount} mesh(es)`);
-            return true;
-        } catch (error) {
-            console.error("Error applying transformed path mask:", error);
-            return false;
-        }
-    }
-
-    /**
-     * Applies a mask image to ground vertex colors with transformation options
-     * @param {Object} groundObject - The ground object
-     * @param {String} maskImagePath - Path to the image mask
-     * @param {Object} transformOptions - Options for transforming the mask
-     * @returns {Promise} - Resolves when the mask has been applied
-     */
-    async applyMaskImageToGroundWithTransform(groundObject, maskImagePath, transformOptions = {}) {
-        return new Promise((resolve, reject) => {
-            console.log(`Loading path mask with transforms: ${maskImagePath}`, transformOptions);
-
-            // Default transform values
-            const options = {
-                offsetX: transformOptions.offsetX || 0,
-                offsetZ: transformOptions.offsetZ || 0,
-                scaleX: transformOptions.scaleX || 1.0,
-                scaleZ: transformOptions.scaleZ || 1.0,
-                rotation: transformOptions.rotation || 0,
-                ...transformOptions
-            };
-
-            // Create an image element to load the mask
-            const maskImage = new Image();
-            maskImage.crossOrigin = "Anonymous";
-
-            maskImage.onload = () => {
-                console.log(`Mask loaded: ${maskImage.width}x${maskImage.height} pixels`);
-
-                // Create a canvas to extract pixel data
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-
-                canvas.width = maskImage.width;
-                canvas.height = maskImage.height;
-
-                // Draw the image to the canvas
-                context.drawImage(maskImage, 0, 0);
-
-                // Get pixel data
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const pixels = imageData.data;
-
-                // Find the terrain dimensions for scaling
-                let terrainBounds = null;
-                let totalVertices = 0;
-
-                groundObject.traverse((node) => {
-                    if (node.isMesh && node.geometry) {
-                        if (!node.geometry.boundingBox) {
-                            node.geometry.computeBoundingBox();
-                        }
-
-                        // Count total vertices
-                        if (node.geometry.attributes.position) {
-                            totalVertices += node.geometry.attributes.position.count;
-                        }
-
-                        // Update the terrain bounds
-                        if (!terrainBounds) {
-                            terrainBounds = node.geometry.boundingBox.clone();
-                        } else {
-                            terrainBounds.union(node.geometry.boundingBox);
-                        }
-                    }
-                });
-
-                if (!terrainBounds) {
-                    console.error("Could not determine terrain dimensions");
-                    reject(new Error("Terrain dimensions not determined"));
-                    return;
-                }
-
-                // Calculate terrain dimensions
-                const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
-                const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
-
-                console.log(`Terrain dimensions: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
-                console.log(`Total vertices to process: ${totalVertices}`);
-                console.log(`Applying transform: offsetX=${options.offsetX}, offsetZ=${options.offsetZ}, scaleX=${options.scaleX}, scaleZ=${options.scaleZ}, rotation=${options.rotation}`);
-
-                // Precalculate sin and cos for rotation
-                const sinRotation = Math.sin(options.rotation);
-                const cosRotation = Math.cos(options.rotation);
-
-                // Apply the mask to each mesh in the terrain
-                let processedVertices = 0;
-                let lastReportedProgress = 0;
-
-                groundObject.traverse((node) => {
-                    if (node.isMesh && node.geometry && node.geometry.attributes.position && node.geometry.attributes.color) {
-                        const positions = node.geometry.attributes.position;
-                        const colors = node.geometry.attributes.color;
-                        const count = positions.count;
-
-                        // Get the mesh's world transformation
-                        const worldMatrix = new Matrix4();
-                        node.updateMatrixWorld(true);
-                        worldMatrix.copy(node.matrixWorld);
-
-                        // For each vertex
-                        for (let i = 0; i < count; i++) {
-                            // Get vertex position in world space
-                            const vertex = new Vector3(
-                                positions.getX(i),
-                                positions.getY(i),
-                                positions.getZ(i)
-                            );
-
-                            // Transform the local position to world position
-                            vertex.applyMatrix4(worldMatrix);
-
-                            // Apply offset to vertex position
-                            const transformedX = vertex.x - terrainBounds.min.x - options.offsetX;
-                            const transformedZ = vertex.z - terrainBounds.min.z - options.offsetZ;
-
-                            // Apply rotation (around the center of the terrain after offset)
-                            const centerX = terrainWidth / 2;
-                            const centerZ = terrainDepth / 2;
-
-                            const relativeX = transformedX - centerX;
-                            const relativeZ = transformedZ - centerZ;
-
-                            const rotatedX = relativeX * cosRotation - relativeZ * sinRotation + centerX;
-                            const rotatedZ = relativeX * sinRotation + relativeZ * cosRotation + centerZ;
-
-                            // Convert to UV coordinates with scale
-                            const u = (rotatedX / terrainWidth) / options.scaleX + (0.5 - 0.5 / options.scaleX);
-                            const v = (rotatedZ / terrainDepth) / options.scaleZ + (0.5 - 0.5 / options.scaleZ);
-
-                            // Convert UV to pixel indices
-                            const pixelX = Math.floor(u * (canvas.width - 1));
-                            const pixelY = Math.floor((1 - v) * (canvas.height - 1)); // Invert Y
-
-                            // Ensure coordinates are within bounds
-                            if (pixelX >= 0 && pixelX < canvas.width && pixelY >= 0 && pixelY < canvas.height) {
-                                // Index in the pixel array (RGBA)
-                                const pixelIndex = (pixelY * canvas.width + pixelX) * 4;
-
-                                // Extract the value (white = path, black = grass)
-                                const r = pixels[pixelIndex] / 255;
-                                const g = pixels[pixelIndex + 1] / 255;
-                                const b = pixels[pixelIndex + 2] / 255;
-
-                                // Calculate luminance
-                                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-
-                                // Apply the value to the R channel
-                                colors.setX(i, luminance);
-                            }
-
-                            processedVertices++;
-
-                            // Report progress
-                            const progress = Math.floor((processedVertices / totalVertices) * 100);
-                            if (progress > lastReportedProgress && progress % 10 === 0) {
-                                console.log(`Applying mask: ${progress}% (${processedVertices}/${totalVertices} vertices)`);
-                                lastReportedProgress = progress;
-                            }
-                        }
-
-                        // Mark colors as updated
-                        colors.needsUpdate = true;
-                    }
-                });
-
-                console.log("Path mask applied successfully to vertex colors");
-                resolve(true);
-            };
-
-            maskImage.onerror = (error) => {
-                console.error(`Error loading mask: ${maskImagePath}`, error);
-                reject(error);
-            };
-
-            // Start loading
-            maskImage.src = maskImagePath;
-        });
-    }
-
-    /**
-     * Extends TextureManager with a "clean" method that ensures areas outside the texture are black
-     * Add this method to the TextureManager class
-     */
-
-// Method to clean a model before applying textures (making untextured areas black)
-    cleanModelBeforeTexturing(modelObject) {
-        if (!modelObject) return;
-
-        console.log("Cleaning model before texturing, setting untextured areas to black");
-
-        // Process all meshes in the model
-        modelObject.traverse(node => {
-            if (node.isMesh && node.material) {
-                // Handle both single and multiple materials
-                const materials = Array.isArray(node.material) ? node.material : [node.material];
-
-                materials.forEach(material => {
-                    // 1. Set the base color to black
-                    if (material.color) {
-                        material.color.set('#000000');
-                    }
-
-                    // 2. Ensure alpha test is enabled (helps with sharper edges between textured/untextured)
-                    material.transparent = true;
-                    material.alphaTest = 0.01;
-
-                    // 3. Set special shader handling for untextured areas
-                    material.onBeforeCompile = (shader) => {
-                        // Add a custom uniform to detect untextured areas
-                        shader.uniforms.hasTexture = { value: 0 };
-
-                        // Modify the fragment shader to check for valid texture coordinates
-                        const fragmentShaderModification = `
-                        // Handle untextured areas (outside UV coordinates or without a texture)
-                        vec4 getTextureColor(sampler2D map, vec2 uv) {
-                            // Check if UV is within valid range (0-1)
-                            if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-                                return vec4(0.0, 0.0, 0.0, 1.0); // Return black for invalid UVs
-                            }
-                            return texture2D(map, uv);
-                        }
-                    `;
-
-                        // Insert our modification after the common section
-                        shader.fragmentShader = shader.fragmentShader.replace(
-                            '#include <common>',
-                            '#include <common>\n' + fragmentShaderModification
-                        );
-
-                        // Replace texture2D calls with our getTextureColor function
-                        shader.fragmentShader = shader.fragmentShader.replace(
-                            /texture2D\(\s*([a-zA-Z0-9_]+)\s*,\s*([a-zA-Z0-9_\.]+)\s*\)/g,
-                            'getTextureColor($1, $2)'
-                        );
-
-                        // Store the modified shader in material for debugging
-                        material.userData.modifiedShader = shader;
-                    };
-
-                    // 4. Flag the material as "cleaned"
-                    material.userData.cleaned = true;
-                    material.needsUpdate = true;
-                });
-            }
-        });
-
-        return modelObject;
     }
 
     /**
@@ -3974,8 +3924,7 @@ class TextureManager {
         // Mappings spécifiques pour certains modèles
         const specialMappings = {
             'ObstacleTree': 'TrunkLarge',
-            'Obstacle2Tree': 'TrunkThin',
-            'MultipleLeaf': 'LeafErable'
+            'Obstacle2Tree': 'TrunkThin'
         };
 
         if (specialMappings[modelId]) {

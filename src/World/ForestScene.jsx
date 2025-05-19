@@ -33,10 +33,6 @@ export default function ForestScene() {
         return () => {
             mapUnsubscribe();
             forestUnsubscribe();
-
-            // Retirer les lumières de la scène
-            scene.remove(ambientLight);
-            scene.remove(mainLight);
         };
     }, [scene, gl]);
 
@@ -64,8 +60,8 @@ INSTRUCTIONS DE CONTRÔLE:
     return (
         <>
             {/*{mapComponent}*/}
-            {(GuiConfig.visualization.showInstances.default) ? forestComponent : null}
-            {/*{forestComponent}*/}
+            {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
+            {forestComponent}
             {waterComponent}
         </>
     );

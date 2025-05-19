@@ -38,7 +38,7 @@ const baseAssets = [
     {
         name: 'DirectionPanel',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -79,7 +79,7 @@ const baseAssets = [
     {
         name: 'DirectionPanelStartInteractive',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -87,7 +87,7 @@ const baseAssets = [
     {
         name: 'DirectionPanelEndInteractive',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -96,14 +96,6 @@ const baseAssets = [
         name: 'TrunkLargeInteractive',
         type: 'gltf',
         path: '/models/forest/tree/ObstacleTree.gltf',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
-    {
-        name: 'LeafErable',
-        type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -310,6 +302,14 @@ const baseAssets = [
         name: 'PlanClematis',
         type: 'gltf',
         path: '/models/forest/plant/PlanClematis.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'DataCenter',
+        type: 'gltf',
+        path: '/models/digital/DataCenter.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

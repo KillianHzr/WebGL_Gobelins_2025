@@ -334,21 +334,21 @@ class TemplateManager {
                 id: 'TreeNakedDigital',
                 path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1,
-                useTextures: false,
+                useTextures: true,
                 group: 'screen'
             },
             'Retopo_GROS_TRONC001_1': {
                 id: 'TrunkLargeDigital',
                 path: '/models/forest/tree/TrunkLarge.gltf',
                 priority: 2,
-                useTextures: false,
+                useTextures: true,
                 group: 'screen'
             },
             'Retopo_TRONC_FIN_2': {
                 id: 'TrunkThinDigital',
                 path: '/models/forest/tree/ThinTrunk.gltf',
                 priority: 3,
-                useTextures: false,
+                useTextures: true,
                 group: 'screen'
             },
 

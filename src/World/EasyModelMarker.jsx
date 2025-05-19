@@ -383,14 +383,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-                // Vérifier si LeafErable a été complété
-                const leafErableCompleted = Object.keys(completedInteractions).some(key =>
+                // Vérifier si MultipleLeaf a été complété
+                const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
                     key.includes('thirdStop') ||
-                    key.includes('LeafErable')
+                    key.includes('MultipleLeaf')
                 );
 
-                if (!leafErableCompleted) {
-                    console.log('Survol de AnimalPaws ignoré car LeafErable n\'a pas encore été complété');
+                if (!multipleLeafCompleted) {
+                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -481,7 +481,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
                     outlineVisibleRef.current = false;
                 }
-                return alwaysVisible || hovered;
+                return alwaysVisible;
             }
         } else {
             // Comportement par défaut pour les objets sans requiredStep
@@ -616,8 +616,19 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         );
     }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
 
+    const shouldModelBeVisible = useMemo(() => {
+        // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
+        if (markerType === INTERACTION_TYPES.DISABLE) {
+            return false;
+        }
+        return true;
+    }, [markerType]);
     // Optimiser le rendu conditionnel du modèle par défaut
     const renderDefaultModel = useMemo(() => {
+        if (!shouldModelBeVisible) {
+            return null;
+        }
+
         if (useBox) {
             return (
                 <mesh
@@ -695,8 +706,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
-
+    }, [shouldModelBeVisible, useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
     return (
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}

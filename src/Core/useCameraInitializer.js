@@ -95,7 +95,7 @@ function createDefaultCameraAnimation(camera) {
     const rotZTrack = new THREE.KeyframeTrack('camera.rotation[z]', times, rotations.filter((_, i) => i % 3 === 2));
 
     // Créer le clip d'animation
-    const clip = new THREE.AnimationClip('Action.005', duration, [
+    const clip = new THREE.AnimationClip('Action.004', duration, [
         posXTrack, posYTrack, posZTrack,
         rotXTrack, rotYTrack, rotZTrack
     ]);
@@ -127,7 +127,7 @@ export function useCameraInitializer() {
 
         try {
             // Créer l'animateur GLB
-            cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.005');
+            cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.004');
             console.log('Animateur de caméra initialisé avec succès');
 
             // Mettre à jour le store

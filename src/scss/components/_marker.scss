@@ -33,6 +33,11 @@
         border-radius: 999px;
         border: 1.5px solid #F9FEFF;
         pointer-events: auto;
+        &.disable {
+            opacity: 0.4;
+            right: 33vw;
+            top: 33vh;
+        }
 
         &-inner {
             position: absolute;
