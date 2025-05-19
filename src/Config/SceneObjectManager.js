@@ -1056,24 +1056,27 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
-    configureGround(groundObject, useMaskImage = true) {
+    configureGround(groundObject, useMaskImage = true, useDepthWeightMap = true) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
             return false;
         }
 
-        console.log("Configuration du terrain:", groundObject.name || "sans nom");
+        console.log("Configuration du terrain avec weight map de profondeur:", groundObject.name || "sans nom");
 
         if (textureManager) {
+            // Options de texture avec ou sans weight map de profondeur
+            const textureOptions = {
+                useDepthWeightMap: useDepthWeightMap
+            };
+
             // Utiliser l'approche avec image masque ou l'approche avec points manuels
             if (useMaskImage) {
-                // Utiliser l'image comme masque pour les chemins
-                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_road.png');
-                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/path_mask.png');
-                // return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_grass.png');
+                // Ajouter l'option useDepthWeightMap
+                return textureManager.setupGroundWithPathsMask(groundObject, '/textures/ground/mask_road.png', textureOptions);
             } else {
                 // Utiliser l'approche originale avec points manuels
-                return textureManager.setupGroundWithPaths(groundObject);
+                return textureManager.setupGroundWithPaths(groundObject, textureOptions);
             }
         }
 

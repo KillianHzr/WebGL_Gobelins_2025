@@ -1855,12 +1855,20 @@ class TextureManager {
     }
 
     // Version privée de applyTexturesToMaterial pour usage interne
+    // Modify the _applyTexturesToMaterial method to ensure black for untextured areas
     _applyTexturesToMaterial(material, textures, options = {}) {
         if (!material || !textures) return;
-        // Récupérer les propriétés spécifiques du matériau
+
+        // Default to black for untextured areas
+        material.color.set('#000000');
+
+        // Set the rest of the material configuration as usual...
+        // [Original method content continues here]
+
+        // Get the material-specific properties
         const materialProps = this.getMaterialProperties(options.modelId || '');
 
-        // Configuration par défaut avec LOD et propriétés spécifiques
+        // Default configuration with LOD and specific properties
         const config = {
             aoIntensity: materialProps.aoIntensity || 0.5,
             useDisplacement: false,
@@ -1958,29 +1966,52 @@ class TextureManager {
                 material.alphaTest = 0.5;
 
                 material.side = DoubleSide;
-
-                // Débogage spécifique pour TreeRoof
-                if (options.modelId === 'TreeRoof') {
-                    console.log("Application spécifique de Alpha pour TreeRoof:", textures.alpha);
-                    console.log("Configuration matériau TreeRoof:", material);
-                }
             } else if (textures.opacity) {
                 material.alphaMap = textures.opacity;
                 this.configureTexture(material.alphaMap, 'opacity');
                 material.transparent = true;
                 material.alphaTest = 0.5;
             }
-// Ajout de l'environnement mapping - seulement pour les LOD medium et high
-            if (config.useEnvMap && config.lod !== 'low') {
-                const envMapTexture = window.assetManager?.getItem('EnvironmentMap');
-                if (envMapTexture) {
-                    material.envMap = envMapTexture;
-                    material.envMapIntensity = config.envMapIntensity *
-                        (config.lod === 'high' ? 1.0 : 0.5); // Réduire l'intensité pour medium
-                    material.needsUpdate = true;
-                    // console.log(`EnvMap appliquée avec une intensité de ${material.envMapIntensity}`);
+
+            // Set up shader modification to handle untextured areas
+            const originalOnBeforeCompile = material.onBeforeCompile;
+            material.onBeforeCompile = (shader) => {
+                // Call the original onBeforeCompile if it exists
+                if (originalOnBeforeCompile) {
+                    originalOnBeforeCompile(shader);
                 }
-            }
+
+                // Add our custom shader modifications for handling untextured areas
+                // Only add if not already present
+                if (!shader.fragmentShader.includes('getTextureColor(')) {
+                    const fragmentShaderModification = `
+                    // Handle untextured areas (outside UV coordinates or without a texture)
+                    vec4 getTextureColor(sampler2D map, vec2 uv) {
+                        // Check if UV is within valid range (0-1)
+                        if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                            return vec4(0.0, 0.0, 0.0, 1.0); // Return black for invalid UVs
+                        }
+                        return texture2D(map, uv);
+                    }
+                `;
+
+                    // Insert our modification after the common section
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        '#include <common>',
+                        '#include <common>\n' + fragmentShaderModification
+                    );
+
+                    // Replace texture2D calls with our getTextureColor function for main textures
+                    // We only do this for the main map to avoid affecting other textures
+                    if (material.map) {
+                        // Find and replace only texture2D calls that use the main texture map
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            /texture2D\(\s*map\s*,\s*([a-zA-Z0-9_\.]+)\s*\)/g,
+                            'getTextureColor(map, $1)'
+                        );
+                    }
+                }
+            };
 
             // Mettre à jour le matériau
             material.needsUpdate = true;
@@ -1988,6 +2019,8 @@ class TextureManager {
             console.error("Erreur lors de l'application des textures au matériau:", error);
         }
     }
+
+
 
     /**
      * Méthode clé: Applique un matériau fusionné à un modèle déjà chargé/instancié
@@ -2457,15 +2490,22 @@ class TextureManager {
      * Version améliorée: Appliquer les textures à un modèle
      * avec support pour la fusion et le LOD
      */
+    // Override the existing applyTexturesToModel method to include cleaning
     async applyTexturesToModel(modelId, modelObject, options = {}) {
         if (!modelObject) return;
 
-        // Traitement spécial pour les modèles déjà instanciés
+        // Apply the cleaning step if requested (default to true)
+        const shouldClean = options.clean !== undefined ? options.clean : true;
+        if (shouldClean) {
+            this.cleanModelBeforeTexturing(modelObject);
+        }
+
+        // Continue with the original method
         if (options.optimizeInstances) {
             return this.applyMergedMaterialToModel(modelObject, options);
         }
 
-        // Essayer de trouver des textures basées sur le nom du modèle si non définies
+        // Try to find textures based on the model name if not defined
         if (!this.hasTextures(modelId)) {
             const baseModelId = this.extractBaseModelId(modelId);
             if (baseModelId && baseModelId !== modelId && this.hasTextures(baseModelId)) {
@@ -2477,17 +2517,17 @@ class TextureManager {
             }
         }
 
-        // Ajouter le niveau de LOD actuel aux options
+        // Add the current LOD level to options
         const optionsWithLOD = {
             ...options,
             lod: options.lod || this.determineLODForObject(modelObject),
-            modelId: modelId // Ajouter l'ID du modèle pour accéder aux propriétés personnalisées
+            modelId: modelId // Add the model ID to access custom properties
         };
 
-        // Récupérer ou créer un matériau partagé
+        // Get or create a shared material
         const material = this.getMaterial(modelId, optionsWithLOD);
 
-        // Appliquer les propriétés du matériau spécifiques à ce modèle
+        // Apply material-specific properties for this model
         const materialProps = this.getMaterialProperties(modelId);
         if (materialProps && !options.skipCustomProperties) {
             this._applyMaterialProperties(material, materialProps);
@@ -2495,15 +2535,15 @@ class TextureManager {
                 `roughness=${materialProps.roughness}, metalness=${materialProps.metalness}, envMapIntensity=${materialProps.envMapIntensity}`);
         }
 
-        // Parcourir tous les matériaux du modèle
+        // Traverse all materials in the model
         modelObject.traverse((node) => {
             if (node.isMesh && node.material) {
                 const materials = Array.isArray(node.material) ? node.material : [node.material];
 
-                // Remplacer tous les matériaux par notre matériau partagé
+                // Replace all materials with our shared material
                 if (Array.isArray(node.material)) {
                     for (let i = 0; i < node.material.length; i++) {
-                        // Préserver les matériaux spéciaux si nécessaire
+                        // Preserve special materials if needed
                         if (options.preserveSpecialMaterials &&
                             (node.material[i].userData.isSpecial || node.material[i].name?.includes('Special'))) {
                             continue;
@@ -2511,14 +2551,14 @@ class TextureManager {
                         node.material[i] = material;
                     }
                 } else {
-                    // Préserver les matériaux spéciaux si nécessaire
+                    // Preserve special materials if needed
                     if (!(options.preserveSpecialMaterials &&
                         (node.material.userData.isSpecial || node.material.name?.includes('Special')))) {
                         node.material = material;
                     }
                 }
 
-                // Activer les UV2 pour l'aoMap si nécessaire
+                // Enable UV2 for aoMap if needed
                 if (node.geometry &&
                     !node.geometry.attributes.uv2 &&
                     node.geometry.attributes.uv) {
@@ -2527,7 +2567,7 @@ class TextureManager {
             }
         });
 
-        // Suivre cette instance
+        // Track this instance
         this.trackInstance(modelId, modelObject);
 
         console.log(`Matériau appliqué au modèle ${modelId} avec LOD ${optionsWithLOD.lod}`);
@@ -3038,7 +3078,7 @@ class TextureManager {
      * @param {String} maskImagePath - Chemin vers l'image masque en noir et blanc
      * @returns {Promise} - Une promesse résolue quand les textures sont appliquées
      */
-    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/path_mask.png') {
+    async applyGroundTexturesWithMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
         if (!groundObject) {
             console.error("applyGroundTexturesWithMask: objet terrain manquant");
             return false;
@@ -3329,7 +3369,7 @@ class TextureManager {
     /**
      * Méthode modifiée setupGroundWithPaths pour utiliser une image comme masque
      */
-    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/center_test.png') {
+    async setupGroundWithPathsMask(groundObject, maskImagePath = '/textures/ground/mask_road.png') {
         // Initialiser les textures avec toutes les maps
         this.initializeGroundTextures();
 
@@ -3479,6 +3519,300 @@ class TextureManager {
         this.stats.instancesMerged += instances.length;
 
         return mergedGroup;
+    }
+
+    /**
+     * Applies ground textures with a mask that can be transformed (scaled, offset, rotated)
+     * @param {Object} groundObject - The 3D ground object
+     * @param {String} maskImagePath - Path to the mask image
+     * @param {Object} transformOptions - Options for transforming the mask
+     * @returns {Promise} - Resolves when the textures are applied
+     */
+    async applyGroundTexturesWithMaskTransformed(groundObject, maskImagePath = '/textures/ground/mask_road.png', transformOptions = {}) {
+        if (!groundObject) {
+            console.error("applyGroundTexturesWithMaskTransformed: ground object missing");
+            return false;
+        }
+
+        console.log("Applying ground textures with transformed mask:", transformOptions);
+
+        // Initialize textures if needed
+        this.initializeGroundTextures();
+
+        // Create or get the ground material
+        const material = this.createGroundMaterial();
+
+        // Apply the material to all ground meshes
+        let appliedCount = 0;
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // Initialize vertex colors
+                this.ensureVertexColors(node);
+
+                // Apply the material
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        // Apply the transformed mask
+        try {
+            await this.applyMaskImageToGroundWithTransform(groundObject, maskImagePath, transformOptions);
+            console.log(`Transformed mask applied and material configured on ${appliedCount} mesh(es)`);
+            return true;
+        } catch (error) {
+            console.error("Error applying transformed path mask:", error);
+            return false;
+        }
+    }
+
+    /**
+     * Applies a mask image to ground vertex colors with transformation options
+     * @param {Object} groundObject - The ground object
+     * @param {String} maskImagePath - Path to the image mask
+     * @param {Object} transformOptions - Options for transforming the mask
+     * @returns {Promise} - Resolves when the mask has been applied
+     */
+    async applyMaskImageToGroundWithTransform(groundObject, maskImagePath, transformOptions = {}) {
+        return new Promise((resolve, reject) => {
+            console.log(`Loading path mask with transforms: ${maskImagePath}`, transformOptions);
+
+            // Default transform values
+            const options = {
+                offsetX: transformOptions.offsetX || 0,
+                offsetZ: transformOptions.offsetZ || 0,
+                scaleX: transformOptions.scaleX || 1.0,
+                scaleZ: transformOptions.scaleZ || 1.0,
+                rotation: transformOptions.rotation || 0,
+                ...transformOptions
+            };
+
+            // Create an image element to load the mask
+            const maskImage = new Image();
+            maskImage.crossOrigin = "Anonymous";
+
+            maskImage.onload = () => {
+                console.log(`Mask loaded: ${maskImage.width}x${maskImage.height} pixels`);
+
+                // Create a canvas to extract pixel data
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                canvas.width = maskImage.width;
+                canvas.height = maskImage.height;
+
+                // Draw the image to the canvas
+                context.drawImage(maskImage, 0, 0);
+
+                // Get pixel data
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const pixels = imageData.data;
+
+                // Find the terrain dimensions for scaling
+                let terrainBounds = null;
+                let totalVertices = 0;
+
+                groundObject.traverse((node) => {
+                    if (node.isMesh && node.geometry) {
+                        if (!node.geometry.boundingBox) {
+                            node.geometry.computeBoundingBox();
+                        }
+
+                        // Count total vertices
+                        if (node.geometry.attributes.position) {
+                            totalVertices += node.geometry.attributes.position.count;
+                        }
+
+                        // Update the terrain bounds
+                        if (!terrainBounds) {
+                            terrainBounds = node.geometry.boundingBox.clone();
+                        } else {
+                            terrainBounds.union(node.geometry.boundingBox);
+                        }
+                    }
+                });
+
+                if (!terrainBounds) {
+                    console.error("Could not determine terrain dimensions");
+                    reject(new Error("Terrain dimensions not determined"));
+                    return;
+                }
+
+                // Calculate terrain dimensions
+                const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
+                const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
+
+                console.log(`Terrain dimensions: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
+                console.log(`Total vertices to process: ${totalVertices}`);
+                console.log(`Applying transform: offsetX=${options.offsetX}, offsetZ=${options.offsetZ}, scaleX=${options.scaleX}, scaleZ=${options.scaleZ}, rotation=${options.rotation}`);
+
+                // Precalculate sin and cos for rotation
+                const sinRotation = Math.sin(options.rotation);
+                const cosRotation = Math.cos(options.rotation);
+
+                // Apply the mask to each mesh in the terrain
+                let processedVertices = 0;
+                let lastReportedProgress = 0;
+
+                groundObject.traverse((node) => {
+                    if (node.isMesh && node.geometry && node.geometry.attributes.position && node.geometry.attributes.color) {
+                        const positions = node.geometry.attributes.position;
+                        const colors = node.geometry.attributes.color;
+                        const count = positions.count;
+
+                        // Get the mesh's world transformation
+                        const worldMatrix = new Matrix4();
+                        node.updateMatrixWorld(true);
+                        worldMatrix.copy(node.matrixWorld);
+
+                        // For each vertex
+                        for (let i = 0; i < count; i++) {
+                            // Get vertex position in world space
+                            const vertex = new Vector3(
+                                positions.getX(i),
+                                positions.getY(i),
+                                positions.getZ(i)
+                            );
+
+                            // Transform the local position to world position
+                            vertex.applyMatrix4(worldMatrix);
+
+                            // Apply offset to vertex position
+                            const transformedX = vertex.x - terrainBounds.min.x - options.offsetX;
+                            const transformedZ = vertex.z - terrainBounds.min.z - options.offsetZ;
+
+                            // Apply rotation (around the center of the terrain after offset)
+                            const centerX = terrainWidth / 2;
+                            const centerZ = terrainDepth / 2;
+
+                            const relativeX = transformedX - centerX;
+                            const relativeZ = transformedZ - centerZ;
+
+                            const rotatedX = relativeX * cosRotation - relativeZ * sinRotation + centerX;
+                            const rotatedZ = relativeX * sinRotation + relativeZ * cosRotation + centerZ;
+
+                            // Convert to UV coordinates with scale
+                            const u = (rotatedX / terrainWidth) / options.scaleX + (0.5 - 0.5 / options.scaleX);
+                            const v = (rotatedZ / terrainDepth) / options.scaleZ + (0.5 - 0.5 / options.scaleZ);
+
+                            // Convert UV to pixel indices
+                            const pixelX = Math.floor(u * (canvas.width - 1));
+                            const pixelY = Math.floor((1 - v) * (canvas.height - 1)); // Invert Y
+
+                            // Ensure coordinates are within bounds
+                            if (pixelX >= 0 && pixelX < canvas.width && pixelY >= 0 && pixelY < canvas.height) {
+                                // Index in the pixel array (RGBA)
+                                const pixelIndex = (pixelY * canvas.width + pixelX) * 4;
+
+                                // Extract the value (white = path, black = grass)
+                                const r = pixels[pixelIndex] / 255;
+                                const g = pixels[pixelIndex + 1] / 255;
+                                const b = pixels[pixelIndex + 2] / 255;
+
+                                // Calculate luminance
+                                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                                // Apply the value to the R channel
+                                colors.setX(i, luminance);
+                            }
+
+                            processedVertices++;
+
+                            // Report progress
+                            const progress = Math.floor((processedVertices / totalVertices) * 100);
+                            if (progress > lastReportedProgress && progress % 10 === 0) {
+                                console.log(`Applying mask: ${progress}% (${processedVertices}/${totalVertices} vertices)`);
+                                lastReportedProgress = progress;
+                            }
+                        }
+
+                        // Mark colors as updated
+                        colors.needsUpdate = true;
+                    }
+                });
+
+                console.log("Path mask applied successfully to vertex colors");
+                resolve(true);
+            };
+
+            maskImage.onerror = (error) => {
+                console.error(`Error loading mask: ${maskImagePath}`, error);
+                reject(error);
+            };
+
+            // Start loading
+            maskImage.src = maskImagePath;
+        });
+    }
+
+    /**
+     * Extends TextureManager with a "clean" method that ensures areas outside the texture are black
+     * Add this method to the TextureManager class
+     */
+
+// Method to clean a model before applying textures (making untextured areas black)
+    cleanModelBeforeTexturing(modelObject) {
+        if (!modelObject) return;
+
+        console.log("Cleaning model before texturing, setting untextured areas to black");
+
+        // Process all meshes in the model
+        modelObject.traverse(node => {
+            if (node.isMesh && node.material) {
+                // Handle both single and multiple materials
+                const materials = Array.isArray(node.material) ? node.material : [node.material];
+
+                materials.forEach(material => {
+                    // 1. Set the base color to black
+                    if (material.color) {
+                        material.color.set('#000000');
+                    }
+
+                    // 2. Ensure alpha test is enabled (helps with sharper edges between textured/untextured)
+                    material.transparent = true;
+                    material.alphaTest = 0.01;
+
+                    // 3. Set special shader handling for untextured areas
+                    material.onBeforeCompile = (shader) => {
+                        // Add a custom uniform to detect untextured areas
+                        shader.uniforms.hasTexture = { value: 0 };
+
+                        // Modify the fragment shader to check for valid texture coordinates
+                        const fragmentShaderModification = `
+                        // Handle untextured areas (outside UV coordinates or without a texture)
+                        vec4 getTextureColor(sampler2D map, vec2 uv) {
+                            // Check if UV is within valid range (0-1)
+                            if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                                return vec4(0.0, 0.0, 0.0, 1.0); // Return black for invalid UVs
+                            }
+                            return texture2D(map, uv);
+                        }
+                    `;
+
+                        // Insert our modification after the common section
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            '#include <common>',
+                            '#include <common>\n' + fragmentShaderModification
+                        );
+
+                        // Replace texture2D calls with our getTextureColor function
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            /texture2D\(\s*([a-zA-Z0-9_]+)\s*,\s*([a-zA-Z0-9_\.]+)\s*\)/g,
+                            'getTextureColor($1, $2)'
+                        );
+
+                        // Store the modified shader in material for debugging
+                        material.userData.modifiedShader = shader;
+                    };
+
+                    // 4. Flag the material as "cleaned"
+                    material.userData.cleaned = true;
+                    material.needsUpdate = true;
+                });
+            }
+        });
+
+        return modelObject;
     }
 
     /**

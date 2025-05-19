@@ -6,6 +6,7 @@
 const guiFolderConfig = {
     // Configuration principale pour l'affichage des dossiers
     foldersVisibility: {
+        "Terrain Path": true,
         "Visualisation": true,    // Contrôles de visualisation générale
         "Camera": true,           // Contrôles de caméra
         "Render": true,           // Nouveaux contrôles de rendu

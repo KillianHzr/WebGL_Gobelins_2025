@@ -572,6 +572,50 @@ const guiConfig = {
             default: 2.36
         }
     },
+    terrain: {
+        folder: "Terrain Path",
+        pathMask: {
+            offsetX: {
+                min: -50,
+                max: 50,
+                step: 0.5,
+                name: "Offset X",
+                default: 0
+            },
+            offsetZ: {
+                min: -50,
+                max: 50,
+                step: 0.5,
+                name: "Offset Z",
+                default: 0
+            },
+            scaleX: {
+                min: 0.1,
+                max: 10,
+                step: 0.1,
+                name: "Scale X",
+                default: 1.0
+            },
+            scaleZ: {
+                min: 0.1,
+                max: 10,
+                step: 0.1,
+                name: "Scale Z",
+                default: 1.0
+            },
+            rotation: {
+                min: -Math.PI,
+                max: Math.PI,
+                step: 0.05,
+                name: "Rotation",
+                default: 0
+            },
+            imagePath: {
+                name: "Mask Image Path",
+                default: "/textures/ground/road_mask.png"
+            }
+        }
+    },
     materials: {
         folder: "Materials",
         common: {
