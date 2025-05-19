@@ -238,17 +238,10 @@ export const StaticObject = React.memo(function StaticObject({
             try {
                 // Vérifier si c'est un objet de terrain (Ground)
                 if (isGroundObjectRef.current) {
-                    // Pour les objets de type Ground, utiliser l'approche avec image masque
-                    console.log(`[TextureManager] Objet de terrain détecté (${textureModelId}), application des textures avec masque de chemin`);
-
-                    // Vérifier si les textures du sol sont déjà initialisées
-                    if (!textureManager.hasTextures('ForestGrass') || !textureManager.hasTextures('ForestRoad')) {
-                        console.log(`[TextureManager] Initialisation des textures de terrain avant application`);
-                        textureManager.initializeGroundTextures();
-                    }
-
-                    // Utiliser la nouvelle méthode avec image masque
-                    await textureManager.setupGroundWithPathsMask(objectRef.current);
+                    console.log("Objet Ground détecté:", textureModelId);
+                    // Méthode configureGround du SceneObjectManager
+                    await sceneObjectManager.configureGround(objectRef.current, true);
+                    console.log("Configuration du Ground terminée");
                 } else {
                     // Pour les autres objets, utiliser la méthode standard
                     await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
