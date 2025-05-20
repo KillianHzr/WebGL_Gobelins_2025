@@ -1071,6 +1071,7 @@ class TextureManager {
             normalMap: null,
             roughnessMap: null,
             metalnessMap: null,
+            transparent: false,
             aoMap: null,
             envMap: null,
             side: DoubleSide,
@@ -1443,9 +1444,8 @@ class TextureManager {
         const material = new MeshStandardMaterial({
             name: `${modelId}_material`,
             side: DoubleSide,
-            transparent: true,
-            alphaTest: 0.5,
-            // Appliquer directement les propriétés spécifiques
+            transparent: false,
+            alphaTest: 1.0,
             roughness: materialProperties.roughness,
             metalness: materialProperties.metalness
         });
@@ -2078,8 +2078,8 @@ class TextureManager {
             if (textures.alpha) {
                 material.alphaMap = textures.alpha;
                 this.configureTexture(material.alphaMap, 'alpha');
-                material.transparent = true;
-                material.alphaTest = 0.5;
+                material.transparent = false;
+                material.alphaTest = 1.0;
 
                 material.side = DoubleSide;
 
@@ -2523,7 +2523,7 @@ class TextureManager {
 
         if (originalMaterial.alphaMap) {
             optimizedMaterial.alphaMap = originalMaterial.alphaMap;
-            optimizedMaterial.transparent = true;
+            optimizedMaterial.transparent = false;
         }
 
         // Conserver aussi les propriétés personnalisées de l'original
