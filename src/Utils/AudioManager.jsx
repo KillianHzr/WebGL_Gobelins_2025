@@ -41,7 +41,7 @@ class AudioManager {
         // Ajouter les seuils de transition pour les rivières
         this.riverTransitionThresholds = {
             startRiver1: 0.0,   // La rivière 1 commence au début
-            startRiver2: 0.35,  // La rivière 2 commence à 35% du parcours
+            startRiver2: 0.25,  // La rivière 2 commence à 35% du parcours
             startRiver3: 0.65,  // La rivière 3 commence à 65% du parcours
             endAllRivers: 0.95  // Tous les sons de rivière s'arrêtent à 95% du parcours
         };
@@ -283,7 +283,7 @@ class AudioManager {
                 this.natureAmbience = new Howl({
                     src: ['/audios/compos/MoodNatureLoop.mp3'],
                     loop: true,
-                    volume: 2, // Volume explicitement plus élevé (20%)
+                    volume: 3, // Volume explicitement plus élevé (20%)
                     preload: true
                 });
             } else {

@@ -21,8 +21,8 @@ class RandomAmbientSounds {
                 path: '/audios/randoms/bird_voices.mp3',
                 minInterval: 30,
                 maxInterval: 60,
-                minVolume: 0.1,
-                maxVolume: 0.2,
+                minVolume: 0.05,
+                maxVolume: 0.15,
                 preload: true
             },
             insectes: {
@@ -37,16 +37,16 @@ class RandomAmbientSounds {
                 path: '/audios/randoms/soft_wind_1.mp3',
                 minInterval: 15,
                 maxInterval: 45,
-                minVolume: 0.3,
-                maxVolume: 0.8,
+                minVolume: 0.1,
+                maxVolume: 0.3,
                 preload: true
             },
             soft_wind_2: {
                 path: '/audios/randoms/soft_wind_2.mp3',
                 minInterval: 15,
                 maxInterval: 45,
-                minVolume: 0.3,
-                maxVolume: 0.8,
+                minVolume: 0.1,
+                maxVolume: 0.3,
                 preload: true
             }
         };
