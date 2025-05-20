@@ -1121,18 +1121,21 @@ class SceneObjectManager {
      * @param {Object} groundObject - L'objet 3D du terrain
      * @param {Object} options - Options de configuration
      */
-    configureGround(groundObject, useDepthSystem = true) {
+    configureGround(groundObject, options = {}) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
             return false;
         }
 
-        console.log("Configuration du terrain avec utilisation équitable de tous les canaux RGB");
-
-        // Utiliser notre nouvelle méthode qui traite tous les canaux
-        return textureManager.setupGroundWithExactColors(groundObject, {
+        // Utiliser la nouvelle méthode avec des paramètres spécifiques
+        return textureManager.setupPreciseGround(groundObject, {
             heightThreshold: 0.63,
-            transitionZone: 0.05
+            transitionZone: 0.02,
+            roughness: 0.92,
+            metalness: 0.05,
+            normalScale: 1.2,
+            grassRoughness: 0.98,
+            roadRoughness: 0.85
         });
     }
 

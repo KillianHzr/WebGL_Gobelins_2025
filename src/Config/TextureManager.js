@@ -153,12 +153,16 @@ class TextureManager {
      * Créer un matériau pour le terrain qui respecte exactement les textures originales
      * sans aucune modification de couleur ou variation
      */
+    /**
+     * Créer un matériau pour le terrain qui intègre les textures de base color, normal et roughness
+     * avec répétition des textures pour plus de détails
+     */
     createGroundMaterial() {
         if (this.materialPool['ground_special']) {
             return this.materialPool['ground_special'];
         }
 
-        console.log("Création d'un matériau pour le terrain avec reproduction exacte des textures");
+        console.log("Création d'un matériau pour le terrain avec textures de base, normal et roughness en répétition");
 
         // Créer un matériau de base pour le terrain
         const material = new MeshStandardMaterial({
@@ -171,26 +175,59 @@ class TextureManager {
             envMapIntensity: 0.25
         });
 
-        // Charger les deux textures
+        // Facteur de répétition des textures
+        const repeatFactor = 2.0;  // Répétition x2 des textures
+
+        // Charger les textures
         const textureLoader = new TextureLoader();
+
+        // BaseColor textures
         const grassTexture = textureLoader.load('/textures/ground/ForestGrass_BaseColor.png');
         const roadTexture = textureLoader.load('/textures/ground/ForestRoad_BaseColor.png');
 
-        // Configurer les textures
-        this.configureTexture(grassTexture, 'baseColor');
-        this.configureTexture(roadTexture, 'baseColor');
+        // Normal maps
+        const grassNormalTexture = textureLoader.load('/textures/ground/ForestGrass_Normal.png');
+        const roadNormalTexture = textureLoader.load('/textures/ground/ForestRoad_Normal.png');
 
-        // Configurer le shader personnalisé avec un mélange direct
+        // Roughness maps
+        const grassRoughnessTexture = textureLoader.load('/textures/ground/ForestGrass_Roughness.png');
+        const roadRoughnessTexture = textureLoader.load('/textures/ground/ForestRoad_Roughness.png');
+
+        // Configurer les textures avec répétition
+        const configureTextureWithRepeat = (texture, type, repeat = repeatFactor) => {
+            // Configuration de base
+            this.configureTexture(texture, type);
+
+            // Ajout de la répétition
+            texture.repeat.set(repeat, repeat);
+            texture.wrapS = RepeatWrapping;
+            texture.wrapT = RepeatWrapping;
+        };
+
+        // Appliquer la configuration à toutes les textures
+        configureTextureWithRepeat(grassTexture, 'baseColor');
+        configureTextureWithRepeat(roadTexture, 'baseColor');
+        configureTextureWithRepeat(grassNormalTexture, 'normal');
+        configureTextureWithRepeat(roadNormalTexture, 'normal');
+        configureTextureWithRepeat(grassRoughnessTexture, 'roughness');
+        configureTextureWithRepeat(roadRoughnessTexture, 'roughness');
+
+        // Configurer le shader personnalisé avec un mélange direct et support pour toutes les maps
         material.userData.isGroundMaterial = true;
         material.onBeforeCompile = (shader) => {
             // Ajouter les uniforms pour les textures
             shader.uniforms.grassTexture = { value: grassTexture };
             shader.uniforms.roadTexture = { value: roadTexture };
+            shader.uniforms.grassNormalMap = { value: grassNormalTexture };
+            shader.uniforms.roadNormalMap = { value: roadNormalTexture };
+            shader.uniforms.grassRoughnessMap = { value: grassRoughnessTexture };
+            shader.uniforms.roadRoughnessMap = { value: roadRoughnessTexture };
+            shader.uniforms.normalScale = { value: 1.0 };
 
-            // Vertex shader simple
+            // Vertex shader
             const vertexPars = `
-            varying vec2 vUv;
-            varying vec3 vVertexColor;
+        varying vec2 vUv;
+        varying vec3 vVertexColor;
         `;
 
             shader.vertexShader = shader.vertexShader.replace(
@@ -203,12 +240,20 @@ class TextureManager {
                 '#include <begin_vertex>\n\tvUv = uv;\n\tvVertexColor = color.rgb;'
             );
 
-            // Fragment shader avec mélange direct sans modification
+            // Fragment shader avec mélange direct pour toutes les textures
             const fragmentPars = `
-            varying vec2 vUv;
-            varying vec3 vVertexColor;
-            uniform sampler2D grassTexture;
-            uniform sampler2D roadTexture;
+        varying vec2 vUv;
+        varying vec3 vVertexColor;
+        uniform sampler2D grassTexture;
+        uniform sampler2D roadTexture;
+        uniform sampler2D grassNormalMap;
+        uniform sampler2D roadNormalMap;
+        uniform sampler2D grassRoughnessMap;
+        uniform sampler2D roadRoughnessMap;
+        uniform float normalScale;
+        
+        // Variable pour stocker le facteur de mélange, accessible à tous les remplacements
+        float blendFactor;
         `;
 
             shader.fragmentShader = shader.fragmentShader.replace(
@@ -216,21 +261,62 @@ class TextureManager {
                 '#include <common>\n' + fragmentPars
             );
 
-            // Shader extrêmement simplifié - mélange linéaire direct sans aucune modification
+            // Remplacer la partie qui définit la couleur diffuse
             shader.fragmentShader = shader.fragmentShader.replace(
                 'vec4 diffuseColor = vec4( diffuse, opacity );',
                 `
-            // Échantillonner directement les textures
-            vec4 grassColor = texture2D(grassTexture, vUv);
-            vec4 roadColor = texture2D(roadTexture, vUv);
+        // Calcul du facteur de mélange une seule fois
+        blendFactor = (vVertexColor.r + vVertexColor.g + vVertexColor.b) / 3.0;
+        
+        // Échantillonner directement les textures de base
+        vec4 grassColor = texture2D(grassTexture, vUv);
+        vec4 roadColor = texture2D(roadTexture, vUv);
+        
+        // Mélange linéaire direct entre les deux textures
+        vec4 diffuseColor = mix(grassColor, roadColor, blendFactor);
+        diffuseColor.a = opacity;
+        `
+            );
+
+            // Remplacer la normal map dans le shader
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <normal_fragment_maps>',
+                `
+        #ifdef USE_NORMAL
+            // Échantillonner les deux normal maps
+            vec3 grassNormal = texture2D(grassNormalMap, vUv).xyz * 2.0 - 1.0;
+            vec3 roadNormal = texture2D(roadNormalMap, vUv).xyz * 2.0 - 1.0;
             
-            // Simple mélange direct en utilisant la moyenne des canaux de vertex color
-            float blendFactor = (vVertexColor.r + vVertexColor.g + vVertexColor.b) / 3.0;
+            // Mélanger les normales en utilisant le même facteur de mélange
+            vec3 mixedNormal = mix(grassNormal, roadNormal, blendFactor);
             
-            // Mélange linéaire direct entre les deux textures, sans aucune modification
-            vec4 diffuseColor = mix(grassColor, roadColor, blendFactor);
-            diffuseColor.a = opacity;
-            `
+            // Appliquer l'échelle de la normale
+            mixedNormal.xy *= normalScale;
+            mixedNormal = normalize(mixedNormal);
+            
+            // Convertir de l'espace tangent à l'espace vue
+            normal = perturbNormal2Arb(-vViewPosition, normal, mixedNormal, faceDirection);
+        #endif
+        `
+            );
+
+            // Remplacer le traitement de la rugosité
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <roughnessmap_fragment>',
+                `
+        float roughnessFactor = roughness;
+        #ifdef USE_ROUGHNESSMAP
+            // Échantillonner les deux cartes de rugosité
+            float grassRoughness = texture2D(grassRoughnessMap, vUv).y;
+            float roadRoughness = texture2D(roadRoughnessMap, vUv).y;
+            
+            // Mélanger les valeurs de rugosité
+            roughnessFactor *= mix(grassRoughness, roadRoughness, blendFactor);
+            
+            // Assurer des valeurs valides
+            roughnessFactor = clamp(roughnessFactor, 0.0, 1.0);
+        #endif
+        `
             );
 
             material.userData.shader = shader;
@@ -2801,6 +2887,345 @@ class TextureManager {
         return groups;
     }
 
+
+    /**
+     * Crée un matériau de terrain précis avec des valeurs spécifiques
+     * @param {Object} options - Options de configuration personnalisées
+     * @returns {MeshStandardMaterial} - Le matériau configuré pour le terrain
+     */
+    createCustomGroundMaterial(options = {}) {
+        // Configuration par défaut avec valeurs précises
+        const config = {
+            roughness: options.roughness !== undefined ? options.roughness : 0.95,
+            metalness: options.metalness !== undefined ? options.metalness : 0.08,
+            envMapIntensity: options.envMapIntensity !== undefined ? options.envMapIntensity : 0.25,
+            normalScale: options.normalScale !== undefined ? options.normalScale : 1.0,
+            repeatFactor: options.repeatFactor !== undefined ? options.repeatFactor : 2.0,
+            grassRoughness: options.grassRoughness !== undefined ? options.grassRoughness : 1.0,
+            roadRoughness: options.roadRoughness !== undefined ? options.roadRoughness : 0.9
+        };
+
+        console.log("Création d'un matériau personnalisé pour le terrain avec paramètres spécifiques:");
+        console.log(`- Rugosité: ${config.roughness}`);
+        console.log(`- Métallicité: ${config.metalness}`);
+        console.log(`- Échelle normale: ${config.normalScale}`);
+        console.log(`- Intensité env. map: ${config.envMapIntensity}`);
+        console.log(`- Facteur de répétition: ${config.repeatFactor}`);
+
+        // Utiliser une clé unique pour le matériau basée sur la configuration
+        const materialKey = `ground_precise_${config.roughness}_${config.metalness}_${config.normalScale}`;
+
+        // Vérifier si le matériau existe déjà avec cette configuration
+        if (this.materialPool[materialKey]) {
+            return this.materialPool[materialKey];
+        }
+
+        // Créer le matériau avec les propriétés précises
+        const material = new MeshStandardMaterial({
+            name: 'ground_precise_material',
+            vertexColors: true,
+            side: DoubleSide,
+            transparent: false,
+            roughness: config.roughness,
+            metalness: config.metalness,
+            envMapIntensity: config.envMapIntensity
+        });
+
+        // Charger les textures
+        const textureLoader = new TextureLoader();
+
+        // BaseColor textures
+        const grassTexture = textureLoader.load('/textures/ground/ForestGrass_BaseColor.png');
+        const roadTexture = textureLoader.load('/textures/ground/ForestRoad_BaseColor.png');
+
+        // Normal maps
+        const grassNormalTexture = textureLoader.load('/textures/ground/ForestGrass_Normal.png');
+        const roadNormalTexture = textureLoader.load('/textures/ground/ForestRoad_Normal.png');
+
+        // Roughness maps
+        const grassRoughnessTexture = textureLoader.load('/textures/ground/ForestGrass_Roughness.png');
+        const roadRoughnessTexture = textureLoader.load('/textures/ground/ForestRoad_Roughness.png');
+
+        // Configurer les textures avec le facteur de répétition spécifié
+        const configureTextureWithRepeat = (texture, type, repeat = config.repeatFactor) => {
+            // Configuration de base
+            this.configureTexture(texture, type);
+
+            // Ajout de la répétition
+            texture.repeat.set(repeat, repeat);
+            texture.wrapS = RepeatWrapping;
+            texture.wrapT = RepeatWrapping;
+        };
+
+        // Appliquer la configuration à toutes les textures
+        configureTextureWithRepeat(grassTexture, 'baseColor');
+        configureTextureWithRepeat(roadTexture, 'baseColor');
+        configureTextureWithRepeat(grassNormalTexture, 'normal');
+        configureTextureWithRepeat(roadNormalTexture, 'normal');
+        configureTextureWithRepeat(grassRoughnessTexture, 'roughness');
+        configureTextureWithRepeat(roadRoughnessTexture, 'roughness');
+
+        // Configurer le shader personnalisé avec paramètres précis
+        material.userData.isGroundMaterial = true;
+        material.onBeforeCompile = (shader) => {
+            // Ajouter les uniforms pour les textures et paramètres
+            shader.uniforms.grassTexture = { value: grassTexture };
+            shader.uniforms.roadTexture = { value: roadTexture };
+            shader.uniforms.grassNormalMap = { value: grassNormalTexture };
+            shader.uniforms.roadNormalMap = { value: roadNormalTexture };
+            shader.uniforms.grassRoughnessMap = { value: grassRoughnessTexture };
+            shader.uniforms.roadRoughnessMap = { value: roadRoughnessTexture };
+            shader.uniforms.normalScale = { value: config.normalScale };
+            shader.uniforms.grassRoughness = { value: config.grassRoughness };
+            shader.uniforms.roadRoughness = { value: config.roadRoughness };
+
+            // Vertex shader
+            const vertexPars = `
+        varying vec2 vUv;
+        varying vec3 vVertexColor;
+        `;
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <common>',
+                '#include <common>\n' + vertexPars
+            );
+
+            shader.vertexShader = shader.vertexShader.replace(
+                '#include <begin_vertex>',
+                '#include <begin_vertex>\n\tvUv = uv;\n\tvVertexColor = color.rgb;'
+            );
+
+            // Fragment shader avec mélange direct pour toutes les textures
+            const fragmentPars = `
+        varying vec2 vUv;
+        varying vec3 vVertexColor;
+        uniform sampler2D grassTexture;
+        uniform sampler2D roadTexture;
+        uniform sampler2D grassNormalMap;
+        uniform sampler2D roadNormalMap;
+        uniform sampler2D grassRoughnessMap;
+        uniform sampler2D roadRoughnessMap;
+        uniform float normalScale;
+        uniform float grassRoughness;
+        uniform float roadRoughness;
+        
+        // Variable pour stocker le facteur de mélange, accessible à tous les remplacements
+        float blendFactor;
+        `;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <common>',
+                '#include <common>\n' + fragmentPars
+            );
+
+            // Remplacer la partie qui définit la couleur diffuse
+            shader.fragmentShader = shader.fragmentShader.replace(
+                'vec4 diffuseColor = vec4( diffuse, opacity );',
+                `
+        // Utiliser uniquement le canal R comme facteur de mélange pour une reproduction exacte
+        blendFactor = vVertexColor.r;
+        
+        // Échantillonner directement les textures de base
+        vec4 grassColor = texture2D(grassTexture, vUv);
+        vec4 roadColor = texture2D(roadTexture, vUv);
+        
+        // Mélange linéaire direct entre les deux textures
+        vec4 diffuseColor = mix(grassColor, roadColor, blendFactor);
+        diffuseColor.a = opacity;
+        `
+            );
+
+            // Remplacer la normal map dans le shader
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <normal_fragment_maps>',
+                `
+        #ifdef USE_NORMAL
+            // Échantillonner les deux normal maps
+            vec3 grassNormal = texture2D(grassNormalMap, vUv).xyz * 2.0 - 1.0;
+            vec3 roadNormal = texture2D(roadNormalMap, vUv).xyz * 2.0 - 1.0;
+            
+            // Mélanger les normales en utilisant le même facteur de mélange
+            vec3 mixedNormal = mix(grassNormal, roadNormal, blendFactor);
+            
+            // Appliquer l'échelle de la normale configurée
+            mixedNormal.xy *= normalScale;
+            mixedNormal = normalize(mixedNormal);
+            
+            // Convertir de l'espace tangent à l'espace vue
+            normal = perturbNormal2Arb(-vViewPosition, normal, mixedNormal, faceDirection);
+        #endif
+        `
+            );
+
+            // Remplacer le traitement de la rugosité avec valeurs spécifiques
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <roughnessmap_fragment>',
+                `
+        #ifdef USE_ROUGHNESSMAP
+            // Échantillonner les deux cartes de rugosité
+            float baseGrassRoughness = texture2D(grassRoughnessMap, vUv).y * grassRoughness;
+            float baseRoadRoughness = texture2D(roadRoughnessMap, vUv).y * roadRoughness;
+            
+            // Mélanger les valeurs de rugosité avec leurs coefficients spécifiques
+            roughnessFactor = mix(baseGrassRoughness, baseRoadRoughness, blendFactor);
+            
+            // Assurer des valeurs valides
+            roughnessFactor = clamp(roughnessFactor, 0.0, 1.0);
+        #else
+            // Utiliser les valeurs de base si pas de maps
+            roughnessFactor = mix(grassRoughness, roadRoughness, blendFactor) * roughness;
+        #endif
+        `
+            );
+
+            material.userData.shader = shader;
+        };
+
+        material.needsUpdate = true;
+
+        // Stocker dans le pool avec la clé spécifique
+        this.materialPool[materialKey] = material;
+
+        return material;
+    }
+
+
+    /**
+     * Configure le terrain avec des couleurs et paramètres matériels précis
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration personnalisées
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupPreciseGround(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupPreciseGround: objet terrain manquant");
+            return false;
+        }
+
+        // Options par défaut avec des valeurs précises pour le rendu du terrain
+        const config = {
+            // Seuils et transitions pour la détection des chemins vs herbe
+            heightThreshold: options.heightThreshold || 0.63,
+            transitionZone: options.transitionZone || 0.02,
+            invertHeight: options.invertHeight || false,
+            yOffset: options.yOffset || 0.5,
+
+            // Propriétés matérielles spécifiques
+            roughness: options.roughness || 0.95,
+            metalness: options.metalness || 0.08,
+            envMapIntensity: options.envMapIntensity || 0.25,
+            normalScale: options.normalScale || 1.0,
+            repeatFactor: options.repeatFactor || 2.0,
+
+            // Valeurs pour l'herbe et les chemins
+            grassRoughness: options.grassRoughness || 0.98,
+            roadRoughness: options.roadRoughness || 0.85
+        };
+
+        console.log("Configuration précise du terrain avec paramètres matériels spécifiques:");
+        console.log(`- Seuil de hauteur: ${config.heightThreshold}`);
+        console.log(`- Zone de transition: ${config.transitionZone}`);
+        console.log(`- Rugosité: ${config.roughness}`);
+        console.log(`- Métallicité: ${config.metalness}`);
+        console.log(`- Échelle normale: ${config.normalScale}`);
+
+        // Créer un matériau personnalisé avec les paramètres spécifiés
+        const material = this.createCustomGroundMaterial({
+            roughness: config.roughness,
+            metalness: config.metalness,
+            envMapIntensity: config.envMapIntensity,
+            normalScale: config.normalScale,
+            repeatFactor: config.repeatFactor,
+            grassRoughness: config.grassRoughness,
+            roadRoughness: config.roadRoughness
+        });
+
+        // Analyser les limites du terrain
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
+        });
+
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer le seuil
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
+
+        // Assigner des vertex colors avec valeurs précises (canal R uniquement pour une reproduction exacte)
+        let appliedCount = 0;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                if (!node.geometry) return;
+
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                // Créer un attribut color s'il n'existe pas
+                if (!node.geometry.attributes.color) {
+                    const colors = new Float32Array(count * 3);
+                    node.geometry.setAttribute('color', new BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+
+                    // Déterminer la valeur de mélange
+                    let blendValue;
+
+                    if (config.invertHeight) {
+                        // Si inversé: les parties hautes sont des chemins
+                        if (y > effectiveThreshold) {
+                            blendValue = 1.0;
+                        } else if (y > effectiveThreshold - config.transitionZone) {
+                            // Zone de transition
+                            blendValue = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                        } else {
+                            blendValue = 0.0;
+                        }
+                    } else {
+                        // Comportement par défaut: les parties basses sont des chemins
+                        if (y < effectiveThreshold) {
+                            blendValue = 1.0;
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition
+                            blendValue = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                        } else {
+                            blendValue = 0.0;
+                        }
+                    }
+
+                    // Assigner uniquement le canal R pour un contrôle précis, autres canaux identiques
+                    colors.setXYZ(i, blendValue, blendValue, blendValue);
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        console.log(`Configuration précise du terrain appliquée à ${appliedCount} mesh(es)`);
+        return true;
+    }
 
 
     /**
