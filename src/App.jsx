@@ -226,7 +226,7 @@ export default function App() {
             if (eventName === MARKER_EVENTS.INTERACTION_COMPLETE ||
                 eventName === 'INTERACTION_COMPLETE' ||
                 eventName === 'marker:interaction:complete' ||
-                (eventName.indexOf && eventName.indexOf('interaction:complete') !== -1)) {
+                (typeof eventName === 'string' && eventName.indexOf && eventName.indexOf('interaction:complete') !== -1)) {
 
                 console.log(`[EventBus] Événement capturé: ${eventName}`, data);
 
