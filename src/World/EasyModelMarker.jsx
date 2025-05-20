@@ -711,15 +711,15 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}
             {children ? (
-                <>
+                <group>
                     {renderChildren}
                     {renderOutlineEffect}
-                </>
+                </group>
             ) : (
-                <>
+                <group>
                     {renderDefaultModel}
                     {renderOutlineEffect}
-                </>
+                </group>
             )}
         </ModelMarker>
     );
