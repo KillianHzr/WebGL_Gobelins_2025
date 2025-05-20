@@ -147,16 +147,18 @@ class TextureManager {
     }
 
     /**
-     * Créer un matériau spécifique pour le terrain
+     * Créer un matériau pour le terrain qui utilise TOUS les canaux de manière équitable
      */
-    // Correction de la méthode createGroundMaterial() dans TextureManager.js
-
+    /**
+     * Créer un matériau pour le terrain qui respecte exactement les textures originales
+     * sans aucune modification de couleur ou variation
+     */
     createGroundMaterial() {
         if (this.materialPool['ground_special']) {
             return this.materialPool['ground_special'];
         }
 
-        console.log("Création d'un matériau pour le terrain avec textures personnalisées");
+        console.log("Création d'un matériau pour le terrain avec reproduction exacte des textures");
 
         // Créer un matériau de base pour le terrain
         const material = new MeshStandardMaterial({
@@ -169,25 +171,23 @@ class TextureManager {
             envMapIntensity: 0.25
         });
 
-        // Créer directement les textures à partir de vos images
+        // Charger les deux textures
         const textureLoader = new TextureLoader();
-
-        // Charger les textures spécifiques (remplacez par vos chemins d'accès)
-        const grassBaseColorTexture = textureLoader.load('/textures/ground/ForestGrass_BaseColor.png');
-        const roadBaseColorTexture = textureLoader.load('/textures/ground/ForestRoad_BaseColor.png');
+        const grassTexture = textureLoader.load('/textures/ground/ForestGrass_BaseColor.png');
+        const roadTexture = textureLoader.load('/textures/ground/ForestRoad_BaseColor.png');
 
         // Configurer les textures
-        this.configureTexture(grassBaseColorTexture, 'baseColor');
-        this.configureTexture(roadBaseColorTexture, 'baseColor');
+        this.configureTexture(grassTexture, 'baseColor');
+        this.configureTexture(roadTexture, 'baseColor');
 
-        // Configurer le shader personnalisé pour mélanger les textures
+        // Configurer le shader personnalisé avec un mélange direct
         material.userData.isGroundMaterial = true;
         material.onBeforeCompile = (shader) => {
             // Ajouter les uniforms pour les textures
-            shader.uniforms.grassMap = { value: grassBaseColorTexture };
-            shader.uniforms.roadMap = { value: roadBaseColorTexture };
+            shader.uniforms.grassTexture = { value: grassTexture };
+            shader.uniforms.roadTexture = { value: roadTexture };
 
-            // Même code de shader que précédemment
+            // Vertex shader simple
             const vertexPars = `
             varying vec2 vUv;
             varying vec3 vVertexColor;
@@ -203,12 +203,12 @@ class TextureManager {
                 '#include <begin_vertex>\n\tvUv = uv;\n\tvVertexColor = color.rgb;'
             );
 
-            // Fragment shader pour mélanger les textures
+            // Fragment shader avec mélange direct sans modification
             const fragmentPars = `
             varying vec2 vUv;
             varying vec3 vVertexColor;
-            uniform sampler2D grassMap;
-            uniform sampler2D roadMap;
+            uniform sampler2D grassTexture;
+            uniform sampler2D roadTexture;
         `;
 
             shader.fragmentShader = shader.fragmentShader.replace(
@@ -216,19 +216,19 @@ class TextureManager {
                 '#include <common>\n' + fragmentPars
             );
 
-            // Remplacer la méthode d'échantillonnage
+            // Shader extrêmement simplifié - mélange linéaire direct sans aucune modification
             shader.fragmentShader = shader.fragmentShader.replace(
                 'vec4 diffuseColor = vec4( diffuse, opacity );',
                 `
-            // Échantillonner les textures couleur
-            vec4 grassColor = texture2D(grassMap, vUv);
-            vec4 roadColor = texture2D(roadMap, vUv);
+            // Échantillonner directement les textures
+            vec4 grassColor = texture2D(grassTexture, vUv);
+            vec4 roadColor = texture2D(roadTexture, vUv);
             
-            // Utiliser le canal R pour mélanger
-            float roadFactor = vVertexColor.r;
+            // Simple mélange direct en utilisant la moyenne des canaux de vertex color
+            float blendFactor = (vVertexColor.r + vVertexColor.g + vVertexColor.b) / 3.0;
             
-            // Mélanger les textures de couleur
-            vec4 diffuseColor = mix(grassColor, roadColor, roadFactor);
+            // Mélange linéaire direct entre les deux textures, sans aucune modification
+            vec4 diffuseColor = mix(grassColor, roadColor, blendFactor);
             diffuseColor.a = opacity;
             `
             );
@@ -244,22 +244,369 @@ class TextureManager {
         return material;
     }
 
+    /**
+     * Configure le terrain en utilisant des valeurs identiques sur tous les canaux
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundWithExactColors(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithExactColors: objet terrain manquant");
+            return false;
+        }
+
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.63,
+            transitionZone: options.transitionZone || 0.02,
+            invertHeight: options.invertHeight || false,
+            yOffset: options.yOffset || 0.5
+        };
+
+        // Créer le matériau de terrain sans aucune modification
+        const material = this.createGroundMaterial();
+
+        // Analyser les limites du terrain
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
+        });
+
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer le seuil
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
+
+        // Assigner des vertex colors avec valeurs identiques sur tous les canaux
+        let appliedCount = 0;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                if (!node.geometry) return;
+
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                // Créer un attribut color s'il n'existe pas
+                if (!node.geometry.attributes.color) {
+                    const colors = new Float32Array(count * 3);
+                    node.geometry.setAttribute('color', new BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+
+                    // Déterminer la valeur de mélange
+                    let blendValue;
+
+                    if (config.invertHeight) {
+                        // Si inversé: les parties hautes sont des chemins
+                        if (y > effectiveThreshold) {
+                            blendValue = 1.0;
+                        } else if (y > effectiveThreshold - config.transitionZone) {
+                            // Zone de transition
+                            blendValue = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                        } else {
+                            blendValue = 0.0;
+                        }
+                    } else {
+                        // Comportement par défaut: les parties basses sont des chemins
+                        if (y < effectiveThreshold) {
+                            blendValue = 1.0;
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition
+                            blendValue = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                        } else {
+                            blendValue = 0.0;
+                        }
+                    }
+
+                    // Assigner la même valeur à tous les canaux - garantit des couleurs exactes
+                    colors.setXYZ(i, blendValue, blendValue, blendValue);
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        console.log(`Traitement du terrain avec reproduction exacte des textures appliqué à ${appliedCount} mesh(es)`);
+        return true;
+    }
+
+    /**
+     * Configure le terrain en utilisant TOUS les canaux de couleur de vertex de manière équilibrée
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundWithAllChannels(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithAllChannels: objet terrain manquant");
+            return false;
+        }
+
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.63,
+            transitionZone: options.transitionZone || 0.02,
+            invertHeight: options.invertHeight || false,
+            yOffset: options.yOffset || 0.5,
+            // Nouvelles options pour la variation entre canaux
+            channelVariation: options.channelVariation || 0.2,  // Variation entre les canaux R, G, B
+            noiseScale: options.noiseScale || 0.05            // Échelle du bruit pour les variations
+        };
+
+        // Créer le matériau de terrain amélioré
+        const material = this.createGroundMaterial();
+
+        // Trouver les limites de hauteur du terrain pour calibrage
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
+        });
+
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer un seuil absolu à partir du seuil relatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
+
+        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
+
+        // Fonction simple de bruit pseudo-aléatoire basée sur les coordonnées
+        const noise = (x, z, scale = 1.0) => {
+            return (Math.sin(x * 12.9898 * scale + z * 78.233 * scale) * 43758.5453) % 1.0;
+        };
+
+        // Appliquer des valeurs différentes à chaque canal RGB
+        let appliedCount = 0;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                if (!node.geometry) return;
+
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                // Créer un attribut color s'il n'existe pas
+                if (!node.geometry.attributes.color) {
+                    const colors = new Float32Array(count * 3);
+                    node.geometry.setAttribute('color', new BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const x = positions.getX(i);
+                    const y = positions.getY(i) + config.yOffset;
+                    const z = positions.getZ(i);
+
+                    // Normaliser la hauteur entre 0 et 1
+                    const normalizedHeight = (y - minHeight) / heightRange;
+
+                    // Facteur de base pour route/herbe basé sur la hauteur
+                    let baseFactor;
+
+                    if (config.invertHeight) {
+                        if (y > effectiveThreshold) {
+                            baseFactor = 1.0;
+                        } else if (y > effectiveThreshold - config.transitionZone) {
+                            baseFactor = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                        } else {
+                            baseFactor = 0.0;
+                        }
+                    } else {
+                        if (y < effectiveThreshold) {
+                            baseFactor = 1.0;
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            baseFactor = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                        } else {
+                            baseFactor = 0.0;
+                        }
+                    }
+
+                    // Générer des variations différentes pour chaque canal
+                    const noiseValue = noise(x, z, config.noiseScale);
+
+                    // Calculer des valeurs légèrement différentes pour chaque canal
+                    const rVariation = noiseValue * config.channelVariation;
+                    const gVariation = noise(z, x, config.noiseScale * 1.5) * config.channelVariation;
+                    const bVariation = noise(x + z, x - z, config.noiseScale * 0.8) * config.channelVariation;
+
+                    // Chaque canal a une variation différente autour du facteur de base
+                    const rValue = Math.min(1.0, Math.max(0.0, baseFactor + rVariation));
+                    const gValue = Math.min(1.0, Math.max(0.0, baseFactor + gVariation));
+                    const bValue = Math.min(1.0, Math.max(0.0, baseFactor + bVariation));
+
+                    // Appliquer des valeurs légèrement différentes à chaque canal
+                    colors.setXYZ(i, rValue, gValue, bValue);
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        console.log(`Traitement du terrain avec tous les canaux appliqué à ${appliedCount} mesh(es)`);
+        return true;
+    }
+
+    /**
+     * Configure le terrain avec une attribution simple des vertex colors basés sur la hauteur
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundWithExactColors(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithExactColors: objet terrain manquant");
+            return false;
+        }
+
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.63,
+            transitionZone: options.transitionZone || 0.02,
+            invertHeight: options.invertHeight || false,
+            yOffset: options.yOffset || 0.5
+        };
+
+        // Créer le matériau de terrain fidèle
+        const material = this.createGroundMaterial();
+
+        // Trouver les limites de hauteur du terrain pour calibrage
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
+        });
+
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer un seuil absolu à partir du seuil relatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
+
+        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
+
+        // Appliquer uniquement le canal R des vertex colors pour le mélange
+        let appliedCount = 0;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                if (!node.geometry) return;
+
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                // Créer un attribut color s'il n'existe pas
+                if (!node.geometry.attributes.color) {
+                    const colors = new Float32Array(count * 3);
+                    node.geometry.setAttribute('color', new BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+
+                    // Déterminer si c'est une route ou de l'herbe basé uniquement sur la hauteur
+                    let roadFactor;
+
+                    if (config.invertHeight) {
+                        // Si inversé: les parties hautes sont des chemins
+                        if (y > effectiveThreshold) {
+                            roadFactor = 1.0;
+                        } else if (y > effectiveThreshold - config.transitionZone) {
+                            // Zone de transition
+                            roadFactor = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                        } else {
+                            roadFactor = 0.0;
+                        }
+                    } else {
+                        // Comportement par défaut: les parties basses sont des chemins
+                        if (y < effectiveThreshold) {
+                            roadFactor = 1.0;
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition
+                            roadFactor = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                        } else {
+                            roadFactor = 0.0;
+                        }
+                    }
+
+                    // Stocker uniquement dans le canal R, valeurs uniformes pour G et B
+                    // Cela garantit que seul le mélange est contrôlé, pas la teinte
+                    colors.setXYZ(i,
+                        roadFactor,  // R - Facteur de mélange route/herbe
+                        roadFactor,         // G - Valeur neutre fixe
+                        roadFactor          // B - Valeur neutre fixe
+                    );
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        console.log(`Traitement du terrain avec rendu fidèle appliqué à ${appliedCount} mesh(es)`);
+        return true;
+    }
+
     // Initialisation des textures basée sur la structure de fichiers
     initializeTextures() {
-
-        // Sol
-        this.addTextureMapping('Ground', 'ground', 'ForestGrass', {
-            roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.0
-        });
-
-// Route
-        this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
-            roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.0
-        });
         // Arbres
         this.addTextureMapping('TreeNaked', 'forest/tree', null, {
             roughness: 1.0,
@@ -1219,6 +1566,147 @@ class TextureManager {
     }
 
     /**
+     * Configure le terrain en utilisant tous les canaux de couleur de vertex
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     * @returns {Boolean} - true si la configuration a réussi
+     */
+    setupGroundWithEnhancedColors(groundObject, options = {}) {
+        if (!groundObject) {
+            console.error("setupGroundWithEnhancedColors: objet terrain manquant");
+            return false;
+        }
+
+        // Options par défaut
+        const config = {
+            heightThreshold: options.heightThreshold || 0.63,
+            transitionZone: options.transitionZone || 0.00,
+            invertHeight: options.invertHeight || false,
+            yOffset: options.yOffset || 0.5,
+            // Nouvelles options pour la variation de couleur
+            colorVariation: options.colorVariation || 0.1,  // Variation aléatoire de couleur
+            pathContrast: options.pathContrast || 0.7,      // Contraste pour les chemins
+            greenIntensity: options.greenIntensity || 1.0,  // Intensité du canal vert
+            blueVariation: options.blueVariation || 1.0     // Variation du canal bleu
+        };
+
+        // Créer le matériau de terrain amélioré
+        const material = this.createGroundMaterial();
+
+        // Trouver les limites de hauteur du terrain pour calibrage
+        let minHeight = Infinity;
+        let maxHeight = -Infinity;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh && node.geometry && node.geometry.attributes.position) {
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+                    minHeight = Math.min(minHeight, y);
+                    maxHeight = Math.max(maxHeight, y);
+                }
+            }
+        });
+
+        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+
+        // Calculer un seuil absolu à partir du seuil relatif
+        const heightRange = maxHeight - minHeight;
+        const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
+
+        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
+
+        // Appliquer les vertex colors basés sur la hauteur mais en utilisant tous les canaux
+        let appliedCount = 0;
+
+        groundObject.traverse((node) => {
+            if (node.isMesh) {
+                // Vérifier si le mesh a déjà des vertex colors
+                if (!node.geometry) return;
+
+                const positions = node.geometry.attributes.position;
+                const count = positions.count;
+
+                // Créer un attribut color s'il n'existe pas
+                if (!node.geometry.attributes.color) {
+                    const colors = new Float32Array(count * 3);
+                    node.geometry.setAttribute('color', new BufferAttribute(colors, 3));
+                }
+
+                const colors = node.geometry.attributes.color;
+
+                // Pour chaque vertex
+                for (let i = 0; i < count; i++) {
+                    const y = positions.getY(i) + config.yOffset;
+
+                    // Normaliser la hauteur entre 0 et 1
+                    const normalizedHeight = (y - minHeight) / heightRange;
+
+                    // Facteur de terrain (routes/chemins vs herbe)
+                    let pathFactor;
+
+                    if (config.invertHeight) {
+                        // Si inversé: les parties hautes sont des chemins
+                        if (y > effectiveThreshold) {
+                            pathFactor = 1.0;
+                        } else if (y > effectiveThreshold - config.transitionZone) {
+                            // Zone de transition
+                            pathFactor = (y - (effectiveThreshold - config.transitionZone)) / config.transitionZone;
+                        } else {
+                            pathFactor = 0.0;
+                        }
+                    } else {
+                        // Comportement par défaut: les parties basses sont des chemins
+                        if (y < effectiveThreshold) {
+                            pathFactor = 1.0;
+                        } else if (y < effectiveThreshold + config.transitionZone) {
+                            // Zone de transition
+                            pathFactor = 1.0 - ((y - effectiveThreshold) / config.transitionZone);
+                        } else {
+                            pathFactor = 0.0;
+                        }
+                    }
+
+                    // Générer une variation aléatoire basée sur la position
+                    const variation = (Math.sin(positions.getX(i) * 0.1) * 0.5 + 0.5) *
+                        (Math.cos(positions.getZ(i) * 0.1) * 0.5 + 0.5) *
+                        config.colorVariation;
+
+                    // Canal R: Contrôle principal du type de terrain (chemin/herbe)
+                    // Plus la valeur est élevée, plus on s'approche du chemin
+                    const redValue = Math.min(1.0, pathFactor * config.pathContrast + variation);
+
+                    // Canal G: Variation de la végétation/saturation
+                    // Les zones plus herbeuses (faible pathFactor) ont plus de vert
+                    const greenValue = config.greenIntensity * (1.0 - pathFactor * 0.8) + variation;
+
+                    // Canal B: Variations de luminosité/texture
+                    // Utiliser la hauteur normalisée et un facteur aléatoire
+                    const blueValue = normalizedHeight * config.blueVariation + variation * 2.0;
+
+                    // Mettre à jour les couleurs du vertex (tous les canaux RGB)
+                    colors.setXYZ(i,
+                        Math.min(1.0, Math.max(0.0, redValue)),
+                        Math.min(1.0, Math.max(0.0, greenValue)),
+                        Math.min(1.0, Math.max(0.0, blueValue))
+                    );
+                }
+
+                // Marquer les couleurs comme modifiées
+                colors.needsUpdate = true;
+
+                // Appliquer le matériau
+                node.material = material;
+                appliedCount++;
+            }
+        });
+
+        console.log(`Traitement du terrain amélioré appliqué à ${appliedCount} mesh(es)`);
+        return true;
+    }
+    /**
      * Configure le terrain en utilisant la profondeur des vertices pour déterminer la texture
      * @param {Object} groundObject - L'objet 3D du terrain
      * @param {Object} options - Options de configuration
@@ -1233,11 +1721,11 @@ class TextureManager {
         console.log("REDIRECTION: Utilisation de la méthode basée uniquement sur la hauteur");
 
         // Rediriger vers notre nouvelle méthode simplifiée
-        return this.setupGroundBasedOnHeight(groundObject, {
+        return this.setupGroundWithEnhancedColors(groundObject, {
             heightThreshold: 0.63,
-            transitionZone: 0.02,
-            invertHeight: false,
-            yOffset: 0.5
+            pathContrast: 0.7,
+            greenIntensity: 0.8,
+            colorVariation: 0.1
         });
     }
 

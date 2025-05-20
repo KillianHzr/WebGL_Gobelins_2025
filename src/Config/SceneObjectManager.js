@@ -1114,24 +1114,26 @@ class SceneObjectManager {
         this.placements.push(placement);
         return placement;
     }
+
+
+    /**
+     * Méthode pour intégrer la nouvelle fonction dans le système existant
+     * @param {Object} groundObject - L'objet 3D du terrain
+     * @param {Object} options - Options de configuration
+     */
     configureGround(groundObject, useDepthSystem = true) {
         if (!groundObject) {
             console.error("configureGround: objet terrain manquant");
             return false;
         }
 
-        console.log("Configuration du terrain avec système basé sur la hauteur:", groundObject.name || "sans nom");
+        console.log("Configuration du terrain avec utilisation équitable de tous les canaux RGB");
 
-        if (textureManager) {
-            // Utiliser notre nouvelle méthode basée uniquement sur la hauteur
-            return textureManager.setupGroundBasedOnHeight(groundObject, {
-                heightThreshold: 0.63,
-                transitionZone: 0.02,
-                invertHeight: false       // false = les parties basses sont des routes
-            });
-        }
-
-        return false;
+        // Utiliser notre nouvelle méthode qui traite tous les canaux
+        return textureManager.setupGroundWithExactColors(groundObject, {
+            heightThreshold: 0.63,
+            transitionZone: 0.05
+        });
     }
 
     findAndConfigureGround(scene) {
