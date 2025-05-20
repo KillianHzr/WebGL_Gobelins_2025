@@ -23,9 +23,9 @@ export default function PostProcessing() {
     const postProcessingGroupRef = useRef(null);
     const bloomSettingsRef = useRef({
         enabled: true,
-        strength: 0.67,        // Augmenter l'intensité pour compenser l'absence de grain
-        radius: 0.25,          // Rayon légèrement plus grand
-        threshold: 1.0        // Seuil plus bas pour capturer plus d'émission
+        strength: 0.67,
+        radius: 0.25,
+        threshold: 1.0
     });
 
     useEffect(() => {
