@@ -357,7 +357,11 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
             console.log('Application de la correction pour les ombres des planes...');
             textureManager.fixAllPlantMaterials();
         }
-    }, [filter, updatePlacements]);
+        if (scene && textureManager && typeof textureManager.forceEmissiveOnObjects === 'function') {
+            console.log('Application des effets émissifs depuis StaticObjects');
+            textureManager.forceEmissiveOnObjects(scene);
+        }
+    }, [filter, updatePlacements,scene]);
 
 
     // Optimiser le rendu avec useMemo

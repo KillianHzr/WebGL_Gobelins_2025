@@ -35,6 +35,20 @@ class TextureManager {
         // Pool de matériaux pour la réutilisation
         this.materialPool = {};
 
+        // Liste des noms d'objets qui recevront une texture d'émission
+        this.emissiveObjectNames = [
+            "Cube3",
+            "Plane"];
+
+        // Configuration par défaut pour les émissions
+        this.emissiveConfig = {
+            color: 0xffffff,      // Couleur bleu clair
+            intensity: 1.5,       // Intensité forte
+            useTexture: false,     // Utiliser la texture de baseColor comme émission
+            emissiveMap: null,    // Texture d'émission personnalisée (si useTexture est false)
+            forceOverride: true   // Force la surcharge même sur les matériaux existants
+        };
+
         // Gestion des instances et statistiques
         this.instanceTracker = {};
 
@@ -90,6 +104,142 @@ class TextureManager {
         this.initializeTextures();
 
     }
+
+    /**
+     * Safely set emissive properties on a material
+     * @param {Material} material - The Three.js material to modify
+     * @param {Object} options - Emissive configuration options
+     * @returns {boolean} - True if emissive properties were applied
+     */
+    _safelySetEmissive(material, options = {}) {
+        if (!material) return false;
+
+        // Check if the material has emissive property (like MeshStandardMaterial)
+        if (material.emissive && typeof material.emissive.set === 'function') {
+            // Set the emissive color if provided
+            if (options.color) {
+                material.emissive.set(options.color);
+            }
+
+            // Set the emissive intensity if provided and supported by the material
+            if (options.intensity !== undefined && material.emissiveIntensity !== undefined) {
+                material.emissiveIntensity = options.intensity;
+            }
+
+            // Set emissive map if provided
+            if (options.emissiveMap && material.emissiveMap !== undefined) {
+                material.emissiveMap = options.emissiveMap;
+            } else if (options.useTexture && material.map && material.emissiveMap !== undefined) {
+                material.emissiveMap = material.map;
+            }
+
+            material.needsUpdate = true;
+            return true;
+        } else if (material.type === 'MeshBasicMaterial') {
+            // For MeshBasicMaterial, we can only adjust color to simulate emission
+            // Note: This is a fallback and won't have the same visual effect as true emission
+            console.log(`Material ${material.name || 'unnamed'} doesn't support emissive. Using color adjustment as fallback.`);
+
+            // Slightly adjust color to simulate emission
+            if (options.color && material.color) {
+                // Blend the original color with the emissive color
+                const originalColor = material.color.clone();
+                const emissiveColor = new THREE.Color(options.color);
+
+                // Store original color if not already saved
+                if (!material.userData.originalColor) {
+                    material.userData.originalColor = originalColor;
+                }
+
+                // Blend with emissive color (brighter effect)
+                material.color.lerp(emissiveColor, 0.7);
+            }
+
+            material.needsUpdate = true;
+            return true;
+        }
+
+        // If we get here, the material doesn't support emission
+        console.log(`Material type ${material.type} doesn't support emission properties.`);
+        return false;
+    }
+
+    forceEmissiveOnObjects(scene) {
+        if (!scene) return;
+
+        console.log("Application forcée d'émission sur les objets de type écran...");
+        let modifiedCount = 0;
+
+        scene.traverse((node) => {
+            // Vérifier si ce nœud doit avoir une émission basée sur son nom
+            const shouldBeEmissive = this.emissiveObjectNames.some(name =>
+                node.name.includes(name) ||
+                (node.parent && node.parent.name.includes(name))
+            );
+
+            if (node.isMesh && shouldBeEmissive && node.material) {
+                // Travailler avec tous les matériaux (seul ou tableau)
+                const materials = Array.isArray(node.material) ? node.material : [node.material];
+
+                for (let i = 0; i < materials.length; i++) {
+                    const mat = materials[i];
+
+                    // Préserver la texture originale
+                    const originalMap = mat.map;
+
+                    // Appliquer les propriétés d'émission de manière sécurisée
+                    const applied = this._safelySetEmissive(mat, {
+                        color: this.emissiveConfig.color,
+                        intensity: this.emissiveConfig.intensity,
+                        useTexture: this.emissiveConfig.useTexture,
+                        emissiveMap: this.emissiveConfig.emissiveMap
+                    });
+
+                    if (applied) {
+                        modifiedCount++;
+                        console.log(`Émission appliquée à "${node.name}" (matériau: ${mat.type})`);
+                    }
+                }
+            }
+        });
+
+        console.log(`Force émissive: ${modifiedCount} matériaux modifiés`);
+        return modifiedCount;
+    }
+    setEmissiveObjectNames(namesArray) {
+        if (!Array.isArray(namesArray)) {
+            console.error("setEmissiveObjectNames: l'argument doit être un tableau");
+            return this;
+        }
+
+        this.emissiveObjectNames = [...namesArray];
+        console.log(`TextureManager: ${this.emissiveObjectNames.length} noms d'objets configurés pour émission`);
+        return this;
+    }
+
+    addEmissiveObjectName(name) {
+        if (typeof name !== 'string') {
+            console.error("addEmissiveObjectName: l'argument doit être une chaîne");
+            return this;
+        }
+
+        if (!this.emissiveObjectNames.includes(name)) {
+            this.emissiveObjectNames.push(name);
+            console.log(`TextureManager: Ajout de "${name}" à la liste des objets émissifs`);
+        }
+        return this;
+    }
+
+    setEmissiveConfig(config = {}) {
+        this.emissiveConfig = {
+            ...this.emissiveConfig,
+            ...config
+        };
+        console.log("Configuration d'émission mise à jour:", this.emissiveConfig);
+        return this;
+    }
+
+
 
     initializeGroundTextures() {
         console.log("Initialisation des textures complètes pour le terrain");
@@ -2106,6 +2256,20 @@ class TextureManager {
                 }
             }
 
+            if (options.isEmissive || options.emissive) {
+                // Appliquer les propriétés d'émission de manière sécurisée
+                const applied = this._safelySetEmissive(material, {
+                    color: options.emissiveColor || this.emissiveConfig.color,
+                    intensity: options.emissiveIntensity || this.emissiveConfig.intensity,
+                    useTexture: this.emissiveConfig.useTexture,
+                    emissiveMap: options.emissiveMap || this.emissiveConfig.emissiveMap
+                });
+
+                if (applied) {
+                    console.log(`Émission appliquée au matériau avec intensité ${options.emissiveIntensity || this.emissiveConfig.intensity}`);
+                }
+            }
+
             // Mettre à jour le matériau
             material.needsUpdate = true;
         } catch (error) {
@@ -2211,6 +2375,8 @@ class TextureManager {
 
             const material = this.getMaterial(modelInfo.modelId, materialOptions);
 
+
+
             // Appliquer le matériau fusionné à tous les mesh de l'objet
             this.applyMaterialToAllMeshes(modelObject, material, config);
 
@@ -2222,6 +2388,8 @@ class TextureManager {
             // Utiliser la méthode standard si pas de fusion
             return this.applyTexturesToModel(modelInfo.modelId, modelObject, options);
         }
+
+
     }
 
     /**
@@ -2342,6 +2510,74 @@ class TextureManager {
             if (node.isMesh) {
                 const originalMaterial = node.material;
 
+                // Vérifier si ce mesh doit avoir une émission basée sur son nom
+                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
+                    node.name.includes(name) ||
+                    (node.parent && node.parent.name.includes(name))
+                );
+
+                // Si le mesh doit être émissif
+                if (shouldBeEmissive) {
+                    // Deux approches possibles:
+                    if (this.emissiveConfig.forceOverride && originalMaterial) {
+                        // 1. Modifier directement le matériau existant (préserve les textures)
+                        const materials = Array.isArray(originalMaterial) ? originalMaterial : [originalMaterial];
+
+                        for (let i = 0; i < materials.length; i++) {
+                            const mat = materials[i];
+
+                            // Appliquer les propriétés d'émission de manière sécurisée
+                            this._safelySetEmissive(mat, {
+                                color: this.emissiveConfig.color,
+                                intensity: this.emissiveConfig.intensity,
+                                useTexture: this.emissiveConfig.useTexture,
+                                emissiveMap: this.emissiveConfig.emissiveMap
+                            });
+                        }
+                    } else {
+                        // 2. Créer un nouveau matériau émissif (approche originale)
+                        const emissiveMaterial = material.clone();
+
+                        // Appliquer les propriétés d'émission de manière sécurisée
+                        const canSetEmissive = this._safelySetEmissive(emissiveMaterial, {
+                            color: this.emissiveConfig.color,
+                            intensity: this.emissiveConfig.intensity
+                        });
+
+                        // Gérer la texture originale pour l'émission si possible
+                        const originalMap = Array.isArray(originalMaterial)
+                            ? originalMaterial[0]?.map
+                            : originalMaterial?.map;
+
+                        if (canSetEmissive) {
+                            if (this.emissiveConfig.useTexture && originalMap) {
+                                // Copier d'abord la texture au matériau cloné
+                                emissiveMaterial.map = originalMap;
+
+                                // Puis l'utiliser comme texture d'émission
+                                if (emissiveMaterial.emissiveMap !== undefined) {
+                                    emissiveMaterial.emissiveMap = emissiveMaterial.map;
+                                }
+                            } else if (this.emissiveConfig.emissiveMap && emissiveMaterial.emissiveMap !== undefined) {
+                                emissiveMaterial.emissiveMap = this.emissiveConfig.emissiveMap;
+                            }
+                        }
+
+                        // Appliquer le matériau au nœud
+                        node.material = emissiveMaterial;
+                    }
+
+                    console.log(`Matériau émissif appliqué à "${node.name}"`);
+                } else {
+                    // Appliquer le matériau standard comme avant
+                    if (Array.isArray(node.material)) {
+                        for (let i = 0; i < node.material.length; i++) {
+                            node.material[i] = material;
+                        }
+                    } else {
+                        node.material = material;
+                    }
+                }
                 // Préserver les couleurs de vertex si demandé et présentes
                 if (config.preserveVertexColors &&
                     node.geometry?.attributes?.color &&
@@ -2675,7 +2911,44 @@ class TextureManager {
         modelObject.traverse((node) => {
             if (node.isMesh && node.material) {
                 const materials = Array.isArray(node.material) ? node.material : [node.material];
+// Vérifier si ce mesh doit avoir une émission basée sur son nom
+                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
+                    node.name.includes(name) ||
+                    (node.parent && node.parent.name.includes(name))
+                );
 
+                // Si le mesh doit être émissif
+                if (shouldBeEmissive) {
+                    // Soit cloner le matériau pour ce mesh spécifique
+                    const emissiveMaterial = material.clone();
+
+                    // Appliquer les propriétés d'émission de manière sécurisée
+                    this._safelySetEmissive(emissiveMaterial, {
+                        color: this.emissiveConfig.color,
+                        intensity: this.emissiveConfig.intensity,
+                        useTexture: this.emissiveConfig.useTexture,
+                        emissiveMap: this.emissiveConfig.emissiveMap
+                    });
+
+                    console.log(`Matériau émissif appliqué à "${node.name}" dans le modèle ${modelId}`);
+
+                    if (Array.isArray(node.material)) {
+                        for (let i = 0; i < node.material.length; i++) {
+                            node.material[i] = emissiveMaterial;
+                        }
+                    } else {
+                        node.material = emissiveMaterial;
+                    }
+                } else {
+                    // Appliquer le matériau standard comme avant
+                    if (Array.isArray(node.material)) {
+                        for (let i = 0; i < node.material.length; i++) {
+                            node.material[i] = material;
+                        }
+                    } else {
+                        node.material = material;
+                    }
+                }
                 // Remplacer tous les matériaux par notre matériau partagé
                 if (Array.isArray(node.material)) {
                     for (let i = 0; i < node.material.length; i++) {
