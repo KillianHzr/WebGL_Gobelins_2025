@@ -3,7 +3,6 @@ import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import * as THREE from 'three';
-import {getProject} from '@theatre/core';
 import guiConfig from '../Config/guiConfig';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
@@ -298,39 +297,6 @@ const DebugInitializer = () => {
             const interactionPos = new THREE.Vector3(posX, posY, posZ);
             const cameraOffset = new THREE.Vector3(0, 2, 5);
             const cameraPos = interactionPos.clone().add(cameraOffset);
-
-            // Obtenir le mode de caméra actuel
-            const cameraMode = useStore.getState().visualization?.cameraMode || 'free';
-
-            // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
-            if (cameraMode === 'theatre' || cameraMode === 'Theatre.js') {
-                // Téléporter la caméra
-                camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-                camera.lookAt(interactionPos);
-                camera.updateProjectionMatrix();
-
-                // Mettre à jour Theatre.js si disponible
-                if (window.__theatreStudio) {
-                    try {
-                        const project = getProject('WebGL_Gobelins');
-                        if (project) {
-                            const sheet = project.sheet('Scene');
-                            if (sheet) {
-                                const obj = sheet.object('Camera');
-                                if (obj) {
-                                    obj.set({
-                                        position: {
-                                            x: cameraPos.x, y: cameraPos.y, z: cameraPos.z
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.warn("Failed to update Theatre.js camera:", error);
-                    }
-                }
-            }
 
             // Mettre à jour la configuration
             safeUpdateConfig('camera.position.x.value', cameraPos.x);

@@ -2,7 +2,7 @@ import {
     BufferAttribute, BufferGeometry,
     DoubleSide,
     Group,
-    LinearFilter,
+    LinearFilter, LinearSRGBColorSpace,
     Matrix4,
     Mesh, MeshBasicMaterial,
     MeshStandardMaterial,
@@ -10,7 +10,6 @@ import {
     SRGBColorSpace, StaticDrawUsage,
     TextureLoader, Vector3
 } from "three";
-import {LinearEncoding} from "@react-three/drei/helpers/deprecated.js";
 
 /**
  * TextureManager - Version optimisée avec fusion de matériaux et configuration précise des propriétés
@@ -1404,7 +1403,7 @@ class TextureManager {
             case 'height':
             case 'alpha':
             case 'opacity':
-                texture.encoding = LinearEncoding;
+                texture.encoding = LinearSRGBColorSpace;
                 break;
         }
 
