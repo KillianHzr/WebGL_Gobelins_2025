@@ -413,7 +413,7 @@ export default function App() {
     return (
         <EventEmitterProvider>
             {/* Asset Manager component */}
-            {/*<CustomCursor />*/}
+            <CustomCursor />
             <AssetManager
                 ref={assetManagerRef}
                 onReady={onAssetsReady}

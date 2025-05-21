@@ -47,7 +47,7 @@ export const createInteractionSlice = (set, get) => ({
         })),
 
         setShowScannerInterface: (show) => set(state => {
-            console.log(`Setting scanner interface to: ${show}`);
+            // console.log(`Setting scanner interface to: ${show}`);
             return {
                 interaction: {
                     ...state.interaction,
@@ -57,7 +57,7 @@ export const createInteractionSlice = (set, get) => ({
         }),
 
         setShowCaptureInterface: (show) => set(state => {
-            console.log(`Setting capture interface to: ${show}`);
+            // console.log(`Setting capture interface to: ${show}`);
             return {
                 interaction: {
                     ...state.interaction,
@@ -67,7 +67,7 @@ export const createInteractionSlice = (set, get) => ({
         }),
 
         setShowBlackscreenInterface: (show) => set(state => {
-            console.log(`Setting blackscreen interface to: ${show}`);
+            // console.log(`Setting blackscreen interface to: ${show}`);
             return {
                 interaction: {
                     ...state.interaction,
@@ -99,17 +99,17 @@ export const createInteractionSlice = (set, get) => ({
 
             // Cas spécial pour thirdStop - décaler l'objet MultipleLeaf
             if (currentStep === 'thirdStop') {
-                console.log("thirdStop détecté dans completeInteraction - appel direct du déplacement");
+                // console.log("thirdStop détecté dans completeInteraction - appel direct du déplacement");
 
                 // Importer dynamiquement sceneObjectManager si nécessaire
                 if (sceneObjectManager) {
-                    console.log("Appel direct de handleThirdStopCompletion depuis InteractionSlice");
+                    // console.log("Appel direct de handleThirdStopCompletion depuis InteractionSlice");
                     sceneObjectManager.handleThirdStopCompletion();
                 } else {
                     console.warn("sceneObjectManager n'est pas disponible globalement");
 
                     // Alternative: émettre un événement spécifique pour demander le déplacement
-                    console.log("Émission d'un événement spécifique pour le déplacement");
+                    // console.log("Émission d'un événement spécifique pour le déplacement");
                     // setTimeout(() => {
                         EventBus.trigger('leaf-erable-move-requested', {
                             step: currentStep,
@@ -127,7 +127,7 @@ export const createInteractionSlice = (set, get) => ({
                 });
 
                 // Émettre l'événement principal INTERACTION_COMPLETE
-                console.log("Emitting INTERACTION_COMPLETE event from completeInteraction");
+                // console.log("Emitting INTERACTION_COMPLETE event from completeInteraction");
                 EventBus.trigger('INTERACTION_COMPLETE', {
                     id: currentStep,
                     type: 'direct',

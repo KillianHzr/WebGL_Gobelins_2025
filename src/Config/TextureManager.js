@@ -2235,8 +2235,8 @@ class TextureManager {
 
                 // Débogage spécifique pour TreeRoof
                 if (options.modelId === 'TreeRoof') {
-                    console.log("Application spécifique de Alpha pour TreeRoof:", textures.alpha);
-                    console.log("Configuration matériau TreeRoof:", material);
+                    // console.log("Application spécifique de Alpha pour TreeRoof:", textures.alpha);
+                    // console.log("Configuration matériau TreeRoof:", material);
                 }
             } else if (textures.opacity) {
                 material.alphaMap = textures.opacity;
@@ -2567,7 +2567,7 @@ class TextureManager {
                         node.material = emissiveMaterial;
                     }
 
-                    console.log(`Matériau émissif appliqué à "${node.name}"`);
+                    // console.log(`Matériau émissif appliqué à "${node.name}"`);
                 } else {
                     // Appliquer le matériau standard comme avant
                     if (Array.isArray(node.material)) {
@@ -2650,7 +2650,7 @@ class TextureManager {
         this.stats.materialsMerged += materialsMerged;
 
         if (materialsMerged > 0) {
-            console.log(`Fusion de matériaux: ${materialsMerged} matériaux remplacés dans le modèle ${object.name || 'sans nom'}`);
+            // console.log(`Fusion de matériaux: ${materialsMerged} matériaux remplacés dans le modèle ${object.name || 'sans nom'}`);
         }
     }
 
@@ -2881,7 +2881,7 @@ class TextureManager {
         if (!this.hasTextures(modelId)) {
             const baseModelId = this.extractBaseModelId(modelId);
             if (baseModelId && baseModelId !== modelId && this.hasTextures(baseModelId)) {
-                console.log(`Utilisation des textures de ${baseModelId} pour ${modelId}`);
+                // console.log(`Utilisation des textures de ${baseModelId} pour ${modelId}`);
                 modelId = baseModelId;
             } else {
                 console.warn(`Aucune texture trouvée pour le modèle ${modelId} ou un modèle similaire`);
@@ -2903,8 +2903,8 @@ class TextureManager {
         const materialProps = this.getMaterialProperties(modelId);
         if (materialProps && !options.skipCustomProperties) {
             this._applyMaterialProperties(material, materialProps);
-            console.log(`Propriétés personnalisées appliquées au matériau pour ${modelId}:`,
-                `roughness=${materialProps.roughness}, metalness=${materialProps.metalness}, envMapIntensity=${materialProps.envMapIntensity}`);
+            // console.log(`Propriétés personnalisées appliquées au matériau pour ${modelId}:`,
+            //     `roughness=${materialProps.roughness}, metalness=${materialProps.metalness}, envMapIntensity=${materialProps.envMapIntensity}`);
         }
 
         // Parcourir tous les matériaux du modèle
@@ -2930,7 +2930,7 @@ class TextureManager {
                         emissiveMap: this.emissiveConfig.emissiveMap
                     });
 
-                    console.log(`Matériau émissif appliqué à "${node.name}" dans le modèle ${modelId}`);
+                    // console.log(`Matériau émissif appliqué à "${node.name}" dans le modèle ${modelId}`);
 
                     if (Array.isArray(node.material)) {
                         for (let i = 0; i < node.material.length; i++) {
@@ -2979,7 +2979,7 @@ class TextureManager {
         // Suivre cette instance
         this.trackInstance(modelId, modelObject);
 
-        console.log(`Matériau appliqué au modèle ${modelId} avec LOD ${optionsWithLOD.lod}`);
+        // console.log(`Matériau appliqué au modèle ${modelId} avec LOD ${optionsWithLOD.lod}`);
     }
 
     /**
@@ -2994,7 +2994,7 @@ class TextureManager {
         const materialKeys = Object.keys(this.materialPool).filter(key => key.startsWith(modelId + '_'));
 
         if (materialKeys.length === 0) {
-            console.log(`Aucun matériau trouvé pour ${modelId}, les propriétés seront appliquées lors de la prochaine création`);
+            // console.log(`Aucun matériau trouvé pour ${modelId}, les propriétés seront appliquées lors de la prochaine création`);
             return false;
         }
 
@@ -3009,7 +3009,7 @@ class TextureManager {
             }
         });
 
-        console.log(`Propriétés mises à jour pour ${updatedCount} matériaux de ${modelId}`);
+        // console.log(`Propriétés mises à jour pour ${updatedCount} matériaux de ${modelId}`);
         return updatedCount > 0;
     }
 
@@ -3045,20 +3045,20 @@ class TextureManager {
      * Afficher les propriétés des matériaux pour tous les modèles
      */
     logMaterialProperties() {
-        console.log("===== PROPRIÉTÉS DES MATÉRIAUX =====");
+        // console.log("===== PROPRIÉTÉS DES MATÉRIAUX =====");
 
         // Afficher les propriétés par défaut
-        console.log("Propriétés par défaut:");
-        console.log(JSON.stringify(this.defaultMaterialProperties, null, 2));
+        // console.log("Propriétés par défaut:");
+        // console.log(JSON.stringify(this.defaultMaterialProperties, null, 2));
 
         // Afficher les propriétés personnalisées par modèle
-        console.log("\nPropriétés personnalisées par modèle:");
+        // console.log("\nPropriétés personnalisées par modèle:");
         Object.entries(this.materialProperties).forEach(([modelId, props]) => {
-            console.log(`- ${modelId}: roughness=${props.roughness}, metalness=${props.metalness}, envMapIntensity=${props.envMapIntensity}`);
+            // console.log(`- ${modelId}: roughness=${props.roughness}, metalness=${props.metalness}, envMapIntensity=${props.envMapIntensity}`);
         });
 
         // Afficher les valeurs effectives des matériaux dans le pool
-        console.log("\nValeurs effectives des matériaux dans le pool:");
+        // console.log("\nValeurs effectives des matériaux dans le pool:");
         const modelMaterials = {};
 
         // Regrouper les matériaux par modèle
@@ -3082,30 +3082,30 @@ class TextureManager {
         Object.entries(modelMaterials).forEach(([modelId, materials]) => {
             if (materials.length > 0) {
                 const sample = materials[0];
-                console.log(`- ${modelId}: ${materials.length} matériaux, exemple: roughness=${sample.roughness}, metalness=${sample.metalness}, envMapIntensity=${sample.envMapIntensity}`);
+                // console.log(`- ${modelId}: ${materials.length} matériaux, exemple: roughness=${sample.roughness}, metalness=${sample.metalness}, envMapIntensity=${sample.envMapIntensity}`);
             }
         });
 
-        console.log("======================================");
+        // console.log("======================================");
     }
 
     // Méthode de diagnostic pour aider au débogage
     logTextureStats() {
-        console.log("===== STATISTIQUES TEXTURE MANAGER =====");
-        console.log(`Nombre de types d'objets avec textures: ${Object.keys(this.texturePaths).length}`);
-        console.log(`Nombre de textures chargées en mémoire: ${Object.keys(this.loadedTextures).length}`);
-        console.log(`Nombre de matériaux dans le pool: ${Object.keys(this.materialPool).length}`);
-        console.log(`LOD actuel: ${this.currentLOD}`);
-        console.log(`Instances suivies: ${Object.keys(this.instanceTracker).length} types de modèles`);
-        console.log(`Total des instances: ${Object.values(this.instanceTracker).reduce((sum, tracker) => sum + tracker.count, 0)}`);
-        console.log(`Matériaux fusionnés: ${this.stats.materialsMerged}`);
-        console.log(`Instances fusionnées: ${this.stats.instancesMerged}`);
-        console.log(`Utilisation mémoire estimée: ${this.stats.memoryUsage.toFixed(2)} MB`);
+        // console.log("===== STATISTIQUES TEXTURE MANAGER =====");
+        // console.log(`Nombre de types d'objets avec textures: ${Object.keys(this.texturePaths).length}`);
+        // console.log(`Nombre de textures chargées en mémoire: ${Object.keys(this.loadedTextures).length}`);
+        // console.log(`Nombre de matériaux dans le pool: ${Object.keys(this.materialPool).length}`);
+        // console.log(`LOD actuel: ${this.currentLOD}`);
+        // console.log(`Instances suivies: ${Object.keys(this.instanceTracker).length} types de modèles`);
+        // console.log(`Total des instances: ${Object.values(this.instanceTracker).reduce((sum, tracker) => sum + tracker.count, 0)}`);
+        // console.log(`Matériaux fusionnés: ${this.stats.materialsMerged}`);
+        // console.log(`Instances fusionnées: ${this.stats.instancesMerged}`);
+        // console.log(`Utilisation mémoire estimée: ${this.stats.memoryUsage.toFixed(2)} MB`);
 
-        if (this.stats.lastOptimization) {
-            const timeSinceOpt = Math.floor((Date.now() - this.stats.lastOptimization) / 1000);
-            console.log(`Dernière optimisation: il y a ${timeSinceOpt} secondes`);
-        }
+        // if (this.stats.lastOptimization) {
+        //     const timeSinceOpt = Math.floor((Date.now() - this.stats.lastOptimization) / 1000);
+        //     // console.log(`Dernière optimisation: il y a ${timeSinceOpt} secondes`);
+        // }
 
         // Liste des textures les plus utilisées
         const textureUsage = {};
@@ -3118,29 +3118,29 @@ class TextureManager {
             }
         }
 
-        console.log("Top 5 des textures les plus utilisées:");
+        // console.log("Top 5 des textures les plus utilisées:");
         Object.entries(textureUsage)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .forEach(([path, count]) => {
-                console.log(`- ${path}: ${count} utilisations`);
+                // console.log(`- ${path}: ${count} utilisations`);
             });
 
-        console.log("======================================");
+        // console.log("======================================");
     }
 
     /**
      * Analyser les performances et suggérer des optimisations
      */
     analyzePerfAndSuggestOptimizations() {
-        console.log("===== ANALYSE DE PERFORMANCE =====");
+        // console.log("===== ANALYSE DE PERFORMANCE =====");
 
         // Analyse des matériaux
         const materialCount = Object.keys(this.materialPool).length;
         const textureCount = Object.keys(this.loadedTextures).length;
         const avgTexturesPerMaterial = textureCount / Math.max(1, materialCount);
 
-        console.log(`Ratio textures/matériaux: ${avgTexturesPerMaterial.toFixed(2)}`);
+        // console.log(`Ratio textures/matériaux: ${avgTexturesPerMaterial.toFixed(2)}`);
 
         // Suggestions basées sur l'analyse
         const suggestions = [];
@@ -3161,9 +3161,9 @@ class TextureManager {
             .slice(0, 5);
 
         if (mergeCandidates.length > 0) {
-            console.log("Modèles candidats pour la fusion:");
+            // console.log("Modèles candidats pour la fusion:");
             mergeCandidates.forEach(({modelId, count}) => {
-                console.log(`- ${modelId}: ${count} instances`);
+                // console.log(`- ${modelId}: ${count} instances`);
             });
 
             if (mergeCandidates[0].count > this.optimizationConfig.mergeThreshold * 2) {
@@ -3184,49 +3184,49 @@ class TextureManager {
         // Analyse des propriétés des matériaux
         const materialProperties = Object.entries(this.materialProperties);
         if (materialProperties.length > 0) {
-            console.log("\nAnalyse des propriétés des matériaux:");
+            // console.log("\nAnalyse des propriétés des matériaux:");
 
             // Vérifier les propriétés extrêmes
             const extremeRoughness = materialProperties.filter(([_, props]) =>
                 props.roughness < 0.2 || props.roughness > 0.9);
             if (extremeRoughness.length > 0) {
-                console.log("Matériaux avec roughness extrême:");
+                // console.log("Matériaux avec roughness extrême:");
                 extremeRoughness.forEach(([id, props]) => {
-                    console.log(`- ${id}: roughness=${props.roughness}`);
+                    // console.log(`- ${id}: roughness=${props.roughness}`);
                 });
             }
 
             const highMetalness = materialProperties.filter(([_, props]) =>
                 props.metalness > 0.5);
             if (highMetalness.length > 0) {
-                console.log("Matériaux très métalliques:");
+                // console.log("Matériaux très métalliques:");
                 highMetalness.forEach(([id, props]) => {
-                    console.log(`- ${id}: metalness=${props.metalness}`);
+                    // console.log(`- ${id}: metalness=${props.metalness}`);
                 });
             }
 
             const highEnvMap = materialProperties.filter(([_, props]) =>
                 props.envMapIntensity > 0.8);
             if (highEnvMap.length > 0) {
-                console.log("Matériaux très réfléchissants:");
+                // console.log("Matériaux très réfléchissants:");
                 highEnvMap.forEach(([id, props]) => {
-                    console.log(`- ${id}: envMapIntensity=${props.envMapIntensity}`);
+                    // console.log(`- ${id}: envMapIntensity=${props.envMapIntensity}`);
                 });
 
                 suggestions.push("Réduire l'intensité de l'environnement pour les matériaux très réfléchissants en cas de problèmes de performance");
             }
         }
 
-        console.log("\nSuggestions d'optimisation:");
+        // console.log("\nSuggestions d'optimisation:");
         if (suggestions.length > 0) {
             suggestions.forEach((suggestion, index) => {
-                console.log(`${index + 1}. ${suggestion}`);
+                // console.log(`${index + 1}. ${suggestion}`);
             });
         } else {
-            console.log("Aucune optimisation majeure nécessaire pour le moment");
+            // console.log("Aucune optimisation majeure nécessaire pour le moment");
         }
 
-        console.log("===================================");
+        // console.log("===================================");
 
         return {
             stats: {
@@ -3249,7 +3249,7 @@ class TextureManager {
         const instances = this.instanceTracker[modelId];
         if (!instances || instances.count < this.optimizationConfig.mergeThreshold) return;
 
-        console.log(`Vérification d'optimisation pour ${modelId} (${instances.count} instances)`);
+        // console.log(`Vérification d'optimisation pour ${modelId} (${instances.count} instances)`);
 
         // Marquer le moment de la vérification
         instances.lastMergeCheck = Date.now();
@@ -3257,7 +3257,7 @@ class TextureManager {
 
         // Si beaucoup d'instances, suggérer la fusion géométrique pour réduire les draw calls
         if (instances.count > this.optimizationConfig.mergeThreshold * 3) {
-            console.log(`Nombre élevé d'instances de ${modelId}: ${instances.count}. Envisager l'utilisation de mergeModelInstances() pour une fusion géométrique.`);
+            // console.log(`Nombre élevé d'instances de ${modelId}: ${instances.count}. Envisager l'utilisation de mergeModelInstances() pour une fusion géométrique.`);
         }
     }
 
@@ -3271,19 +3271,19 @@ class TextureManager {
 
             // Ajuster le LOD en fonction du FPS
             if (fps < 30 && this.currentLOD !== 'low') {
-                console.log(`Performance basse (${fps} FPS), passage au LOD faible`);
+                // console.log(`Performance basse (${fps} FPS), passage au LOD faible`);
                 this.setGlobalLOD('low');
                 return;
             } else if (fps < 45 && this.currentLOD === 'high') {
-                console.log(`Performance moyenne (${fps} FPS), passage au LOD moyen`);
+                // console.log(`Performance moyenne (${fps} FPS), passage au LOD moyen`);
                 this.setGlobalLOD('medium');
                 return;
             } else if (fps > 55 && this.currentLOD === 'low') {
-                console.log(`Performance améliorée (${fps} FPS), passage au LOD moyen`);
+                // console.log(`Performance améliorée (${fps} FPS), passage au LOD moyen`);
                 this.setGlobalLOD('medium');
                 return;
             } else if (fps > 58 && this.currentLOD === 'medium' && memoryUsage < this.optimizationConfig.memoryBudget * 0.8) {
-                console.log(`Bonne performance (${fps} FPS), passage au LOD élevé`);
+                // console.log(`Bonne performance (${fps} FPS), passage au LOD élevé`);
                 this.setGlobalLOD('high');
                 return;
             }
@@ -3294,10 +3294,10 @@ class TextureManager {
         const memoryBudget = this.optimizationConfig.memoryBudget;
 
         if (memoryUsageMB > memoryBudget * 0.9) {
-            console.log(`Usage mémoire élevé (${memoryUsageMB}MB/${memoryBudget}MB), passage au LOD faible`);
+            // console.log(`Usage mémoire élevé (${memoryUsageMB}MB/${memoryBudget}MB), passage au LOD faible`);
             this.setGlobalLOD('low');
         } else if (memoryUsageMB < memoryBudget * 0.5 && this.currentLOD === 'low') {
-            console.log(`Usage mémoire revenu à la normale, passage au LOD moyen`);
+            // console.log(`Usage mémoire revenu à la normale, passage au LOD moyen`);
             this.setGlobalLOD('medium');
         }
     }
@@ -3317,7 +3317,7 @@ class TextureManager {
         const oldLOD = this.currentLOD;
         this.currentLOD = lodLevel;
 
-        console.log(`Changement de LOD global: ${oldLOD} -> ${lodLevel}`);
+        // console.log(`Changement de LOD global: ${oldLOD} -> ${lodLevel}`);
 
         // Mettre à jour tous les matériaux actifs
         // Note: ceci est coûteux, donc on ne le fait que lorsque nécessaire
@@ -3329,7 +3329,7 @@ class TextureManager {
      */
     refreshMaterialsWithCurrentLOD() {
         // Cette opération peut être coûteuse, donc on la limite aux cas nécessaires
-        console.log(`Rafraîchissement des matériaux avec LOD: ${this.currentLOD}`);
+        // console.log(`Rafraîchissement des matériaux avec LOD: ${this.currentLOD}`);
 
         // Pour chaque matériau dans le pool, vérifier s'il doit être mis à jour
         Object.entries(this.materialPool).forEach(([key, material]) => {
@@ -3366,7 +3366,7 @@ class TextureManager {
                                 modelId: modelId
                             });
 
-                            console.log(`Matériau ${modelId} mis à jour avec LOD ${this.currentLOD}`);
+                            // console.log(`Matériau ${modelId} mis à jour avec LOD ${this.currentLOD}`);
                         }
                     })
                     .catch(error => {
@@ -3392,7 +3392,7 @@ class TextureManager {
             ...options
         };
 
-        console.log(`Tentative de fusion de ${instances.count} instances de ${modelId}`);
+        // console.log(`Tentative de fusion de ${instances.count} instances de ${modelId}`);
 
         // Collecter toutes les instances visibles et suffisamment proches
         const scene = window.scene || null;
@@ -3410,7 +3410,7 @@ class TextureManager {
         });
 
         if (instanceObjects.length < 2) {
-            console.log(`Pas assez d'instances visibles de ${modelId} pour fusion`);
+            // console.log(`Pas assez d'instances visibles de ${modelId} pour fusion`);
             return null;
         }
 
@@ -3448,7 +3448,7 @@ class TextureManager {
             }
         }
 
-        console.log(`${mergedGroups.length} groupes de ${modelId} fusionnés avec succès`);
+        // console.log(`${mergedGroups.length} groupes de ${modelId} fusionnés avec succès`);
         return mergedGroups;
     }
 
@@ -3493,11 +3493,11 @@ class TextureManager {
             return false;
         }
 
-        console.log("Application des textures au terrain avec masque d'image:", groundObject.name || "sans nom");
+        // console.log("Application des textures au terrain avec masque d'image:", groundObject.name || "sans nom");
 
         // Vérifier si les textures nécessaires existent
         if (!this.hasTextures('ForestGrass') || !this.hasTextures('ForestRoad')) {
-            console.log("Initialisation des textures de terrain");
+            // console.log("Initialisation des textures de terrain");
             this.initializeGroundTextures();
         }
 
@@ -3520,7 +3520,7 @@ class TextureManager {
         // Charger l'image masque
         try {
             await this.applyMaskImageToGround(groundObject, maskImagePath);
-            console.log(`Masque de chemin appliqué et matériau configuré sur ${appliedCount} mesh(es)`);
+            // console.log(`Masque de chemin appliqué et matériau configuré sur ${appliedCount} mesh(es)`);
             return true;
         } catch (error) {
             console.error("Erreur lors de l'application du masque de chemin:", error);
@@ -3535,14 +3535,14 @@ class TextureManager {
      */
     async applyMaskImageToGround(groundObject, maskImagePath) {
         return new Promise((resolve, reject) => {
-            console.log(`Chargement du masque de chemin: ${maskImagePath}`);
+            // console.log(`Chargement du masque de chemin: ${maskImagePath}`);
 
             // Créer un élément image pour charger le masque
             const maskImage = new Image();
             maskImage.crossOrigin = "Anonymous";
 
             maskImage.onload = () => {
-                console.log(`Masque chargé: ${maskImage.width}x${maskImage.height} pixels`);
+                // console.log(`Masque chargé: ${maskImage.width}x${maskImage.height} pixels`);
 
                 // Créer un canvas pour extraire les données de pixels
                 const canvas = document.createElement('canvas');
@@ -3592,8 +3592,8 @@ class TextureManager {
                 const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
                 const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
 
-                console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
-                console.log(`Total des vertices à traiter: ${totalVertices}`);
+                // console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
+                // console.log(`Total des vertices à traiter: ${totalVertices}`);
 
                 // Appliquer le masque à chaque mesh du terrain
                 let processedVertices = 0;
@@ -3652,7 +3652,7 @@ class TextureManager {
                             // Afficher la progression
                             const progress = Math.floor((processedVertices / totalVertices) * 100);
                             if (progress > lastReportedProgress && progress % 10 === 0) {
-                                console.log(`Application du masque: ${progress}% (${processedVertices}/${totalVertices} vertices)`);
+                                // console.log(`Application du masque: ${progress}% (${processedVertices}/${totalVertices} vertices)`);
                                 lastReportedProgress = progress;
                             }
                         }
@@ -3662,7 +3662,7 @@ class TextureManager {
                     }
                 });
 
-                console.log("Masque de chemin appliqué avec succès aux vertex colors");
+                // console.log("Masque de chemin appliqué avec succès aux vertex colors");
                 resolve(true);
             };
 
@@ -3711,7 +3711,7 @@ class TextureManager {
         const terrainWidth = terrainBounds.max.x - terrainBounds.min.x;
         const terrainDepth = terrainBounds.max.z - terrainBounds.min.z;
 
-        console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
+        // console.log(`Dimensions du terrain: ${terrainWidth.toFixed(2)} x ${terrainDepth.toFixed(2)}`);
 
         // Appliquer le masque à chaque mesh du terrain
         groundObject.traverse((node) => {
@@ -3773,7 +3773,7 @@ class TextureManager {
             }
         });
 
-        console.log("Masque de chemin appliqué avec succès aux vertex colors");
+        // console.log("Masque de chemin appliqué avec succès aux vertex colors");
     }
     /**
      * @deprecated Utiliser setupGroundWithDepthBasedTexturing à la place
@@ -3837,7 +3837,7 @@ class TextureManager {
             return false;
         }
 
-        console.log("Configuration du terrain basée uniquement sur la hauteur des vertices");
+        // console.log("Configuration du terrain basée uniquement sur la hauteur des vertices");
 
         // Initialiser les textures si nécessaire
         this.initializeGroundTextures();
@@ -3872,13 +3872,13 @@ class TextureManager {
             }
         });
 
-        console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
+        // console.log(`Analyse du terrain - Hauteur min: ${minHeight.toFixed(3)}, Hauteur max: ${maxHeight.toFixed(3)}`);
 
         // Calculer un seuil absolu à partir du seuil relatif
         const heightRange = maxHeight - minHeight;
         const effectiveThreshold = minHeight + (config.heightThreshold * heightRange);
 
-        console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
+        // console.log(`Seuil de hauteur effectif: ${effectiveThreshold.toFixed(3)}`);
 
         // Appliquer les vertex colors basés sur la hauteur
         let appliedCount = 0;
@@ -3938,7 +3938,7 @@ class TextureManager {
             }
         });
 
-        console.log(`Textures basées sur la hauteur appliquées à ${appliedCount} mesh(es)`);
+        // console.log(`Textures basées sur la hauteur appliquées à ${appliedCount} mesh(es)`);
         return true;
     }
     /**
@@ -4258,7 +4258,7 @@ class TextureManager {
         // Mettre à jour les statistiques
         this.stats.materialsMerged += replacedCount;
 
-        console.log(`Fusion de matériaux: ${replacedCount} matériaux remplacés, ${uniqueMaterials.size} matériaux uniques conservés`);
+        // console.log(`Fusion de matériaux: ${replacedCount} matériaux remplacés, ${uniqueMaterials.size} matériaux uniques conservés`);
         return replacedCount;
     }
 
@@ -4301,7 +4301,7 @@ class TextureManager {
             ...options
         };
 
-        console.log("Démarrage du préchargement intelligent des textures...");
+        // console.log("Démarrage du préchargement intelligent des textures...");
 
         // Liste des modèles à précharger
         const modelsToPreload = [
@@ -4336,7 +4336,7 @@ class TextureManager {
                         this.preloadTexturesForModel(modelId).then(() => {
                             loadedCount++;
                             if (loadedCount % 10 === 0 || loadedCount === totalTextures) {
-                                console.log(`Progrès: ${loadedCount}/${totalTextures} textures préchargées`);
+                                // console.log(`Progrès: ${loadedCount}/${totalTextures} textures préchargées`);
                             }
                         }),
                         new Promise((_, reject) =>
@@ -4353,13 +4353,13 @@ class TextureManager {
             await Promise.allSettled(batchPromises);
         }
 
-        console.log(`Préchargement terminé: ${loadedCount}/${totalTextures} textures chargées avec succès`);
+        // console.log(`Préchargement terminé: ${loadedCount}/${totalTextures} textures chargées avec succès`);
         return loadedCount;
     }
 
     // Nettoyer les ressources
     dispose() {
-        console.log("Nettoyage des ressources du TextureManager...");
+        // console.log("Nettoyage des ressources du TextureManager...");
 
         // Nettoyer toutes les textures chargées
         for (const texturePath in this.loadedTextures) {
@@ -4388,7 +4388,7 @@ class TextureManager {
             lastOptimization: null
         };
 
-        console.log("Ressources du TextureManager nettoyées");
+        // console.log("Ressources du TextureManager nettoyées");
     }
 
     /**
@@ -4408,7 +4408,7 @@ class TextureManager {
             results[modelId] = this.updateMaterialProperties(modelId, properties);
         });
 
-        console.log(`Mise à jour par lot terminée pour ${Object.keys(materialUpdates).length} modèles`);
+        // console.log(`Mise à jour par lot terminée pour ${Object.keys(materialUpdates).length} modèles`);
         return results;
     }
 
@@ -4442,7 +4442,7 @@ class TextureManager {
             ...properties
         };
 
-        console.log(`Preset de matériau '${presetName}' créé avec propriétés:`, properties);
+        // console.log(`Preset de matériau '${presetName}' créé avec propriétés:`, properties);
         return this.materialPresets[presetName];
     }
 

@@ -11,12 +11,8 @@ import {FrontSide, LoopOnce} from "three";
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_SCENE_OBJECTS = true;
+const DEBUG_SCENE_OBJECTS = false;
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_SCENE_OBJECTS) console.log(`[SceneObjects] ${message}`, ...args);
-};
 
 /**
  * Composant pour afficher un objet statique individuel avec textures
@@ -112,13 +108,9 @@ export const StaticObject = React.memo(function StaticObject({
     useEffect(() => {
         if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
 
-        console.log(`StaticObject - Actions disponibles pour ${path}:`, Object.keys(actions));
-        console.log(`StaticObject - Animation à jouer: ${animationName}, play: ${playAnimation}`);
-
         // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
         if (Object.keys(actions).length > 0 && !animationName) {
             const firstAnimName = Object.keys(actions)[0];
-            console.log(`Aucune animation spécifiée, utilisation de ${firstAnimName} par défaut`);
             const action = actions[firstAnimName];
             action.reset().play();
             currentAnimationRef.current = action;
@@ -154,7 +146,7 @@ export const StaticObject = React.memo(function StaticObject({
                         timeScale: animationTimeScale
                     };
 
-                    debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
+                    // debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
 
                     // Gérer la fin d'animation si elle n'est pas en boucle
                     if (!animationLoop && onAnimationComplete && mixer) {
@@ -166,7 +158,7 @@ export const StaticObject = React.memo(function StaticObject({
                         // Créer une nouvelle fonction de rappel pour cet événement spécifique
                         const finishCallback = (e) => {
                             if (isComponentMounted.current && e.action === action) {
-                                debugLog(`Animation "${animationName}" terminée`);
+                                // debugLog(`Animation "${animationName}" terminée`);
                                 animationState.current.isPlaying = false;
                                 onAnimationComplete(animationName);
                             }
@@ -202,7 +194,7 @@ export const StaticObject = React.memo(function StaticObject({
             // Arrêter l'animation si playAnimation est passé à false
             currentAnimationRef.current.stop();
             animationState.current.isPlaying = false;
-            debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
+            // debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
         }
     }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
 
@@ -215,14 +207,11 @@ export const StaticObject = React.memo(function StaticObject({
 
     useEffect(() => {
         if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            console.log(`Animations disponibles pour ${path}:`, animations.map(a => a.name));
-
             if (playAnimation && animationName) {
                 if (!actions[animationName]) {
                     console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
                         Object.keys(actions));
                 } else {
-                    console.log(`Animation "${animationName}" trouvée et sera jouée`);
                 }
             }
         }
@@ -239,11 +228,9 @@ export const StaticObject = React.memo(function StaticObject({
                 // Vérifier si c'est un objet de terrain (Ground)
                 if (isGroundObjectRef.current) {
                     // Pour les objets de type Ground, utiliser l'approche avec image masque
-                    console.log(`[TextureManager] Objet de terrain détecté (${textureModelId}), application des textures avec masque de chemin`);
 
                     // Vérifier si les textures du sol sont déjà initialisées
                     if (!textureManager.hasTextures('ForestGrass') || !textureManager.hasTextures('ForestRoad')) {
-                        console.log(`[TextureManager] Initialisation des textures de terrain avant application`);
                         textureManager.initializeGroundTextures();
                     }
 
@@ -255,7 +242,7 @@ export const StaticObject = React.memo(function StaticObject({
                 }
 
                 if (isComponentMounted.current && isApplyingTextures) {
-                    debugLog(`Textures appliquées à ${textureModelId}`);
+                    // debugLog(`Textures appliquées à ${textureModelId}`);
                 }
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
@@ -354,11 +341,9 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
 
         // Appliquer la correction pour les ombres des planes une seule fois au chargement
         if (textureManager && typeof textureManager.fixAllPlantMaterials === 'function') {
-            console.log('Application de la correction pour les ombres des planes...');
             textureManager.fixAllPlantMaterials();
         }
         if (scene && textureManager && typeof textureManager.forceEmissiveOnObjects === 'function') {
-            console.log('Application des effets émissifs depuis StaticObjects');
             textureManager.forceEmissiveOnObjects(scene);
         }
     }, [filter, updatePlacements,scene]);
@@ -404,12 +389,14 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     }
                 }
             } : {};
+            if (placement.animation) {
             console.log(`Animation pour ${placement.objectKey} :`,
                 placement.animation ? {
                     play: placement.animation.play,
                     name: placement.animation.name
                 } : 'Aucune animation');
 
+            }
             return (
                 <StaticObject
                     key={key}
@@ -568,7 +555,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                     key={markerKey}
                     {...markerProps}
                     onInteract={(event) => {
-                        debugLog(`Interaction avec ${placement.markerId}:`, event);
+                        // debugLog(`Interaction avec ${placement.markerId}:`, event);
                         if (placement.onInteract) {
                             placement.onInteract(event);
                         }
@@ -662,7 +649,7 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
 
     // Gérer l'interaction avec le callback mémorisé
     const handleInteract = useCallback((event) => {
-        debugLog(`Interaction avec ${markerId}:`, event);
+        // debugLog(`Interaction avec ${markerId}:`, event);
         if (options.onInteract) {
             options.onInteract(event);
         }

@@ -66,14 +66,14 @@ class AudioManager {
         // S'abonner aux événements pertinents
         EventBus.on('narration-ended', (data) => {
             if (data && (data.narrationId === 'Scene00_Radio2')) {
-                console.log('AudioManager: detected radio narration end, will start nature ambience');
+                // console.log('AudioManager: detected radio narration end, will start nature ambience');
                 setTimeout(() => this.playNatureAmbience(3000), 500);
             }
         });
 
         EventBus.on('interface-action', (data) => {
             if (data.type === 'capture' && data.action === 'close' && data.result === 'complete') {
-                console.log('AudioManager: detected capture completion, will transition to digital ambience');
+                // console.log('AudioManager: detected capture completion, will transition to digital ambience');
                 setTimeout(() => this.playDigitalAmbience(3000), 500);
             }
         });
@@ -87,7 +87,7 @@ class AudioManager {
         });
 
         this.initialized = true;
-        console.log('AudioManager initialized with extremely low ambience volume');
+        // console.log('AudioManager initialized with extremely low ambience volume');
 
         // Rendre l'instance accessible globalement pour faciliter les appels
         window.audioManager = this;
@@ -101,7 +101,6 @@ class AudioManager {
             loop: true,
             volume: 0.5,
             preload: true,
-            onload: () => console.log('Ambient sound loaded'),
             onloaderror: (id, error) => console.error('Error loading ambient sound:', error)
         });
 
@@ -114,7 +113,7 @@ class AudioManager {
                 volume: 0, // Commence à 0 pour le fade
                 preload: true,
                 onload: () => {
-                    console.log('Nature ambience loaded');
+                    // console.log('Nature ambience loaded');
 
                     // Forcer un volume très bas dès le chargement
                     this.natureAmbience._volume = this.ambienceVolume;
@@ -132,7 +131,7 @@ class AudioManager {
                 volume: 0, // Commence à 0 pour le fade
                 preload: true,
                 onload: () => {
-                    console.log('Digital ambience loaded');
+                    // console.log('Digital ambience loaded');
 
                     // Forcer un volume très bas dès le chargement
                     this.digitalAmbience._volume = this.ambienceVolume;
@@ -151,7 +150,6 @@ class AudioManager {
             src: ['/audios/click.wav'],
             volume: 0.8,
             preload: true,
-            onload: () => console.log('Click sound loaded'),
             onloaderror: (id, error) => console.error('Error loading click sound:', error)
         });
 
@@ -159,7 +157,6 @@ class AudioManager {
             src: ['/audios/drag.wav'],
             volume: 0.8,
             preload: true,
-            onload: () => console.log('Drag sound loaded'),
             onloaderror: (id, error) => console.error('Error loading drag sound:', error)
         });
 
@@ -167,14 +164,12 @@ class AudioManager {
             src: ['/audios/camera_shutter.wav'],
             volume: 0.8,
             preload: true,
-            onload: () => console.log('Camera sound loaded'),
             onloaderror: (id, error) => console.error('Error loading camera sound:', error)
         });
         this.addSound('ultrasound', {
             src: ['/audios/ultrasound.mp3'],
             volume: 0.9,
             preload: true,
-            onload: () => console.log('Camera sound loaded'),
             onloaderror: (id, error) => console.error('Error loading camera sound:', error)
         });
 
@@ -183,7 +178,6 @@ class AudioManager {
             src: ['/audios/scan_start.wav'],
             volume: 0.4,
             preload: true,
-            onload: () => console.log('Scan start sound loaded'),
             onloaderror: (id, error) => console.error('Error loading scan start sound:', error)
         });
 
@@ -191,7 +185,6 @@ class AudioManager {
             src: ['/audios/scan_cancel.wav'],
             volume: 0.5,
             preload: true,
-            onload: () => console.log('Scan cancel sound loaded'),
             onloaderror: (id, error) => console.error('Error loading scan cancel sound:', error)
         });
 
@@ -199,7 +192,6 @@ class AudioManager {
             src: ['/audios/scan_complete.wav'],
             volume: 0.5,
             preload: true,
-            onload: () => console.log('Scan complete sound loaded'),
             onloaderror: (id, error) => console.error('Error loading scan complete sound:', error)
         });
 
@@ -207,7 +199,6 @@ class AudioManager {
             src: ['/audios/radio_on.wav'],
             volume: 0.8,
             preload: true,
-            onload: () => console.log('Radio on sound loaded'),
             onloaderror: (id, error) => console.error('Error loading radio on sound:', error)
         });
 
@@ -215,38 +206,34 @@ class AudioManager {
             src: ['/audios/radio_off.wav'],
             volume: 0.8,
             preload: true,
-            onload: () => console.log('Radio off sound loaded'),
             onloaderror: (id, error) => console.error('Error loading radio off sound:', error)
         });
 
         // Charger les sons de rivière avec volume 0 initialement
-        console.log('RIVER SOUND: Loading river1 sound...');
+        // console.log('RIVER SOUND: Loading river1 sound...');
         this.riverSounds.river1 = new Howl({
             src: ['/audios/river1.wav'],
             loop: true,
             volume: 0, // On démarre à 0 et on n'autoplay pas
             preload: true,
-            onload: () => console.log('RIVER SOUND: river1 loaded successfully'),
             onloaderror: (id, error) => console.error('RIVER SOUND: Error loading river1 sound:', error)
         });
 
-        console.log('RIVER SOUND: Loading river2 sound...');
+        // console.log('RIVER SOUND: Loading river2 sound...');
         this.riverSounds.river2 = new Howl({
             src: ['/audios/river2.wav'],
             loop: true,
             volume: 0,
             preload: true,
-            onload: () => console.log('RIVER SOUND: river2 loaded successfully'),
             onloaderror: (id, error) => console.error('RIVER SOUND: Error loading river2 sound:', error)
         });
 
-        console.log('RIVER SOUND: Loading river3 sound...');
+        // console.log('RIVER SOUND: Loading river3 sound...');
         this.riverSounds.river3 = new Howl({
             src: ['/audios/river3.wav'],
             loop: true,
             volume: 0,
             preload: true,
-            onload: () => console.log('RIVER SOUND: river3 loaded successfully'),
             onloaderror: (id, error) => console.error('RIVER SOUND: Error loading river3 sound:', error)
         });
     }
@@ -265,7 +252,7 @@ class AudioManager {
 
     // Jouer l'ambiance nature avec un volume EXTRÊMEMENT bas
     playNatureAmbience(fadeTime = 2000) {
-        console.log(`RADICAL CHANGE: Switching to nature ambience`);
+        // console.log(`RADICAL CHANGE: Switching to nature ambience`);
 
         try {
             // 1. ARRÊTER COMPLÈTEMENT l'ambiance précédente
@@ -298,7 +285,7 @@ class AudioManager {
             this.currentAmbience = this.natureAmbience;
 
             // Logs de vérification
-            console.log("NATURE AMBIENCE STARTED WITH VOLUME:", this.natureAmbience.volume());
+            // console.log("NATURE AMBIENCE STARTED WITH VOLUME:", this.natureAmbience.volume());
 
             // NOUVEAU: Démarrer le système de sons aléatoires
             if (this.randomAmbientSounds) {
@@ -306,13 +293,13 @@ class AudioManager {
             }
 
             // IMPORTANT: Activer le système de rivière et démarrer river1 ici
-            console.log("RIVER SOUND: Activating river sounds system along with nature ambience");
+            // console.log("RIVER SOUND: Activating river sounds system along with nature ambience");
             this.riverActive = true;
 
             // Démarrer immédiatement river1
             // On force la transition vers le premier son de rivière
             this.transitionToRiverSound(this.riverSounds.river1, fadeTime);
-            console.log("RIVER SOUND: Started river1 sound alongside nature ambience");
+            // console.log("RIVER SOUND: Started river1 sound alongside nature ambience");
 
             // 5. Mettre à jour l'état du store
             try {
@@ -360,7 +347,7 @@ class AudioManager {
 
         // Si le son cible est différent du son actuel, effectuer la transition
         if (targetRiverSound !== this.currentRiverSound) {
-            console.log(`RIVER SOUND: Position ${normalizedPosition.toFixed(2)} triggered transition to ${riverName}`);
+            // console.log(`RIVER SOUND: Position ${normalizedPosition.toFixed(2)} triggered transition to ${riverName}`);
             this.transitionToRiverSound(targetRiverSound);
         }
     }
@@ -377,12 +364,12 @@ class AudioManager {
         else if (this.currentRiverSound === this.riverSounds.river2) currentSoundName = "river2";
         else if (this.currentRiverSound === this.riverSounds.river3) currentSoundName = "river3";
 
-        console.log(`RIVER SOUND: Transitioning from ${currentSoundName} to ${newSoundName} (fade: ${fadeTime}ms)`);
+        // console.log(`RIVER SOUND: Transitioning from ${currentSoundName} to ${newSoundName} (fade: ${fadeTime}ms)`);
 
         // Arrêter progressivement le son actuel s'il existe
         if (this.currentRiverSound && this.currentRiverSound.playing()) {
             const currentVolume = this.currentRiverSound.volume();
-            console.log(`RIVER SOUND: Fading out ${currentSoundName} from volume ${currentVolume} to 0`);
+            // console.log(`RIVER SOUND: Fading out ${currentSoundName} from volume ${currentVolume} to 0`);
 
             this.currentRiverSound.fade(currentVolume, 0, fadeTime);
 
@@ -391,7 +378,7 @@ class AudioManager {
 
             setTimeout(() => {
                 previousSound.stop();
-                console.log(`RIVER SOUND: ${currentSoundName} stopped after fade out`);
+                // console.log(`RIVER SOUND: ${currentSoundName} stopped after fade out`);
             }, fadeTime);
         }
 
@@ -414,7 +401,7 @@ class AudioManager {
                 targetVolume = 1.0;
             }
 
-            console.log(`RIVER SOUND: Starting ${newSoundName} with target volume ${targetVolume}`);
+            // console.log(`RIVER SOUND: Starting ${newSoundName} with target volume ${targetVolume}`);
 
             // Démarrer avec un volume à 0 pour le fade-in
             newSound.volume(0);
@@ -429,12 +416,12 @@ class AudioManager {
                         console.error(`RIVER SOUND: Second attempt to play ${newSoundName} failed.`);
                     } else {
                         newSound.fade(0, targetVolume, fadeTime, retryId);
-                        console.log(`RIVER SOUND: ${newSoundName} started successfully on retry`);
+                        // console.log(`RIVER SOUND: ${newSoundName} started successfully on retry`);
                     }
                 }, 100);
             } else {
                 newSound.fade(0, targetVolume, fadeTime, soundId);
-                console.log(`RIVER SOUND: ${newSoundName} fade-in started (0 to ${targetVolume})`);
+                // console.log(`RIVER SOUND: ${newSoundName} fade-in started (0 to ${targetVolume})`);
             }
 
             // Mettre à jour la référence du son actuel
@@ -447,7 +434,7 @@ class AudioManager {
                     newSound.volume(targetVolume);
                     newSound.play();
                 } else if (this.currentRiverSound === newSound) {
-                    console.log(`RIVER SOUND: ${newSoundName} is playing correctly after transition`);
+                    // console.log(`RIVER SOUND: ${newSoundName} is playing correctly after transition`);
                 }
             }, fadeTime + 500); // Vérifier juste après la fin de la transition
         } else {

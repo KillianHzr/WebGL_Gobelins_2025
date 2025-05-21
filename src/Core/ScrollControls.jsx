@@ -260,11 +260,11 @@ function CameraController({children}) {
     useEffect(() => {
         // Fonction pour gérer les événements d'interaction complète
         const handleInteractionComplete = (data) => {
-            console.log('[EventListener] Interaction complète reçue:', data);
+            // console.log('[EventListener] Interaction complète reçue:', data);
 
             // Vérifier si une interface doit être affichée
             if (data.interfaceToShow) {
-                console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
+                // console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
 
                 // Obtenir une référence fraîche au store
                 const store = useStore.getState();
@@ -273,19 +273,19 @@ function CameraController({children}) {
                 switch (data.interfaceToShow) {
                     case 'scanner':
                         if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface scanner');
+                            // console.log('[EventListener] Affichage de l\'interface scanner');
                             store.interaction.setShowScannerInterface(true);
                         }
                         break;
                     case 'capture':
                         if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface capture');
+                            // console.log('[EventListener] Affichage de l\'interface capture');
                             store.interaction.setShowCaptureInterface(true);
                         }
                         break;
                     case 'blackScreen':
                         if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface blackScreen');
+                            // console.log('[EventListener] Affichage de l\'interface blackScreen');
                             store.interaction.setShowBlackscreenInterface(true);
                         }
                         break;

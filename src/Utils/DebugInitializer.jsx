@@ -460,7 +460,7 @@ const DebugInitializer = () => {
                     // Fallback if triggerEnding not available
                     state.setEndingLandingVisible(true);
                 }
-                console.log('Full ending triggered');
+                // // console.log('Full ending triggered');
             },
         };
 
@@ -501,7 +501,7 @@ const DebugInitializer = () => {
                     window.history.replaceState({}, '', url);
 
                     // Informer l'utilisateur qu'un rechargement est nécessaire pour appliquer le changement
-                    console.log(`Intro mode updated: ${value ? 'skipping' : 'showing'} intro. Reload page to apply changes.`);
+                    // console.log(`Intro mode updated: ${value ? 'skipping' : 'showing'} intro. Reload page to apply changes.`);
                     // Option: ajouter une notification visuelle indiquant qu'un rechargement est nécessaire
                 }
             });
@@ -685,7 +685,7 @@ const DebugInitializer = () => {
 
             // Stocker l'interface GUI
             setGui(gui);
-            console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
+            // console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
 
         } catch (error) {
             console.error('Error initializing debug GUI:', error);

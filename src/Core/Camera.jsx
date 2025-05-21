@@ -98,7 +98,7 @@ export default function Camera() {
             cameraModelRef.current.scene.traverse((object) => {
                 if (object.isCamera) {
                     glbCamera = object;
-                    console.log("Caméra trouvée dans le modèle:", object);
+                    // console.log("Caméra trouvée dans le modèle:", object);
                 }
             });
 
@@ -186,16 +186,6 @@ export default function Camera() {
             }
         };
 
-        // Attendre que l'AssetManager soit prêt
-        const waitForAssetManager = () => {
-            if (window.assetManager && window.assetManager.initialized) {
-                console.log("AssetManager est initialisé, chargement de la caméra...");
-                loadCameraModel();
-            } else {
-                console.log("En attente de l'initialisation de l'AssetManager...");
-                setTimeout(waitForAssetManager, 500);
-            }
-        };
 
         // Écouter l'événement 'ready' de l'AssetManager
         const handleAssetManagerReady = () => {
@@ -206,8 +196,6 @@ export default function Camera() {
         // S'abonner à l'événement 'ready'
         const readySubscription = EventBus.on('ready', handleAssetManagerReady);
 
-        // Démarrer l'attente
-        waitForAssetManager();
 
         return () => {
             readySubscription(); // Se désabonner de l'événement ready

@@ -14,9 +14,9 @@ import {Object3D} from "three";
 const DEBUG_EASY_MARKER = false;
 
 // Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_EASY_MARKER) console.log(`[EasyModelMarker] ${message}`, ...args);
-};
+// const debugLog = (message, ...args) => {
+//     if (DEBUG_EASY_MARKER) console.log(`[EasyModelMarker] ${message}`, ...args);
+// };
 
 // Pool d'objets pour limiter les allocations
 const objectPool = {
@@ -126,7 +126,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 await textureManager.applyTexturesToModel(textureModelId, modelRef.current);
                 // Vérifier si le composant est toujours monté avant de continuer
                 if (isComponentMounted.current && isApplyingTextures) {
-                    debugLog(`Textures appliquées à ${markerId} (${textureModelId})`);
+                    // debugLog(`Textures appliquées à ${markerId} (${textureModelId})`);
                 }
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
@@ -183,7 +183,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         if (isCurrentInteractionTarget) {
-            debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
+            // debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId, isWaitingForInteraction]);
 
@@ -197,7 +197,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         const handleInteractionProgress = (data) => {
             // Si cette progression concerne notre objet
             if (data.markerId === markerId && data.requiredStep === requiredStep) {
-                console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
+                // console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
 
                 // Marquer que nous sommes dans une séquence d'interactions
                 setIsInInteractionSequence(true);
@@ -209,7 +209,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         const handleSequenceComplete = (data) => {
             if (data.step === requiredStep) {
-                console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
+                // console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
                 setIsInInteractionSequence(false);
             }
         };
@@ -227,7 +227,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Correction dans la fonction handleMarkerInteraction du fichier EasyModelMarker.jsx
 
     const handleMarkerInteraction = useCallback((eventData = {}) => {
-        debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
+        // debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
 
         // Jouer un son si activé
         if (playSound && audioManager) {
@@ -248,14 +248,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             // Compléter l'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
-                debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
+                // debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
             }
 
             // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
                 // Important : Obtenir l'état actuel du store directement
                 // au lieu d'utiliser une référence potentiellement obsolète
-                debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
+                // debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
 
                 // Obtenir une référence fraîche au store
                 const store = useStore.getState();
@@ -263,7 +263,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 // Afficher l'interface correspondante basée sur le type
                 switch (interfaceToShow) {
                     case 'scanner':
-                        debugLog(`Affichage de l'interface scanner`);
+                        // debugLog(`Affichage de l'interface scanner`);
                         if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
                             store.interaction.setShowScannerInterface(true);
                         } else {
@@ -271,7 +271,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         }
                         break;
                     case 'capture':
-                        debugLog(`Affichage de l'interface capture`);
+                        // debugLog(`Affichage de l'interface capture`);
                         if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
                             store.interaction.setShowCaptureInterface(true);
                         } else {
@@ -279,7 +279,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         }
                         break;
                     case 'blackScreen':
-                        debugLog(`Affichage de l'interface blackScreen`);
+                        // debugLog(`Affichage de l'interface blackScreen`);
                         if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
                             store.interaction.setShowBlackscreenInterface(true);
                         } else {
@@ -301,7 +301,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             // Si une animation post-interaction est définie, la déclencher
             if (postInteractionAnimation) {
                 try {
-                    debugLog(`Déclenchement de l'animation post-interaction: ${postInteractionAnimation.name}`);
+                    // debugLog(`Déclenchement de l'animation post-interaction: ${postInteractionAnimation.name}`);
                     EventBus.trigger(MARKER_EVENTS.INTERACTION_ANIMATION, {
                         id: markerId,
                         animationName: postInteractionAnimation.name,
@@ -347,7 +347,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Dans EnhancedObjectMarker.jsx, modifions la fonction handlePointerEnter dans le composant EasyModelMarker
 
     const handlePointerEnter = useCallback(() => {
-        console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
+        // console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
 
         // Récupérer les interactions complétées du store
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
@@ -375,7 +375,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer le survol
                     if (!previousStepCompleted) {
-                        console.log(`Survol de ${markerId} ignoré car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
+                        // console.log(`Survol de ${markerId} ignoré car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
                         return; // Ne pas mettre à jour l'état de hovering
                     }
                 }
@@ -390,7 +390,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 );
 
                 if (!multipleLeafCompleted) {
-                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
+                    // console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -404,7 +404,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 );
 
                 if (!rock1Completed) {
-                    console.log('Survol de JumpRock2 ignoré car JumpRock1 n\'a pas encore été complété');
+                    // console.log('Survol de JumpRock2 ignoré car JumpRock1 n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -417,7 +417,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 );
 
                 if (!rock2Completed) {
-                    console.log('Survol de JumpRock3 ignoré car JumpRock2 n\'a pas encore été complété');
+                    // console.log('Survol de JumpRock3 ignoré car JumpRock2 n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -430,7 +430,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 );
 
                 if (!rock3Completed) {
-                    console.log('Survol de JumpRock4 ignoré car JumpRock3 n\'a pas encore été complété');
+                    // console.log('Survol de JumpRock4 ignoré car JumpRock3 n\'a pas encore été complété');
                     return; // Ne pas mettre à jour l'état de hovering
                 }
             }
@@ -520,7 +520,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Handlers pour le survol du marqueur optimisés avec useCallback
     const handleMarkerPointerEnter = useCallback((e) => {
-        debugLog(`Marker ${markerId} hover enter`);
+        // debugLog(`Marker ${markerId} hover enter`);
         setIsMarkerHovered(true);
         // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {
@@ -529,7 +529,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     }, [markerId]);
 
     const handleMarkerPointerLeave = useCallback((e) => {
-        debugLog(`Marker ${markerId} hover leave`);
+        // debugLog(`Marker ${markerId} hover leave`);
         setIsMarkerHovered(false);
         // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {

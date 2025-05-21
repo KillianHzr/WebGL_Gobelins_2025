@@ -96,7 +96,7 @@ export default function PostProcessing() {
                     pass.name.includes('DOFPass')
                 )) {
                     pass.enabled = false;
-                    console.log(`[PostProcessing] Désactivation par défaut de la passe: ${pass.name}`);
+                    // console.log(`[PostProcessing] Désactivation par défaut de la passe: ${pass.name}`);
                 }
             });
         }
