@@ -7,11 +7,18 @@ const baseAssets = [
         license: 'CC-BY',
         author: 'Author',
         url: ''
+    },{
+        name: 'Camera',
+        type: 'gltf',
+        path: '/models/Camera.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
     },
     {
         name: 'MapInstance',
         type: 'gltf',
-        path: '/models/MapRoof.glb',
+        path: '/models/MapGrass.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -31,7 +38,14 @@ const baseAssets = [
     {
         name: 'DirectionPanel',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DirectionPanel.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    }, {
+        name: 'DirectionPanelDigital',
+        type: 'gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -47,7 +61,7 @@ const baseAssets = [
     {
         name: 'MultipleLeaf',
         type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
+        path: '/models/primary/MultipleLeaf.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -55,7 +69,7 @@ const baseAssets = [
     {
         name: 'AnimalPaws',
         type: 'gltf',
-        path: '/models/primary/AnimalPaws.gltf',
+        path: '/models/primary/AnimalPaws.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -65,7 +79,7 @@ const baseAssets = [
     {
         name: 'DirectionPanelStartInteractive',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -73,7 +87,7 @@ const baseAssets = [
     {
         name: 'DirectionPanelEndInteractive',
         type: 'gltf',
-        path: '/models/primary/DirectionPanel.gltf',
+        path: '/models/primary/DigitalDirectionPanel.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -82,14 +96,6 @@ const baseAssets = [
         name: 'TrunkLargeInteractive',
         type: 'gltf',
         path: '/models/forest/tree/ObstacleTree.gltf',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
-    {
-        name: 'LeafErable',
-        type: 'gltf',
-        path: '/models/primary/MultipleLeaf.gltf',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -123,6 +129,13 @@ const baseAssets = [
         name: 'TrunkThin',
         type: 'gltf',
         path: '/models/forest/tree/ThinTrunk.gltf',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },{
+        name: 'TrunkThinPlane',
+        type: 'gltf',
+        path: '/models/forest/tree/TreeThinPlane.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
@@ -294,13 +307,21 @@ const baseAssets = [
         url: ''
     },
     {
-        name: 'PlantIvy',
+        name: 'DataCenter',
         type: 'gltf',
-        path: '/models/forest/plant/PlantIvy.glb',
+        path: '/models/digital/DataCenter.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''
     },
+    // {
+    //     name: 'PlantIvy',
+    //     type: 'gltf',
+    //     path: '/models/forest/plant/PlantIvy.glb',
+    //     license: 'CC-BY',
+    //     author: 'Author',
+    //     url: ''
+    // },
     {
         name: 'PlantMiscanthus',
         type: 'gltf',
@@ -321,6 +342,14 @@ const baseAssets = [
         name: 'PlantReed',
         type: 'gltf',
         path: '/models/forest/plant/PlantReed.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
+    {
+        name: 'EnvironmentMap',
+        type: 'hdr', // ou 'exr'
+        path: '/textures/environmentMap/environment_map.hdr',
         license: 'CC-BY',
         author: 'Author',
         url: ''

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import useStore from '../Store/useStore';
+import { EventBus } from './EventEmitter';
 import { audioManager } from './AudioManager';
 
 export default function ScannerInterface() {
@@ -16,7 +17,7 @@ export default function ScannerInterface() {
     const scanTimerRef = useRef(null);
     const scanStartTimeRef = useRef(null);
     const scanSoundIdRef = useRef(null);
-    const scanDuration = 7000; // 7 seconds scan time
+    const scanDuration = 3000; // 3 seconds scan time
 
     // Monitor state changes to determine when to display the interface
     useEffect(() => {
@@ -125,6 +126,13 @@ export default function ScannerInterface() {
         setScanProgress(0);
         setPulseSize(0);
         setProgressSize(0); // Réinitialiser la taille de progression
+
+        // Émettre un événement pour indiquer que le scan a été annulé
+        EventBus.trigger('interface-action', {
+            type: 'scanner',
+            action: 'cancel',
+            result: 'incomplete'
+        });
     };
 
     // Complete the scanning process successfully
@@ -153,14 +161,17 @@ export default function ScannerInterface() {
             interaction.setShowScannerInterface(false);
         }
 
-        setShowNotification(true);
-
-        setTimeout(() => {
-            setShowNotification(false);
-        }, 3000);
+        // Émettre un événement pour indiquer que l'interface a été fermée
+        EventBus.trigger('interface-action', {
+            type: 'scanner',
+            action: 'close',
+            result: 'complete'
+        });
 
         if (interaction?.completeInteraction) {
             interaction.completeInteraction();
+            window.doJumpToChapter(0.01)
+
         }
     };
 
@@ -259,7 +270,7 @@ export default function ScannerInterface() {
                                 onTouchEnd={handleScanButtonUp}
                             >
                                 <div className="scanner-interface-scan-button-inner-text">
-                                    Scan les traces
+                                    Scan
                                 </div>
                                 <div
                                     className="scanner-interface-scan-button-inner-progress"

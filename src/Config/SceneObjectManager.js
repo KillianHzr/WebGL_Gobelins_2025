@@ -3,12 +3,20 @@
 // Gère à la fois les objets interactifs et les objets statiques avec leur placement par défaut
 
 import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
-import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
+import {EventBus, MARKER_EVENTS} from '../Utils/EventEmitter';
 import {textureManager} from './TextureManager';
 
 class SceneObjectManager {
     constructor() {
-        // Définition des étapes dans l'ordre
+        /**
+         * PARCOURS INTERACTIF - DÉCOUVERTE ENVIRONNEMENTALE
+         * =================================================
+         * Ce gestionnaire organise une expérience narrative centrée sur la découverte
+         * d'un vison affecté par la pollution et la pénurie d'eau. L'utilisateur progresse
+         * à travers différentes scènes interactives qui racontent une histoire environnementale.
+         */
+
+        // Définition des étapes dans l'ordre de progression du parcours
         this.interactionSteps = ['firstStop', 'secondStop', 'thirdStop', 'fourthStop', 'fifthStop', 'sixthStop'
             // Ajoutez d'autres étapes si nécessaire
         ];
@@ -30,7 +38,33 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
-            // Scene 01 - Starting point
+
+
+            'TVScreen': {
+                id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.93887, 0.3095, 84.51408],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+            'ModernScreen': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.47393, 0.728, 83.68371],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+
+
+            /**
+             * SCÈNE 01 - POINT DE DÉPART
+             * Introduction narrative avec Célia (narratrice)
+             * Déclencheur: Fin de la cinématique d'introduction
+             * Type: Événement automatique basé sur la timeline
+             */
             'Ground': {
                 id: 'Ground',
                 path: '/models/Ground.glb',
@@ -39,318 +73,492 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-
-            'WaterPlane': {
-                id: 'WaterPlane',
-                path: '/models/forest/river/River.glb',
+            'Camera': {
+                id: 'Camera',
+                path: '/models/Camera.glb',
                 scale: [1, 1, 1],
                 interactive: false,
-                useTextures: true,
-                defaultPlacements: [
-                    {position: [0, 0, 0], rotation: [0, 0, 0]}
-                ]
+                useTextures: false,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
+            // 'WaterPlane': {
+            //     id: 'WaterPlane',
+            //     path: '/models/forest/river/River.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: false,
+            //     useTextures: true,
+            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
+            // },
 
-            // Scene 02 - Information Panel (First stop)
+            /**
+             * SCÈNE 02 - PANNEAU D'INFORMATION
+             * Premier point interactif avec informations contextuelles
+             * Déclencheur: CLICK sur le panneau "Lis le panneau"
+             * Effet: Rotation et zoom vers le panneau, narration par Célia
+             * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
+             */
             'DirectionPanelStartInteractive': {
                 id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
+                path: '/models/primary/DirectionPanel.glb',
                 scale: [0.605, 0.605, 0.605],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                interaction: [{
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
-                },
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'initialStartStop',
+                    // Ajouter cette fonction callback pour jouer la narration dès l'interaction
+                    onInteract: () => {
+                        console.log("Long press sur le panneau d'information - lancement narration");
+                        narrationManager.playNarration('Scene02_PanneauInformation');
+                    }
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.8,
+                    requiredStep: 'initialEndStop'
+                }],
                 defaultPlacement: {
-                    position: [-8.343, 0, 13.953],
-                    rotation: [0, 29.02, 0],
+                    position: [-6.7116, 0, 11.35076],
+                    rotation: [0, 179.5 + 53.97781, 0],
+                    scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
-                    requiredStep: 'initialStop'
                 }
             },
 
-            // Scene 03 - Tree trunk obstacle (First stop)
+            // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
+            // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
+            /**
+             * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
+             * Apprentissage du mouvement vertical
+             * Déclencheur: DRAG DE BAS EN HAUT "Saute au-dessus"
+             * Effet: Animation de saut par-dessus l'obstacle
+             */
             'TrunkLargeInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/ObstacleTree.glb',
                 scale: [1.000, 1.000, 1.000],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "camera"
-                },
-                defaultPlacement: {
-                    position: [1.833, 0, -11.911],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
+                    chapterDistance: 0.6,
                     requiredStep: 'firstStop'
+                }],
+                defaultPlacement: {
+                    position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
                 }
-            },
+            }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
 
-            // Scene 04 - Searching for traces (Third stop)
-            'LeafErable': {
-                id: 'LeafErable',
+            /**
+             * SCÈNE 04 - RECHERCHE DES INDICES
+             * Investigation environnementale avec découverte progressive
+             * Déclencheur 1: DRAG DROITE-GAUCHE "Déblaye les feuilles"
+             * Effet 1: Animation de secousse et déblayage des feuilles
+             * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
+             * Effet 2: Analyse des empreintes avec explication par Célia
+             */
+            'MultipleLeaf': {
+                id: 'MultipleLeaf',
                 path: '/models/primary/MultipleLeaf.glb',
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
+                    text: "Tire",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-6.905, 0.05, -55.498],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
                     requiredStep: 'thirdStop'
+                }],
+                defaultPlacement: {
+                    scale: [1, 1, 1],
+                    position: [-6.905, 0.05, -55.498], rotation: [0, 0, 0]
                 }
             },
             'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
-                scale: [0.184, 0.184, 0.184],
+                scale: [0.13031, 0.13031, 0.13031],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                    text: "Clique",
+
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
-                },
-                defaultPlacement: {
-                    position: [-6.921, 0.038, -55.531],
-                    rotation: [0, 24.64, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "scanner",
+                    chapterDistance: 0.5,
                     requiredStep: 'fifthStop'
+                }],
+                defaultPlacement: {
+                    position: [-6.92739, 0.03838, -55.54513],
+                    rotation: [0, 24.64264, 0],
+                    scale: [1.3031, 1.3031, 1.3031],
                 }
-            },
+            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
+            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
 
-            // Scene 05 - River crossing with stones
+            /**
+             * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
+             * Puzzle spatial avec progression séquentielle
+             * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
+             * Effet: Animation de saut sur chaque pierre pour traverser la rivière
+             */
             'JumpRock1': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-30.164, 0, -75.977],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
                     requiredStep: 'eleventhStop'
+                }],
+                defaultPlacement: {
+                    position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
                 }
             },
+
             'JumpRock2': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-30.137, 0, -76.954],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 0.7,
                     requiredStep: 'twelfthStop'
+                }],
+                defaultPlacement: {
+                    position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
                 }
             },
+
             'JumpRock3': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
-                    offset: 0.5,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
+                    offset: 0.6,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-31.319, 0, -76.848],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
                     requiredStep: 'thirteenthStop'
+                }],
+                defaultPlacement: {
+                    position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
                 }
             },
+
             'JumpRock4': {
                 id: 'RockWater',
                 path: '/models/rock/RockWater2.glb',
                 scale: [0.279, 0.279, 0.279],
                 interactive: true,
                 useTextures: true,
-                interaction: {
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-31.648, 0, -77.683],
-                    rotation: [0, 0, 0],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 1.5,
                     requiredStep: 'fourteenthStop'
+                }],
+                defaultPlacement: {
+                    position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
                 }
             },
-
-            // Scene 06 - Branch obstacle (Fourth stop)
+            /**
+             * SCÈNE 06 - OBSTACLE DE LA BRANCHE
+             * Apprentissage du mouvement vertical inverse
+             * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
+             * Effet: Animation de passage sous la branche
+             */
             'ThinTrunkInteractive': {
                 id: 'TrunkLarge',
                 path: '/models/forest/tree/Obstacle2Tree.glb',
                 scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
                     type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Observer le tronc",
-                    color: "#44aacc",
+                    text: "Tire",
                     offset: -0.5,
                     axis: "y",
-                    interfaceToShow: "none"
-                },
-                defaultPlacement: {
-                    position: [-41.732, 0.0, -115.572],
-                    rotation: [0.0, -0.20, -0.05],
-                    // quaternion: [0.6956894021609911, -0.6048100142571994, -0.6048100142571994, 0.21893789300135294],
-                    outlinePulse: false,
+                    interfaceToShow: "none",
+                    chapterDistance: 0.6,
                     requiredStep: 'fourthStop'
+                }],
+                defaultPlacement: {
+                    position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
                 }
-            },
+            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
             'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
-                scale: [1, 1, 1],
+                scale: [0.12371, 0.12371, 0.12371],
                 interactive: false,
                 useTextures: true,
-                // animations: {
-                //     // Animation "move" qui sera jouée automatiquement
-                //     'Action.001.001': {
-                //         autoplay: true,            // Cette animation démarrera automatiquement
-                //         defaultLoop: true,         // Par défaut en boucle
-                //         defaultClamp: false,       // Ne pas bloquer à la dernière frame
-                //         defaultTimeScale: 1.0      // Vitesse normale
-                //     },
-                // },
                 defaultPlacements: [{
-                    position: [-41.72699737548828, 0.059255074709653854, -115.571],
-                    rotation: [0, 40.81, 0]
+                    position: [-42.79226, 0.06409, -116.47688],
+                    rotation: [-3.14159, -52.79977, -3.14159],
+                    scale: [0.1371, 0.1371, 0.1371],
                 }]
             },
             'TreeStump': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.glb',
-                scale: [0.075, 0.075, 0.075],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{
-                    position: [-41.258, 0.0642661452293396, -115.151],
-                    quaternion: [-0.4461739408566029, 0.816940155045417, 0.19916109438564436, -0.30638614397924174]
+                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-41.25625, 0.06409, -115.15076],
+                    rotation: [-3.14159, 40.80581, -3.14159],
+                    scale: [0.07507, 0.07507, 0.07507],
                 }]
             },
 
-            // Scene 07 & 08 - Discovering the mink (Second stop)
-            'Vison': {
-                id: 'Vison',
-                path: '/models/primary/Vison.glb',
-                scale: [1.000, 1.000, 1.000],
-                interactive: false,
-                useTextures: true,
-                animations: {
-                    // Tester plusieurs variations possibles du nom de l'animation
-                    'action': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action.001': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    'Action.001.001': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                    // Ajouter cette variante au cas où
-                    '*': {
-                        autoplay: true,
-                        defaultLoop: true,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    }
-                },
-                defaultPlacements: [{
-                    position: [51.907, 0.0, -134.251],
-                    rotation: [0, -121.79, 0],
-                }]
-            },
+            /**
+             * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
+             * Révélation principale et message environnemental
+             * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
+             *  - Explication du problème de pénurie d'eau
+             */
 
-            // Scene 09 & 10 - Final revelation and call to action
-            'DirectionPanelEndInteractive': {
-                id: 'DirectionPanel',
-                path: '/models/primary/DirectionPanel.gltf',
-                scale: [0.605, 0.605, 0.605],
+            'RiverCheckpoint': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                scale: [1, 1, 1],
                 interactive: true,
                 useTextures: true,
-                interaction: {
+                interaction: [{
+                    type: INTERACTION_TYPES.DISABLE,
+                    text: "Maintiens",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.3,
+                    requiredStep: 'seventeenStop'
+                }],
+                defaultPlacement: {
+                    // position: [0.42004, -0.70173, -141.44714],
+                    position: [0.1004, -0.70173, -141.54714],
+                    // position: [0.108, -0.702, -141.176],
+                    // position: [-39.47393, 0.2628, 83.18371],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }
+            },
+
+
+            /**
+             * Scène 08: Découverte du vison mort
+             *  - Animation automatique d'éclairage révélant le vison
+             *  - CLICK "Immortalise le moment" pour prendre photo
+             *  - Flash d'appareil photo et transition vers scène suivante
+             */
+
+
+
+
+            'Vison': {
+                id: 'Vison',
+                path: '/models/primary/AnimalVisonMortV1.glb',
+                scale: [0.04874, 0.04874, 0.04874],
+                interactive: true,
+                useTextures: false,
+                interaction: [{
                     type: INTERACTION_TYPES.CLICK,
-                    text: "Lire le panneau",
-                    color: "#ffcc44",
+                    text: "Clique",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "scanner"
-                },
+                    interfaceToShow: "capture",
+                    chapterDistance: 0.28,
+                    requiredStep: 'sixthStop'
+                }],
                 defaultPlacement: {
-                    position: [-8.343 /4, 0, 13.953/4],
-                    rotation: [0, 29.02, 0],
+                    position: [51.67054, 0.04409, -134.37912],
+                    rotation: [-3.14159, 25.90977, -3.14159],
+                    scale: [1, 1, 1],
                     outlinePulse: false,
-                    requiredStep: 'tenthStop'
+                }
+            },
+
+
+            //
+            // 'VisonRun': {
+            //     id: 'VisonRun',
+            //     path: '/models/primary/VisonRun.glb',
+            //     scale: [0.04874, 0.04874, 0.04874],
+            //     interactive: true,
+            //     useTextures: false,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "capture",
+            //         chapterDistance: 0.28,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [51.67054, 0.04409, -134.37912],
+            //         rotation: [-3.14159, 25.90977, -3.14159],
+            //         scale: [1, 1, 1],
+            //         outlinePulse: false,
+            //     }
+            // },
+
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [66.95818, -0.50182, -123.19365],
+                    rotation: [-3.14159, -54.12542, -3.14159],
+                    scale: [1.79768, 1.79768, 1.79768],
+                }]
+                //todo: ajouter DataCenter au groupe Screen et trigger à la fin
+            },
+            // 'Vison': {
+            //     id: 'Vison',
+            //     path: '/models/primary/AnimalVisonMortV1.glb',
+            //     scale: [0.07888, 0.07888, 0.07888],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Immortaliser le moment",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.01,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     // animations: {
+            //     //     // Tester plusieurs variations possibles du nom de l'animation
+            //     //     'action': {
+            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //     //     }, 'Action': {
+            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //     //     }, 'Action.001': {
+            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //     //     }, 'Action.001.001': {
+            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //     //     }, // Ajouter cette variante au cas où
+            //     //     '*': {
+            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
+            //     //     }
+            //     // },
+            //     defaultPlacements: [{
+            //         position: [52.11705, 0, -129.83212],
+            //         rotation: [-3.14159, 67.09271, -3.14159],
+            //         scale: [0.07888, 0.07888, 0.07888],
+            //         outlinePulse: false,
+            //     }]
+            // },
+            // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
+            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin + caché le groupe de mesh End + afficher le groupe de mesh Screen
+            /**
+             * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
+             * Scène 09: Clairière digitalisée avec panneau interactif
+             *  - CLICK "Récupérer votre facture" sur panneau directionnel digital
+             *  - Affichage de la facture écologique avec narration de Célia
+             *  - CLICK MAINTENU "Quitte le panneau" pour fermer l'interface
+             * Scène 10: Actualité fantasmée et CTA final
+             *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
+             *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
+             */
+            'DigitalDirectionPanelEndInteractive': {
+                id: 'DigitalDirectionPanel',
+                path: '/models/primary/DigitalDirectionPanel.glb',
+                scale: [0.55, 0.55, 0.55],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.1,
+                    requiredStep: 'tenthStop',
+                    // Ajouter cette fonction callback pour jouer la narration dès l'interaction
+                    onInteract: () => {
+                        console.log("Long press sur le panneau digital - lancement narration");
+                        narrationManager.playNarration('Scene09_ClairiereDigitalisee');
+                    }
+                }, {
+                    type: INTERACTION_TYPES.LONG_PRESS,
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'tenthStopEnd'
+                }],
+                defaultPlacement: {
+                    position: [55.10253, 0, -134.2177],
+                    rotation: [0, 135 + 58.43814, 0],
+                    scale: [0.55, 0.55, 0.55],
+                    outlinePulse: false,
+                }
+            },
+            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
+
+
+            'RadioInteractive': {
+                id: 'Radio',
+                path: '/models/primary/Radio.glb',
+                interactive: true,
+                useTextures: false,
+                scale: [0.13, 0.13, 0.13],
+                interaction: [{
+                    type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "blackScreen",
+                    requiredStep: 'seventhStop',
+                }],
+                defaultPlacement: {
+                    position: [56.50845, 0, -131.60712],
+                    rotation: [-3.09, 270 + 55.03315, -3.10794],
+                    scale: [0.13, 0.13, 0.13],
                 }
             }
+            // seventhStop au click -> voile noir sur tout l'écran
+
+
         };
         // Liste des placements d'objets dans la scène
         this.placements = [];
@@ -360,6 +568,192 @@ class SceneObjectManager {
 
         // Initialiser les placements par défaut
         this._initializeDefaultPlacements();
+    }
+
+    _getCurrentInteraction(objectConfig, placement) {
+        if (!objectConfig.interaction || !Array.isArray(objectConfig.interaction)) {
+            return null;
+        }
+
+        // Si un requiredStep est spécifié dans le placement, chercher l'interaction correspondante
+        if (placement && placement.requiredStep) {
+            const matchingInteraction = objectConfig.interaction.find(interaction =>
+                interaction.requiredStep === placement.requiredStep
+            );
+
+            if (matchingInteraction) {
+                // Ajouter des logs pour le débogage
+                console.log(`Interaction trouvée pour ${placement.objectKey} (${placement.requiredStep}):`,
+                    matchingInteraction);
+                return matchingInteraction;
+            } else {
+                console.warn(`Aucune interaction trouvée pour ${placement.objectKey} avec requiredStep=${placement.requiredStep}`);
+            }
+        }
+
+        // Si l'objet n'a pas encore été interagi du tout, renvoyer la première interaction
+        if (!placement || placement.interactionIndex === undefined) {
+            return objectConfig.interaction[0];
+        }
+
+        // Si nous avons un index d'interaction stocké dans le placement, l'utiliser
+        const currentIndex = placement.interactionIndex;
+
+        // Si nous avons terminé toutes les interactions, renvoyer la dernière
+        if (currentIndex >= objectConfig.interaction.length) {
+            return objectConfig.interaction[objectConfig.interaction.length - 1];
+        }
+
+        // Renvoyer l'interaction actuelle
+        return objectConfig.interaction[currentIndex];
+    }
+
+    getInteractiveObjectInterfaces() {
+        const interfaces = {};
+
+        // Parcourir tous les objets interactifs
+        Object.entries(this.objectCatalog).forEach(([key, config]) => {
+            if (config.interactive) {
+                // Vérifier les interactions et leurs interfaces
+                if (Array.isArray(config.interaction)) {
+                    config.interaction.forEach(interaction => {
+                        if (interaction.interfaceToShow) {
+                            if (!interfaces[key]) {
+                                interfaces[key] = [];
+                            }
+                            interfaces[key].push({
+                                step: interaction.requiredStep,
+                                interface: interaction.interfaceToShow
+                            });
+                        }
+                    });
+                } else if (config.interaction && config.interaction.interfaceToShow) {
+                    interfaces[key] = [{
+                        step: config.interaction.requiredStep,
+                        interface: config.interaction.interfaceToShow
+                    }];
+                }
+            }
+        });
+
+        // Logger les interfaces trouvées pour le débogage
+        console.log("Interfaces disponibles dans les objets interactifs:", interfaces);
+        return interfaces;
+    }
+
+    handleThirdStopCompletion() {
+        console.log('*** Exécution de handleThirdStopCompletion ***');
+
+        // Trouver l'emplacement de MultipleLeaf avec plus de détails de débogage
+        const leafPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
+        console.log('Placements MultipleLeaf trouvés:', leafPlacements);
+
+        if (leafPlacements && leafPlacements.length > 0) {
+            const leafPlacement = leafPlacements[0];
+
+            // Obtenir la position actuelle
+            const currentPosition = [...leafPlacement.position];
+            console.log('Position actuelle de MultipleLeaf:', currentPosition);
+
+            // Calculer la nouvelle position (décalage de 2.0 sur X et Z)
+            const newPosition = [
+                currentPosition[0] + 0.5,
+                currentPosition[1] + 0.1,
+                currentPosition[2] - 0.02
+            ];
+
+            console.log(`Déplacement de MultipleLeaf de [${currentPosition}] à [${newPosition}]`);
+
+            // Récupérer l'identifiant du marqueur pour une mise à jour précise
+            let identifier;
+            if (leafPlacement.markerId) {
+                identifier = leafPlacement.markerId;
+                console.log('Mise à jour par markerId:', identifier);
+            } else {
+                // Si markerId n'est pas disponible, utiliser l'index de placement dans le tableau
+                const index = this.placements.findIndex(p =>
+                    p.objectKey === 'MultipleLeaf' &&
+                    p.position[0] === currentPosition[0] &&
+                    p.position[2] === currentPosition[2]
+                );
+
+                if (index !== -1) {
+                    identifier = index;
+                    console.log('Mise à jour par index:', index);
+                } else {
+                    console.warn('Impossible de trouver un identifiant valide pour la mise à jour');
+                    return;
+                }
+            }
+
+            // Effectuer la mise à jour avec l'identifiant approprié
+            const updateResult = this.updatePlacement(identifier, {
+                position: newPosition
+            });
+
+            console.log('Résultat de la mise à jour:', updateResult);
+
+            // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
+            const updatedPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
+            if (updatedPlacements && updatedPlacements.length > 0) {
+                console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
+            }
+
+            // Émettre un événement pour informer les autres composants
+            EventBus.trigger('object-position-updated', {
+                objectKey: 'MultipleLeaf',
+                oldPosition: currentPosition,
+                newPosition: newPosition
+            });
+        } else {
+            console.warn('Objet MultipleLeaf non trouvé lors de la complétion de thirdStop');
+        }
+    }
+
+    // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
+    getChapterDistance(stepId) {
+        const placements = this.getInteractivePlacements({requiredStep: stepId});
+
+        if (placements.length > 0) {
+            const objectKey = placements[0].objectKey;
+            const objectConfig = this.getObjectFromCatalog(objectKey);
+            const placement = placements[0];
+
+            if (objectConfig && objectConfig.interaction) {
+                // Pour les interactions multiples (tableau)
+                if (Array.isArray(objectConfig.interaction)) {
+                    // Trouver l'interaction correspondant à l'étape requise
+                    const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === stepId);
+
+                    if (matchingInteraction) {
+                        // Vérifier explicitement les cas spéciaux
+                        if (matchingInteraction.chapterDistance === "none" || matchingInteraction.chapterDistance === 0 || matchingInteraction.chapterDistance === "0") {
+                            console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
+                            return 0;
+                        }
+
+                        if (matchingInteraction.chapterDistance !== undefined) {
+                            return matchingInteraction.chapterDistance;
+                        }
+                    }
+                }
+                // Pour une interaction unique (compatibilité descendante)
+                else if (objectConfig.interaction.requiredStep === stepId) {
+                    // Vérifier explicitement les cas spéciaux
+                    if (objectConfig.interaction.chapterDistance === "none" || objectConfig.interaction.chapterDistance === 0 || objectConfig.interaction.chapterDistance === "0") {
+                        console.log(`Distance zéro explicitement configurée pour ${stepId} (${objectKey})`);
+                        return 0;
+                    }
+
+                    if (objectConfig.interaction.chapterDistance !== undefined) {
+                        return objectConfig.interaction.chapterDistance;
+                    }
+                }
+            }
+        }
+
+        // Valeur par défaut
+        return 0;
     }
 
     // Attribue automatiquement une étape en fonction de l'ordre des objets
@@ -408,26 +802,56 @@ class SceneObjectManager {
 
         Object.entries(this.objectCatalog).forEach(([key, config]) => {
             if (config.interactive && config.defaultPlacement) {
-                // Attribuer automatiquement la prochaine étape si non spécifiée
-                const requiredStep = config.defaultPlacement.requiredStep || this._getNextStep();
+                // Si l'objet a des interactions multiples (tableau), créer un placement pour chaque interaction
+                if (Array.isArray(config.interaction) && config.interaction.length > 0) {
+                    config.interaction.forEach((interaction, index) => {
+                        // Utiliser le requiredStep de l'interaction actuelle
+                        let requiredStep = interaction.requiredStep;
 
-                // Générer automatiquement markerId et markerText si nécessaire
-                const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-                const markerText = config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, config.interaction.text);
+                        // Fallback si nécessaire
+                        requiredStep = requiredStep || config.defaultPlacement.requiredStep || this._getNextStep();
 
-                // Placer un objet interactif
-                this.addPlacement(key, config.defaultPlacement.position, {
-                    rotation: config.defaultPlacement.rotation || [0, 0, 0],
-                    markerId: markerId,
-                    markerText: markerText,
-                    requiredStep: requiredStep,
-                    outlinePulse: config.defaultPlacement.outlinePulse,
-                    markerColor: config.defaultPlacement.markerColor,
-                    markerOffset: config.defaultPlacement.markerOffset,
-                    markerAxis: config.defaultPlacement.markerAxis
-                });
+                        // Générer automatiquement markerId et markerText
+                        const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
+
+                        // Utiliser le texte de l'interaction actuelle
+                        let markerText = interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
+
+                        // Créer un placement pour cette interaction
+                        this.addPlacement(key, config.defaultPlacement.position, {
+                            rotation: config.defaultPlacement.rotation || [0, 0, 0],
+                            markerId: markerId,
+                            markerText: markerText,
+                            requiredStep: requiredStep,
+                            outlinePulse: config.defaultPlacement.outlinePulse,
+                            markerOffset: interaction.offset || config.defaultPlacement.markerOffset,
+                            markerAxis: interaction.axis || config.defaultPlacement.markerAxis,
+                            interactionIndex: index  // Stocker l'index de l'interaction dans le placement
+                        });
+                    });
+                } else if (config.interaction && config.interaction.requiredStep) {
+                    // Cas d'une interaction unique
+                    let requiredStep = config.interaction.requiredStep;
+
+                    // Fallback au placement par défaut ou génération automatique
+                    requiredStep = requiredStep || config.defaultPlacement.requiredStep || this._getNextStep();
+
+                    const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
+                    const markerText = config.interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
+
+                    // Créer un placement pour cette interaction
+                    this.addPlacement(key, config.defaultPlacement.position, {
+                        rotation: config.defaultPlacement.rotation || [0, 0, 0],
+                        markerId: markerId,
+                        markerText: markerText,
+                        requiredStep: requiredStep,
+                        outlinePulse: config.defaultPlacement.outlinePulse,
+                        markerOffset: config.interaction.offset || config.defaultPlacement.markerOffset,
+                        markerAxis: config.interaction.axis || config.defaultPlacement.markerAxis
+                    });
+                }
             } else if (!config.interactive && config.defaultPlacements) {
-                // Placer plusieurs instances d'objets statiques
+                // Placer plusieurs instances d'objets statiques (inchangé)
                 config.defaultPlacements.forEach((placement, index) => {
                     const placementOptions = {
                         rotation: placement.rotation || [0, 0, 0],
@@ -446,6 +870,7 @@ class SceneObjectManager {
         });
     }
 
+
     // Ajouter un texte standard pour une étape
     addStepText(stepId, text) {
         this.stepTexts[stepId] = text;
@@ -458,16 +883,27 @@ class SceneObjectManager {
     }
 
     // Configurer les écouteurs d'événements
+    // Configurer les écouteurs d'événements
+    // Inside the _setupEventListeners method
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
+            console.log('Événement INTERACTION_COMPLETE reçu:', data);
+
+            // Vérifier directement si c'est l'étape thirdStop, indépendamment du placement
+            if (data.requiredStep === 'thirdStop' ||
+                (data.id && data.id.includes('thirdStop'))) {
+                console.log('Détection directe de thirdStop dans INTERACTION_COMPLETE');
+                this.handleThirdStopCompletion();
+            }
+
             const placement = this.placements.find(p => p.markerId === data.id);
             if (placement) {
-                console.log(`==== INTERACTION COMPLÉTÉE ====`);
-                console.log(`SceneObjectManager: Interaction complétée pour ${placement.markerId}`);
-                console.log(`Objet: ${placement.objectKey} à la position [${placement.position}]`);
+                console.log(`%c==== INTERACTION ENREGISTRÉE PAR SceneObjectManager ====`);
+                console.log(`Marqueur: ${placement.markerId}`);
+                console.log(`Objet: ${placement.objectKey}`);
                 console.log(`Étape requise: ${placement.requiredStep}`);
-                console.log(`Type d'interaction: ${placement.markerType}`);
+                console.log(`Type d'interaction: ${data.type || placement.markerType}`);
                 console.log(`=============================`);
 
                 // Exécuter le callback personnalisé si défini
@@ -475,11 +911,43 @@ class SceneObjectManager {
                     placement.onInteract(data);
                 }
 
-                // Mettre à jour l'état d'interaction de l'objet
+                // Marquer l'objet comme complètement interagi
                 placement.interacted = true;
+
+                // Émettre un événement pour le système de scénario
+                EventBus.trigger('object:interaction:complete', {
+                    markerId: placement.markerId,
+                    objectKey: placement.objectKey,
+                    requiredStep: placement.requiredStep,
+                    isFinalInteraction: true
+                });
+
+                // Cas spécial pour thirdStop - Déplacer l'objet MultipleLeaf
+                if (placement.requiredStep === 'thirdStop') {
+                    console.log('thirdStop completion détectée via placement.requiredStep');
+                    this.handleThirdStopCompletion();
+                }
+            }
+        });
+
+        // Écouter aussi l'événement object:interaction:complete
+        EventBus.on('leaf-erable-move-requested', (data) => {
+            console.log('Événement leaf-erable-move-requested reçu:', data);
+            this.handleThirdStopCompletion();
+        });
+
+
+        // Ajouter un écouteur spécifique pour INTERACTION_COMPLETE provenant du store
+        EventBus.on('INTERACTION_COMPLETE', (data) => {
+            console.log('Événement INTERACTION_COMPLETE direct reçu:', data);
+            // Vérifier si c'est l'étape thirdStop
+            if (data.id === 'thirdStop' || (typeof data.id === 'string' && data.id.includes('thirdStop'))) {
+                console.log('thirdStop completion détectée via INTERACTION_COMPLETE direct');
+                this.handleThirdStopCompletion();
             }
         });
     }
+
 
     // Ajouter un nouvel objet au catalogue
     addObjectToCatalog(key, config) {
@@ -498,14 +966,13 @@ class SceneObjectManager {
 
         // Ajouter les propriétés d'interaction si l'objet est interactif
         if (config.interactive) {
-            baseConfig.interaction = {
+            baseConfig.interaction = [{
                 type: config.interaction?.type || INTERACTION_TYPES.CLICK,
                 text: config.interaction?.text || "Interagir",
-                color: config.interaction?.color || "#44ff44",
                 offset: config.interaction?.offset || 1.0,
                 axis: config.interaction?.axis || "y",
                 interfaceToShow: config.interaction?.interfaceToShow || null
-            };
+            }];
         } else if (config.defaultPlacements) {
             // Ajouter les placements par défaut pour les objets statiques
             baseConfig.defaultPlacements = config.defaultPlacements;
@@ -516,9 +983,7 @@ class SceneObjectManager {
             baseConfig.animations = config.animations;
 
             // Vérifier si une animation est marquée pour démarrer automatiquement
-            const autoplayAnimation = Object.entries(config.animations).find(([name, animConfig]) =>
-                animConfig.autoplay === true
-            );
+            const autoplayAnimation = Object.entries(config.animations).find(([name, animConfig]) => animConfig.autoplay === true);
 
             if (autoplayAnimation) {
                 const [animName, animConfig] = autoplayAnimation;
@@ -610,24 +1075,61 @@ class SceneObjectManager {
 
         // Si l'objet est interactif, ajouter les propriétés d'interaction
         if (objectConfig.interactive) {
-            // Attribuer automatiquement la prochaine étape si non spécifiée
-            const requiredStep = options.requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
+            // Trouver le bon requiredStep
+            let requiredStep = options.requiredStep;
+
+            if (!requiredStep) {
+                // Chercher dans les interactions
+                if (Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 0) {
+                    requiredStep = objectConfig.interaction[0].requiredStep;
+                } else if (objectConfig.interaction && objectConfig.interaction.requiredStep) {
+                    requiredStep = objectConfig.interaction.requiredStep;
+                }
+
+                // Fallback au placement par défaut ou génération automatique
+                requiredStep = requiredStep || objectConfig.defaultPlacement?.requiredStep || this._getNextStep();
+            }
 
             const markerId = options.markerId || this._generateMarkerId(key, requiredStep);
-            const markerText = options.markerText || this._generateMarkerText(key, requiredStep, objectConfig.interaction.text);
+
+            // Déterminer le texte du marqueur en priorité depuis les options, sinon depuis l'interaction
+            let markerText = options.markerText;
+
+            if (!markerText) {
+                if (Array.isArray(objectConfig.interaction)) {
+                    const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === requiredStep);
+                    if (matchingInteraction) {
+                        markerText = matchingInteraction.text;
+                    } else if (objectConfig.interaction.length > 0) {
+                        markerText = objectConfig.interaction[0].text;
+                    }
+                } else if (objectConfig.interaction) {
+                    markerText = objectConfig.interaction.text;
+                }
+            }
+
+            // Fallback au texte généré automatiquement
+            markerText = markerText || this._generateMarkerText(key, requiredStep, null);
+
+            // Trouver l'interaction correspondante pour l'offset et l'axis
+            let interactionForProps;
+            if (Array.isArray(objectConfig.interaction)) {
+                interactionForProps = objectConfig.interaction.find(i => i.requiredStep === requiredStep) || objectConfig.interaction[0];
+            } else {
+                interactionForProps = objectConfig.interaction;
+            }
 
             Object.assign(placement, {
                 markerId: markerId,
                 requiredStep: requiredStep,
                 onInteract: options.onInteract || null,
                 markerText: markerText,
-                markerColor: options.markerColor || objectConfig.defaultPlacement?.markerColor || objectConfig.interaction.color,
-                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || objectConfig.interaction.offset,
-                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || objectConfig.interaction.axis,
-                markerType: options.markerType || objectConfig.interaction.type,
-                outlineColor: options.outlineColor || objectConfig.defaultPlacement?.outlineColor || objectConfig.interaction.color,
+                markerOffset: options.markerOffset || objectConfig.defaultPlacement?.markerOffset || interactionForProps.offset,
+                markerAxis: options.markerAxis || objectConfig.defaultPlacement?.markerAxis || interactionForProps.axis,
+                markerType: options.markerType || interactionForProps.type,
                 outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : (objectConfig.defaultPlacement?.outlinePulse !== undefined ? objectConfig.defaultPlacement.outlinePulse : true),
-                interacted: false
+                interacted: false,
+                interactionIndex: 0 // Pour suivre quelle interaction est actuellement active
             });
         }
 
@@ -635,15 +1137,101 @@ class SceneObjectManager {
         return placement;
     }
 
+    configureGround(groundObject, useDepthSystem = true) {
+        if (!groundObject) {
+            console.error("configureGround: objet terrain manquant");
+            return false;
+        }
+
+        console.log("Configuration du terrain avec système basé sur la hauteur:", groundObject.name || "sans nom");
+
+        if (textureManager) {
+            // Utiliser notre nouvelle méthode basée uniquement sur la hauteur
+            return textureManager.setupGroundBasedOnHeight(groundObject, {
+                heightThreshold: 0.15,    // 15% au-dessus de la hauteur minimale = seuil entre route et herbe
+                transitionZone: 0.05,     // 5% de la plage de hauteur = zone de transition
+                invertHeight: true       // false = les parties basses sont des routes
+            });
+        }
+
+        return false;
+    }
+
+    findAndConfigureGround(scene) {
+        if (!scene) {
+            console.error("findAndConfigureGround: scène manquante");
+            return null;
+        }
+
+        let groundObject = null;
+
+        // Chercher l'objet Ground
+        scene.traverse((node) => {
+            // Recherche par nom
+            if (node.name === 'Ground' ||
+                node.name.toLowerCase().includes('ground') ||
+                node.name.toLowerCase().includes('terrain')) {
+                groundObject = node;
+            }
+
+            // Si c'est un mesh avec beaucoup de vertices et qu'il est à Y=0
+            // (caractéristiques typiques d'un terrain)
+            if (node.isMesh &&
+                node.geometry &&
+                node.geometry.attributes.position &&
+                node.geometry.attributes.position.count > 1000 &&
+                Math.abs(node.position.y) < 0.1) {
+
+                // Vérifier aussi si c'est large et plat
+                if (!node.geometry.boundingBox) {
+                    node.geometry.computeBoundingBox();
+                }
+
+                const box = node.geometry.boundingBox;
+                if (box) {
+                    const width = box.max.x - box.min.x;
+                    const depth = box.max.z - box.min.z;
+                    const height = box.max.y - box.min.y;
+
+                    // Un terrain est généralement beaucoup plus large que haut
+                    if (width > 50 && depth > 50 && height < 10) {
+                        groundObject = node;
+                    }
+                }
+            }
+        });
+
+        if (groundObject) {
+            console.log("Terrain trouvé, configuration automatique avec système basé sur la profondeur...");
+            this.configureGround(groundObject);
+            return groundObject;
+        } else {
+            console.warn("Aucun terrain trouvé dans la scène");
+            return null;
+        }
+    }
+
     // Appliquer les textures à un objet
+    /**
+     * Applique les textures à un objet, avec un traitement spécial pour le terrain
+     * @param {Object} placement - Données de placement de l'objet
+     * @param {Object} modelObject - L'objet 3D auquel appliquer les textures
+     */
     async applyTexturesToObject(placement, modelObject) {
         if (!placement || !modelObject) return;
 
         // Vérifier si l'objet doit utiliser des textures
         if (placement.useTextures === false) return;
 
-        const modelId = this.getTextureModelId(placement.objectKey);
+        // Traitement spécial pour le terrain (Ground)
+        if (placement.objectKey === 'Ground') {
+            console.log("Détection de l'objet terrain dans applyTexturesToObject");
+            // Utiliser la nouvelle méthode basée sur la profondeur
+            return this.configureGround(modelObject, true);
+        }
 
+        // Traitement standard pour les autres objets
+        const modelId = this.getTextureModelId(placement.objectKey);
         if (modelId && textureManager) {
             await textureManager.applyTexturesToModel(modelId, modelObject);
         }
@@ -688,6 +1276,7 @@ class SceneObjectManager {
             return true;
         });
     }
+
 
     // Récupérer uniquement les placements d'objets interactifs
     getInteractivePlacements(filters = {}) {

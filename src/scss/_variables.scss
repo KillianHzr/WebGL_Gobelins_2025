@@ -4,7 +4,7 @@
 
 // Variables
 $colors: (
-        background: #1e1e2f,
+        background: #0C0C0C,
         text: #ffffff,
         primary: #4383f5,
         primary-hover: #306ad6,
@@ -27,6 +27,7 @@ $sizes: (
 $z-index: (
         base: 10,
         timeline: 100,
+        blackscreen: 500,
         interface: 1000,
         flash: 1001,
         notification: 1002

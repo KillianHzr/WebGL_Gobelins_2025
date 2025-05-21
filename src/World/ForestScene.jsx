@@ -1,23 +1,27 @@
 import React, {useEffect, useMemo, useState} from 'react';
+import {useThree} from '@react-three/fiber';
 import Forest from './Forest';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import MapWithInstances from "./MapWithInstances.jsx";
 import WaterPlane from './WaterPlane';
+import GuiConfig from "../Config/guiConfig.js";
 
 export default function ForestScene() {
     const [mapReady, setMapReady] = useState(false);
     const [forestReady, setForestReady] = useState(false);
     const eventEmitter = useEventEmitter();
+    const {scene, gl} = useThree();
 
     useEffect(() => {
+
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {
-            console.log('Map est prête');
+            // console.log('Map est prête');
             setMapReady(true);
         };
 
         const forestReadyHandler = () => {
-            console.log('Forest est prête');
+            // console.log('Forest est prête');
             setForestReady(true);
         };
 
@@ -30,7 +34,7 @@ export default function ForestScene() {
             mapUnsubscribe();
             forestUnsubscribe();
         };
-    }, []);
+    }, [scene, gl]);
 
     useEffect(() => {
         // Lorsque les deux composants sont prêts
@@ -38,6 +42,13 @@ export default function ForestScene() {
             console.log('La scène forestière est entièrement chargée');
             // Émettre un événement pour indiquer que tout est prêt
             EventBus.trigger('forest-scene-ready');
+
+            // Afficher les instructions de contrôle
+            console.log(`
+INSTRUCTIONS DE CONTRÔLE:
+- Touche E: Afficher/Masquer le groupe des objets "End"
+- Touche S: Afficher/Masquer le groupe des écrans
+`);
         }
     }, [mapReady, forestReady]);
 
@@ -48,9 +59,10 @@ export default function ForestScene() {
 
     return (
         <>
-            {mapComponent}
-            {/*{forestComponent}*/}
-            {/*{waterComponent}*/}
+            {/*{mapComponent}*/}
+            {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
+            {forestComponent}
+            {waterComponent}
         </>
     );
 }

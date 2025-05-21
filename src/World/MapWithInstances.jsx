@@ -1,6 +1,6 @@
-import React, {useRef, useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
-import {Group, Vector3, Quaternion, Matrix4, Box3, Euler, Object3D} from 'three';
+import {Euler, Group, Object3D} from 'three';
 import useStore from '../Store/useStore';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
 import templateManager from '../Config/TemplateManager';
@@ -25,7 +25,7 @@ export default function MapWithInstances() {
         const loadMap = () => {
             // Vérification plus robuste de l'AssetManager
             if (!assetManager || !assetManager.getItem) {
-                console.log("AssetManager not fully initialized, retrying in 500ms...");
+                // console.log("AssetManager not fully initialized, retrying in 500ms...");
                 setTimeout(loadMap, 500);
                 return;
             }
@@ -33,7 +33,7 @@ export default function MapWithInstances() {
             // Vérification plus robuste de l'asset MapInstance
             const mapAsset = assetManager.getItem('MapInstance');
             if (!mapAsset) {
-                console.log("MapInstance asset not found, retrying in 500ms...");
+                // console.log("MapInstance asset not found, retrying in 500ms...");
                 setTimeout(loadMap, 500);
                 return;
             }
@@ -43,7 +43,7 @@ export default function MapWithInstances() {
             mapModel.name = 'MapInstanceModel';
             mapGroup.add(mapModel);
             if (assetManager?.getItem && assetManager.getItem('MapInstance')) {
-                console.log('Loading MapInstance model...');
+                // console.log('Loading MapInstance model...');
                 mapModel = assetManager.getItem('MapInstance').scene.clone();
                 mapModel.name = 'MapInstanceModel';
                 mapGroup.add(mapModel);
@@ -53,7 +53,7 @@ export default function MapWithInstances() {
                 mapModel.scale.set(1, 1, 1);
 
                 // Analyser les instances et les templates avant de rendre la map visible
-                console.log('Analysing instances and templates...');
+                // console.log('Analysing instances and templates...');
                 analyzeInstancesAndTemplates(mapModel);
                 setTimeout(() => {
                     extractAndSaveGeoNodesPositions(mapModel);
@@ -61,13 +61,13 @@ export default function MapWithInstances() {
 
                 // Émettre l'événement map-ready avec un délai pour s'assurer que les données sont prêtes
                 setTimeout(() => {
-                    console.log('Map is ready, emitting event...');
+                    // console.log('Map is ready, emitting event...');
                     EventBus.trigger('map-ready');
                     EventBus.trigger('MapInstance-ready');
                 }, 300);
             } else {
                 // Si assetManager n'est pas encore prêt, réessayer après un délai
-                console.log('AssetManager not ready yet, retrying...');
+                // console.log('AssetManager not ready yet, retrying...');
                 if (!assetManager?.getItem) {
                     setTimeout(loadMap, 500);
                 }
@@ -140,12 +140,12 @@ export default function MapWithInstances() {
             }
 
             // Afficher les statistiques des positions trouvées
-            console.log(`Found ${instancesFound} instances in the map`);
+            // console.log(`Found ${instancesFound} instances in the map`);
             const stats = {};
             for (const [objectId, positions] of Object.entries(objectPositions)) {
                 stats[objectId] = positions.length;
             }
-            console.log("Object positions count:", stats);
+            // console.log("Object positions count:", stats);
 
             // Stocker dans le store
             useStore.getState().setTreePositions(objectPositions);
@@ -161,18 +161,9 @@ export default function MapWithInstances() {
             if (!textureManager || !textureManager.hasTextures(objectId)) return;
 
             try {
-                // Garder une référence à l'état de visibilité d'origine
-                const wasVisible = node.visible;
 
-                // Appliquer les textures sans changer la visibilité
-                await textureManager.applyTexturesToModel(objectId, node, {
-                    invertAlpha: objectId === 'Bush' // Appliquer l'inversion d'alpha seulement pour les buissons
-                });
 
-                // Restaurer l'état de visibilité
-                node.visible = wasVisible;
-
-                console.log(`Textures applied to instance ${node.name} (${objectId})`);
+                // console.log(`Textures applied to instance ${node.name} (${objectId})`);
             } catch (error) {
                 console.warn(`Error applying textures to instance ${node.name}:`, error);
             }
@@ -180,7 +171,7 @@ export default function MapWithInstances() {
 
         // Écouteur d'événement pour masquer le modèle lorsque la forêt est prête
         const forestReadyListener = () => {
-            console.log('Forest is ready, handling map visibility...');
+            // console.log('Forest is ready, handling map visibility...');
             setIsForestReady(true);
 
             // Au lieu de cacher complètement le modèle, réduire l'opacité ou cacher seulement certains éléments
@@ -198,7 +189,7 @@ export default function MapWithInstances() {
                 // Option 2: Si vous préférez cacher tout le modèle comme avant, décommentez la ligne suivante
                 // mapModel.visible = false;
 
-                console.log('Map visibility updated after forest is ready');
+                // console.log('Map visibility updated after forest is ready');
             }
         };
 
@@ -250,7 +241,7 @@ export default function MapWithInstances() {
     // Observer l'état de isForestReady pour éviter des problèmes de synchronisation
     useEffect(() => {
         if (isForestReady && mapRef.current) {
-            console.log('Updating map visibility state based on forest ready state');
+            // console.log('Updating map visibility state based on forest ready state');
             // Vous pouvez ajouter ici des ajustements supplémentaires si nécessaire
         }
     }, [isForestReady]);
@@ -340,7 +331,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         let bestScore = Number.MAX_VALUE;
         const scores = {}; // Pour le logging
 
-        console.log(`Analysing node with ${fingerprint.vertexCount} vertices, ${fingerprint.faceCount} faces, ${fingerprint.meshCount} meshes`);
+        // console.log(`Analysing node with ${fingerprint.vertexCount} vertices, ${fingerprint.faceCount} faces, ${fingerprint.meshCount} meshes`);
 
         // Comparer avec chaque modèle de template
         Object.entries(templateModels).forEach(([templateName, templateData]) => {
@@ -395,55 +386,40 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         const MATCH_THRESHOLD = 0.3;
 
         if (bestScore > MATCH_THRESHOLD) {
-            console.log(`No good match found. Best match was ${bestMatch} with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);
-            console.log('Scores:', scores);
+            // console.log(`No good match found. Best match was ${bestMatch} with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);
+            // console.log('Scores:', scores);
             return templateManager.undefinedCategory;
         }
 
-        console.log(`Found match: ${bestMatch} with score ${bestScore.toFixed(3)}`);
+        // console.log(`Found match: ${bestMatch} with score ${bestScore.toFixed(3)}`);
         return bestMatch;
     };
 
     // Première passe : identifier les modèles de templates dans la scène
-    console.log("Première passe: Identification des templates...");
+    // console.log("Première passe: Identification des templates...");
     mapModel.traverse((node) => {
         // Récupérer tous les templates disponibles
         const knownTemplates = Object.keys(templateManager.templates);
 
         // Vérifier si le nœud correspond à un modèle de template connu
         if (node.name && knownTemplates.includes(node.name)) {
-            console.log(`Template trouvé: ${node.name}`);
+            // console.log(`Template trouvé: ${node.name}`);
 
             // Enregistrer ce modèle comme référence et son empreinte détaillée
             const fingerprint = getGeometryFingerprint(node);
             templateModels[node.name] = { node, fingerprint };
 
-            // Log des caractéristiques précises de ce template pour débogage
-            console.log(`Template ${node.name} details:`, {
-                vertices: fingerprint.vertexCount,
-                faces: fingerprint.faceCount,
-                meshes: fingerprint.meshCount,
-                materials: fingerprint.materialCount,
-                volume: fingerprint.volume.toFixed(2),
-                aspectRatios: {
-                    xy: fingerprint.aspectRatio.xy.toFixed(2),
-                    xz: fingerprint.aspectRatio.xz.toFixed(2),
-                    yz: fingerprint.aspectRatio.yz.toFixed(2)
-                }
-            });
-
             // Préchargement des textures pour ce template si nécessaire
             const modelId = templateManager.getObjectTypeFromTemplate(node.name);
             if (modelId && templateManager.doesModelUseTextures(node.name) && textureManager) {
-                console.log(`Préchargement des textures pour le template ${node.name} (${modelId})...`);
+                // console.log(`Préchargement des textures pour le template ${node.name} (${modelId})...`);
                 textureManager.preloadTexturesForModel(modelId)
-                    .then(() => console.log(`Textures préchargées pour ${modelId}`))
                     .catch(err => console.warn(`Erreur lors du préchargement des textures pour ${modelId}:`, err));
             }
         }
     });
 
-    console.log("Templates identifiés:", Object.keys(templateModels));
+    // console.log("Templates identifiés:", Object.keys(templateModels));
 
     // Si aucun template n'a été trouvé, afficher un avertissement
     if (Object.keys(templateModels).length === 0) {
@@ -454,7 +430,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     const modelPositions = templateManager.createEmptyPositionsStructure();
 
     // Deuxième passe : analyser chaque instance et déterminer son template
-    console.log("Deuxième passe: Analyse des instances...");
+    // console.log("Deuxième passe: Analyse des instances...");
 
     // Parcourir le modèle pour trouver les instances
     const processQueue = [mapModel];
@@ -564,12 +540,12 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     });
 
     // Rapport final
-    console.log("===== Rapport d'analyse des instances =====");
-    console.log(`Total des instances analysées: ${stats.totalInstances}`);
-    console.log("Distribution par type d'objet:");
+    // console.log("===== Rapport d'analyse des instances =====");
+    // console.log(`Total des instances analysées: ${stats.totalInstances}`);
+    // console.log("Distribution par type d'objet:");
     Object.entries(stats.matches).forEach(([type, count]) => {
         const percentage = ((count / stats.totalInstances) * 100).toFixed(1);
-        console.log(`- ${type}: ${count} (${percentage}%)`);
+        // console.log(`- ${type}: ${count} (${percentage}%)`);
     });
 
     // Créer les données JSON
@@ -580,13 +556,8 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     saveJSON(modelJSON, 'modelPositions.json');
     saveJSON(treeJSON, 'treePositions.json');
 
-    console.log("GeoNodes positions extracted and saved!");
-    console.log("Object counts:", {
-        ...Object.entries(treePositions).reduce((acc, [key, val]) => {
-            acc[key] = val.length;
-            return acc;
-        }, {})
-    });
+    // console.log("GeoNodes positions extracted and saved!");
+
 
     return { modelPositions, treePositions };
 }

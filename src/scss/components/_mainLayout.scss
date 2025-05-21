@@ -1,0 +1,106 @@
+@use '../variables' as v;
+
+.main-layout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  z-index: 8000;
+  padding: 20px;
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  &-logo {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: 40px;
+    height: auto;
+
+    img {
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  &-audio-controls {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    pointer-events: auto;
+  }
+
+  &-volume-slider {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    background: rgba(249, 254, 255, 0.2);
+    border-radius: 20px;
+    border: 1.5px solid #F9FEFF;
+    padding: 0;
+    backdrop-filter: blur(2px);
+    transition: all 0.3s ease;
+
+    input[type="range"] {
+      width: 100%;
+      margin: 0 15px;
+      accent-color: #F9FEFF;
+      background: transparent;
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        background: #F9FEFF;
+      }
+
+      &::-moz-range-thumb {
+        background: #F9FEFF;
+      }
+    }
+  }
+
+  .show-volume {
+    .main-layout-volume-slider {
+      width: 120px;
+      opacity: 1;
+      padding: 0;
+    }
+  }
+
+  &-audio-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(249, 254, 255, 0.2);
+    border: 1.5px solid #F9FEFF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(2px);
+
+    &:hover {
+      background: rgba(249, 254, 255, 0.3);
+      box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.3);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}

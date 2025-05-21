@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useThree} from '@react-three/fiber';
 import {useAnimations, useGLTF} from '@react-three/drei';
 import EasyModelMarker from './EasyModelMarker';
 import sceneObjectManager from '../Config/SceneObjectManager';
@@ -7,48 +7,90 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
+import {FrontSide, LoopOnce} from "three";
+import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_SCENE_OBJECTS = true;
+const DEBUG_SCENE_OBJECTS = false;
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_SCENE_OBJECTS) console.log(`[SceneObjects] ${message}`, ...args);
-};
 
 /**
  * Composant pour afficher un objet statique individuel avec textures
  * Version optimisée pour éviter les problèmes de performance
  */
+/**
+ * Composant pour afficher un objet statique individuel avec textures
+ * Version optimisée pour éviter les problèmes de performance et améliorer les ombres
+ */
 export const StaticObject = React.memo(function StaticObject({
-                                                          path,
-                                                          position,
-                                                          rotation,
-                                                          quaternion, // Nouveau paramètre ajouté
-                                                          scale,
-                                                          castShadow = true,
-                                                          receiveShadow = true,
-                                                          visible = true,
-                                                          textureModelId = null,
-                                                          useTextures = true,
-                                                          // Nouvelles propriétés pour les animations
-                                                          playAnimation = false,
-                                                          animationName = null,
-                                                          animationLoop = true,
-                                                          animationClamp = false,
-                                                          animationTimeScale = 1.0,
-                                                          onAnimationComplete = null
-                                                      }) {
+                                                                 path,
+                                                                 position,
+                                                                 rotation,
+                                                                 quaternion,
+                                                                 scale,
+                                                                 castShadow = true,
+                                                                 receiveShadow = true,
+                                                                 visible = true,
+                                                                 textureModelId = null,
+                                                                 useTextures = true,
+                                                                 playAnimation = false,
+                                                                 animationName = null,
+                                                                 animationLoop = true,
+                                                                 animationClamp = false,
+                                                                 animationTimeScale = 1.0,
+                                                                 onAnimationComplete = null
+                                                             }) {
     const objectRef = useRef();
     const isComponentMounted = useRef(true);
     const animationRef = useRef(null);
     const currentAnimationRef = useRef(null);
+    const isGroundObjectRef = useRef(false);
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
     const {scene: modelScene, animations} = useGLTF(path);
 
     // Cloner le modèle une seule fois avec useMemo
-    const model = useMemo(() => modelScene.clone(), [modelScene]);
+    const model = useMemo(() => {
+        const clonedModel = modelScene.clone();
+
+        // Déterminer si c'est un objet de type sol en fonction du nom ou du chemin
+        const isGroundObject = path.toLowerCase().includes('ground') ||
+            textureModelId?.toLowerCase().includes('ground');
+        isGroundObjectRef.current = isGroundObject;
+
+        // Appliquer les propriétés d'ombre de manière appropriée
+        clonedModel.traverse((child) => {
+            if (child.isMesh) {
+                if (isGroundObject) {
+                    // Le sol reçoit des ombres mais n'en projette pas
+                    child.castShadow = false;
+                    child.receiveShadow = true;
+
+                    // Améliorer le matériau pour mieux recevoir les ombres
+                    if (child.material) {
+                        child.material.roughness = 0.8; // Plus rugueux pour mieux montrer les ombres
+                        child.material.metalness = 0.2; // Légèrement métallique
+
+                        // S'assurer que le matériau est configuré pour les ombres
+                        child.material.shadowSide = FrontSide;
+                        child.material.needsUpdate = true;
+                    }
+                } else {
+                    // Les autres objets peuvent projeter et recevoir des ombres
+                    child.castShadow = castShadow;
+                    child.receiveShadow = receiveShadow;
+
+                    // Améliorer les paramètres du matériau pour de meilleures ombres
+                    if (child.material) {
+                        // Assurez-vous que tous les matériaux sont configurés pour les ombres
+                        child.material.needsUpdate = true;
+                    }
+                }
+            }
+        });
+
+        return clonedModel;
+    }, [modelScene, path, textureModelId, castShadow, receiveShadow]);
 
     // Utiliser useAnimations pour gérer les animations
     const {actions, mixer} = useAnimations(animations, objectRef);
@@ -66,13 +108,9 @@ export const StaticObject = React.memo(function StaticObject({
     useEffect(() => {
         if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
 
-        console.log(`StaticObject - Actions disponibles pour ${path}:`, Object.keys(actions));
-        console.log(`StaticObject - Animation à jouer: ${animationName}, play: ${playAnimation}`);
-
         // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
         if (Object.keys(actions).length > 0 && !animationName) {
             const firstAnimName = Object.keys(actions)[0];
-            console.log(`Aucune animation spécifiée, utilisation de ${firstAnimName} par défaut`);
             const action = actions[firstAnimName];
             action.reset().play();
             currentAnimationRef.current = action;
@@ -93,7 +131,7 @@ export const StaticObject = React.memo(function StaticObject({
                     action.reset();
                     action.clampWhenFinished = animationClamp;
                     action.timeScale = animationTimeScale;
-                    action.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce);
+                    action.setLoop(animationLoop ? LoopRepeat : LoopOnce);
 
                     // Démarrer l'animation
                     action.play();
@@ -108,7 +146,7 @@ export const StaticObject = React.memo(function StaticObject({
                         timeScale: animationTimeScale
                     };
 
-                    debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
+                    // debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
 
                     // Gérer la fin d'animation si elle n'est pas en boucle
                     if (!animationLoop && onAnimationComplete && mixer) {
@@ -120,7 +158,7 @@ export const StaticObject = React.memo(function StaticObject({
                         // Créer une nouvelle fonction de rappel pour cet événement spécifique
                         const finishCallback = (e) => {
                             if (isComponentMounted.current && e.action === action) {
-                                debugLog(`Animation "${animationName}" terminée`);
+                                // debugLog(`Animation "${animationName}" terminée`);
                                 animationState.current.isPlaying = false;
                                 onAnimationComplete(animationName);
                             }
@@ -156,31 +194,29 @@ export const StaticObject = React.memo(function StaticObject({
             // Arrêter l'animation si playAnimation est passé à false
             currentAnimationRef.current.stop();
             animationState.current.isPlaying = false;
-            debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
+            // debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
         }
     }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
 
     // Mettre à jour le mixer d'animation à chaque frame si des animations sont en cours
-    useFrame((state, delta) => {
+    useAnimationFrame((state, delta) => {
         if (mixer && animationState.current.isPlaying) {
             mixer.update(delta);
         }
-    });
+    }, 'animation');
 
     useEffect(() => {
         if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            console.log(`Animations disponibles pour ${path}:`, animations.map(a => a.name));
-
             if (playAnimation && animationName) {
                 if (!actions[animationName]) {
                     console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
                         Object.keys(actions));
                 } else {
-                    console.log(`Animation "${animationName}" trouvée et sera jouée`);
                 }
             }
         }
     }, [animations, actions, path, playAnimation, animationName]);
+
     // Appliquer les textures au modèle après le montage - avec optimisations
     useEffect(() => {
         if (!objectRef.current || !useTextures || !textureModelId || !textureManager) return;
@@ -189,11 +225,24 @@ export const StaticObject = React.memo(function StaticObject({
 
         const applyTextures = async () => {
             try {
-                await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
+                // Vérifier si c'est un objet de terrain (Ground)
+                if (isGroundObjectRef.current) {
+                    // Pour les objets de type Ground, utiliser l'approche avec image masque
 
-                // Vérifier si le composant est toujours monté avant de logger
+                    // Vérifier si les textures du sol sont déjà initialisées
+                    if (!textureManager.hasTextures('ForestGrass') || !textureManager.hasTextures('ForestRoad')) {
+                        textureManager.initializeGroundTextures();
+                    }
+
+                    // Utiliser la nouvelle méthode avec image masque
+                    await textureManager.setupGroundWithPathsMask(objectRef.current);
+                } else {
+                    // Pour les autres objets, utiliser la méthode standard
+                    await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
+                }
+
                 if (isComponentMounted.current && isApplyingTextures) {
-                    debugLog(`Textures appliquées à ${textureModelId}`);
+                    // debugLog(`Textures appliquées à ${textureModelId}`);
                 }
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
@@ -209,6 +258,8 @@ export const StaticObject = React.memo(function StaticObject({
             isApplyingTextures = false;
         };
     }, [textureModelId, useTextures]);
+
+
 
     // Nettoyer lors du démontage
     useEffect(() => {
@@ -234,8 +285,8 @@ export const StaticObject = React.memo(function StaticObject({
         const props = {
             position,
             scale,
-            castShadow,
-            receiveShadow,
+            castShadow: isGroundObjectRef.current ? false : castShadow,
+            receiveShadow: isGroundObjectRef.current ? true : receiveShadow,
             visible
         };
 
@@ -287,7 +338,16 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
             // Mise à jour initiale
             updatePlacements();
         }
-    }, [filter, updatePlacements]);
+
+        // Appliquer la correction pour les ombres des planes une seule fois au chargement
+        if (textureManager && typeof textureManager.fixAllPlantMaterials === 'function') {
+            textureManager.fixAllPlantMaterials();
+        }
+        if (scene && textureManager && typeof textureManager.forceEmissiveOnObjects === 'function') {
+            textureManager.forceEmissiveOnObjects(scene);
+        }
+    }, [filter, updatePlacements,scene]);
+
 
     // Optimiser le rendu avec useMemo
     const staticObjects = useMemo(() => {
@@ -329,12 +389,14 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     }
                 }
             } : {};
+            if (placement.animation) {
             console.log(`Animation pour ${placement.objectKey} :`,
                 placement.animation ? {
                     play: placement.animation.play,
                     name: placement.animation.name
                 } : 'Aucune animation');
 
+            }
             return (
                 <StaticObject
                     key={key}
@@ -343,8 +405,8 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     rotation={placement.rotation}
                     quaternion={placement.quaternion} // Nouveau paramètre ajouté
                     scale={placement.scale}
-                    castShadow={placement.castShadow}
-                    receiveShadow={placement.receiveShadow}
+                    castShadow={placement.castShadow !== undefined ? placement.castShadow : true}
+                    receiveShadow={placement.receiveShadow !== undefined ? placement.receiveShadow : true}
                     visible={placement.visible}
                     textureModelId={textureModelId}
                     useTextures={useTextures}
@@ -380,6 +442,20 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
     // Gestionnaire d'événement optimisé
     const handleInteractionComplete = useCallback(() => {
         updatePlacements();
+    }, [updatePlacements]);
+
+
+    useEffect(() => {
+
+        // S'abonner à l'événement de complétion d'interaction
+        const completeCleanup = EventBus.on('object:interaction:complete', (data) => {
+            // Directement mettre à jour les placements
+            updatePlacements();
+        });
+
+        return () => {
+            completeCleanup();
+        };
     }, [updatePlacements]);
 
     // Récupérer les placements et configurer les écouteurs d'événements
@@ -432,28 +508,46 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
             const useTextures = placement.useTextures !== undefined ?
                 placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
 
-            // Optimisation: créer un objet de props unique pour chaque marqueur, sans la key
+            // Déterminer le bon markerType, markerText, markerOffset et markerAxis à partir de la bonne interaction
+            let interaction;
+            if (Array.isArray(objectConfig.interaction)) {
+                // Trouver l'interaction correspondant au requiredStep du placement
+                interaction = objectConfig.interaction.find(
+                    i => i.requiredStep === placement.requiredStep
+                );
+
+                // Fallback à la première interaction si aucune correspondance n'est trouvée
+                if (!interaction && objectConfig.interaction.length > 0) {
+                    interaction = objectConfig.interaction[0];
+                }
+            } else {
+                interaction = objectConfig.interaction;
+            }
+
+            if (!interaction) {
+                console.error(`Aucune interaction trouvée pour ${placement.objectKey} (requiredStep: ${placement.requiredStep})`);
+                return null;
+            }
+
+            // Utiliser les propriétés du placement si définies, sinon utiliser celles de l'interaction trouvée
             const markerProps = {
                 modelPath: objectConfig.path,
                 position: placement.position,
                 rotation: placement.rotation,
                 scale: placement.scale,
                 markerId: placement.markerId,
-                markerType: placement.markerType,
-                markerText: placement.markerText,
-                markerColor: placement.markerColor,
-                markerOffset: placement.markerOffset,
-                markerAxis: placement.markerAxis,
-                outlineColor: placement.outlineColor,
                 outlinePulse: placement.outlinePulse,
                 requiredStep: placement.requiredStep,
                 textureModelId: textureModelId,
                 useTextures: useTextures,
-                interfaceToShow: objectConfig.interaction?.interfaceToShow
+                markerType: placement.markerType || interaction.type,
+                markerText: placement.markerText || interaction.text,
+                markerOffset: placement.markerOffset || interaction.offset,
+                markerAxis: placement.markerAxis || interaction.axis,
+                interfaceToShow: interaction.interfaceToShow
             };
 
             // IMPORTANT: Garantir que la key est unique et bien définie
-            // Utiliser placement.markerId s'il existe, sinon créer une clé unique avec index
             const markerKey = placement.markerId || `interactive-${placement.objectKey}-${index}`;
 
             return (
@@ -461,7 +555,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                     key={markerKey}
                     {...markerProps}
                     onInteract={(event) => {
-                        debugLog(`Interaction avec ${placement.markerId}:`, event);
+                        // debugLog(`Interaction avec ${placement.markerId}:`, event);
                         if (placement.onInteract) {
                             placement.onInteract(event);
                         }
@@ -500,6 +594,32 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
     const useTextures = options.useTextures !== undefined ?
         options.useTextures : sceneObjectManager.doesObjectUseTextures(objectKey);
 
+    // Déterminer le requiredStep
+    let requiredStep = options.requiredStep;
+    if (!requiredStep) {
+        // Chercher dans les interactions
+        if (Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 0) {
+            requiredStep = objectConfig.interaction[0].requiredStep;
+        } else if (objectConfig.interaction && objectConfig.interaction.requiredStep) {
+            requiredStep = objectConfig.interaction.requiredStep;
+        }
+    }
+
+    // Trouver l'interaction correspondante
+    let matchingInteraction;
+    if (Array.isArray(objectConfig.interaction)) {
+        matchingInteraction = requiredStep
+            ? objectConfig.interaction.find(i => i.requiredStep === requiredStep)
+            : objectConfig.interaction[0];
+    } else {
+        matchingInteraction = objectConfig.interaction;
+    }
+
+    if (!matchingInteraction) {
+        console.error(`Aucune interaction trouvée pour ${objectKey} (requiredStep: ${requiredStep})`);
+        return null;
+    }
+
     // Optimisation: utiliser useMemo pour les props
     const markerProps = useMemo(() => ({
         modelPath: objectConfig.path,
@@ -507,28 +627,29 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         rotation: options.rotation || [0, 0, 0],
         scale: options.scale || objectConfig.scale || [1, 1, 1],
         markerId: markerId,
-        markerType: options.markerType || objectConfig.interaction.type,
-        markerText: options.markerText || objectConfig.interaction.text,
-        markerColor: options.markerColor || objectConfig.interaction.color,
-        markerOffset: options.markerOffset || objectConfig.interaction.offset,
-        markerAxis: options.markerAxis || objectConfig.interaction.axis,
-        outlineColor: options.outlineColor || objectConfig.interaction.color,
+        markerType: options.markerType || matchingInteraction.type,
+        markerText: options.markerText || matchingInteraction.text,
+        markerOffset: options.markerOffset || matchingInteraction.offset,
+        markerAxis: options.markerAxis || matchingInteraction.axis,
         outlinePulse: options.outlinePulse !== undefined ? options.outlinePulse : true,
-        requiredStep: options.requiredStep || null,
+        requiredStep: requiredStep,
         textureModelId: textureModelId,
-        useTextures: useTextures
+        useTextures: useTextures,
+        interfaceToShow: matchingInteraction.interfaceToShow
     }), [
         objectConfig,
         position,
         options,
         markerId,
         textureModelId,
-        useTextures
+        useTextures,
+        matchingInteraction,
+        requiredStep
     ]);
 
     // Gérer l'interaction avec le callback mémorisé
     const handleInteract = useCallback((event) => {
-        debugLog(`Interaction avec ${markerId}:`, event);
+        // debugLog(`Interaction avec ${markerId}:`, event);
         if (options.onInteract) {
             options.onInteract(event);
         }

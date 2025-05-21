@@ -1,197 +1,402 @@
-import {useEffect, useRef} from 'react';
-import {useThree} from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { useThree } from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import {getDefaultValue} from '../Utils/defaultValues';
+import * as THREE from 'three';
+import { SRGBColorSpace, TextureLoader } from 'three';
+import { EventBus } from '../Utils/EventEmitter.jsx';
+import GuiConfig from "../Config/guiConfig";
 
 export default function Camera() {
-    const {camera, gl} = useThree();
+    const { camera, gl, scene } = useThree();
     const folderRef = useRef(null);
-    const {debug, gui, updateDebugConfig, getDebugConfigValue} = useStore();
+    const cameraModelRef = useRef(null);
+    const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
+
+    // Initialiser renderSettingsRef avec des valeurs persistantes
+    const renderSettingsRef = useRef({
+        toneMapping: Number(guiConfig.camera.render.toneMapping.default),
+        toneMappingExposure: Number(guiConfig.camera.render.toneMappingExposure.default),
+        shadowMapType: Number(guiConfig.renderer.shadowMap.type.default),
+        shadowMapEnabled: guiConfig.renderer.shadowMap.enabled.default,
+        shadowMapSize: Number(guiConfig.renderer.shadowMap.mapSize.default),
+        shadowBias: Number(guiConfig.renderer.shadowMap.bias.default),
+        shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
+    });
 
     useEffect(() => {
-        // Add debug controls if debug mode is active and GUI exists
-        if (debug?.active && debug?.showGui && gui && camera) {
-            console.log("Setting up camera debug controls", camera);
+        // Fonction pour charger le modèle de caméra
+        const loadCameraModel = () => {
+            // Vérifier si AssetManager est accessible
+            if (!window.assetManager || typeof window.assetManager.getItem !== 'function') {
+                console.warn("AssetManager n'est pas encore disponible, nouvelle tentative dans 500ms");
+                setTimeout(loadCameraModel, 500);
+                return;
+            }
 
-            // Add camera controls to existing GUI
-            const cameraFolder = gui.addFolder(guiConfig.camera.folder);
-            folderRef.current = cameraFolder;
+            // Essayer de charger le modèle Camera
+            try {
+                const cameraModel = window.assetManager.getItem('Camera');
+                if (!cameraModel) {
+                    // Si Camera n'est pas trouvé, vérifions les assets disponibles
+                    const availableAssets = Object.keys(window.assetManager.items || {});
+                    console.warn("Modèle Camera non trouvé. Assets disponibles:", availableAssets.join(', '));
 
-            // Camera position control
-            const savedPosition = {
-                x: getDebugConfigValue('camera.position.x.value',
-                    getDefaultValue('camera.position.x', camera.position.x)),
-                y: getDebugConfigValue('camera.position.y.value',
-                    getDefaultValue('camera.position.y', camera.position.y)),
-                z: getDebugConfigValue('camera.position.z.value',
-                    getDefaultValue('camera.position.z', camera.position.z))
+                    // Essayer avec un autre nom clé si 'Camera' n'est pas trouvé
+                    const possibleCameraKeys = availableAssets.filter(key =>
+                        key.toLowerCase().includes('camera') ||
+                        key === 'Map' || // Parfois la caméra pourrait être incluse dans une map
+                        key === 'MapInstance'
+                    );
+
+                    if (possibleCameraKeys.length > 0) {
+                        console.log("Tentative avec les clés alternatives:", possibleCameraKeys);
+                        for (const key of possibleCameraKeys) {
+                            const altModel = window.assetManager.getItem(key);
+                            if (altModel && (altModel.scene || altModel.animations)) {
+                                console.log(`Modèle trouvé avec la clé alternative: ${key}`);
+                                processCameraModel(altModel, key);
+                                return;
+                            }
+                        }
+                    }
+
+                    // Si toujours pas trouvé, réessayer plus tard
+                    console.warn("Modèle Camera non trouvé, nouvelle tentative dans 1000ms");
+                    setTimeout(loadCameraModel, 1000);
+                    return;
+                }
+
+                processCameraModel(cameraModel, 'Camera');
+            } catch (error) {
+                console.error("Erreur lors du chargement du modèle Camera:", error);
+                setTimeout(loadCameraModel, 1000);
+            }
+        };
+
+        // Fonction pour traiter le modèle de caméra une fois chargé
+        const processCameraModel = (cameraModel, modelName) => {
+            if (!cameraModel.scene) {
+                console.warn(`Le modèle ${modelName} n'a pas de scène`);
+                return;
+            }
+
+            // CORRECTION: Créer une structure qui contient à la fois la scène et les animations
+            const combinedModel = {
+                scene: cameraModel.scene.clone(),
+                animations: cameraModel.animations || []
             };
 
-            // Apply saved position
-            camera.position.set(savedPosition.x, savedPosition.y, savedPosition.z);
+            // Stocker la référence
+            cameraModelRef.current = combinedModel;
 
-            // Position X control
-            const positionFolder = cameraFolder.addFolder('Position');
-            const posXControl = positionFolder.add(
-                camera.position,
-                'x',
-                guiConfig.camera.position.x.min,
-                guiConfig.camera.position.x.max,
-                guiConfig.camera.position.x.step
-            ).name(guiConfig.camera.position.x.name);
-            posXControl.onChange(value => {
-                updateDebugConfig('camera.position.x.value', value);
+            console.log(`Modèle de caméra ${modelName} chargé:`, cameraModelRef.current.scene);
+            console.log(`Animations disponibles dans le modèle:`, cameraModelRef.current.animations.map(a => a.name));
+
+            // Chercher l'objet caméra dans le modèle GLB
+            let glbCamera = null;
+            cameraModelRef.current.scene.traverse((object) => {
+                if (object.isCamera) {
+                    glbCamera = object;
+                    // console.log("Caméra trouvée dans le modèle:", object);
+                }
             });
 
-            // Position Y control
-            const posYControl = positionFolder.add(
-                camera.position,
-                'y',
-                guiConfig.camera.position.y.min,
-                guiConfig.camera.position.y.max,
-                guiConfig.camera.position.y.step
-            ).name(guiConfig.camera.position.y.name);
-            posYControl.onChange(value => {
-                updateDebugConfig('camera.position.y.value', value);
-            });
+            // Si pas de caméra trouvée, chercher un objet qui pourrait être une caméra
+            if (!glbCamera) {
+                cameraModelRef.current.scene.traverse((object) => {
+                    console.log(`Objet dans la scène: ${object.name} (${object.type})`);
+                    if (object.name.toLowerCase().includes('camera')) {
+                        glbCamera = object;
+                        console.log("Objet caméra potentiel trouvé:", object);
+                    }
+                });
+            }
 
-            // Position Z control
-            const posZControl = positionFolder.add(
-                camera.position,
-                'z',
-                guiConfig.camera.position.z.min,
-                guiConfig.camera.position.z.max,
-                guiConfig.camera.position.z.step
-            ).name(guiConfig.camera.position.z.name);
-            posZControl.onChange(value => {
-                updateDebugConfig('camera.position.z.value', value);
-            });
+            if (glbCamera) {
+                console.log('Caméra trouvée dans le GLB:', glbCamera);
 
-            // Camera rotation control
-            const savedRotation = {
-                x: getDebugConfigValue('camera.rotation.x.value',
-                    getDefaultValue('camera.rotation.x', camera.rotation.x)),
-                y: getDebugConfigValue('camera.rotation.y.value',
-                    getDefaultValue('camera.rotation.y', camera.rotation.y)),
-                z: getDebugConfigValue('camera.rotation.z.value',
-                    getDefaultValue('camera.rotation.z', camera.rotation.z))
-            };
+                // Copier les propriétés de la caméra GLB vers la caméra Three.js
+                if (glbCamera.isCamera) {
+                    // Si c'est une vraie caméra, on copie les propriétés
+                    camera.fov = glbCamera.fov;
+                    camera.near = GuiConfig.camera.settings.near.default;
+                    camera.far = GuiConfig.camera.settings.far.default;
+                    camera.aspect = glbCamera.aspect;
+                    camera.zoom = glbCamera.zoom;
+                    camera.updateProjectionMatrix();
+                }
 
-            // Apply saved rotation
-            camera.rotation.set(savedRotation.x, savedRotation.y, savedRotation.z);
+                // CORRECTION: Mettre à jour le store avec le modèle combiné
+                useStore.getState().setCameraModel(combinedModel);
 
-            // Rotation folder
-            const rotationFolder = cameraFolder.addFolder('Rotation');
-            const rotXControl = rotationFolder.add(
-                camera.rotation,
-                'x',
-                guiConfig.camera.rotation.x.min,
-                guiConfig.camera.rotation.x.max,
-                guiConfig.camera.rotation.x.step
-            ).name(guiConfig.camera.rotation.x.name);
-            rotXControl.onChange(value => {
-                updateDebugConfig('camera.rotation.x.value', value);
-            });
+                // Si des animations sont disponibles, les stocker également
+                if (combinedModel.animations && combinedModel.animations.length > 0) {
+                    useStore.getState().setCameraAnimation(combinedModel.animations[0]);
+                    useStore.getState().setAvailableCameraAnimations(combinedModel.animations);
+                }
 
-            const rotYControl = rotationFolder.add(
-                camera.rotation,
-                'y',
-                guiConfig.camera.rotation.y.min,
-                guiConfig.camera.rotation.y.max,
-                guiConfig.camera.rotation.y.step
-            ).name(guiConfig.camera.rotation.y.name);
-            rotYControl.onChange(value => {
-                updateDebugConfig('camera.rotation.y.value', value);
-            });
+                // Informer le système que la caméra GLB est prête
+                EventBus.trigger('camera-glb-loaded', {
+                    cameraModel: combinedModel
+                });
+            } else {
+                console.warn(`Aucune caméra trouvée dans le modèle ${modelName}`);
 
-            const rotZControl = rotationFolder.add(
-                camera.rotation,
-                'z',
-                guiConfig.camera.rotation.z.min,
-                guiConfig.camera.rotation.z.max,
-                guiConfig.camera.rotation.z.step
-            ).name(guiConfig.camera.rotation.z.name);
-            rotZControl.onChange(value => {
-                updateDebugConfig('camera.rotation.z.value', value);
-            });
+                // CORRECTION: Utiliser le modèle combiné même sans caméra spécifique
+                useStore.getState().setCameraModel(combinedModel);
+                EventBus.trigger('camera-glb-loaded', {
+                    cameraModel: combinedModel
+                });
+            }
 
-            // Camera settings
-            const savedSettings = {
-                fov: getDebugConfigValue('camera.settings.fov.value',
-                    getDefaultValue('camera.settings.fov', camera.fov)),
-                near: getDebugConfigValue('camera.settings.near.value',
-                    getDefaultValue('camera.settings.near', camera.near)),
-                far: getDebugConfigValue('camera.settings.far.value',
-                    getDefaultValue('camera.settings.far', camera.far))
-            };
+            // Chercher les animations
+            if (cameraModel.animations && cameraModel.animations.length > 0) {
+                console.log('Animations trouvées:', cameraModel.animations);
 
-            // Apply saved settings
-            camera.fov = savedSettings.fov;
-            camera.near = savedSettings.near;
-            camera.far = savedSettings.far;
+                // Chercher l'animation spécifique "Action.006"
+                const targetAnimation = cameraModel.animations.find(anim =>
+                    anim.name === 'Action.006' ||
+                    anim.name.toLowerCase().includes('Action.006')
+                );
+
+                if (targetAnimation) {
+                    console.log('Animation target trouvée:', targetAnimation);
+                    // Informer le système que l'animation est disponible
+                    EventBus.trigger('camera-animation-loaded', {
+                        animation: targetAnimation,
+                        allAnimations: cameraModel.animations
+                    });
+                } else {
+                    console.log("Animations disponibles:", cameraModel.animations.map(a => a.name).join(', '));
+
+                    // Si Action.006 n'est pas trouvée, utiliser la première animation disponible
+                    if (cameraModel.animations.length > 0) {
+                        console.log(`Animation 'Action.006' non trouvée, utilisation de la première animation: ${cameraModel.animations[0].name}`);
+                        EventBus.trigger('camera-animation-loaded', {
+                            animation: cameraModel.animations[0],
+                            allAnimations: cameraModel.animations
+                        });
+                    } else {
+                        console.warn("Aucune animation trouvée dans le modèle");
+                    }
+                }
+            } else {
+                console.warn(`Aucune animation trouvée dans le modèle ${modelName}`);
+            }
+        };
+
+
+        // Écouter l'événement 'ready' de l'AssetManager
+        const handleAssetManagerReady = () => {
+            console.log("Événement 'ready' reçu de l'AssetManager");
+            loadCameraModel();
+        };
+
+        // S'abonner à l'événement 'ready'
+        const readySubscription = EventBus.on('ready', handleAssetManagerReady);
+
+
+        return () => {
+            readySubscription(); // Se désabonner de l'événement ready
+        };
+    }, [camera]);
+
+    // Le reste du code est inchangé...
+
+    // Configurer le renderer avec les paramètres centralisés
+    useEffect(() => {
+        // Appliquer les valeurs par défaut indépendamment du mode debug
+        gl.toneMapping = guiConfig.camera.render.toneMapping.default;
+        gl.toneMappingExposure = guiConfig.camera.render.toneMappingExposure.default;
+
+        if (gl.shadowMap) {
+            gl.shadowMap.enabled = guiConfig.renderer.shadowMap.enabled.default;
+            gl.shadowMap.type = guiConfig.renderer.shadowMap.type.default;
+        }
+
+        // Mettre à jour les lumières avec les paramètres des ombres
+        scene.traverse((object) => {
+            if (object.isLight && object.shadow) {
+                try {
+                    object.shadow.type = guiConfig.renderer.shadowMap.type.default;
+
+                    if (object.shadow.mapSize) {
+                        object.shadow.mapSize.width = guiConfig.renderer.shadowMap.mapSize.default;
+                        object.shadow.mapSize.height = guiConfig.renderer.shadowMap.mapSize.default;
+                    }
+
+                    object.shadow.bias = guiConfig.renderer.shadowMap.bias.default;
+                    object.shadow.normalBias = guiConfig.renderer.shadowMap.normalBias.default;
+                    object.shadow.needsUpdate = true;
+                } catch (error) {
+                    console.error('Erreur lors de la configuration initiale des ombres:', error);
+                }
+            }
+        });
+
+        if (camera.far !== guiConfig.camera.settings.far.default) {
+            camera.far = guiConfig.camera.settings.far.default;
             camera.updateProjectionMatrix();
+        }
 
-            // Settings folder
-            const settingsFolder = cameraFolder.addFolder('Settings');
+    }, [gl, scene]);
 
-            // FOV control
-            const fovControl = settingsFolder.add(
-                camera,
-                'fov',
-                guiConfig.camera.settings.fov.min,
-                guiConfig.camera.settings.fov.max,
-                guiConfig.camera.settings.fov.step
-            ).name(guiConfig.camera.settings.fov.name);
-            fovControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.fov.value', value);
+    useEffect(() => {
+        // Sauvegarder les paramètres initiaux
+        const initialPosition = {
+            x: camera.position.x,
+            y: camera.position.y,
+            z: camera.position.z
+        };
+
+        const initialRotation = {
+            x: camera.rotation.x,
+            y: camera.rotation.y,
+            z: camera.rotation.z
+        };
+
+        // Ajouter des contrôles de débogage si le mode débogage est actif
+        if (debug?.active && debug?.showGui && gui && camera) {
+            console.log("Configurant les contrôles de caméra de débogage", camera);
+
+            // Dossier des paramètres de rendu
+            const renderFolder = gui.addFolder(guiConfig.renderer.folder);
+
+            // Dossier pour le Tone Mapping
+            const toneFolder = renderFolder.addFolder('Tone Mapping');
+
+            // Dossier pour les Shadows
+            const shadowFolder = renderFolder.addFolder('Shadows');
+
+            // Contrôles pour le tone mapping et les ombres
+            const renderSettings = {
+                toneMapping: renderSettingsRef.current.toneMapping,
+                toneMappingExposure: renderSettingsRef.current.toneMappingExposure,
+                shadowEnabled: renderSettingsRef.current.shadowMapEnabled,
+                shadowType: renderSettingsRef.current.shadowMapType,
+                shadowQuality: renderSettingsRef.current.shadowMapSize,
+                shadowBias: renderSettingsRef.current.shadowBias,
+                shadowNormalBias: renderSettingsRef.current.shadowNormalBias
+            };
+
+            // Contrôle de l'activation des ombres
+            const shadowEnabledControl = shadowFolder.add(
+                renderSettings,
+                'shadowEnabled'
+            ).name('Enable Shadows');
+
+            shadowEnabledControl.onChange(value => {
+                renderSettingsRef.current.shadowMapEnabled = value;
             });
 
-            // Near plane control
-            const nearControl = settingsFolder.add(
-                camera,
-                'near',
-                guiConfig.camera.settings.near.min,
-                guiConfig.camera.settings.near.max,
-                guiConfig.camera.settings.near.step
-            ).name(guiConfig.camera.settings.near.name);
-            nearControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.near.value', value);
+            // Contrôle du type de shadow mapping
+            const shadowTypeControl = shadowFolder.add(
+                renderSettings,
+                'shadowType',
+                {
+                    'Basic': THREE.BasicShadowMap,
+                    'PCF': THREE.PCFShadowMap,
+                    'PCF Soft': THREE.PCFSoftShadowMap,
+                    'VSM': THREE.VSMShadowMap
+                }
+            ).name('Shadow Type');
+
+            shadowTypeControl.onChange(value => {
+                renderSettingsRef.current.shadowMapType = Number(value);
             });
 
-            // Far plane control
-            const farControl = settingsFolder.add(
-                camera,
-                'far',
-                guiConfig.camera.settings.far.min,
-                guiConfig.camera.settings.far.max,
-                guiConfig.camera.settings.far.step
-            ).name(guiConfig.camera.settings.far.name);
-            farControl.onChange(value => {
-                camera.updateProjectionMatrix();
-                updateDebugConfig('camera.settings.far.value', value);
+            // Contrôle de la qualité des ombres
+            const shadowQualityControl = shadowFolder.add(
+                renderSettings,
+                'shadowQuality',
+                {
+                    '256x256': 256,
+                    '512x512': 512,
+                    '1024x1024': 1024,
+                    '2048x2048': 2048,
+                    '4096x4096': 4096,
+                    '8192x8192': 8192,
+                    '16384x16384': 16384
+                }
+            ).name('Shadow Quality');
+
+            shadowQualityControl.onChange(value => {
+                renderSettingsRef.current.shadowMapSize = Number(value);
             });
 
-            // Close folders if configured
+            // Contrôle du shadow bias
+            const shadowBiasControl = shadowFolder.add(
+                renderSettings,
+                'shadowBias',
+                guiConfig.renderer.shadowMap.bias.min,
+                guiConfig.renderer.shadowMap.bias.max,
+                guiConfig.renderer.shadowMap.bias.step
+            ).name('Shadow Bias');
+
+            shadowBiasControl.onChange(value => {
+                renderSettingsRef.current.shadowBias = value;
+            });
+
+            // Contrôle du shadow normal bias
+            const shadowNormalBiasControl = shadowFolder.add(
+                renderSettings,
+                'shadowNormalBias',
+                guiConfig.renderer.shadowMap.normalBias.min,
+                guiConfig.renderer.shadowMap.normalBias.max,
+                guiConfig.renderer.shadowMap.normalBias.step
+            ).name('Shadow Normal Bias');
+
+            shadowNormalBiasControl.onChange(value => {
+                renderSettingsRef.current.shadowNormalBias = value;
+            });
+
+            // Contrôle du tone mapping
+            const toneMappingControl = toneFolder.add(
+                renderSettings,
+                'toneMapping',
+                {
+                    'None': THREE.NoToneMapping,
+                    'Linear': THREE.LinearToneMapping,
+                    'Reinhard': THREE.ReinhardToneMapping,
+                    'Cineon': THREE.CineonToneMapping,
+                    'ACESFilmic': THREE.ACESFilmicToneMapping
+                }
+            ).name('Tone Mapping');
+
+            toneMappingControl.onChange(value => {
+                renderSettingsRef.current.toneMapping = Number(value);
+            });
+
+            // Contrôle de l'exposition
+            const exposureControl = toneFolder.add(
+                renderSettings,
+                'toneMappingExposure',
+                guiConfig.camera.render.toneMappingExposure.min,
+                guiConfig.camera.render.toneMappingExposure.max,
+                guiConfig.camera.render.toneMappingExposure.step
+            ).name('Exposure');
+
+            exposureControl.onChange(value => {
+                renderSettingsRef.current.toneMappingExposure = value;
+            });
+
+            // Fermer les dossiers si configuré
             if (guiConfig.gui.closeFolders) {
-                positionFolder.close();
-                rotationFolder.close();
-                settingsFolder.close();
-                cameraFolder.close();
+                renderFolder.close();
+                toneFolder.close();
+                shadowFolder.close();
             }
         }
 
-        // Cleanup function
+        // Nettoyer lors du démontage
         return () => {
             if (folderRef.current) {
-                // Simplement nettoyer la référence
                 folderRef.current = null;
-                console.log('Camera folder cleanup - reference cleared');
+                console.log('Nettoyage du dossier de caméra - référence effacée');
             }
         };
-    }, [camera, debug, gui, gl, updateDebugConfig, getDebugConfigValue]);
+    }, [camera, debug, gui, gl, scene]);
 
     return null;
 }
