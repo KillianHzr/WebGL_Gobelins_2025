@@ -1,3 +1,4 @@
+// CameraAnimatorGLB.js - Correction pour utiliser le nouveau format de modèle
 import * as THREE from 'three';
 
 export class CameraAnimatorGLB {
@@ -6,9 +7,11 @@ export class CameraAnimatorGLB {
 
         // CORRECTION: Prendre en compte le nouveau format de modèle
         if (cameraModel && typeof cameraModel === 'object' && cameraModel.scene) {
+            // Nouveau format : {scene, animations}
             this.cameraModel = cameraModel.scene;
             this.animations = cameraModel.animations || [];
         } else {
+            // Ancien format : modèle direct
             this.cameraModel = cameraModel;
             this.animations = cameraModel?.animations || [];
         }
@@ -96,33 +99,16 @@ export class CameraAnimatorGLB {
     extractFrames(animation) {
         this.frames = [];
 
-        // Afficher toutes les tracks disponibles pour débogage
-        console.log("Tracks d'animation disponibles:", animation.tracks.map(track => track.name));
-
         // Récupérer les tracks pour position et rotation
         const positionTracks = animation.tracks.filter(track => track.name.includes('position'));
-        const rotationTracks = animation.tracks.filter(track =>
-            track.name.includes('rotation') || track.name.includes('quaternion')
-        );
+        const rotationTracks = animation.tracks.filter(track => track.name.includes('rotation') || track.name.includes('quaternion'));
 
         if (positionTracks.length === 0 || rotationTracks.length === 0) {
             console.error("Tracks de position ou rotation manquantes dans l'animation");
-            console.log("Tracks disponibles:", animation.tracks.map(track => track.name));
             return;
         }
 
-        console.log("Tracks de position:", positionTracks.map(track => track.name));
-        console.log("Tracks de rotation:", rotationTracks.map(track => track.name));
-
-        // Vérifier le format des tracks de position
-        const isPosVector = positionTracks.length === 1 && positionTracks[0].name.includes('.position');
-        const hasIndividualPosComponents = positionTracks.length >= 3;
-
-        // Vérifier le format des tracks de rotation
-        const isQuaternion = rotationTracks.some(track => track.name.includes('quaternion'));
-        const isEuler = rotationTracks.some(track => track.name.includes('rotation'));
-
-        // Déterminer le nombre de samples dans l'animation
+        // Nombre de samples dans l'animation (utiliser le track avec le plus de keyframes)
         const maxSamples = Math.max(
             ...positionTracks.map(track => track.times.length),
             ...rotationTracks.map(track => track.times.length)
@@ -130,148 +116,80 @@ export class CameraAnimatorGLB {
 
         console.log(`Extraction de ${maxSamples} frames d'animation`);
 
-        // Récupérer les tracks spécifiques pour chaque composante
-        let posXTrack, posYTrack, posZTrack;
-        let rotXTrack, rotYTrack, rotZTrack, rotWTrack;
+        // Récupérer les tracks spécifiques pour chaque axe
+        const posXTrack = positionTracks.find(track => track.name.includes('position.x')) || positionTracks[0];
+        const posYTrack = positionTracks.find(track => track.name.includes('position.y')) || positionTracks[0];
+        const posZTrack = positionTracks.find(track => track.name.includes('position.z')) || positionTracks[0];
 
-        if (isPosVector) {
-            // Si la position est stockée comme un vecteur dans une seule track
-            posXTrack = posYTrack = posZTrack = positionTracks[0];
-        } else {
-            // Si chaque composante a sa propre track
-            posXTrack = positionTracks.find(track => track.name.includes('position.x'));
-            posYTrack = positionTracks.find(track => track.name.includes('position.y'));
-            posZTrack = positionTracks.find(track => track.name.includes('position.z'));
+        const rotXTrack = rotationTracks.find(track => track.name.includes('rotation.x') || track.name.includes('quaternion.x')) || rotationTracks[0];
+        const rotYTrack = rotationTracks.find(track => track.name.includes('rotation.y') || track.name.includes('quaternion.y')) || rotationTracks[0];
+        const rotZTrack = rotationTracks.find(track => track.name.includes('rotation.z') || track.name.includes('quaternion.z')) || rotationTracks[0];
+        const rotWTrack = rotationTracks.find(track => track.name.includes('quaternion.w'));
 
-            // Fallback si les noms ne suivent pas le schéma exact
-            if (!posXTrack && positionTracks.length >= 3) {
-                posXTrack = positionTracks[0];
-                posYTrack = positionTracks[1];
-                posZTrack = positionTracks[2];
-            } else if (!posXTrack && positionTracks.length === 1) {
-                // Si une seule track contient toutes les données
-                posXTrack = posYTrack = posZTrack = positionTracks[0];
-            }
-        }
+        // Déterminer si nous avons des quaternions ou des euler angles
+        const isQuaternion = rotXTrack.name.includes('quaternion');
 
-        if (isQuaternion) {
-            rotXTrack = rotationTracks.find(track => track.name.includes('quaternion.x'));
-            rotYTrack = rotationTracks.find(track => track.name.includes('quaternion.y'));
-            rotZTrack = rotationTracks.find(track => track.name.includes('quaternion.z'));
-            rotWTrack = rotationTracks.find(track => track.name.includes('quaternion.w'));
-
-            // Fallback pour quaternion
-            if (!rotXTrack && rotationTracks.length >= 4) {
-                rotXTrack = rotationTracks[0];
-                rotYTrack = rotationTracks[1];
-                rotZTrack = rotationTracks[2];
-                rotWTrack = rotationTracks[3];
-            }
-        } else {
-            rotXTrack = rotationTracks.find(track => track.name.includes('rotation.x'));
-            rotYTrack = rotationTracks.find(track => track.name.includes('rotation.y'));
-            rotZTrack = rotationTracks.find(track => track.name.includes('rotation.z'));
-
-            // Fallback pour euler
-            if (!rotXTrack && rotationTracks.length >= 3) {
-                rotXTrack = rotationTracks[0];
-                rotYTrack = rotationTracks[1];
-                rotZTrack = rotationTracks[2];
-            }
-        }
-
-        // Pour chaque frame, extraire position et rotation
+        // Pour chaque frame
         for (let i = 0; i < maxSamples; i++) {
             const frameData = {};
 
-            // Récupérer le temps de ce keyframe
-            frameData.time = posXTrack && i < posXTrack.times.length ? posXTrack.times[i] : i / (maxSamples - 1) * animation.duration;
+            // Interpoler ou récupérer les valeurs pour cette frame
+            if (i < posXTrack.times.length) {
+                frameData.time = posXTrack.times[i];
 
-            // Extraire les positions
-            if (posXTrack && posYTrack && posZTrack) {
                 frameData.position = {
-                    x: this.getValue(posXTrack, i, 0),
-                    y: this.getValue(posYTrack, i, 1),
-                    z: this.getValue(posZTrack, i, 2)
+                    x: this.getValue(posXTrack, i),
+                    y: this.getValue(posYTrack, i),
+                    z: this.getValue(posZTrack, i)
                 };
-            } else {
-                frameData.position = { x: 0, y: 0, z: 0 };
+
+                if (isQuaternion && rotWTrack) {
+                    // Si c'est un quaternion
+                    const quaternion = new THREE.Quaternion(
+                        this.getValue(rotXTrack, i),
+                        this.getValue(rotYTrack, i),
+                        this.getValue(rotZTrack, i),
+                        this.getValue(rotWTrack, i)
+                    );
+
+                    // Convertir en Euler
+                    const euler = new THREE.Euler().setFromQuaternion(quaternion);
+
+                    frameData.rotation = {
+                        x: euler.x,
+                        y: euler.y,
+                        z: euler.z
+                    };
+                } else {
+                    // Angles d'Euler
+                    frameData.rotation = {
+                        x: this.getValue(rotXTrack, i),
+                        y: this.getValue(rotYTrack, i),
+                        z: this.getValue(rotZTrack, i)
+                    };
+                }
+
+                this.frames.push(frameData);
             }
-
-            // Extraire les rotations, avec conversion quaternion->euler si nécessaire
-            if (isQuaternion && rotXTrack && rotYTrack && rotZTrack && rotWTrack) {
-                const quaternion = new THREE.Quaternion(
-                    this.getValue(rotXTrack, i, 0),
-                    this.getValue(rotYTrack, i, 1),
-                    this.getValue(rotZTrack, i, 2),
-                    this.getValue(rotWTrack, i, 3)
-                );
-
-                const euler = new THREE.Euler().setFromQuaternion(quaternion);
-                frameData.rotation = {
-                    x: euler.x,
-                    y: euler.y,
-                    z: euler.z
-                };
-            } else if (rotXTrack && rotYTrack && rotZTrack) {
-                frameData.rotation = {
-                    x: this.getValue(rotXTrack, i, 0),
-                    y: this.getValue(rotYTrack, i, 1),
-                    z: this.getValue(rotZTrack, i, 2)
-                };
-            } else {
-                frameData.rotation = { x: 0, y: 0, z: 0 };
-            }
-
-            this.frames.push(frameData);
         }
 
         console.log(`${this.frames.length} frames extraits de l'animation`);
-
-        // Afficher quelques exemples de frames
-        if (this.frames.length > 0) {
-            console.log("Premier frame:", this.frames[0]);
-            console.log("Dernier frame:", this.frames[this.frames.length - 1]);
-        }
     }
 
     /**
      * Récupère la valeur à un index donné d'une track, avec gestion des différents formats
      */
-    getValue(track, index, component = 0) {
-        if (!track) return 0;
+    getValue(track, index) {
+        if (!track || index >= track.times.length) return 0;
 
-        // Si l'index est hors limites, utiliser le dernier keyframe disponible
-        const safeIndex = Math.min(index, track.times.length - 1);
-
-        if (safeIndex < 0) return 0;
-
-        // Détecter le format de stockage des valeurs
-        const valuesPerTime = track.values.length / track.times.length;
-
-        // Log pour le débogage
-        if (index === 0 || index === track.times.length - 1) {
-            console.log(`Track ${track.name}, index ${index}, composante ${component}, valuesPerTime: ${valuesPerTime}`);
-        }
-
-        // Différents cas selon le format des données
-        if (valuesPerTime === 1) {
-            // Un seul canal (par exemple position.x)
-            return track.values[safeIndex];
-        } else if (valuesPerTime === 3) {
-            // Vecteur 3D (position)
-            return track.values[safeIndex * 3 + component];
-        } else if (valuesPerTime === 4) {
-            // Quaternion (rotation)
-            return track.values[safeIndex * 4 + component];
-        } else if (track.values.length === track.times.length) {
-            // Un seul canal (format alternatif)
-            return track.values[safeIndex];
+        // Les valeurs peuvent être stockées différemment selon le type de track
+        if (track.values.length === track.times.length) {
+            // Un seul canal
+            return track.values[index];
         } else {
-            // Tentative de récupération générique
-            const valueIndex = safeIndex * Math.floor(valuesPerTime);
-            const offset = component % Math.floor(valuesPerTime);
-            return track.values[valueIndex + offset] || 0;
+            // Multiple canaux (vecteurs, quaternions)
+            const valuesPerTime = track.values.length / track.times.length;
+            return track.values[index * valuesPerTime];
         }
     }
 
@@ -442,16 +360,8 @@ export class CameraAnimatorGLB {
                 this.camera.updateProjectionMatrix();
 
                 return {
-                    position: {
-                        x: cameraObject.position.x,
-                        y: cameraObject.position.y,
-                        z: cameraObject.position.z
-                    },
-                    rotation: {
-                        x: cameraObject.rotation.x,
-                        y: cameraObject.rotation.y,
-                        z: cameraObject.rotation.z
-                    }
+                    position: { ...cameraObject.position },
+                    rotation: { ...cameraObject.rotation }
                 };
             }
         }
@@ -459,45 +369,25 @@ export class CameraAnimatorGLB {
         // Fallback: Interpoler les données de frames
         const frameData = this.interpolateFrames(this.position);
 
-        // S'assurer que les données de position et rotation sont correctement formées
-        const validPosition = {
-            x: frameData.position?.x ?? 0,
-            y: frameData.position?.y ?? 0,
-            z: frameData.position?.z ?? 0
-        };
-
-        const validRotation = {
-            x: frameData.rotation?.x ?? 0,
-            y: frameData.rotation?.y ?? 0,
-            z: frameData.rotation?.z ?? 0
-        };
-
-        // Appliquer à la caméra avec vérifications supplémentaires
+        // Appliquer à la caméra
         this.camera.position.set(
-            validPosition.x,
-            validPosition.y,
-            validPosition.z
+            frameData.position.x,
+            frameData.position.y,
+            frameData.position.z
         );
 
         this.camera.rotation.set(
-            validRotation.x,
-            validRotation.y,
-            validRotation.z
+            frameData.rotation.x,
+            frameData.rotation.y,
+            frameData.rotation.z
         );
 
-        // S'assurer que la matrice est mise à jour
+        // Mettre à jour la matrice de la caméra
         this.camera.updateProjectionMatrix();
-        this.camera.updateMatrixWorld(true);
-
-        // Log pour débogage
-        console.log(
-            `Camera update: Position (${validPosition.x.toFixed(2)}, ${validPosition.y.toFixed(2)}, ${validPosition.z.toFixed(2)}) | ` +
-            `Rotation (${validRotation.x.toFixed(2)}, ${validRotation.y.toFixed(2)}, ${validRotation.z.toFixed(2)})`
-        );
 
         return {
-            position: { ...validPosition },
-            rotation: { ...validRotation }
+            position: { ...frameData.position },
+            rotation: { ...frameData.rotation }
         };
     }
 

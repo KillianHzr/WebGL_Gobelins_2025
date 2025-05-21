@@ -1,22 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import * as THREE from 'three';
 import { SRGBColorSpace, TextureLoader } from 'three';
 import { EventBus } from '../Utils/EventEmitter.jsx';
-import GuiConfig from "../Config/guiConfig";
-
-// Variable globale pour éviter les initialisations multiples
-window.cameraInitialized = window.cameraInitialized || false;
 
 export default function Camera() {
     const { camera, gl, scene } = useThree();
     const folderRef = useRef(null);
     const cameraModelRef = useRef(null);
     const { debug, gui, updateDebugConfig, getDebugConfigValue } = useStore();
-    const [cameraLoaded, setCameraLoaded] = useState(false);
-    const initializationAttempted = useRef(false);
 
     // Initialiser renderSettingsRef avec des valeurs persistantes
     const renderSettingsRef = useRef({
@@ -30,34 +24,13 @@ export default function Camera() {
     });
 
     useEffect(() => {
-        // Si la caméra est déjà initialisée au niveau global, ne rien faire
-        if (window.cameraInitialized) {
-            console.log("Camera déjà initialisée, ignorant l'initialisation");
-            return;
-        }
-
-        // Éviter les tentatives multiples d'initialisation dans le même rendu
-        if (initializationAttempted.current) {
-            return;
-        }
-        initializationAttempted.current = true;
-
         // Fonction pour charger le modèle de caméra
         const loadCameraModel = () => {
-            // Si la caméra est déjà chargée, ne pas continuer
-            if (cameraLoaded) {
-                console.log("Caméra déjà chargée, ignorant la requête de chargement");
-                return;
-            }
-
             // Vérifier si AssetManager est accessible
             if (!window.assetManager || typeof window.assetManager.getItem !== 'function') {
-                console.warn("AssetManager n'est pas encore disponible, création d'un AssetManager minimal");
-                window.assetManager = {
-                    getItem: () => null,
-                    initialized: true,
-                    items: {}
-                };
+                console.warn("AssetManager n'est pas encore disponible, nouvelle tentative dans 500ms");
+                setTimeout(loadCameraModel, 500);
+                return;
             }
 
             // Essayer de charger le modèle Camera
@@ -87,21 +60,16 @@ export default function Camera() {
                         }
                     }
 
-                    // Si toujours pas trouvé, on continue sans caméra
-                    console.warn("Aucun modèle de caméra trouvé, continuant sans modèle de caméra");
-
-                    // Marquer comme initialisé même sans modèle
-                    setCameraLoaded(true);
-                    window.cameraInitialized = true;
+                    // Si toujours pas trouvé, réessayer plus tard
+                    console.warn("Modèle Camera non trouvé, nouvelle tentative dans 1000ms");
+                    setTimeout(loadCameraModel, 1000);
                     return;
                 }
 
                 processCameraModel(cameraModel, 'Camera');
             } catch (error) {
                 console.error("Erreur lors du chargement du modèle Camera:", error);
-                // Marquer comme initialisé malgré l'erreur
-                setCameraLoaded(true);
-                window.cameraInitialized = true;
+                setTimeout(loadCameraModel, 1000);
             }
         };
 
@@ -109,39 +77,7 @@ export default function Camera() {
         const processCameraModel = (cameraModel, modelName) => {
             if (!cameraModel.scene) {
                 console.warn(`Le modèle ${modelName} n'a pas de scène`);
-                console.log("Structure du modèle reçu:", cameraModel);
-
-                // Essayer de trouver une structure alternative dans le modèle
-                if (cameraModel.scenes && cameraModel.scenes.length > 0) {
-                    console.log("Utilisation de cameraModel.scenes[0] comme alternative");
-                    cameraModel.scene = cameraModel.scenes[0];
-                } else if (cameraModel.children && cameraModel.children.length > 0) {
-                    console.log("Création d'une scène à partir des enfants du modèle");
-                    const newScene = new THREE.Group();
-                    cameraModel.children.forEach(child => newScene.add(child.clone()));
-                    cameraModel.scene = newScene;
-                } else {
-                    console.error("Structure de modèle non reconnue, impossible de continuer");
-                    return;
-                }
-            }
-
-            // S'assurer que le modèle a des animations
-            if (!cameraModel.animations || cameraModel.animations.length === 0) {
-                console.warn(`Le modèle ${modelName} n'a pas d'animations`);
-                console.log("Tentative de recherche d'animations alternatives");
-
-                // Chercher les animations dans d'autres propriétés
-                if (cameraModel.animations === undefined) {
-                    cameraModel.animations = [];
-                }
-
-                // Chercher des animations potentielles ailleurs
-                if (cameraModel.animation && cameraModel.animation.animations) {
-                    cameraModel.animations = cameraModel.animation.animations;
-                } else if (cameraModel.animationClips && cameraModel.animationClips.length > 0) {
-                    cameraModel.animations = cameraModel.animationClips;
-                }
+                return;
             }
 
             // CORRECTION: Créer une structure qui contient à la fois la scène et les animations
@@ -150,19 +86,11 @@ export default function Camera() {
                 animations: cameraModel.animations || []
             };
 
-            // Log détaillé des animations
-            console.log(`Modèle de caméra ${modelName} chargé avec ${combinedModel.animations.length} animations:`);
-            combinedModel.animations.forEach((anim, index) => {
-                console.log(`  Animation ${index}: ${anim.name}, durée: ${anim.duration}s, ${anim.tracks.length} tracks`);
-
-                // Afficher un échantillon de noms de tracks pour débogage
-                if (anim.tracks.length > 0) {
-                    console.log(`    Exemples de tracks: ${anim.tracks.slice(0, 3).map(t => t.name).join(', ')}...`);
-                }
-            });
-
             // Stocker la référence
             cameraModelRef.current = combinedModel;
+
+            console.log(`Modèle de caméra ${modelName} chargé:`, cameraModelRef.current.scene);
+            console.log(`Animations disponibles dans le modèle:`, cameraModelRef.current.animations.map(a => a.name));
 
             // Chercher l'objet caméra dans le modèle GLB
             let glbCamera = null;
@@ -176,6 +104,7 @@ export default function Camera() {
             // Si pas de caméra trouvée, chercher un objet qui pourrait être une caméra
             if (!glbCamera) {
                 cameraModelRef.current.scene.traverse((object) => {
+                    console.log(`Objet dans la scène: ${object.name} (${object.type})`);
                     if (object.name.toLowerCase().includes('camera')) {
                         glbCamera = object;
                         console.log("Objet caméra potentiel trouvé:", object);
@@ -189,10 +118,9 @@ export default function Camera() {
                 // Copier les propriétés de la caméra GLB vers la caméra Three.js
                 if (glbCamera.isCamera) {
                     // Si c'est une vraie caméra, on copie les propriétés
-                    camera.fov = 24;
-                    camera.near = glbCamera.near || 0.1;
-                    camera.far = glbCamera.far || 200;
-                    camera.zoom = glbCamera.zoom;
+                    camera.fov = glbCamera.fov;
+                    camera.near = glbCamera.near;
+                    camera.far = glbCamera.far;
                     camera.aspect = glbCamera.aspect;
                     camera.updateProjectionMatrix();
                 }
@@ -213,14 +141,6 @@ export default function Camera() {
             } else {
                 console.warn(`Aucune caméra trouvée dans le modèle ${modelName}`);
 
-                // Créer une caméra dans le modèle pour assurer le bon fonctionnement
-                const newCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
-                newCamera.name = "GeneratedCamera";
-                newCamera.position.set(0, 1.6, 0);
-                combinedModel.scene.add(newCamera);
-
-                console.log("Caméra générée ajoutée au modèle");
-
                 // CORRECTION: Utiliser le modèle combiné même sans caméra spécifique
                 useStore.getState().setCameraModel(combinedModel);
                 EventBus.trigger('camera-glb-loaded', {
@@ -229,70 +149,70 @@ export default function Camera() {
             }
 
             // Chercher les animations
-            if (combinedModel.animations && combinedModel.animations.length > 0) {
-                console.log('Animations disponibles:', combinedModel.animations.map(a => a.name).join(', '));
+            if (cameraModel.animations && cameraModel.animations.length > 0) {
+                console.log('Animations trouvées:', cameraModel.animations);
 
-                // Chercher l'animation principale par son nom
-                let targetAnimation = combinedModel.animations.find(anim =>
+                // Chercher l'animation spécifique "Action.006"
+                const targetAnimation = cameraModel.animations.find(anim =>
                     anim.name === 'Action.006' ||
-                    anim.name.toLowerCase().includes('action') ||
-                    anim.name.toLowerCase().includes('camera')
+                    anim.name.toLowerCase().includes('Action.006')
                 );
 
-                if (!targetAnimation) {
-                    console.log("Animation principale non trouvée, utilisation de la première animation disponible");
-                    targetAnimation = combinedModel.animations[0];
+                if (targetAnimation) {
+                    console.log('Animation target trouvée:', targetAnimation);
+                    // Informer le système que l'animation est disponible
+                    EventBus.trigger('camera-animation-loaded', {
+                        animation: targetAnimation,
+                        allAnimations: cameraModel.animations
+                    });
+                } else {
+                    console.log("Animations disponibles:", cameraModel.animations.map(a => a.name).join(', '));
+
+                    // Si Action.006 n'est pas trouvée, utiliser la première animation disponible
+                    if (cameraModel.animations.length > 0) {
+                        console.log(`Animation 'Action.006' non trouvée, utilisation de la première animation: ${cameraModel.animations[0].name}`);
+                        EventBus.trigger('camera-animation-loaded', {
+                            animation: cameraModel.animations[0],
+                            allAnimations: cameraModel.animations
+                        });
+                    } else {
+                        console.warn("Aucune animation trouvée dans le modèle");
+                    }
                 }
-
-                console.log('Animation cible sélectionnée:', targetAnimation.name);
-
-                // Informer le système que l'animation est disponible
-                EventBus.trigger('camera-animation-loaded', {
-                    animation: targetAnimation,
-                    allAnimations: combinedModel.animations
-                });
             } else {
                 console.warn(`Aucune animation trouvée dans le modèle ${modelName}`);
             }
-
-            // Marquer comme initialisé
-            setCameraLoaded(true);
-            window.cameraInitialized = true;
         };
 
-        // Gérer les événements d'AssetManager
-        const handleAssetManagerReady = () => {
-            console.log("Événement 'ready' reçu de l'AssetManager");
-            // N'exécuter loadCameraModel qu'une seule fois
-            if (!cameraLoaded) {
+        // Attendre que l'AssetManager soit prêt
+        const waitForAssetManager = () => {
+            if (window.assetManager && window.assetManager.initialized) {
+                console.log("AssetManager est initialisé, chargement de la caméra...");
                 loadCameraModel();
+            } else {
+                console.log("En attente de l'initialisation de l'AssetManager...");
+                setTimeout(waitForAssetManager, 500);
             }
         };
 
-        // S'abonner à l'événement 'ready' une seule fois
+        // Écouter l'événement 'ready' de l'AssetManager
+        const handleAssetManagerReady = () => {
+            console.log("Événement 'ready' reçu de l'AssetManager");
+            loadCameraModel();
+        };
+
+        // S'abonner à l'événement 'ready'
         const readySubscription = EventBus.on('ready', handleAssetManagerReady);
 
-        // Tentative initiale unique
-        if (window.assetManager && window.assetManager.initialized) {
-            console.log("AssetManager est initialisé, chargement de la caméra...");
-            loadCameraModel();
-        } else {
-            console.log("En attente de l'initialisation de l'AssetManager...");
-
-            // Définir un timeout pour éviter les attentes infinies
-            const timeout = setTimeout(() => {
-                console.warn("Timeout atteint pour l'initialisation de l'AssetManager, tentative de chargement forcé");
-                loadCameraModel();
-            }, 5000); // 5 secondes de timeout
-
-            return () => clearTimeout(timeout);
-        }
+        // Démarrer l'attente
+        waitForAssetManager();
 
         return () => {
-            // Se désabonner de l'événement ready
-            readySubscription();
+            readySubscription(); // Se désabonner de l'événement ready
         };
-    }, [camera, cameraLoaded]);
+    }, [camera]);
+
+    // Le reste du code est inchangé...
 
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {

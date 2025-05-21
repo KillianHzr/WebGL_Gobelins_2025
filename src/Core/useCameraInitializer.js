@@ -127,7 +127,7 @@ export function useCameraInitializer() {
 
         try {
             // Créer l'animateur GLB
-            cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
+            cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'action.003');
             console.log('Animateur de caméra initialisé avec succès');
 
             // Mettre à jour le store
