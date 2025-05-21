@@ -118,7 +118,7 @@ function CameraController({children}) {
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
     const [initAttempts, setInitAttempts] = useState(0);
-    const maxInitAttempts = 5;
+    const maxInitAttempts = 15;
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
@@ -229,7 +229,7 @@ function CameraController({children}) {
             }
 
             // Créer l'animateur GLB avec le modèle
-            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
+            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.006');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
@@ -254,7 +254,6 @@ function CameraController({children}) {
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
             window.doJumpToChapter = doJumpToChapter;
-            window.CHAPTERS = ACTIVE_CHAPTERS;
 
             // Créer l'interface de progression
             if (!debug) {
@@ -282,7 +281,7 @@ function CameraController({children}) {
                 const fallbackModel = {
                     scene: new THREE.Group(),
                     animations: [{
-                        name: 'Action.004',
+                        name: 'Action.006',
                         duration: 52.08,
                         tracks: []
                     }]
@@ -290,7 +289,7 @@ function CameraController({children}) {
 
                 try {
                     // Nouvelle tentative avec le modèle minimal
-                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.004');
+                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.006');
                     timelineLengthRef.current = 52.08;
 
                     // Initialiser les éléments d'interface
@@ -323,41 +322,11 @@ function CameraController({children}) {
         if (camera && cameraModel) {
             console.log("ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle disponible");
             initializeGLBAnimator(cameraModel);
+            return; // Make sure to return early
         }
-        // Sinon, après plusieurs tentatives, créer une caméra "factice"
-        else if (camera && initAttempts >= maxInitAttempts) {
-            console.warn("ScrollControls: Aucun modèle de caméra disponible après plusieurs tentatives, création d'un animateur de secours");
 
-            // Créer un modèle minimal pour l'animation
-            const fallbackModel = {
-                scene: new THREE.Group(),
-                animations: [{
-                    name: 'Action.004',
-                    duration: 52.08, // Durée typique d'après les logs
-                    tracks: []
-                }]
-            };
-
-            // Initialiser avec le modèle de secours
-            console.log("ScrollControls: Initialisation avec modèle de secours");
-            initializeGLBAnimator(fallbackModel);
-
-            // Informer les autres composants
-            EventBus.trigger('camera-animator-fallback-created', {
-                reason: 'no-model-available',
-                fallbackUsed: true
-            });
-        }
-        // Incrémenter le compteur de tentatives et réessayer plus tard
-        else {
-            const newAttemptCount = initAttempts + 1;
-            setInitAttempts(newAttemptCount);
-
-            // Afficher un message uniquement lors des premières tentatives
-            if (newAttemptCount <= 3) {
-                console.log(`ScrollControls: Tentative ${newAttemptCount}/${maxInitAttempts} d'initialisation de CameraAnimatorGLB - en attente du modèle`);
-            }
-
+        // Only increment attempt count if we haven't reached the maximum attempts
+        if (initAttempts < maxInitAttempts) {
             // Réessayer après un délai
             const timer = setTimeout(() => {
                 if (camera && !glbInitializedRef.current) {
@@ -371,16 +340,22 @@ function CameraController({children}) {
                         }
                     }
 
+                    // Increment attempts only after the timeout completes and we still don't have what we need
+                    setInitAttempts(prev => prev + 1);
+
                     // Si toujours pas de modèle et c'est la dernière tentative
-                    if (newAttemptCount >= maxInitAttempts) {
+                    if (initAttempts + 1 >= maxInitAttempts) {
                         console.warn("ScrollControls: Échec d'obtention du modèle de caméra, utilisation du modèle de secours");
                     }
                 }
             }, 1000);
 
             return () => clearTimeout(timer);
+        } else {
+            // We've reached max attempts, could add fallback logic here
+            console.warn("ScrollControls: Nombre maximum de tentatives atteint pour l'initialisation");
         }
-    }, [camera, cameraModel, initAttempts]);
+    }, [camera, cameraModel, initAttempts, maxInitAttempts]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {

@@ -683,12 +683,6 @@ const DebugInitializer = () => {
             setupInteractionPoints(gui);
             setupChaptersControls(gui);
 
-            // Exposer CHAPTERS et jumpToChapter pour l'interopérabilité
-            if (typeof window !== 'undefined') {
-                window.CHAPTERS = CHAPTERS;
-                window.jumpToChapter = jumpToChapter;
-            }
-
             // Stocker l'interface GUI
             setGui(gui);
             console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);

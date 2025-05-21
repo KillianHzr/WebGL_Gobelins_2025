@@ -109,9 +109,39 @@ export default function Camera() {
         const processCameraModel = (cameraModel, modelName) => {
             if (!cameraModel.scene) {
                 console.warn(`Le modèle ${modelName} n'a pas de scène`);
-                setCameraLoaded(true);
-                window.cameraInitialized = true;
-                return;
+                console.log("Structure du modèle reçu:", cameraModel);
+
+                // Essayer de trouver une structure alternative dans le modèle
+                if (cameraModel.scenes && cameraModel.scenes.length > 0) {
+                    console.log("Utilisation de cameraModel.scenes[0] comme alternative");
+                    cameraModel.scene = cameraModel.scenes[0];
+                } else if (cameraModel.children && cameraModel.children.length > 0) {
+                    console.log("Création d'une scène à partir des enfants du modèle");
+                    const newScene = new THREE.Group();
+                    cameraModel.children.forEach(child => newScene.add(child.clone()));
+                    cameraModel.scene = newScene;
+                } else {
+                    console.error("Structure de modèle non reconnue, impossible de continuer");
+                    return;
+                }
+            }
+
+            // S'assurer que le modèle a des animations
+            if (!cameraModel.animations || cameraModel.animations.length === 0) {
+                console.warn(`Le modèle ${modelName} n'a pas d'animations`);
+                console.log("Tentative de recherche d'animations alternatives");
+
+                // Chercher les animations dans d'autres propriétés
+                if (cameraModel.animations === undefined) {
+                    cameraModel.animations = [];
+                }
+
+                // Chercher des animations potentielles ailleurs
+                if (cameraModel.animation && cameraModel.animation.animations) {
+                    cameraModel.animations = cameraModel.animation.animations;
+                } else if (cameraModel.animationClips && cameraModel.animationClips.length > 0) {
+                    cameraModel.animations = cameraModel.animationClips;
+                }
             }
 
             // CORRECTION: Créer une structure qui contient à la fois la scène et les animations
@@ -120,11 +150,19 @@ export default function Camera() {
                 animations: cameraModel.animations || []
             };
 
+            // Log détaillé des animations
+            console.log(`Modèle de caméra ${modelName} chargé avec ${combinedModel.animations.length} animations:`);
+            combinedModel.animations.forEach((anim, index) => {
+                console.log(`  Animation ${index}: ${anim.name}, durée: ${anim.duration}s, ${anim.tracks.length} tracks`);
+
+                // Afficher un échantillon de noms de tracks pour débogage
+                if (anim.tracks.length > 0) {
+                    console.log(`    Exemples de tracks: ${anim.tracks.slice(0, 3).map(t => t.name).join(', ')}...`);
+                }
+            });
+
             // Stocker la référence
             cameraModelRef.current = combinedModel;
-
-            console.log(`Modèle de caméra ${modelName} chargé:`, cameraModelRef.current.scene);
-            console.log(`Animations disponibles dans le modèle:`, cameraModelRef.current.animations.map(a => a.name));
 
             // Chercher l'objet caméra dans le modèle GLB
             let glbCamera = null;
@@ -138,7 +176,6 @@ export default function Camera() {
             // Si pas de caméra trouvée, chercher un objet qui pourrait être une caméra
             if (!glbCamera) {
                 cameraModelRef.current.scene.traverse((object) => {
-                    console.log(`Objet dans la scène: ${object.name} (${object.type})`);
                     if (object.name.toLowerCase().includes('camera')) {
                         glbCamera = object;
                         console.log("Objet caméra potentiel trouvé:", object);
@@ -152,9 +189,9 @@ export default function Camera() {
                 // Copier les propriétés de la caméra GLB vers la caméra Three.js
                 if (glbCamera.isCamera) {
                     // Si c'est une vraie caméra, on copie les propriétés
-                    camera.fov = glbCamera.fov*1.1; // Ajuster le champ de vision
-                    camera.near = 0.1;
-                    camera.far = 200;
+                    camera.fov = 24;
+                    camera.near = glbCamera.near || 0.1;
+                    camera.far = glbCamera.far || 200;
                     camera.zoom = glbCamera.zoom;
                     camera.aspect = glbCamera.aspect;
                     camera.updateProjectionMatrix();
@@ -176,6 +213,14 @@ export default function Camera() {
             } else {
                 console.warn(`Aucune caméra trouvée dans le modèle ${modelName}`);
 
+                // Créer une caméra dans le modèle pour assurer le bon fonctionnement
+                const newCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+                newCamera.name = "GeneratedCamera";
+                newCamera.position.set(0, 1.6, 0);
+                combinedModel.scene.add(newCamera);
+
+                console.log("Caméra générée ajoutée au modèle");
+
                 // CORRECTION: Utiliser le modèle combiné même sans caméra spécifique
                 useStore.getState().setCameraModel(combinedModel);
                 EventBus.trigger('camera-glb-loaded', {
@@ -184,36 +229,28 @@ export default function Camera() {
             }
 
             // Chercher les animations
-            if (cameraModel.animations && cameraModel.animations.length > 0) {
-                console.log('Animations trouvées:', cameraModel.animations);
+            if (combinedModel.animations && combinedModel.animations.length > 0) {
+                console.log('Animations disponibles:', combinedModel.animations.map(a => a.name).join(', '));
 
-                // Chercher l'animation spécifique "Action.004"
-                const targetAnimation = cameraModel.animations.find(anim =>
-                    anim.name === 'Action.004' ||
-                    anim.name.toLowerCase().includes('Action.004')
+                // Chercher l'animation principale par son nom
+                let targetAnimation = combinedModel.animations.find(anim =>
+                    anim.name === 'Action.006' ||
+                    anim.name.toLowerCase().includes('action') ||
+                    anim.name.toLowerCase().includes('camera')
                 );
 
-                if (targetAnimation) {
-                    console.log('Animation target trouvée:', targetAnimation);
-                    // Informer le système que l'animation est disponible
-                    EventBus.trigger('camera-animation-loaded', {
-                        animation: targetAnimation,
-                        allAnimations: cameraModel.animations
-                    });
-                } else {
-                    console.log("Animations disponibles:", cameraModel.animations.map(a => a.name).join(', '));
-
-                    // Si Action.004 n'est pas trouvée, utiliser la première animation disponible
-                    if (cameraModel.animations.length > 0) {
-                        console.log(`Animation 'Action.004' non trouvée, utilisation de la première animation: ${cameraModel.animations[0].name}`);
-                        EventBus.trigger('camera-animation-loaded', {
-                            animation: cameraModel.animations[0],
-                            allAnimations: cameraModel.animations
-                        });
-                    } else {
-                        console.warn("Aucune animation trouvée dans le modèle");
-                    }
+                if (!targetAnimation) {
+                    console.log("Animation principale non trouvée, utilisation de la première animation disponible");
+                    targetAnimation = combinedModel.animations[0];
                 }
+
+                console.log('Animation cible sélectionnée:', targetAnimation.name);
+
+                // Informer le système que l'animation est disponible
+                EventBus.trigger('camera-animation-loaded', {
+                    animation: targetAnimation,
+                    allAnimations: combinedModel.animations
+                });
             } else {
                 console.warn(`Aucune animation trouvée dans le modèle ${modelName}`);
             }

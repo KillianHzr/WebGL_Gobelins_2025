@@ -423,7 +423,7 @@ export const useEventEmitter = () => {
 /**
  * API simpifiée pour accéder à l'émetteur d'événements de manière globale
  */
-export const EventBus = {
+export let EventBus = {
     /**
      * Émet un événement
      */
