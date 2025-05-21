@@ -108,22 +108,23 @@ class SceneObjectManager {
                     text: "Maintiens",
                     offset: 0.5,
                     axis: "y",
-                    interfaceToShow: "none",
+                    interfaceToShow: "image",
                     chapterDistance: 0.5,
                     requiredStep: 'initialStartStop',
-                    // Ajouter cette fonction callback pour jouer la narration dès l'interaction
+                    // Ajouter cette fonction callback pour jouer la narration et afficher l'interface image
                     onInteract: () => {
-                        console.log("Long press sur le panneau d'information - lancement narration");
-                        narrationManager.playNarration('Scene02_PanneauInformation');
+                        console.log("Long press sur le panneau d'information - lancement narration et interface image");
+                        // Jouer la narration
+                        if (window.narrationManager && typeof window.narrationManager.playNarration === 'function') {
+                            window.narrationManager.playNarration('Scene02_PanneauInformation');
+                        }
+
+                        // Afficher l'interface image
+                        const store = useStore.getState();
+                        if (store.interaction && typeof store.interaction.setShowImageInterface === 'function') {
+                            store.interaction.setShowImageInterface(true, '/images/Panneau_Info.png');
+                        }
                     }
-                }, {
-                    type: INTERACTION_TYPES.LONG_PRESS,
-                    text: "Maintiens",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.8,
-                    requiredStep: 'initialEndStop'
                 }],
                 defaultPlacement: {
                     position: [-6.7116, 0, 11.35076],

@@ -13,6 +13,8 @@ export const createInteractionSlice = (set, get) => ({
         waitingForInteraction: false,
         completedInteractions: {},
         interactionTarget: null,
+        showImageInterface: false,
+        imageInterfaceSource: null,
 
         // Définir l'étape actuelle
         setCurrentStep: (step) => set(state => ({
@@ -66,6 +68,17 @@ export const createInteractionSlice = (set, get) => ({
             };
         }),
 
+        setShowImageInterface: (show, imageSource = null) => set(state => {
+            console.log(`Setting image interface to: ${show}, with source: ${imageSource}`);
+            return {
+                interaction: {
+                    ...state.interaction,
+                    showImageInterface: show,
+                    imageInterfaceSource: imageSource
+                }
+            };
+        }),
+
         setShowBlackscreenInterface: (show) => set(state => {
             // console.log(`Setting blackscreen interface to: ${show}`);
             return {
@@ -93,7 +106,11 @@ export const createInteractionSlice = (set, get) => ({
                     completedInteractions: {
                         ...state.interaction.completedInteractions,
                         [currentStep]: true
-                    }
+                    },
+                    showScannerInterface: false,
+                    showCaptureInterface: false,
+                    showBlackscreenInterface: false,
+                    showImageInterface: false
                 }
             }));
 
