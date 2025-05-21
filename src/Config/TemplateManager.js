@@ -4,8 +4,20 @@ class TemplateManager {
     constructor() {
         // Templates disponibles avec leurs informations
         this.templates = {
+            // ===================================
+            // REGULAR GROUP - Main forest elements
+            // ===================================
+
+            // // Trees
             'Retopo_TRONC001': {
                 id: 'TreeNaked',
+                path: '/models/forest/tree/TreeNaked.gltf',
+                priority: 1,
+                useTextures: true,
+                group: 'regular'
+            },
+            'TreeThinPlane_7': {
+                id: 'TrunkThinPlane',
                 path: '/models/forest/tree/TreeNaked.gltf',
                 priority: 1,
                 useTextures: true,
@@ -25,38 +37,48 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'Retopo_TRONC_FIN_plane': {
-                id: 'TrunkThinPlane',
-                path: '/models/forest/tree/TreeThinPlance.glb',
-                priority: 3,
-                useTextures: false,
-                group: 'regular'
-            },
-            'Trunk': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.gltf',
-                priority: 4,
-                useTextures: true,
-                group: 'regular'
-            },
-            'BranchEucalyptus': {
+            // 'Trunk': {
+            //     id: 'TreeStump',
+            //     path: '/models/forest/tree/TreeStump.gltf',
+            //     priority: 4,
+            //     useTextures: true,
+            //     group: 'regular'
+            // },
+            // 'TreeRoof': {
+            //     id: 'TreeRoof',
+            //     path: '/models/forest/tree/TreeRoof.glb',
+            //     priority: 21,
+            //     useTextures: true
+            // },
+            //
+            // // Branches
+            'BranchEucalyptus_1': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/branch/BranchEucalyptus.glb',
                 priority: 5,
                 useTextures: true,
                 group: 'regular'
             },
+            'BranchFig_1': {
+                id: 'BranchFig',
+                path: '/models/forest/branch/BranchFig.glb',
+                priority: 7,
+                useTextures: true,
+                group: 'regular'
+            },
+            // 'BranchTree002': {
+            //     id: 'BranchTree',
+            //     path: '/models/forest/branch/BranchTree.glb',
+            //     priority: 20,
+            //     useTextures: true,
+            //     group: 'regular'
+            // },
+            //
+            // // Bushes
             'BUSHv2': {
                 id: 'Bush',
                 path: '/models/forest/bush/Bush.glb',
                 priority: 6,
-                useTextures: true,
-                group: 'regular'
-            },
-            'BranchFig': {
-                id: 'BranchFig',
-                path: '/models/forest/branch/BranchFig.glb',
-                priority: 7,
                 useTextures: true,
                 group: 'regular'
             },
@@ -81,16 +103,25 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'Strawberry006': {
+            'BushStrawberry': {
                 id: 'BushStrawberry',
                 path: '/models/forest/bush/BushStrawberry.glb',
                 priority: 11,
                 useTextures: true,
                 group: 'regular'
             },
-            'FlowerBell005': {
+            //
+            // // Flowers
+            'FlowerBell015': {
                 id: 'FlowerBell',
                 path: '/models/forest/flower/FlowerBell.glb',
+                priority: 12,
+                useTextures: true,
+                group: 'regular'
+            },
+            'FlowerChicory014': {
+                id: 'FlowerChicory',
+                path: '/models/forest/flower/FlowerChicory.glb',
                 priority: 12,
                 useTextures: true,
                 group: 'regular'
@@ -102,6 +133,8 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
+            //
+            // // Mushrooms
             'MushwoomDuo': {
                 id: 'MushroomDuo',
                 path: '/models/forest/mushroom/MushroomDuo.glb',
@@ -116,20 +149,29 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'PlanClematis005': {
+            //
+            // // Plants
+            'PlanClematis': {
                 id: 'PlantClematis',
                 path: '/models/forest/plant/PlanClematis.glb',
                 priority: 16,
                 useTextures: true,
                 group: 'regular'
             },
-            // 'PlantIvy002': {
-            //     id: 'PlantIvy',
-            //     path: '/models/forest/plant/PlantIvy.glb',
-            //     priority: 17,
-            //     useTextures: true,
-            //     group: 'regular'
-            // },
+            'PineCone': {
+                id: 'PineCone',
+                path: '/models/forest/plant/PineCone.glb',
+                priority: 16,
+                useTextures: true,
+                group: 'regular'
+            },
+            // // 'PlantIvy002': {
+            // //     id: 'PlantIvy',
+            // //     path: '/models/forest/plant/PlantIvy.glb',
+            // //     priority: 17,
+            // //     useTextures: true,
+            // //     group: 'regular'
+            // // },
             'PlantMiscanthus': {
                 id: 'PlantMiscanthus',
                 path: '/models/forest/plant/PlantMiscanthus.glb',
@@ -151,229 +193,221 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'BranchTree002': {
-                id: 'BranchTree',
-                path: '/models/forest/branch/BranchTree.glb',
-                priority: 20,
-                useTextures: true,
-                group: 'regular'
-            },
-            'TreeRoof': {
-                id: 'TreeRoof',
-                path: '/models/forest/tree/TreeRoof.glb',
-                priority: 21,
-                useTextures: true,
-                group: 'regular'
-            },
-            'Grass_1': {
-                id: 'Grass',
-                path: '/models/forest/plant/Grass.glb',
-                priority: 22,
-                useTextures: true,
-                group: 'regular'
-            },
-            'TreeRoof': {
-                id: 'TreeRoof',
-                path: '/models/forest/tree/TreeRoof.glb',
-                priority: 21,
-                useTextures: true
-            },
-            'Grass_1': {
-                id: 'Grass',
-                path: '/models/forest/plant/Grass.glb',
-                priority: 22,
-                useTextures: true
-            },
+            // 'Grass_1': {
+            //     id: 'Grass',
+            //     path: '/models/forest/plant/Grass.glb',
+            //     priority: 22,
+            //     useTextures: true
+            // },
 
-            // Groupe "End" - objets avec "End" dans leur ID
-            'Retopo_TRONC001_1': {
-                id: 'TreeNakedEnd',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                priority: 1,
-                useTextures: true,
-                group: 'end'
-            },
-            'Retopo_GROS_TRONC001_2': {
-                id: 'TrunkLargeEnd',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                priority: 2,
-                useTextures: true,
-                group: 'end'
-            },
-            'Retopo_TRONC_FIN_1': {
-                id: 'TrunkThinEnd',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                priority: 3,
-                useTextures: true,
-                group: 'end'
-            },
-            'BranchEucalyptus_1': {
-                id: 'BranchEucalyptus',
-                path: '/models/forest/branch/BranchEucalyptus.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'end'
-            },
-            'BUSH003': {
-                id: 'Bush',
-                path: '/models/forest/bush/Bush.glb',
-                priority: 6,
-                useTextures: true,
-                group: 'end'
-            },
-            'BranchFig_1': {
-                id: 'BranchFig',
-                path: '/models/forest/branch/BranchFig.glb',
-                priority: 7,
-                useTextures: true,
-                group: 'end'
-            },
-            'BushBlueberry_1': {
-                id: 'BushBlueberry',
-                path: '/models/forest/bush/BushBlueberry.glb',
-                priority: 8,
-                useTextures: true,
-                group: 'end'
-            },
-            'BushRaspberry_1': {
-                id: 'BushRaspberry',
-                path: '/models/forest/bush/BushRaspberry.glb',
-                priority: 9,
-                useTextures: true,
-                group: 'end'
-            },
-            'BushTrunk002_1': {
-                id: 'BushTrunk',
-                path: '/models/forest/bush/BushTrunk.glb',
-                priority: 10,
-                useTextures: true,
-                group: 'end'
-            },
-            'Strawberry002_1': {
-                id: 'BushStrawberry',
-                path: '/models/forest/bush/BushStrawberry.glb',
-                priority: 11,
-                useTextures: true,
-                group: 'end'
-            },
-            'FlowerBell001_1': {
-                id: 'FlowerBell',
-                path: '/models/forest/flower/FlowerBell.glb',
-                priority: 12,
-                useTextures: true,
-                group: 'end'
-            },
-            'Clover_1': {
-                id: 'FlowerClover',
-                path: '/models/forest/flower/FlowerClover.glb',
-                priority: 13,
-                useTextures: true,
-                group: 'end'
-            },
-            'MushwoomDuo_1': {
-                id: 'MushroomDuo',
-                path: '/models/forest/mushroom/MushroomDuo.glb',
-                priority: 14,
-                useTextures: true,
-                group: 'end'
-            },
-            'MushwoomSolo_1': {
-                id: 'MushroomSolo',
-                path: '/models/forest/mushroom/MushroomSolo.glb',
-                priority: 15,
-                useTextures: true,
-                group: 'end'
-            },
-            'PlantClematis_1': {
-                id: 'PlantClematis',
-                path: '/models/forest/plant/PlanClematis.glb',
-                priority: 16,
-                useTextures: true,
-                group: 'end'
-            },
-            'PlantIvy002_1': {
-                id: 'PlantIvy',
-                path: '/models/forest/plant/PlantIvy.glb',
-                priority: 17,
-                useTextures: true,
-                group: 'end'
-            },
-            'PlantMiscanthus_1': {
-                id: 'PlantMiscanthus',
-                path: '/models/forest/plant/PlantMiscanthus.glb',
-                priority: 18,
-                useTextures: true,
-                group: 'end'
-            },
-            'PlantPuccinellia_1': {
-                id: 'PlantPuccinellia',
-                path: '/models/forest/plant/PlantPuccinellia.glb',
-                priority: 19,
-                useTextures: true,
-                group: 'end'
-            },
-            'PlantReed_1': {
-                id: 'PlantReed',
-                path: '/models/forest/plant/PlantReed.glb',
-                priority: 20,
-                useTextures: true,
-                group: 'end'
-            },
-            'BranchTree002_1': {
-                id: 'BranchTree',
-                path: '/models/forest/branch/BranchTree.glb',
-                priority: 20,
-                useTextures: true,
-                group: 'end'
-            },
+            // ===================================
+            // END GROUP - Elements for end positions
+            // ===================================
 
-            // Groupe "Screen" - écrans
-            'OLD_2': {
-                id: 'ScreenOld',
-                path: '/models/digital/screen/ScreenOld.glb',
-                priority: 21,
-                useTextures: false,
-                group: 'screen'
-            },
-            'Screen_4': {
-                id: 'Screen',
-                path: '/models/digital/screen/Screen.glb',
-                priority: 22,
-                useTextures: false,
-                group: 'screen'
-            },
-            'Retopo_TRONC001_2': {
-                id: 'TreeNakedDigital',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                priority: 1,
-                useTextures: true,
-                group: 'screen'
-            },
-            'Retopo_GROS_TRONC001_1': {
-                id: 'TrunkLargeDigital',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                priority: 2,
-                useTextures: true,
-                group: 'screen'
-            },
-            'Retopo_TRONC_FIN_2': {
-                id: 'TrunkThinDigital',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                priority: 3,
-                useTextures: true,
-                group: 'screen'
-            },
-
-            // Exemple d'ajout d'un nouveau template :
-            // 'NouveauTemplate': {
-            //     id: 'NouvelArbre',
-            //     path: '/models/forest/tree/NouvelArbre.gltf',
+            // // Trees
+            // 'Retopo_TRONC001_1': {
+            //     id: 'TreeNakedEnd',
+            //     path: '/models/forest/tree/TreeNaked.gltf',
+            //     priority: 1,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'Retopo_GROS_TRONC001_2': {
+            //     id: 'TrunkLargeEnd',
+            //     path: '/models/forest/tree/TrunkLarge.gltf',
+            //     priority: 2,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'Retopo_TRONC_FIN_1': {
+            //     id: 'TrunkThinEnd',
+            //     path: '/models/forest/tree/ThinTrunk.gltf',
+            //     priority: 3,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            //
+            // // Branches
+            // 'BranchEucalyptus_1': {
+            //     id: 'BranchEucalyptus',
+            //     path: '/models/forest/branch/BranchEucalyptus.glb',
             //     priority: 5,
             //     useTextures: true,
-            //     group: 'regular'
+            //     group: 'end'
+            // },
+            // 'BranchFig_1': {
+            //     id: 'BranchFig',
+            //     path: '/models/forest/branch/BranchFig.glb',
+            //     priority: 7,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'BranchTree002_1': {
+            //     id: 'BranchTree',
+            //     path: '/models/forest/branch/BranchTree.glb',
+            //     priority: 20,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            //
+            // // Bushes
+            // 'BUSH003': {
+            //     id: 'Bush',
+            //     path: '/models/forest/bush/Bush.glb',
+            //     priority: 6,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'BushBlueberry_1': {
+            //     id: 'BushBlueberry',
+            //     path: '/models/forest/bush/BushBlueberry.glb',
+            //     priority: 8,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'BushRaspberry_1': {
+            //     id: 'BushRaspberry',
+            //     path: '/models/forest/bush/BushRaspberry.glb',
+            //     priority: 9,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'BushTrunk002_1': {
+            //     id: 'BushTrunk',
+            //     path: '/models/forest/bush/BushTrunk.glb',
+            //     priority: 10,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'Strawberry002_1': {
+            //     id: 'BushStrawberry',
+            //     path: '/models/forest/bush/BushStrawberry.glb',
+            //     priority: 11,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            //
+            // // Flowers
+            // 'FlowerBell001_1': {
+            //     id: 'FlowerBell',
+            //     path: '/models/forest/flower/FlowerBell.glb',
+            //     priority: 12,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'Clover_1': {
+            //     id: 'FlowerClover',
+            //     path: '/models/forest/flower/FlowerClover.glb',
+            //     priority: 13,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            //
+            // // Mushrooms
+            // 'MushwoomDuo_1': {
+            //     id: 'MushroomDuo',
+            //     path: '/models/forest/mushroom/MushroomDuo.glb',
+            //     priority: 14,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'MushwoomSolo_1': {
+            //     id: 'MushroomSolo',
+            //     path: '/models/forest/mushroom/MushroomSolo.glb',
+            //     priority: 15,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            //
+            // // Plants
+            // 'PlantClematis_1': {
+            //     id: 'PlantClematis',
+            //     path: '/models/forest/plant/PlanClematis.glb',
+            //     priority: 16,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'PlantIvy002_1': {
+            //     id: 'PlantIvy',
+            //     path: '/models/forest/plant/PlantIvy.glb',
+            //     priority: 17,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'PlantMiscanthus_1': {
+            //     id: 'PlantMiscanthus',
+            //     path: '/models/forest/plant/PlantMiscanthus.glb',
+            //     priority: 18,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'PlantPuccinellia_1': {
+            //     id: 'PlantPuccinellia',
+            //     path: '/models/forest/plant/PlantPuccinellia.glb',
+            //     priority: 19,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+            // 'PlantReed_1': {
+            //     id: 'PlantReed',
+            //     path: '/models/forest/plant/PlantReed.glb',
+            //     priority: 20,
+            //     useTextures: true,
+            //     group: 'end'
+            // },
+
+            // ===================================
+            // SCREEN GROUP - Digital elements
+            // ===================================
+
+            // // Screens
+            // 'OLD_2': {
+            //     id: 'ScreenOld',
+            //     path: '/models/digital/screen/ScreenOld.glb',
+            //     priority: 21,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
+            // 'Screen_4': {
+            //     id: 'Screen',
+            //     path: '/models/digital/screen/Screen.glb',
+            //     priority: 22,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
+            //
+            // // Trees for digital environment
+            // 'Retopo_TRONC001_2': {
+            //     id: 'TreeNakedDigital',
+            //     path: '/models/forest/tree/TreeNaked.gltf',
+            //     priority: 1,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'Retopo_GROS_TRONC001_1': {
+            //     id: 'TrunkLargeDigital',
+            //     path: '/models/forest/tree/TrunkLarge.gltf',
+            //     priority: 2,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'Retopo_TRONC_FIN_2': {
+            //     id: 'TrunkThinDigital',
+            //     path: '/models/forest/tree/ThinTrunk.gltf',
+            //     priority: 3,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+
+            // Template for adding new items
+            // 'NewTemplate': {
+            //     id: 'NewItemId',
+            //     path: '/models/category/subcategory/FileName.gltf',
+            //     priority: 99,
+            //     useTextures: true,
+            //     group: 'regular'  // or 'end' or 'screen' or create a new group
             // },
         };
-
         // Un mapping inversé pour une recherche rapide par ID
         this.idToTemplateMap = {
             753: 'Retopo_TRONC001',

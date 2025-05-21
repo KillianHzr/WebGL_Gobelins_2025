@@ -527,7 +527,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         if (modelPositions[treeType]) {
             treePositions[treeType] = modelPositions[treeType].map(instance => ({
                 x: instance.position.x,
-                y: instance.position.y - 1.5, // Ajustement de la position Y
+                y: instance.position.y, // Ajustement de la position Y
                 z: instance.position.z,
                 rotationX: instance.rotation.x,
                 rotationY: instance.rotation.y,

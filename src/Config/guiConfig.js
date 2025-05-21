@@ -315,7 +315,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 25
+                default: 50
             }
         },
         // Nouvelle section pour les paramètres de rendu de la caméra
@@ -457,7 +457,7 @@ const guiConfig = {
                 default: true
             },
             color: {
-                color: "#ffffff",
+                color: "#0098f6",
                 name: "Fog Color",
                 default: "#1E6B31"
             },
