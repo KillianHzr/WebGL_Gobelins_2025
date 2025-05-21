@@ -5,7 +5,6 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 import {CameraAnimatorGLB} from './CameraAnimatorGLB';
-import * as THREE from 'three';
 
 const getChaptersWithDistances = () => {
     return [{
@@ -47,9 +46,9 @@ const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && cha
 
 // Paramètres de défilement
 const MAX_SCROLL_SPEED = 0.01;
-const DECELERATION = 0.85;
+const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.001;
-const BASE_SENSITIVITY = 0.001;
+const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 // Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
@@ -102,8 +101,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 1; // 98% du scroll considéré comme fin
-    const triggeredInteractionsSet = useRef(new Set());
+    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -117,8 +115,7 @@ function CameraController({children}) {
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
-    const [initAttempts, setInitAttempts] = useState(0);
-    const maxInitAttempts = 5;
+
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
@@ -153,94 +150,34 @@ function CameraController({children}) {
         };
     }, [cameraModel]);
 
-    // Ajoutez ce useEffect dans le composant CameraController
-    useEffect(() => {
-        // Gérer l'achèvement d'une interaction DISABLE
-        const handleDisableInteractionComplete = (data) => {
-            if (data.type !== 'disable') return;
-
-            console.log(`[ScrollControls] Interaction DISABLE complétée: ${data.id}`);
-
-            // Récupérer l'étape associée à cette interaction
-            const stepId = data.id.split('-')[0]; // Extraire l'ID de l'étape du markerId
-
-            // Récupérer la distance à déplacer après cette interaction
-            const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
-
-            // Si aucune distance n'est spécifiée, simplement réactiver le scroll
-            if (distanceToMove === 0 || distanceToMove === "none" || distanceToMove === undefined) {
-                console.log(`[ScrollControls] Pas de transition après l'interaction DISABLE ${stepId}`);
-
-                // Réactiver le défilement
-                setTimeout(() => {
-                    if (setAllowScroll) {
-                        setAllowScroll(true);
-                    }
-                }, 500);
-
-                return;
-            }
-
-            // Calculer la position cible
-            const currentPosition = timelinePositionRef.current;
-            const targetPosition = currentPosition + distanceToMove;
-
-            console.log(`[ScrollControls] Avancement après DISABLE: ${distanceToMove}, cible: ${targetPosition}`);
-
-            // Effectuer la transition
-            smoothJumpTo(targetPosition);
-
-            // Notifier les autres composants
-            EventBus.trigger('post-interaction-advancement', {
-                startPosition: currentPosition,
-                distance: distanceToMove,
-                targetPosition: targetPosition,
-                stepId: stepId,
-                interactionType: 'disable'
-            });
-        };
-
-        // Créer un écouteur pour cet événement spécifique
-        const disableInteractionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleDisableInteractionComplete);
-
-        return () => {
-            disableInteractionCompleteSubscription();
-        };
-    }, []);
-
     // Initialiser l'animateur de caméra GLB
     const initializeGLBAnimator = (model) => {
         if (!model || glbInitializedRef.current) return;
 
-        console.log('ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle:',
-            model.scene ? 'Format {scene, animations}' : 'Format direct');
+        // console.log('Initialisation de CameraAnimatorGLB avec le modèle:', model);
 
         try {
-            // CORRECTION: Vérifier que nous avons un modèle valide
-            let validModel = model;
+            // CORRECTION: Vérifier si le format du modèle est nouveau {scene, animations}
+            // ou ancien (direct)
+            if (model.scene && Array.isArray(model.animations)) {
+                // console.log('Détection du nouveau format de modèle avec animations:',
+                //     model.animations.length);
 
-            // Si le modèle n'a pas de structure attendue, créer un modèle minimal
-            if (!model.scene && !model.animations) {
-                console.warn("ScrollControls: Modèle dans un format inattendu, création d'un wrapper");
-                validModel = {
-                    scene: model.scene || model || new THREE.Group(),
-                    animations: model.animations || []
-                };
+                // Créer l'animateur GLB avec le modèle complet
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
+            } else {
+                // console.log('Utilisation du format standard du modèle');
+                // Ancienne méthode
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
             }
-
-            // Créer l'animateur GLB avec le modèle
-            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
                 timelineLengthRef.current = cameraAnimatorRef.current.getLength();
-                console.log(`ScrollControls: Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
+                // console.log(`Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
             } else {
-                console.warn("ScrollControls: Animateur GLB initialisé, mais la longueur de timeline est 0. Utilisation d'une valeur par défaut.");
-                timelineLengthRef.current = 52.08; // Valeur par défaut d'après les logs
-
-                // Forcer une longueur de timeline dans l'animateur
-                cameraAnimatorRef.current.timelineLength = timelineLengthRef.current;
+                // console.warn("Animateur GLB initialisé, mais la longueur de timeline est 0. Vérifier les animations.");
+                timelineLengthRef.current = 30; // Valeur par défaut de 30 secondes
             }
 
             // Déterminer la position de départ
@@ -248,9 +185,7 @@ function CameraController({children}) {
             timelinePositionRef.current = startChapterPosition;
             cameraAnimatorRef.current.setPosition(startChapterPosition);
 
-            useStore.getState().setTimelinePosition(startChapterPosition);
-            useStore.getState().setSequenceLength(startChapterPosition);
-            // Exposer les fonctions globalement
+            // Exposer la fonction jumpToChapter globalement
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
             window.doJumpToChapter = doJumpToChapter;
@@ -258,6 +193,7 @@ function CameraController({children}) {
 
             // Créer l'interface de progression
             if (!debug) {
+
                 createProgressUI();
             }
 
@@ -267,120 +203,25 @@ function CameraController({children}) {
             // Marquer comme initialisé
             glbInitializedRef.current = true;
 
-            // Informer les autres composants
+            // Informer les autres composants que l'animateur est prêt
             EventBus.trigger('camera-animator-ready', {
                 animator: cameraAnimatorRef.current
             });
         } catch (error) {
-            console.error('ScrollControls: Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
-
-            // Même en cas d'erreur, créer un animateur minimal
-            if (!glbInitializedRef.current) {
-                console.warn("ScrollControls: Création d'un animateur minimal suite à une erreur");
-
-                // Modèle minimal en cas d'échec
-                const fallbackModel = {
-                    scene: new THREE.Group(),
-                    animations: [{
-                        name: 'Action.004',
-                        duration: 52.08,
-                        tracks: []
-                    }]
-                };
-
-                try {
-                    // Nouvelle tentative avec le modèle minimal
-                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.004');
-                    timelineLengthRef.current = 52.08;
-
-                    // Initialiser les éléments d'interface
-                    if (!debug) {
-                        createProgressUI();
-                    }
-
-                    setupScrollHandlers();
-                    glbInitializedRef.current = true;
-
-                    EventBus.trigger('camera-animator-fallback-ready', {
-                        animator: cameraAnimatorRef.current,
-                        reason: 'error-recovery'
-                    });
-                } catch (fallbackError) {
-                    console.error('ScrollControls: Échec critique de l\'initialisation de la caméra:', fallbackError);
-                }
-            }
+            console.error('Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
         }
     };
 
     // Initialiser l'animateur dès que la caméra ou le modèle est disponible
     useEffect(() => {
-        // Si déjà initialisé, ne rien faire
-        if (glbInitializedRef.current) {
-            return;
-        }
-
-        // S'il y a une caméra et un modèle, initialiser normalement
-        if (camera && cameraModel) {
-            console.log("ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle disponible");
+        if (camera && cameraModel && !glbInitializedRef.current) {
             initializeGLBAnimator(cameraModel);
         }
-        // Sinon, après plusieurs tentatives, créer une caméra "factice"
-        else if (camera && initAttempts >= maxInitAttempts) {
-            console.warn("ScrollControls: Aucun modèle de caméra disponible après plusieurs tentatives, création d'un animateur de secours");
 
-            // Créer un modèle minimal pour l'animation
-            const fallbackModel = {
-                scene: new THREE.Group(),
-                animations: [{
-                    name: 'Action.004',
-                    duration: 52.08, // Durée typique d'après les logs
-                    tracks: []
-                }]
-            };
-
-            // Initialiser avec le modèle de secours
-            console.log("ScrollControls: Initialisation avec modèle de secours");
-            initializeGLBAnimator(fallbackModel);
-
-            // Informer les autres composants
-            EventBus.trigger('camera-animator-fallback-created', {
-                reason: 'no-model-available',
-                fallbackUsed: true
-            });
-        }
-        // Incrémenter le compteur de tentatives et réessayer plus tard
-        else {
-            const newAttemptCount = initAttempts + 1;
-            setInitAttempts(newAttemptCount);
-
-            // Afficher un message uniquement lors des premières tentatives
-            if (newAttemptCount <= 3) {
-                console.log(`ScrollControls: Tentative ${newAttemptCount}/${maxInitAttempts} d'initialisation de CameraAnimatorGLB - en attente du modèle`);
-            }
-
-            // Réessayer après un délai
-            const timer = setTimeout(() => {
-                if (camera && !glbInitializedRef.current) {
-                    // Vérifier à nouveau si le modèle est disponible via window.assetManager
-                    if (window.assetManager && typeof window.assetManager.getItem === 'function') {
-                        const cameraModelFromManager = window.assetManager.getItem('Camera');
-                        if (cameraModelFromManager) {
-                            console.log("ScrollControls: Modèle récupéré depuis AssetManager");
-                            initializeGLBAnimator(cameraModelFromManager);
-                            return;
-                        }
-                    }
-
-                    // Si toujours pas de modèle et c'est la dernière tentative
-                    if (newAttemptCount >= maxInitAttempts) {
-                        console.warn("ScrollControls: Échec d'obtention du modèle de caméra, utilisation du modèle de secours");
-                    }
-                }
-            }, 1000);
-
-            return () => clearTimeout(timer);
-        }
-    }, [camera, cameraModel, initAttempts]);
+        return () => {
+            cleanupUI();
+        };
+    }, [camera, cameraModel]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
@@ -419,11 +260,11 @@ function CameraController({children}) {
     useEffect(() => {
         // Fonction pour gérer les événements d'interaction complète
         const handleInteractionComplete = (data) => {
-            console.log('[EventListener] Interaction complète reçue:', data);
+            // console.log('[EventListener] Interaction complète reçue:', data);
 
             // Vérifier si une interface doit être affichée
             if (data.interfaceToShow) {
-                console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
+                // console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
 
                 // Obtenir une référence fraîche au store
                 const store = useStore.getState();
@@ -432,19 +273,19 @@ function CameraController({children}) {
                 switch (data.interfaceToShow) {
                     case 'scanner':
                         if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface scanner');
+                            // console.log('[EventListener] Affichage de l\'interface scanner');
                             store.interaction.setShowScannerInterface(true);
                         }
                         break;
                     case 'capture':
                         if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface capture');
+                            // console.log('[EventListener] Affichage de l\'interface capture');
                             store.interaction.setShowCaptureInterface(true);
                         }
                         break;
                     case 'blackScreen':
                         if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface blackScreen');
+                            // console.log('[EventListener] Affichage de l\'interface blackScreen');
                             store.interaction.setShowBlackscreenInterface(true);
                         }
                         break;
@@ -472,53 +313,22 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 2.8;
+        const TRIGGER_PROXIMITY = 5.0;
+
+        // console.log("Current completed interactions:", completedInteractions);
+        // console.log("Current interactions:", interactions);
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const multipleLeafCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
 
-                if (!multipleLeafCompleted) {
-                    return false;
-                }
-            }
-            // Cas spécifique pour JumpRock2
-            if (interaction.objectKey === 'JumpRock2') {
-                const rock1Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('eleventhStop') ||
-                    key.includes('JumpRock1')
-                );
-
-                if (!rock1Completed) {
+                if (!leafErableCompleted) {
                     return false;
                 }
             }
 
-            // Cas spécifique pour JumpRock3
-            if (interaction.objectKey === 'JumpRock3') {
-                const rock2Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('twelfthStop') ||
-                    key.includes('JumpRock2')
-                );
-
-                if (!rock2Completed) {
-                    return false;
-                }
-            }
-
-            // Cas spécifique pour JumpRock4
-            if (interaction.objectKey === 'JumpRock4') {
-                const rock3Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirteenthStop') ||
-                    key.includes('JumpRock3')
-                );
-
-                if (!rock3Completed) {
-                    return false;
-                }
-            }
             // Vérification générique des prérequis basée sur la configuration des objets
             const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
 
@@ -536,6 +346,7 @@ function CameraController({children}) {
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
                     if (!previousStepCompleted) {
+                        // console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
                         return false;
                     }
                 }
@@ -545,14 +356,13 @@ function CameraController({children}) {
             return true;
         };
 
+        // console.log("liste des interactions:", interactions);
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {
                 return;
             }
-            if (triggeredInteractionsSet.current.has(interaction.id)) {
-                return;
-            }
+
             // Vérifier les prérequis avant de procéder
             if (!checkInteractionPrerequisites(interaction)) {
                 return;
@@ -567,8 +377,6 @@ function CameraController({children}) {
             if (distance < TRIGGER_PROXIMITY && allowScroll && !chapterTransitioning) {
                 // Stocker l'interaction déclenchée pour le log
                 triggeredInteraction = interaction;
-
-                triggeredInteractionsSet.current.add(interaction.id);
 
                 // Récupérer l'objet associé à cette interaction
                 const relatedObjectKey = interaction.objectKey;
@@ -602,27 +410,15 @@ function CameraController({children}) {
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
-
-                // NOUVEAU: Émettre un événement d'interaction détectée pour déclencher la narration automatiquement
-                EventBus.trigger('interaction:detected', {
-                    requiredStep: interaction.id,
-                    objectKey: relatedObjectKey,
-                    position: position,
-                    distance: distance,
-                    type: 'auto-detected'
-                });
             }
-            setTimeout(() => {
-                triggeredInteractionsSet.current.delete(interaction.id);
-            }, 1000);
         });
 
         // Afficher le log uniquement si une interaction est déclenchée
         if (triggeredInteraction) {
-            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+            // console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            // console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            // console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            // console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
 
             // Mettre à jour le chapitre actuel en fonction de l'interaction
             updateCurrentChapter();
@@ -753,8 +549,6 @@ function CameraController({children}) {
             interactionCompleteSubscription1();
             interactionCompleteSubscription2();
             interactionCompleteSubscription3();
-            triggeredInteractionsSet.current.clear();
-
         };
     }, []);
 
@@ -858,6 +652,7 @@ function CameraController({children}) {
 
         // Restaurer la position initiale de la timeline
         timelinePositionRef.current = currentTimelinePos;
+
         // Maintenant nous avons les positions de départ et d'arrivée
         const endPosition = targetCameraState.position;
         const endRotation = targetCameraState.rotation;
@@ -899,8 +694,6 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
-                useStore.getState().setTimelinePosition(targetPosition);
-                useStore.getState().setSequenceLength(targetPosition);
                 finishCurrentTransition();
                 return;
             }
@@ -937,8 +730,6 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
-                useStore.getState().setTimelinePosition(targetPosition);
-                useStore.getState().setSequenceLength(targetPosition);
                 // Notifier la fin de transition
                 EventBus.trigger('distance-transition-complete', {
                     finalPosition: targetPosition
@@ -1002,74 +793,6 @@ function CameraController({children}) {
         }
     };
 
-    const checkDisableInteractions = (cameraPosition) => {
-        // Récupérer la liste des interactions complétées
-        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-        // Ne pas vérifier les interactions DISABLE si nous sommes en transition
-        if (chapterTransitioning || isTransitioningRef.current) return;
-
-        // Parcourir les interactions pour trouver des points d'interaction DISABLE à proximité
-        interactions.forEach(interaction => {
-            // Ignorer les interactions déjà complétées
-            if (!interaction.isActive || completedInteractions[interaction.id]) {
-                return;
-            }
-
-            // Vérifier si cette interaction est de type DISABLE
-            const placement = sceneObjectManager.getPlacements({
-                objectKey: interaction.objectKey,
-                requiredStep: interaction.id
-            })[0];
-
-            if (!placement) return;
-
-            // Vérifier le type d'interaction via l'objet du catalogue
-            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
-            if (!objectConfig || !objectConfig.interaction) return;
-
-            // Vérifier si c'est une interaction DISABLE
-            let isDisableType = false;
-            let interactionConfig = null;
-
-            if (Array.isArray(objectConfig.interaction)) {
-                interactionConfig = objectConfig.interaction.find(int =>
-                    int.requiredStep === interaction.id && int.type === 'disable');
-                isDisableType = !!interactionConfig;
-            } else {
-                isDisableType = objectConfig.interaction.type === 'disable';
-                interactionConfig = isDisableType ? objectConfig.interaction : null;
-            }
-
-            if (!isDisableType) return;
-
-            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
-            const dx = cameraPosition.x - interaction.triggers.x;
-            const dz = cameraPosition.z - interaction.triggers.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-
-            // Distance de proximité pour les interactions DISABLE (peut être ajustée)
-            const DISABLE_PROXIMITY = 3.5;
-
-            // Si la caméra est proche d'un point d'interaction DISABLE et le scroll s'est arrêté
-            if (distance < DISABLE_PROXIMITY && !allowScroll) {
-                console.log(`[ScrollControls] Point d'interaction DISABLE détecté: ${interaction.id}`);
-
-                // Émettre un événement pour montrer le marqueur DISABLE
-                EventBus.trigger('disable-interaction:show', {
-                    id: interaction.id,
-                    requiredStep: interaction.id,
-                    objectKey: interaction.objectKey,
-                    position: {
-                        x: interaction.triggers.x,
-                        y: 0, // Hauteur par défaut
-                        z: interaction.triggers.z
-                    }
-                });
-            }
-        });
-    };
-
     function doJumpToChapter(distance) {
         // NOUVEAU: Sauvegarder l'état actuel avant toute opération
         const wasWaitingForInteraction = isWaitingForInteraction;
@@ -1124,10 +847,6 @@ function CameraController({children}) {
         // Vérifier les déclencheurs d'interaction
         checkInteractionTriggers(cameraPosition);
 
-        if (!allowScroll) {
-            checkDisableInteractions(cameraPosition);
-        }
-
         // 1. Calcul du mouvement - uniquement si le défilement est autorisé
         if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !chapterTransitioning) {
             // Mettre à jour la position basée sur la vélocité
@@ -1148,13 +867,7 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
-        // console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
-        const normalizedPosition = timelinePositionRef.current / timelineLengthRef.current;
-        EventBus.trigger('timeline-position-normalized', {
-            position: normalizedPosition,
-            rawPosition: timelinePositionRef.current,
-            totalLength: timelineLengthRef.current
-        });
+
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
 
@@ -1162,7 +875,39 @@ function CameraController({children}) {
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
+        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
+        if (isNowAtEnd !== isAtEndOfScroll) {
+            setIsAtEndOfScroll(isNowAtEnd);
+        }
 
+        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
+        if (isNowAtEnd && !hasTriggeredEndSwitch) {
+            // Basculer entre End et Screen à la fin du scroll
+            // Si on est sur End, passer à Screen
+            if (endGroupVisible && !screenGroupVisible) {
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+            }
+
+            setHasTriggeredEndSwitch(true);
+
+            // Réinitialiser le déclencheur après un délai
+            setTimeout(() => {
+                setHasTriggeredEndSwitch(false);
+            }, 3000);
+        }
     }, 'camera');
 
     // Fonction pour configurer les gestionnaires d'événements de défilement
@@ -1222,7 +967,6 @@ function CameraController({children}) {
             lastTouchY = currentY;
 
             const direction = Math.sign(deltaY);
-
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 

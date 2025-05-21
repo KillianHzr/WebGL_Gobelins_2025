@@ -265,7 +265,6 @@ const CameraSwitcher = () => {
             gl.domElement.style.cursor = 'auto';
 
             clearAllKeys();
-            isDragging.current = false;
             setListenersInitialized(false);
         };
     };

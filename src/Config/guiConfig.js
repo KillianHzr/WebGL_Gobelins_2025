@@ -301,7 +301,7 @@ const guiConfig = {
                 max: 150,
                 step: 1,
                 name: "FOV",
-                default: 61.9
+                default: 24.9
             },
             near: {
                 min: 0.01,

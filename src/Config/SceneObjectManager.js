@@ -38,6 +38,27 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
+
+
+            'TVScreen': {
+                id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.93887, 0.3095, 84.51408],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+            'ModernScreen': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.47393, 0.728, 83.68371],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+
+
             /**
              * SCÈNE 01 - POINT DE DÉPART
              * Introduction narrative avec Célia (narratrice)
@@ -106,7 +127,7 @@ class SceneObjectManager {
                 }],
                 defaultPlacement: {
                     position: [-6.7116, 0, 11.35076],
-                    rotation: [0, 179.5  + 53.97781, 0],
+                    rotation: [0, 179.5 + 53.97781, 0],
                     scale: [0.60463, 0.60463, 0.60463],
                     outlinePulse: false,
                 }
@@ -507,7 +528,7 @@ class SceneObjectManager {
                 }],
                 defaultPlacement: {
                     position: [55.10253, 0, -134.2177],
-                    rotation: [0,  135 + 58.43814, 0],
+                    rotation: [0, 135 + 58.43814, 0],
                     scale: [0.55, 0.55, 0.55],
                     outlinePulse: false,
                 }
@@ -586,6 +607,7 @@ class SceneObjectManager {
         // Renvoyer l'interaction actuelle
         return objectConfig.interaction[currentIndex];
     }
+
     getInteractiveObjectInterfaces() {
         const interfaces = {};
 
@@ -623,7 +645,7 @@ class SceneObjectManager {
         console.log('*** Exécution de handleThirdStopCompletion ***');
 
         // Trouver l'emplacement de MultipleLeaf avec plus de détails de débogage
-        const leafPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
+        const leafPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
         console.log('Placements MultipleLeaf trouvés:', leafPlacements);
 
         if (leafPlacements && leafPlacements.length > 0) {
@@ -672,7 +694,7 @@ class SceneObjectManager {
             console.log('Résultat de la mise à jour:', updateResult);
 
             // Vérifier si la mise à jour a fonctionné en récupérant à nouveau le placement
-            const updatedPlacements = this.getPlacements({ objectKey: 'MultipleLeaf' });
+            const updatedPlacements = this.getPlacements({objectKey: 'MultipleLeaf'});
             if (updatedPlacements && updatedPlacements.length > 0) {
                 console.log('Nouvelle position après mise à jour:', updatedPlacements[0].position);
             }
@@ -687,6 +709,7 @@ class SceneObjectManager {
             console.warn('Objet MultipleLeaf non trouvé lors de la complétion de thirdStop');
         }
     }
+
     // Méthode simplifiée pour gérer les cas où on ne veut pas de transition
     getChapterDistance(stepId) {
         const placements = this.getInteractivePlacements({requiredStep: stepId});
@@ -924,7 +947,6 @@ class SceneObjectManager {
             }
         });
     }
-
 
 
     // Ajouter un nouvel objet au catalogue
@@ -1192,6 +1214,7 @@ class SceneObjectManager {
             return null;
         }
     }
+
     // Appliquer les textures à un objet
     /**
      * Applique les textures à un objet, avec un traitement spécial pour le terrain
@@ -1217,6 +1240,7 @@ class SceneObjectManager {
             await textureManager.applyTexturesToModel(modelId, modelObject);
         }
     }
+
     // Récupérer tous les placements
     getAllPlacements() {
         return this.placements;
@@ -1256,7 +1280,6 @@ class SceneObjectManager {
             return true;
         });
     }
-
 
 
     // Récupérer uniquement les placements d'objets interactifs
