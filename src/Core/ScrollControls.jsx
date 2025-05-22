@@ -5,7 +5,6 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {EventBus, MARKER_EVENTS} from "../Utils/EventEmitter.jsx";
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 import {CameraAnimatorGLB} from './CameraAnimatorGLB';
-import * as THREE from 'three';
 
 const getChaptersWithDistances = () => {
     return [{
@@ -46,10 +45,10 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.1;
-const DECELERATION = 0.85;
+const MAX_SCROLL_SPEED = 0.01;
+const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.001;
-const BASE_SENSITIVITY = 0.001;
+const BASE_SENSITIVITY = 0.01;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 // Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
@@ -102,8 +101,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 1; // 98% du scroll considéré comme fin
-    const triggeredInteractionsSet = useRef(new Set());
+    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -117,8 +115,7 @@ function CameraController({children}) {
     const setWaitingForInteraction = useStore(state => state.interaction?.setWaitingForInteraction);
     const setCurrentStep = useStore(state => state.interaction?.setCurrentStep);
     const setInteractionTarget = useStore(state => state.interaction?.setInteractionTarget);
-    const [initAttempts, setInitAttempts] = useState(0);
-    const maxInitAttempts = 5;
+
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
@@ -153,94 +150,34 @@ function CameraController({children}) {
         };
     }, [cameraModel]);
 
-    // Ajoutez ce useEffect dans le composant CameraController
-    useEffect(() => {
-        // Gérer l'achèvement d'une interaction DISABLE
-        const handleDisableInteractionComplete = (data) => {
-            if (data.type !== 'disable') return;
-
-            console.log(`[ScrollControls] Interaction DISABLE complétée: ${data.id}`);
-
-            // Récupérer l'étape associée à cette interaction
-            const stepId = data.id.split('-')[0]; // Extraire l'ID de l'étape du markerId
-
-            // Récupérer la distance à déplacer après cette interaction
-            const distanceToMove = sceneObjectManager.getChapterDistance(stepId);
-
-            // Si aucune distance n'est spécifiée, simplement réactiver le scroll
-            if (distanceToMove === 0 || distanceToMove === "none" || distanceToMove === undefined) {
-                console.log(`[ScrollControls] Pas de transition après l'interaction DISABLE ${stepId}`);
-
-                // Réactiver le défilement
-                setTimeout(() => {
-                    if (setAllowScroll) {
-                        setAllowScroll(true);
-                    }
-                }, 500);
-
-                return;
-            }
-
-            // Calculer la position cible
-            const currentPosition = timelinePositionRef.current;
-            const targetPosition = currentPosition + distanceToMove;
-
-            console.log(`[ScrollControls] Avancement après DISABLE: ${distanceToMove}, cible: ${targetPosition}`);
-
-            // Effectuer la transition
-            smoothJumpTo(targetPosition);
-
-            // Notifier les autres composants
-            EventBus.trigger('post-interaction-advancement', {
-                startPosition: currentPosition,
-                distance: distanceToMove,
-                targetPosition: targetPosition,
-                stepId: stepId,
-                interactionType: 'disable'
-            });
-        };
-
-        // Créer un écouteur pour cet événement spécifique
-        const disableInteractionCompleteSubscription = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleDisableInteractionComplete);
-
-        return () => {
-            disableInteractionCompleteSubscription();
-        };
-    }, []);
-
     // Initialiser l'animateur de caméra GLB
     const initializeGLBAnimator = (model) => {
         if (!model || glbInitializedRef.current) return;
 
-        console.log('ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle:',
-            model.scene ? 'Format {scene, animations}' : 'Format direct');
+        // console.log('Initialisation de CameraAnimatorGLB avec le modèle:', model);
 
         try {
-            // CORRECTION: Vérifier que nous avons un modèle valide
-            let validModel = model;
+            // CORRECTION: Vérifier si le format du modèle est nouveau {scene, animations}
+            // ou ancien (direct)
+            if (model.scene && Array.isArray(model.animations)) {
+                // console.log('Détection du nouveau format de modèle avec animations:',
+                //     model.animations.length);
 
-            // Si le modèle n'a pas de structure attendue, créer un modèle minimal
-            if (!model.scene && !model.animations) {
-                console.warn("ScrollControls: Modèle dans un format inattendu, création d'un wrapper");
-                validModel = {
-                    scene: model.scene || model || new THREE.Group(),
-                    animations: model.animations || []
-                };
+                // Créer l'animateur GLB avec le modèle complet
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
+            } else {
+                // console.log('Utilisation du format standard du modèle');
+                // Ancienne méthode
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
             }
-
-            // Créer l'animateur GLB avec le modèle
-            cameraAnimatorRef.current = new CameraAnimatorGLB(validModel, camera, 'Action.004');
 
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
                 timelineLengthRef.current = cameraAnimatorRef.current.getLength();
-                console.log(`ScrollControls: Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
+                // console.log(`Animateur GLB initialisé avec succès, longueur: ${timelineLengthRef.current}`);
             } else {
-                console.warn("ScrollControls: Animateur GLB initialisé, mais la longueur de timeline est 0. Utilisation d'une valeur par défaut.");
-                timelineLengthRef.current = 52.08; // Valeur par défaut d'après les logs
-
-                // Forcer une longueur de timeline dans l'animateur
-                cameraAnimatorRef.current.timelineLength = timelineLengthRef.current;
+                // console.warn("Animateur GLB initialisé, mais la longueur de timeline est 0. Vérifier les animations.");
+                timelineLengthRef.current = 30; // Valeur par défaut de 30 secondes
             }
 
             // Déterminer la position de départ
@@ -248,9 +185,7 @@ function CameraController({children}) {
             timelinePositionRef.current = startChapterPosition;
             cameraAnimatorRef.current.setPosition(startChapterPosition);
 
-            useStore.getState().setTimelinePosition(startChapterPosition);
-            useStore.getState().setSequenceLength(startChapterPosition);
-            // Exposer les fonctions globalement
+            // Exposer la fonction jumpToChapter globalement
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
             window.doJumpToChapter = doJumpToChapter;
@@ -258,6 +193,7 @@ function CameraController({children}) {
 
             // Créer l'interface de progression
             if (!debug) {
+
                 createProgressUI();
             }
 
@@ -267,120 +203,25 @@ function CameraController({children}) {
             // Marquer comme initialisé
             glbInitializedRef.current = true;
 
-            // Informer les autres composants
+            // Informer les autres composants que l'animateur est prêt
             EventBus.trigger('camera-animator-ready', {
                 animator: cameraAnimatorRef.current
             });
         } catch (error) {
-            console.error('ScrollControls: Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
-
-            // Même en cas d'erreur, créer un animateur minimal
-            if (!glbInitializedRef.current) {
-                console.warn("ScrollControls: Création d'un animateur minimal suite à une erreur");
-
-                // Modèle minimal en cas d'échec
-                const fallbackModel = {
-                    scene: new THREE.Group(),
-                    animations: [{
-                        name: 'Action.004',
-                        duration: 52.08,
-                        tracks: []
-                    }]
-                };
-
-                try {
-                    // Nouvelle tentative avec le modèle minimal
-                    cameraAnimatorRef.current = new CameraAnimatorGLB(fallbackModel, camera, 'Action.004');
-                    timelineLengthRef.current = 52.08;
-
-                    // Initialiser les éléments d'interface
-                    if (!debug) {
-                        createProgressUI();
-                    }
-
-                    setupScrollHandlers();
-                    glbInitializedRef.current = true;
-
-                    EventBus.trigger('camera-animator-fallback-ready', {
-                        animator: cameraAnimatorRef.current,
-                        reason: 'error-recovery'
-                    });
-                } catch (fallbackError) {
-                    console.error('ScrollControls: Échec critique de l\'initialisation de la caméra:', fallbackError);
-                }
-            }
+            console.error('Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
         }
     };
 
     // Initialiser l'animateur dès que la caméra ou le modèle est disponible
     useEffect(() => {
-        // Si déjà initialisé, ne rien faire
-        if (glbInitializedRef.current) {
-            return;
-        }
-
-        // S'il y a une caméra et un modèle, initialiser normalement
-        if (camera && cameraModel) {
-            console.log("ScrollControls: Initialisation de CameraAnimatorGLB avec le modèle disponible");
+        if (camera && cameraModel && !glbInitializedRef.current) {
             initializeGLBAnimator(cameraModel);
         }
-        // Sinon, après plusieurs tentatives, créer une caméra "factice"
-        else if (camera && initAttempts >= maxInitAttempts) {
-            console.warn("ScrollControls: Aucun modèle de caméra disponible après plusieurs tentatives, création d'un animateur de secours");
 
-            // Créer un modèle minimal pour l'animation
-            const fallbackModel = {
-                scene: new THREE.Group(),
-                animations: [{
-                    name: 'Action.004',
-                    duration: 52.08, // Durée typique d'après les logs
-                    tracks: []
-                }]
-            };
-
-            // Initialiser avec le modèle de secours
-            console.log("ScrollControls: Initialisation avec modèle de secours");
-            initializeGLBAnimator(fallbackModel);
-
-            // Informer les autres composants
-            EventBus.trigger('camera-animator-fallback-created', {
-                reason: 'no-model-available',
-                fallbackUsed: true
-            });
-        }
-        // Incrémenter le compteur de tentatives et réessayer plus tard
-        else {
-            const newAttemptCount = initAttempts + 1;
-            setInitAttempts(newAttemptCount);
-
-            // Afficher un message uniquement lors des premières tentatives
-            if (newAttemptCount <= 3) {
-                console.log(`ScrollControls: Tentative ${newAttemptCount}/${maxInitAttempts} d'initialisation de CameraAnimatorGLB - en attente du modèle`);
-            }
-
-            // Réessayer après un délai
-            const timer = setTimeout(() => {
-                if (camera && !glbInitializedRef.current) {
-                    // Vérifier à nouveau si le modèle est disponible via window.assetManager
-                    if (window.assetManager && typeof window.assetManager.getItem === 'function') {
-                        const cameraModelFromManager = window.assetManager.getItem('Camera');
-                        if (cameraModelFromManager) {
-                            console.log("ScrollControls: Modèle récupéré depuis AssetManager");
-                            initializeGLBAnimator(cameraModelFromManager);
-                            return;
-                        }
-                    }
-
-                    // Si toujours pas de modèle et c'est la dernière tentative
-                    if (newAttemptCount >= maxInitAttempts) {
-                        console.warn("ScrollControls: Échec d'obtention du modèle de caméra, utilisation du modèle de secours");
-                    }
-                }
-            }, 1000);
-
-            return () => clearTimeout(timer);
-        }
-    }, [camera, cameraModel, initAttempts]);
+        return () => {
+            cleanupUI();
+        };
+    }, [camera, cameraModel]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
@@ -419,11 +260,11 @@ function CameraController({children}) {
     useEffect(() => {
         // Fonction pour gérer les événements d'interaction complète
         const handleInteractionComplete = (data) => {
-            console.log('[EventListener] Interaction complète reçue:', data);
+            // console.log('[EventListener] Interaction complète reçue:', data);
 
             // Vérifier si une interface doit être affichée
             if (data.interfaceToShow) {
-                console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
+                // console.log(`[EventListener] Interface à afficher: ${data.interfaceToShow}`);
 
                 // Obtenir une référence fraîche au store
                 const store = useStore.getState();
@@ -432,19 +273,19 @@ function CameraController({children}) {
                 switch (data.interfaceToShow) {
                     case 'scanner':
                         if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface scanner');
+                            // console.log('[EventListener] Affichage de l\'interface scanner');
                             store.interaction.setShowScannerInterface(true);
                         }
                         break;
                     case 'capture':
                         if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface capture');
+                            // console.log('[EventListener] Affichage de l\'interface capture');
                             store.interaction.setShowCaptureInterface(true);
                         }
                         break;
                     case 'blackScreen':
                         if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
-                            console.log('[EventListener] Affichage de l\'interface blackScreen');
+                            // console.log('[EventListener] Affichage de l\'interface blackScreen');
                             store.interaction.setShowBlackscreenInterface(true);
                         }
                         break;
@@ -463,234 +304,6 @@ function CameraController({children}) {
         };
     }, []);
 
-// Add this function to the CameraController component in ScrollControls.jsx
-// This function provides a comprehensive approach to find and animate the VisonRun object
-
-    const findAndAnimateVisonRun = () => {
-        console.log('Starting comprehensive search for VisonRun object');
-
-        // Array of possible object identifiers to search for
-        const possibleIdentifiers = [
-            'VisonRun',
-            'AnimalVisonRun',
-            'Retopo_Vison_(Copy)',
-            'Vison_Run',
-            'Vison'
-        ];
-
-        // Track if we found and successfully animated the object
-        let animationStarted = false;
-
-        // First attempt: search for objects with matching names or userdata
-        possibleIdentifiers.forEach(identifier => {
-            if (animationStarted) return; // Skip if already found
-
-            scene.traverse((object) => {
-                if (animationStarted) return; // Skip if already found
-
-                // Check if this object matches any of our identifiers
-                const nameMatches = object.name === identifier ||
-                    (object.name && object.name.includes(identifier));
-                const userDataMatches = object.userData &&
-                    (object.userData.objectKey === identifier ||
-                        object.userData.id === identifier);
-
-                if (nameMatches || userDataMatches) {
-                    console.log(`Found potential VisonRun object by identifier "${identifier}":`, object);
-
-                    if (tryPlayAnimation(object)) {
-                        console.log(`Successfully started animation on object found via identifier "${identifier}"`);
-                        animationStarted = true;
-                    }
-                }
-            });
-        });
-
-        // Second attempt: search by position that matches the expected placement
-        if (!animationStarted) {
-            const expectedPosition = [-43.22722, 0.85657, -117.16203]; // From SceneObjectManager
-            const positionTolerance = 0.5; // Allow some variance in position
-
-            scene.traverse((object) => {
-                if (animationStarted) return;
-
-                // Skip objects without position
-                if (!object.position) return;
-
-                // Check if position is close to expected
-                const isCloseToExpectedPosition =
-                    Math.abs(object.position.x - expectedPosition[0]) < positionTolerance &&
-                    Math.abs(object.position.y - expectedPosition[1]) < positionTolerance &&
-                    Math.abs(object.position.z - expectedPosition[2]) < positionTolerance;
-
-                if (isCloseToExpectedPosition) {
-                    console.log('Found potential VisonRun object by position match:', object);
-
-                    if (tryPlayAnimation(object)) {
-                        console.log('Successfully started animation on object found via position');
-                        animationStarted = true;
-                    }
-                }
-            });
-        }
-
-        // Third attempt: search for any object with animations that have "run" in their name
-        if (!animationStarted) {
-            scene.traverse((object) => {
-                if (animationStarted) return;
-
-                if (object.animations && object.animations.length > 0) {
-                    const hasRunAnimation = object.animations.some(anim =>
-                        anim.name.toLowerCase().includes('run'));
-
-                    // Also check if the object itself has "vison" in its name or userData
-                    const mightBeVison =
-                        (object.name && object.name.toLowerCase().includes('vison')) ||
-                        (object.userData && object.userData.objectKey &&
-                            object.userData.objectKey.toLowerCase().includes('vison'));
-
-                    if (hasRunAnimation || mightBeVison) {
-                        console.log('Found potential VisonRun object by animation or name pattern:', object);
-
-                        if (tryPlayAnimation(object)) {
-                            console.log('Successfully started animation on object found via animation/name pattern');
-                            animationStarted = true;
-                        }
-                    }
-                }
-            });
-        }
-
-        // Helper function to try playing animation on an object
-        function tryPlayAnimation(object) {
-            // Skip objects that don't have or can't have animations
-            if (!object.isObject3D) return false;
-
-            try {
-                // Ensure the object is visible
-                object.visible = true;
-
-                // Case 1: Object already has a mixer
-                if (object.mixer) {
-                    console.log('Object has existing mixer, using it');
-                    const animations = object.animations || [];
-
-                    if (animations.length > 0) {
-                        // Find a run animation or use the first one
-                        const runClip = animations.find(a => a.name.toLowerCase().includes('run')) || animations[0];
-                        const action = object.mixer.clipAction(runClip);
-
-                        action.loop = THREE.LoopRepeat;
-                        action.timeScale = 1.5;
-                        action.reset().play();
-
-                        object.userData.animationActive = true;
-                        return true;
-                    }
-                }
-                // Case 2: Object has animations but no mixer
-                else if (object.animations && object.animations.length > 0) {
-                    console.log('Creating new mixer for object with animations');
-                    object.mixer = new THREE.AnimationMixer(object);
-
-                    const runClip = object.animations.find(a => a.name.toLowerCase().includes('run')) || object.animations[0];
-                    const action = object.mixer.clipAction(runClip);
-
-                    action.loop = THREE.LoopRepeat;
-                    action.timeScale = 1.5;
-                    action.reset().play();
-
-                    object.userData.animationActive = true;
-                    return true;
-                }
-                // Case 3: Try using EventBus as last resort
-                else {
-                    console.log('No direct animations found, attempting EventBus trigger');
-
-                    // Store reference to successfully animated object
-                    window._visonRunObject = object;
-
-                    // Try triggering animation via EventBus with both VisonRun and object's actual name
-                    EventBus.trigger('play-object-animation', {
-                        objectKey: 'VisonRun',
-                        animationName: 'animation_0'
-                    });
-
-                    if (object.name) {
-                        EventBus.trigger('play-object-animation', {
-                            objectKey: object.name,
-                            animationName: 'animation_0'
-                        });
-                    }
-
-                    return true; // Assume EventBus will handle it
-                }
-            } catch (error) {
-                console.error('Error attempting to animate object:', error);
-                return false;
-            }
-
-            return false;
-        }
-
-        // If we couldn't animate anything, log diagnostic info
-        if (!animationStarted) {
-            console.error('Failed to find and animate VisonRun object. Diagnostic info:');
-
-            // List all objects with "vison" in name for debugging
-            const visonObjects = [];
-            scene.traverse((object) => {
-                if (object.name && object.name.toLowerCase().includes('vison')) {
-                    visonObjects.push({
-                        name: object.name,
-                        type: object.type,
-                        position: object.position ? object.position.toArray() : null,
-                        hasAnimations: !!(object.animations && object.animations.length > 0)
-                    });
-                }
-            });
-
-            console.log('Vison-related objects in scene:', visonObjects);
-
-            // List all objects with animations
-            const objectsWithAnimations = [];
-            scene.traverse((object) => {
-                if (object.animations && object.animations.length > 0) {
-                    objectsWithAnimations.push({
-                        name: object.name,
-                        type: object.type,
-                        position: object.position ? object.position.toArray() : null,
-                        animationCount: object.animations.length,
-                        animationNames: object.animations.map(a => a.name)
-                    });
-                }
-            });
-
-            console.log('Objects with animations in scene:', objectsWithAnimations);
-
-            // As a last resort, try animation via SceneObjectManager
-            try {
-                // Find the VisonRun object by its path
-                const visonRunConfig = sceneObjectManager.getObjectFromCatalog('VisonRun');
-                if (visonRunConfig) {
-                    console.log('Found VisonRun in SceneObjectManager:', visonRunConfig);
-
-                    EventBus.trigger('play-object-animation', {
-                        objectKey: 'VisonRun',
-                        animationName: 'animation_0'
-                    });
-
-                    animationStarted = true;
-                }
-            } catch (managerError) {
-                console.error('Error attempting SceneObjectManager approach:', managerError);
-            }
-        }
-
-        return animationStarted;
-    };
-
-
     // Fonction pour vérifier les déclencheurs d'interaction
     const checkInteractionTriggers = (position) => {
         // Variable pour stocker l'interaction déclenchée
@@ -700,53 +313,22 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 2.8;
+        const TRIGGER_PROXIMITY = 5.0;
+
+        // console.log("Current completed interactions:", completedInteractions);
+        // console.log("Current interactions:", interactions);
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
             // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
             if (interaction.objectKey === 'AnimalPaws') {
-                const multipleLeafCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('MultipleLeaf'));
+                const leafErableCompleted = Object.keys(completedInteractions).some(key => key.includes('thirdStop') || key.includes('LeafErable'));
 
-                if (!multipleLeafCompleted) {
-                    return false;
-                }
-            }
-            // Cas spécifique pour JumpRock2
-            if (interaction.objectKey === 'JumpRock2') {
-                const rock1Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('eleventhStop') ||
-                    key.includes('JumpRock1')
-                );
-
-                if (!rock1Completed) {
+                if (!leafErableCompleted) {
                     return false;
                 }
             }
 
-            // Cas spécifique pour JumpRock3
-            if (interaction.objectKey === 'JumpRock3') {
-                const rock2Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('twelfthStop') ||
-                    key.includes('JumpRock2')
-                );
-
-                if (!rock2Completed) {
-                    return false;
-                }
-            }
-
-            // Cas spécifique pour JumpRock4
-            if (interaction.objectKey === 'JumpRock4') {
-                const rock3Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirteenthStop') ||
-                    key.includes('JumpRock3')
-                );
-
-                if (!rock3Completed) {
-                    return false;
-                }
-            }
             // Vérification générique des prérequis basée sur la configuration des objets
             const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
 
@@ -764,6 +346,7 @@ function CameraController({children}) {
 
                     // Si l'interaction précédente n'a pas été complétée, ignorer cette interaction
                     if (!previousStepCompleted) {
+                        // console.log(`Interaction ${interaction.id} ignorée car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
                         return false;
                     }
                 }
@@ -773,14 +356,13 @@ function CameraController({children}) {
             return true;
         };
 
+        // console.log("liste des interactions:", interactions);
         interactions.forEach(interaction => {
             // Ignorer les interactions déjà complétées
             if (!interaction.isActive || completedInteractions[interaction.id]) {
                 return;
             }
-            if (triggeredInteractionsSet.current.has(interaction.id)) {
-                return;
-            }
+
             // Vérifier les prérequis avant de procéder
             if (!checkInteractionPrerequisites(interaction)) {
                 return;
@@ -795,8 +377,6 @@ function CameraController({children}) {
             if (distance < TRIGGER_PROXIMITY && allowScroll && !chapterTransitioning) {
                 // Stocker l'interaction déclenchée pour le log
                 triggeredInteraction = interaction;
-
-                triggeredInteractionsSet.current.add(interaction.id);
 
                 // Récupérer l'objet associé à cette interaction
                 const relatedObjectKey = interaction.objectKey;
@@ -830,147 +410,20 @@ function CameraController({children}) {
 
                 // Mettre à jour l'état local
                 setInteractionStatus(prev => ({...prev, [interaction.id]: 'waiting'}));
-                if (interaction.id === 'fourthStop') {
-                    console.log('fourthStop interaction triggered - playing vison run animation');
-
-                    // Use our comprehensive search and animation function
-                    const animationStarted = findAndAnimateVisonRun();
-
-                    if (!animationStarted) {
-                        console.warn('Failed to find and animate VisonRun object. Trying fallback method...');
-
-                        // Fallback to direct EventBus trigger
-                        EventBus.trigger('play-object-animation', {
-                            objectKey: 'VisonRun',
-                            animationName: 'animation_0'
-                        });
-
-                        // Also try to notify SceneObjectManager directly
-                        setTimeout(() => {
-                            EventBus.trigger('animate-model', {
-                                objectKey: 'VisonRun',
-                                animationName: 'animation_0',
-                                loop: true,
-                                timeScale: 1.5
-                            });
-                        }, 100);
-                    }
-                }
-
-                // NOUVEAU: Émettre un événement d'interaction détectée pour déclencher la narration automatiquement
-                EventBus.trigger('interaction:detected', {
-                    requiredStep: interaction.id,
-                    objectKey: relatedObjectKey,
-                    position: position,
-                    distance: distance,
-                    type: 'auto-detected'
-                });
             }
-            setTimeout(() => {
-                triggeredInteractionsSet.current.delete(interaction.id);
-            }, 1000);
         });
 
         // Afficher le log uniquement si une interaction est déclenchée
         if (triggeredInteraction) {
-            console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
-            console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
-            console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
-            console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
+            // console.log(`==== INTERACTION DÉCLENCHÉE: ${triggeredInteraction.id} ====`);
+            // console.log(`Position caméra: x=${position.x.toFixed(2)}, z=${position.z.toFixed(2)}`);
+            // console.log(`Point de déclenchement: x=${triggeredInteraction.triggers.x}, z=${triggeredInteraction.triggers.z}`);
+            // console.log(`Distance: ${Math.sqrt(Math.pow(position.x - triggeredInteraction.triggers.x, 2) + Math.pow(position.z - triggeredInteraction.triggers.z, 2)).toFixed(2)} unités`);
 
             // Mettre à jour le chapitre actuel en fonction de l'interaction
             updateCurrentChapter();
         }
     };
-
-
-    useEffect(() => {
-        // Handler for animation requests
-        const handleAnimateModel = (data) => {
-            if (!data || !data.objectKey) return;
-
-            console.log(`Model animation request received for: ${data.objectKey}`, data);
-
-            // Find the object in SceneObjectManager
-            const objectConfig = sceneObjectManager.getObjectFromCatalog(data.objectKey);
-            if (!objectConfig) {
-                console.warn(`Object ${data.objectKey} not found in SceneObjectManager`);
-                return;
-            }
-
-            console.log(`Found object config in SceneObjectManager:`, objectConfig);
-
-            // Find all placements for this object
-            const placements = sceneObjectManager.getPlacements({ objectKey: data.objectKey });
-            if (!placements || placements.length === 0) {
-                console.warn(`No placements found for ${data.objectKey}`);
-                return;
-            }
-
-            console.log(`Found ${placements.length} placements for ${data.objectKey}`);
-
-            // Try to find the object in the scene based on placement positions
-            let found = false;
-            placements.forEach(placement => {
-                const position = placement.position;
-
-                scene.traverse((object) => {
-                    if (found) return;
-
-                    // Check if position matches approximately
-                    const positionMatches =
-                        object.position &&
-                        Math.abs(object.position.x - position[0]) < 1 &&
-                        Math.abs(object.position.y - position[1]) < 1 &&
-                        Math.abs(object.position.z - position[2]) < 1;
-
-                    if (positionMatches) {
-                        console.log(`Found ${data.objectKey} in scene by position match:`, object);
-
-                        // If it has no mixer, create one
-                        if (!object.mixer) {
-                            object.mixer = new THREE.AnimationMixer(object);
-                        }
-
-                        // Find animations
-                        const animations = object.animations || [];
-                        if (animations.length > 0) {
-                            const animClip = animations.find(a => a.name === data.animationName) || animations[0];
-                            const action = object.mixer.clipAction(animClip);
-
-                            // Apply parameters
-                            if (data.loop !== undefined) {
-                                action.loop = data.loop ? THREE.LoopRepeat : THREE.LoopOnce;
-                            }
-
-                            if (data.timeScale !== undefined) {
-                                action.timeScale = data.timeScale;
-                            }
-
-                            action.reset().play();
-                            found = true;
-
-                            console.log(`Started animation ${animClip.name} on ${data.objectKey}`);
-                        } else {
-                            console.warn(`Object found but has no animations:`, object);
-                        }
-                    }
-                });
-            });
-
-            if (!found) {
-                console.warn(`Could not find ${data.objectKey} in scene for animation`);
-            }
-        };
-
-        // Subscribe to animation events
-        const animateModelSubscription = EventBus.on('animate-model', handleAnimateModel);
-
-        // Clean up subscription
-        return () => {
-            animateModelSubscription();
-        };
-    }, [scene]);
 
     // Trouver le chapitre actuel en fonction de la position
     const updateCurrentChapter = () => {
@@ -1023,187 +476,7 @@ function CameraController({children}) {
         };
     }, []);
 
-    // Add this useEffect to the CameraController component in ScrollControls.jsx
-    useEffect(() => {
-        // Handler for animation play requests
-        const handlePlayAnimation = (data) => {
-            if (!data || !data.objectKey) return;
 
-            console.log(`Animation play request received for: ${data.objectKey}`, data);
-
-            // Find the object in the scene
-            let targetObject = null;
-            scene.traverse((object) => {
-                if (object.name === data.objectKey ||
-                    (object.userData && object.userData.objectKey === data.objectKey)) {
-                    targetObject = object;
-                }
-            });
-
-            if (!targetObject) {
-                console.warn(`Object ${data.objectKey} not found in scene for animation`);
-                return;
-            }
-
-            console.log(`Found object for animation: ${targetObject.name || 'unnamed'}`);
-
-            // Check if object has animations
-            if (targetObject.animations && targetObject.animations.length > 0) {
-                // If the object has animations, create a mixer if it doesn't exist
-                if (!targetObject.mixer) {
-                    targetObject.mixer = new THREE.AnimationMixer(targetObject);
-                }
-
-                // Find the animation clip
-                let clip = null;
-                if (data.animationName) {
-                    // Find by name
-                    clip = targetObject.animations.find(a => a.name === data.animationName);
-                }
-
-                // If not found by name or no name specified, use the first one
-                if (!clip && targetObject.animations.length > 0) {
-                    clip = targetObject.animations[0];
-                }
-
-                if (clip) {
-                    const action = targetObject.mixer.clipAction(clip);
-
-                    // Configure the action
-                    if (data.loop !== undefined) {
-                        action.loop = data.loop ? THREE.LoopRepeat : THREE.LoopOnce;
-                    }
-
-                    if (data.timeScale !== undefined) {
-                        action.timeScale = data.timeScale;
-                    }
-
-                    // Play the animation
-                    action.reset().play();
-                    console.log(`Playing animation: ${clip.name}`);
-
-                    // Store the active animation in userData for reference
-                    targetObject.userData.activeAnimation = {
-                        clipName: clip.name,
-                        action: action
-                    };
-                } else {
-                    console.warn(`No animation clip found for ${data.objectKey}`);
-                }
-            } else {
-                console.warn(`Object ${data.objectKey} has no animations`);
-            }
-        };
-
-        // Subscribe to animation play events
-        const playAnimationSubscription = EventBus.on('play-animation', handlePlayAnimation);
-        const playObjectAnimationSubscription = EventBus.on('play-object-animation', handlePlayAnimation);
-
-        // Clean up subscriptions
-        return () => {
-            playAnimationSubscription();
-            playObjectAnimationSubscription();
-        };
-    }, [scene]);
-
-
-    // Add this function to the CameraController component
-    const playAnimalVisonRunAnimation = () => {
-        console.log('Attempting to play AnimalVisonRun animation directly');
-
-        // Find the AnimalVisonRun object in the scene
-        let AnimalVisonRunObject = null;
-        scene.traverse((object) => {
-            // Check both by name and userData for maximum coverage
-            if (object.name === 'Retopo_Vison_(Copy)' ||
-                (object.userData && object.userData.objectKey === 'Retopo_Vison_(Copy)')) {
-                AnimalVisonRunObject = object;
-                console.log('Found AnimalVisonRun object:', object);
-            }
-        });
-
-        if (!AnimalVisonRunObject) {
-            console.warn('AnimalVisonRun object not found in scene, trying to locate by model type');
-
-            // Try a broader search by looking for objects with animations
-            scene.traverse((object) => {
-                if (object.animations && object.animations.length > 0) {
-                    // Check if any animation name matches the expected pattern
-                    const hasRunAnimation = object.animations.some(anim =>
-                        anim.name.toLowerCase().includes('run'));
-
-                    if (hasRunAnimation) {
-                        AnimalVisonRunObject = object;
-                        console.log('Found possible AnimalVisonRun object by animation:', object);
-                    }
-                }
-            });
-        }
-
-        if (AnimalVisonRunObject) {
-            // Create an animation mixer if it doesn't exist
-            if (!AnimalVisonRunObject.mixer) {
-                AnimalVisonRunObject.mixer = new THREE.AnimationMixer(AnimalVisonRunObject);
-            }
-
-            // Get animations
-            const animations = AnimalVisonRunObject.animations || [];
-            if (animations.length > 0) {
-                console.log('Available animations:', animations.map(a => a.name));
-
-                // Try to find a run animation
-                let runClip = animations.find(a => a.name.toLowerCase().includes('run'));
-
-                // If no specific run animation, use the first one
-                if (!runClip) {
-                    runClip = animations[0];
-                }
-
-                const action = AnimalVisonRunObject.mixer.clipAction(runClip);
-
-                // Configure the action based on SceneObjectManager settings
-                action.loop = THREE.LoopRepeat;
-                action.timeScale = 1.5; // Use the same timeScale as in SceneObjectManager
-
-                // Play the animation
-                action.reset().play();
-                console.log('Started AnimalVisonRun animation:', runClip.name);
-
-                // Make sure the object is visible
-                AnimalVisonRunObject.visible = true;
-
-                // Mark the animation as active in userData
-                AnimalVisonRunObject.userData.animationActive = true;
-
-                return true;
-            } else {
-                console.warn('AnimalVisonRun object has no animations');
-            }
-        } else {
-            console.error('Could not find AnimalVisonRun object in scene after extensive search');
-        }
-
-        return false;
-    };
-
-// Add this effect to listen for fourthStop specifically
-    useEffect(() => {
-        // Handler for the fourthStop detected event
-        const handleFourthStopDetected = (data) => {
-            if (data.requiredStep === 'fourthStop') {
-                console.log('fourthStop specifically detected, playing AnimalVisonRun animation');
-                playAnimalVisonRunAnimation();
-            }
-        };
-
-        // Subscribe to the interaction:detected event
-        const interactionDetectedSubscription = EventBus.on('interaction:detected', handleFourthStopDetected);
-
-        // Clean up subscription
-        return () => {
-            interactionDetectedSubscription();
-        };
-    }, [scene]);
     useEffect(() => {
         // Function that will be called when an interaction is completed
         const handleInteractionComplete = (data) => {
@@ -1276,8 +549,6 @@ function CameraController({children}) {
             interactionCompleteSubscription1();
             interactionCompleteSubscription2();
             interactionCompleteSubscription3();
-            triggeredInteractionsSet.current.clear();
-
         };
     }, []);
 
@@ -1381,6 +652,7 @@ function CameraController({children}) {
 
         // Restaurer la position initiale de la timeline
         timelinePositionRef.current = currentTimelinePos;
+
         // Maintenant nous avons les positions de départ et d'arrivée
         const endPosition = targetCameraState.position;
         const endRotation = targetCameraState.rotation;
@@ -1422,8 +694,6 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
-                useStore.getState().setTimelinePosition(targetPosition);
-                useStore.getState().setSequenceLength(targetPosition);
                 finishCurrentTransition();
                 return;
             }
@@ -1460,8 +730,6 @@ function CameraController({children}) {
                 timelinePositionRef.current = targetPosition;
                 cameraAnimatorRef.current.setPosition(targetPosition);
 
-                useStore.getState().setTimelinePosition(targetPosition);
-                useStore.getState().setSequenceLength(targetPosition);
                 // Notifier la fin de transition
                 EventBus.trigger('distance-transition-complete', {
                     finalPosition: targetPosition
@@ -1525,74 +793,6 @@ function CameraController({children}) {
         }
     };
 
-    const checkDisableInteractions = (cameraPosition) => {
-        // Récupérer la liste des interactions complétées
-        const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-
-        // Ne pas vérifier les interactions DISABLE si nous sommes en transition
-        if (chapterTransitioning || isTransitioningRef.current) return;
-
-        // Parcourir les interactions pour trouver des points d'interaction DISABLE à proximité
-        interactions.forEach(interaction => {
-            // Ignorer les interactions déjà complétées
-            if (!interaction.isActive || completedInteractions[interaction.id]) {
-                return;
-            }
-
-            // Vérifier si cette interaction est de type DISABLE
-            const placement = sceneObjectManager.getPlacements({
-                objectKey: interaction.objectKey,
-                requiredStep: interaction.id
-            })[0];
-
-            if (!placement) return;
-
-            // Vérifier le type d'interaction via l'objet du catalogue
-            const objectConfig = sceneObjectManager.getObjectFromCatalog(interaction.objectKey);
-            if (!objectConfig || !objectConfig.interaction) return;
-
-            // Vérifier si c'est une interaction DISABLE
-            let isDisableType = false;
-            let interactionConfig = null;
-
-            if (Array.isArray(objectConfig.interaction)) {
-                interactionConfig = objectConfig.interaction.find(int =>
-                    int.requiredStep === interaction.id && int.type === 'disable');
-                isDisableType = !!interactionConfig;
-            } else {
-                isDisableType = objectConfig.interaction.type === 'disable';
-                interactionConfig = isDisableType ? objectConfig.interaction : null;
-            }
-
-            if (!isDisableType) return;
-
-            // Calculer la distance euclidienne 2D entre la position actuelle et le point de déclenchement
-            const dx = cameraPosition.x - interaction.triggers.x;
-            const dz = cameraPosition.z - interaction.triggers.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-
-            // Distance de proximité pour les interactions DISABLE (peut être ajustée)
-            const DISABLE_PROXIMITY = 3.5;
-
-            // Si la caméra est proche d'un point d'interaction DISABLE et le scroll s'est arrêté
-            if (distance < DISABLE_PROXIMITY && !allowScroll) {
-                console.log(`[ScrollControls] Point d'interaction DISABLE détecté: ${interaction.id}`);
-
-                // Émettre un événement pour montrer le marqueur DISABLE
-                EventBus.trigger('disable-interaction:show', {
-                    id: interaction.id,
-                    requiredStep: interaction.id,
-                    objectKey: interaction.objectKey,
-                    position: {
-                        x: interaction.triggers.x,
-                        y: 0, // Hauteur par défaut
-                        z: interaction.triggers.z
-                    }
-                });
-            }
-        });
-    };
-
     function doJumpToChapter(distance) {
         // NOUVEAU: Sauvegarder l'état actuel avant toute opération
         const wasWaitingForInteraction = isWaitingForInteraction;
@@ -1647,10 +847,6 @@ function CameraController({children}) {
         // Vérifier les déclencheurs d'interaction
         checkInteractionTriggers(cameraPosition);
 
-        if (!allowScroll) {
-            checkDisableInteractions(cameraPosition);
-        }
-
         // 1. Calcul du mouvement - uniquement si le défilement est autorisé
         if (Math.abs(scrollVelocity.current) > MIN_VELOCITY && allowScroll && !chapterTransitioning) {
             // Mettre à jour la position basée sur la vélocité
@@ -1671,28 +867,47 @@ function CameraController({children}) {
 
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
-        console.log(`Position de la timeline: ${timelinePositionRef.current / timelineLengthRef.current})`);
-        const normalizedPosition = timelinePositionRef.current / timelineLengthRef.current;
-        EventBus.trigger('timeline-position-normalized', {
-            position: normalizedPosition,
-            rawPosition: timelinePositionRef.current,
-            totalLength: timelineLengthRef.current
-        });
+
         // Mettre à jour l'indicateur de progression
         updateProgressIndicator(timelinePositionRef.current);
-
-        const delta = 1/60; // Approximate delta time
-        scene.traverse((object) => {
-            if (object.mixer) {
-                object.mixer.update(delta);
-            }
-        });
 
         // Détection de la fin du scroll
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
+        // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
+        if (isNowAtEnd !== isAtEndOfScroll) {
+            setIsAtEndOfScroll(isNowAtEnd);
+        }
 
+        // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
+        if (isNowAtEnd && !hasTriggeredEndSwitch) {
+            // Basculer entre End et Screen à la fin du scroll
+            // Si on est sur End, passer à Screen
+            if (endGroupVisible && !screenGroupVisible) {
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+            }
+
+            setHasTriggeredEndSwitch(true);
+
+            // Réinitialiser le déclencheur après un délai
+            setTimeout(() => {
+                setHasTriggeredEndSwitch(false);
+            }, 3000);
+        }
     }, 'camera');
 
     // Fonction pour configurer les gestionnaires d'événements de défilement
@@ -1752,9 +967,6 @@ function CameraController({children}) {
             lastTouchY = currentY;
 
             const direction = Math.sign(deltaY);
-
-            if (direction < 0) return;
-
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
@@ -1769,8 +981,6 @@ function CameraController({children}) {
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
             setScrollDirection(direction);
-
-            if (direction < 0) return;
 
             let scrollMagnitude = Math.abs(normalizedDelta) * BASE_SENSITIVITY;
             const cappedMagnitude = Math.min(scrollMagnitude, MAX_SCROLL_SPEED);

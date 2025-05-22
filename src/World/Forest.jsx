@@ -536,7 +536,7 @@ export default function Forest() {
                 // Get the model
                 const model = objectModelsRef.current[objectId];
                 if (!model) {
-                    console.warn(`Model not found for ${objectId}`);
+                    // console.warn(`Model not found for ${objectId}`);
                     continue;
                 }
 

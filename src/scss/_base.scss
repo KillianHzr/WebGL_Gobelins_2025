@@ -23,3 +23,18 @@ canvas {
     cursor: grabbing;
   }
 }
+
+@mixin selection-colors($bg, $color) {
+  &::-moz-selection {
+    background-color: $bg;
+    color: $color;
+  }
+  &::selection {
+    background-color: $bg;
+    color: $color;
+  }
+}
+
+html {
+  @include selection-colors(#fff, #000);
+}

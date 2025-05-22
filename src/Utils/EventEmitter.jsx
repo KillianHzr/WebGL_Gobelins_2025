@@ -3,24 +3,20 @@ import React, {createContext, forwardRef, useContext, useImperativeHandle, useSt
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_EVENTS = false;
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_EVENTS) console.log(`[EventEmitter] ${message}`, ...args);
-};
 
 // Singleton pour stocker l'instance de l'EventEmitter
 // Initialisé immédiatement avec des méthodes de base pour éviter les "not initialized yet"
 let emitterInstance = {
     on: (eventName, callback) => {
-        debugLog('EventEmitter on() called before initialization, will be queued');
+        // debugLog('EventEmitter on() called before initialization, will be queued');
         queuedEvents.push({type: 'on', eventName, callback});
         return () => {
         };
     }, off: (eventName) => {
-        debugLog('EventEmitter off() called before initialization, will be queued');
+        // debugLog('EventEmitter off() called before initialization, will be queued');
         queuedEvents.push({type: 'off', eventName});
     }, trigger: (eventName, data) => {
-        debugLog('EventEmitter trigger() called before initialization, will be queued');
+        // debugLog('EventEmitter trigger() called before initialization, will be queued');
         queuedEvents.push({type: 'trigger', eventName, data});
     }
 };
@@ -121,12 +117,12 @@ const EventEmitter = forwardRef((props, ref) => {
     const on = (_names, callback) => {
         // Errors
         if (typeof _names === 'undefined' || _names === '') {
-            debugLog('wrong names');
+            // debugLog('wrong names');
             return false;
         }
 
         if (typeof callback === 'undefined') {
-            debugLog('wrong callback');
+            // debugLog('wrong callback');
             return false;
         }
 
@@ -145,7 +141,7 @@ const EventEmitter = forwardRef((props, ref) => {
             const name = resolveName(_name);
 
             if (!name) {
-                debugLog(`Invalid name in on(): ${_name}`);
+                // debugLog(`Invalid name in on(): ${_name}`);
                 return;
             }
 
@@ -181,7 +177,7 @@ const EventEmitter = forwardRef((props, ref) => {
     const off = (_names) => {
         // Errors
         if (typeof _names === 'undefined' || _names === '') {
-            debugLog('wrong name');
+            // debugLog('wrong name');
             return false;
         }
 
@@ -189,7 +185,7 @@ const EventEmitter = forwardRef((props, ref) => {
         const names = resolveNames(_names);
 
         if (names.length === 0) {
-            debugLog(`No valid names to unsubscribe from: ${_names}`);
+            // debugLog(`No valid names to unsubscribe from: ${_names}`);
             return false;
         }
 
@@ -205,7 +201,7 @@ const EventEmitter = forwardRef((props, ref) => {
             const name = resolveName(_name);
 
             if (!name) {
-                debugLog(`Invalid name in off(): ${_name}`);
+                // debugLog(`Invalid name in off(): ${_name}`);
                 return;
             }
 
@@ -274,7 +270,7 @@ const EventEmitter = forwardRef((props, ref) => {
     const trigger = (_name, _args) => {
         // Errors
         if (typeof _name === 'undefined' || _name === '') {
-            debugLog('wrong name');
+            // debugLog('wrong name');
             return false;
         }
 
@@ -288,7 +284,7 @@ const EventEmitter = forwardRef((props, ref) => {
         let name = resolveNames(_name);
 
         if (name.length === 0) {
-            debugLog(`No valid name to trigger: ${_name}`);
+            // debugLog(`No valid name to trigger: ${_name}`);
             return false;
         }
 
@@ -296,7 +292,7 @@ const EventEmitter = forwardRef((props, ref) => {
         name = resolveName(name[0]);
 
         if (!name) {
-            debugLog(`Invalid name in trigger(): ${_name}`);
+            // debugLog(`Invalid name in trigger(): ${_name}`);
             return false;
         }
 
@@ -309,7 +305,7 @@ const EventEmitter = forwardRef((props, ref) => {
                 if (callbacks[namespace] instanceof Object && callbacks[namespace][name.value] instanceof Array) {
                     callbacks[namespace][name.value].forEach((callback, index) => {
                         if (typeof callback !== 'function') {
-                            debugLog(`Invalid callback for ${namespace}.${name.value}[${index}]`);
+                            // debugLog(`Invalid callback for ${namespace}.${name.value}[${index}]`);
                             return;
                         }
 
@@ -331,14 +327,14 @@ const EventEmitter = forwardRef((props, ref) => {
         // Specified namespace
         else if (callbacks[name.namespace] instanceof Object) {
             if (name.value === '') {
-                debugLog('wrong name');
+                // debugLog('wrong name');
                 return null;
             }
 
             if (callbacks[name.namespace][name.value] instanceof Array) {
                 callbacks[name.namespace][name.value].forEach((callback, index) => {
                     if (typeof callback !== 'function') {
-                        debugLog(`Invalid callback for ${name.namespace}.${name.value}[${index}]`);
+                        // debugLog(`Invalid callback for ${name.namespace}.${name.value}[${index}]`);
                         return;
                     }
 
@@ -358,9 +354,9 @@ const EventEmitter = forwardRef((props, ref) => {
 
         if (DEBUG_EVENTS) {
             if (callbacksCalled.length > 0) {
-                debugLog(`Event '${_name}' triggered ${callbacksCalled.length} callbacks: ${callbacksCalled.join(', ')}`);
+                // debugLog(`Event '${_name}' triggered ${callbacksCalled.length} callbacks: ${callbacksCalled.join(', ')}`);
             } else {
-                debugLog(`Event '${_name}' triggered but no callbacks were found`);
+                // debugLog(`Event '${_name}' triggered but no callbacks were found`);
             }
         }
         if (_name.includes('marker:') || _name.includes('scenario:') || _name.includes('narration:')) {
@@ -423,7 +419,7 @@ export const useEventEmitter = () => {
 /**
  * API simpifiée pour accéder à l'émetteur d'événements de manière globale
  */
-export const EventBus = {
+export let EventBus = {
     /**
      * Émet un événement
      */
@@ -431,7 +427,7 @@ export const EventBus = {
         if (emitterInstance) {
             return emitterInstance.trigger(eventName, Array.isArray(data) ? data : [data]);
         } else {
-            debugLog('EventEmitter not initialized yet');
+            // debugLog('EventEmitter not initialized yet');
             return null;
         }
     },
@@ -450,7 +446,7 @@ export const EventBus = {
                 };
             }
         } else {
-            debugLog('EventEmitter not initialized yet');
+            // debugLog('EventEmitter not initialized yet');
             return () => {
             };
         }
@@ -468,7 +464,7 @@ export const EventBus = {
                 return false;
             }
         } else {
-            debugLog('EventEmitter not initialized yet');
+            // debugLog('EventEmitter not initialized yet');
             return false;
         }
     },

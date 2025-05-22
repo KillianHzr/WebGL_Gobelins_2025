@@ -13,14 +13,13 @@ const NarrationTriggers = () => {
     const triggeredNarrations = useStore(state => state.triggeredNarrations || {});
 
     const objectNarrationMap = {
-        'DirectionPanelStartInteractive': 'Scene02_PanneauInformation',
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
         'MultipleLeaf': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
         'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
+        'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
         'Vison': 'Scene08_DecouverteDuVisonMort',
-        'DirectionPanelEndInteractive': 'Scene09_ClairiereDigitalisee'
     };
 
     const stepToObjectMap = {};
@@ -128,12 +127,6 @@ const NarrationTriggers = () => {
                 if (objectKey && objectNarrationMap[objectKey]) {
                     const narrationId = objectNarrationMap[objectKey];
 
-                    // Skip special narrations during automatic detection - they need clicks
-                    if (narrationId === 'Scene02_PanneauInformation' || narrationId === 'Scene09_ClairiereDigitalisee') {
-                        console.log(`Narration ${narrationId} ignorée lors de la détection d'interaction, attente du clic.`);
-                        return;
-                    }
-
                     console.log(`Narration à jouer pour ${objectKey}: ${narrationId}`);
                     playNarrationIfNotTriggered(narrationId);
                 } else {
@@ -141,43 +134,6 @@ const NarrationTriggers = () => {
                 }
             } catch (error) {
                 console.error('Erreur lors du traitement de l\'événement d\'interaction:', error);
-            }
-        };
-
-        const handleClickInteraction = (data) => {
-            console.log('Événement d\'interaction par clic reçu:', data);
-            if (!data || !data.id) return;
-
-            try {
-                // Only handle click or direct interactions
-                if (data.type === 'click' || data.type === 'direct') {
-                    let narrationId = null;
-                    let objectKey = null;
-
-                    // Clean ID for comparison
-                    const cleanId = data.id.replace('-marker', '');
-
-                    // Initial panel
-                    if (cleanId.includes('initialStart') || cleanId.includes('initial')) {
-                        objectKey = 'DirectionPanelStartInteractive';
-                        narrationId = 'Scene02_PanneauInformation';
-                    }
-                    // Final panel
-                    else if (cleanId.includes('tenthStop') || cleanId.includes('DirectionPanelEndInteractive') || cleanId.includes('DirectionPanelDigital')) {
-                        objectKey = 'DirectionPanelEndInteractive';
-                        narrationId = 'Scene09_ClairiereDigitalisee';
-                    }
-
-                    if (narrationId) {
-                        console.log(`Déclenchement de la narration ${narrationId} après le clic sur ${data.id}`);
-                        playNarrationIfNotTriggered(narrationId);
-                    }
-                }
-
-                // IMPORTANT: Don't interfere with scroll reactivation
-                // Let ScrollControls handle this part
-            } catch (error) {
-                console.error('Erreur lors du traitement du clic:', error);
             }
         };
 
@@ -199,7 +155,7 @@ const NarrationTriggers = () => {
         try {
             // Register event listeners
             const interactionDetectedListener = EventBus.on('interaction:detected', handleInteractionDetected);
-            const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
+            // const interactionCompleteListener = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleClickInteraction);
             const interfaceListener = EventBus.on('interface-action', handleInterfaceClose);
 
             // IMPORTANT: Don't duplicate INTERACTION_COMPLETE listeners
@@ -207,7 +163,7 @@ const NarrationTriggers = () => {
 
             eventListenersRef.current = [
                 interactionDetectedListener,
-                interactionCompleteListener,
+                // interactionCompleteListener,
                 interfaceListener
             ];
 

@@ -16,12 +16,12 @@ export default function ForestScene() {
 
         // Gestionnaires d'événements optimisés
         const mapReadyHandler = () => {
-            console.log('Map est prête');
+            // console.log('Map est prête');
             setMapReady(true);
         };
 
         const forestReadyHandler = () => {
-            console.log('Forest est prête');
+            // console.log('Forest est prête');
             setForestReady(true);
         };
 
@@ -60,8 +60,8 @@ INSTRUCTIONS DE CONTRÔLE:
     return (
         <>
             {/*{mapComponent}*/}
-            {(GuiConfig.visualization.showInstances.default) ? forestComponent : null}
-            {/*{forestComponent}*/}
+            {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
+            {forestComponent}
             {waterComponent}
         </>
     );
