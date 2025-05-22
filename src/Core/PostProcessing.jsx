@@ -11,7 +11,7 @@ import {
     CineonToneMapping,
     ACESFilmicToneMapping,
     Object3D,
-    Vector2
+    Vector2, AgXToneMapping, NeutralToneMapping
 } from 'three';
 import guiConfig from "../Config/guiConfig.js";
 import GuiConfig from "../Config/guiConfig.js";
@@ -37,9 +37,12 @@ export default function PostProcessing() {
             case 2: return ReinhardToneMapping;
             case 3: return CineonToneMapping;
             case 4: return ACESFilmicToneMapping;
-            default: return ReinhardToneMapping;
+            case 5: return AgXToneMapping;
+            case 6: return NeutralToneMapping;
+            default: return CineonToneMapping;
         }
     };
+
 
     // Synchroniser les paramètres de tone mapping avec le debug config
     useEffect(() => {
@@ -242,15 +245,17 @@ export default function PostProcessing() {
 
             // Contrôle du type de tone mapping
             toneMappingFolder.add(toneMappingSettings, 'toneMapping', {
-                'None': NoToneMapping,
-                'Linear': LinearToneMapping,
-                'Reinhard': ReinhardToneMapping,
-                'Cineon': CineonToneMapping,
-                'ACES Filmic': ACESFilmicToneMapping
+                'None': 0,
+                'Linear': 1,
+                'Reinhard': 2,
+                'Cineon': 3,
+                'ACES Filmic': 4,
+                'AgX': 5,
+                'Neutral': 6
             })
                 .name('Type')
                 .onChange(value => {
-                    gl.toneMapping = parseInt(value);
+                    gl.toneMapping = getToneMappingConstant(value);
                     gl.needsUpdate = true;
                 });
 
