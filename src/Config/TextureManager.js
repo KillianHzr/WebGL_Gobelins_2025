@@ -566,6 +566,12 @@ class TextureManager {
             receivedShadow: true,
             color: '#1f7a53',
         });
+        this.addPlantTexture('PineCone', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
+            castShadow: true,
+            receivedShadow: true,
+            color: '#919191',
+        });
 
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
@@ -998,7 +1004,7 @@ class TextureManager {
             envMapIntensity: 0,
             aoMapIntensity: 0,
             normalScale: 1.0,
-            alphaTest: 0.5
+            alphaTest: 1.0
         };
 
         if (materialProperties) {

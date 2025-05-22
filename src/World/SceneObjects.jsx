@@ -7,7 +7,7 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
-import {FrontSide, LoopOnce} from "three";
+import {FrontSide, LoopOnce} from 'three';
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 // Activer ou désactiver les logs pour le débogage
@@ -225,21 +225,8 @@ export const StaticObject = React.memo(function StaticObject({
 
         const applyTextures = async () => {
             try {
-                // Vérifier si c'est un objet de terrain (Ground)
-                if (isGroundObjectRef.current) {
-                    // Pour les objets de type Ground, utiliser l'approche avec image masque
+                await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
 
-                    // Vérifier si les textures du sol sont déjà initialisées
-                    if (!textureManager.hasTextures('ForestGrass') || !textureManager.hasTextures('ForestRoad')) {
-                        textureManager.initializeGroundTextures();
-                    }
-
-                    // Utiliser la nouvelle méthode avec image masque
-                    await textureManager.setupGroundWithPathsMask(objectRef.current);
-                } else {
-                    // Pour les autres objets, utiliser la méthode standard
-                    await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
-                }
 
                 if (isComponentMounted.current && isApplyingTextures) {
                     // debugLog(`Textures appliquées à ${textureModelId}`);
@@ -258,7 +245,6 @@ export const StaticObject = React.memo(function StaticObject({
             isApplyingTextures = false;
         };
     }, [textureModelId, useTextures]);
-
 
 
     // Nettoyer lors du démontage
@@ -346,7 +332,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         if (scene && textureManager && typeof textureManager.forceEmissiveOnObjects === 'function') {
             textureManager.forceEmissiveOnObjects(scene);
         }
-    }, [filter, updatePlacements,scene]);
+    }, [filter, updatePlacements, scene]);
 
 
     // Optimiser le rendu avec useMemo
@@ -390,11 +376,11 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                 }
             } : {};
             if (placement.animation) {
-            console.log(`Animation pour ${placement.objectKey} :`,
-                placement.animation ? {
-                    play: placement.animation.play,
-                    name: placement.animation.name
-                } : 'Aucune animation');
+                console.log(`Animation pour ${placement.objectKey} :`,
+                    placement.animation ? {
+                        play: placement.animation.play,
+                        name: placement.animation.name
+                    } : 'Aucune animation');
 
             }
             return (
