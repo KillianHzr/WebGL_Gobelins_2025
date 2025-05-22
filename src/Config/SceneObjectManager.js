@@ -5,6 +5,7 @@
 import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
 import {EventBus, MARKER_EVENTS} from '../Utils/EventEmitter';
 import {textureManager} from './TextureManager';
+import { modelAnimationManager, ANIMATION_EVENTS } from './ModelAnimationManager';
 
 class SceneObjectManager {
     constructor() {
@@ -46,7 +47,47 @@ class SceneObjectManager {
                     position: [-39.93887, 0.3095, 84.51408],
                     rotation: [0, 0, 0],
                     scale: [1, 1, 1],
-                }]
+                }],
+                // // Configuration d'animation pour l'écran TV
+                // animations: {
+                //     'static_noise': {
+                //         animationName: 'Action',
+                //         autoplay: true,
+                //         loop: true,
+                //         loopCount: -1,
+                //         timeScale: 1.0,
+                //         clampWhenFinished: false,
+                //         fadeInDuration: 1.0,
+                //         fadeOutDuration: 1.0,
+                //         weight: 1.0
+                //     },
+                //     'flicker': {
+                //         animationName: 'Action.001',
+                //         autoplay: false,
+                //         loop: true,
+                //         loopCount: 5,
+                //         timeScale: 3.0,
+                //         clampWhenFinished: false,
+                //         fadeInDuration: 0.1,
+                //         fadeOutDuration: 0.1,
+                //         weight: 0.8
+                //     }
+                // },
+                // defaultAnimations: ['static_noise'],
+                // // Triggers d'animation basés sur des événements
+                // animationTriggers: {
+                //     'pollution_detected': {
+                //         animation: 'flicker',
+                //         options: {
+                //             timeScale: 2.0,
+                //             loopCount: 3
+                //         }
+                //     },
+                //     'timeline_position_80': {
+                //         animation: 'static_noise',
+                //         stop: true
+                //     }
+                // }
             },
             'ModernScreen': {
                 id: 'Screen',
@@ -566,9 +607,8 @@ class SceneObjectManager {
 
         // Écouter les événements d'interaction
         this._setupEventListeners();
-
-        // Initialiser les placements par défaut
         this._initializeDefaultPlacements();
+        this.initializeAnimationSystem();
     }
 
     _getCurrentInteraction(objectConfig, placement) {
@@ -640,6 +680,330 @@ class SceneObjectManager {
         // Logger les interfaces trouvées pour le débogage
         console.log("Interfaces disponibles dans les objets interactifs:", interfaces);
         return interfaces;
+    }
+
+
+    // Ajouter ces méthodes à la classe SceneObjectManager
+
+    /**
+     * Initialise le système d'animation intégré
+     */
+    initializeAnimationSystem() {
+        // Initialiser le gestionnaire d'animations
+        modelAnimationManager.init();
+
+        // Configurer les écouteurs d'événements d'animation
+        this._setupAnimationEventListeners();
+
+        console.log('Système d\'animation intégré initialisé');
+    }
+
+    /**
+     * Configure les écouteurs d'événements pour les triggers d'animation
+     */
+    _setupAnimationEventListeners() {
+        // Écouteur principal pour les triggers d'animation
+        EventBus.on('trigger_animation', this._handleAnimationTrigger.bind(this));
+
+        // Écouteurs pour les événements d'interaction spécifiques
+        EventBus.on('thirdStopCompleted', () => {
+            this.triggerAnimationByEvent('MultipleLeaf', 'leaves_scattered');
+            this.triggerAnimationByEvent('Vison', 'pollution_detected');
+        });
+
+        EventBus.on('fifthStopCompleted', () => {
+            this.triggerAnimationByEvent('AnimalPaws', 'paws_discovered');
+        });
+
+        EventBus.on('sixthStopCompleted', () => {
+            this.triggerAnimationByEvent('Vison', 'discovery_moment');
+        });
+
+        // Écouteur pour les changements de position de timeline
+        EventBus.on('timeline-position-changed', (data) => {
+            this._handleTimelineTriggers(data.position);
+        });
+
+        // Écouteurs pour les événements environnementaux
+        EventBus.on('pollution_detected', () => {
+            this.triggerAnimationByEvent('Vison', 'pollution_detected');
+            this.triggerAnimationByEvent('TVScreen', 'pollution_detected');
+        });
+
+        EventBus.on('water_shortage_detected', () => {
+            this.triggerAnimationByEvent('RiverCheckpoint', 'water_shortage_detected');
+            this.triggerAnimationByEvent('Vison', 'environmental_stress');
+        });
+
+        EventBus.on('end_of_experience', () => {
+            this.triggerAnimationByEvent('ModernScreen', 'end_of_experience');
+            this.triggerAnimationByEvent('DataCenter', 'end_of_experience');
+        });
+
+        // Écouteur pour les effets environnementaux
+        EventBus.on('wind_gust', () => {
+            this.triggerAnimationByEvent('TrunkLargeInteractive', 'wind_gust');
+            this.triggerAnimationByEvent('MultipleLeaf', 'wind_effect');
+        });
+    }
+
+    /**
+     * Gère les triggers d'animation
+     * @param {Object} data - Données du trigger
+     */
+    _handleAnimationTrigger(data) {
+        const { objectKey, trigger, options = {} } = data;
+
+        console.log(`🎬 Trigger d'animation: ${objectKey} -> ${trigger}`);
+
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig || !objectConfig.animationTriggers) {
+            console.warn(`Aucun trigger d'animation trouvé pour ${objectKey}:${trigger}`);
+            return;
+        }
+
+        const triggerConfig = objectConfig.animationTriggers[trigger];
+        if (!triggerConfig) {
+            console.warn(`Trigger "${trigger}" non trouvé pour l'objet "${objectKey}"`);
+            return;
+        }
+
+        // Vérifier si c'est une séquence ou une animation simple
+        if (triggerConfig.sequence) {
+            this._playAnimationSequence(objectConfig.id, triggerConfig.sequence, options);
+        } else {
+            this._playAnimation(objectConfig.id, triggerConfig.animation, {
+                ...triggerConfig.options,
+                ...options
+            });
+        }
+    }
+
+    /**
+     * Déclenche une animation par événement
+     * @param {string} objectKey - Clé de l'objet
+     * @param {string} trigger - Nom du trigger
+     * @param {Object} options - Options supplémentaires
+     */
+    triggerAnimationByEvent(objectKey, trigger, options = {}) {
+        EventBus.trigger('trigger_animation', {
+            objectKey,
+            trigger,
+            options
+        });
+    }
+
+    /**
+     * Gère les triggers basés sur la timeline
+     * @param {number} position - Position actuelle de la timeline
+     */
+    _handleTimelineTriggers(position) {
+        Object.entries(this.objectCatalog).forEach(([objectKey, config]) => {
+            if (config.timelineTriggers) {
+                Object.entries(config.timelineTriggers).forEach(([timelinePos, triggerData]) => {
+                    const triggerPosition = parseFloat(timelinePos);
+
+                    // Vérifier si nous avons atteint cette position (avec une tolérance)
+                    if (Math.abs(position - triggerPosition) < 0.5) {
+                        console.log(`Timeline trigger activé: ${objectKey} à position ${triggerPosition}`);
+
+                        this.triggerAnimationByEvent(objectKey, triggerData.trigger, triggerData.options || {});
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Joue une animation simple
+     * @param {string} modelId - ID du modèle
+     * @param {string} animationKey - Clé de l'animation
+     * @param {Object} options - Options d'animation
+     */
+    _playAnimation(modelId, animationKey, options = {}) {
+        EventBus.trigger(ANIMATION_EVENTS.MODEL_ANIMATION_START, {
+            modelId,
+            animationKey,
+            options
+        });
+    }
+
+    /**
+     * Joue une séquence d'animations
+     * @param {string} modelId - ID du modèle
+     * @param {Array} sequence - Séquence d'animations
+     * @param {Object} globalOptions - Options globales
+     */
+    _playAnimationSequence(modelId, sequence, globalOptions = {}) {
+        EventBus.trigger(ANIMATION_EVENTS.PLAY_ANIMATION_SEQUENCE, {
+            modelId,
+            sequence: sequence.map(step => ({
+                ...step,
+                options: {
+                    ...step.options,
+                    ...globalOptions
+                }
+            }))
+        });
+    }
+
+    /**
+     * Arrête une animation spécifique
+     * @param {string} objectKey - Clé de l'objet
+     * @param {string} animationKey - Clé de l'animation
+     */
+    stopAnimation(objectKey, animationKey) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig) return;
+
+        EventBus.trigger(ANIMATION_EVENTS.MODEL_ANIMATION_STOP, {
+            modelId: objectConfig.id,
+            animationKey
+        });
+    }
+
+    /**
+     * Arrête toutes les animations d'un objet
+     * @param {string} objectKey - Clé de l'objet
+     */
+    stopAllAnimationsForObject(objectKey) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig) return;
+
+        EventBus.trigger(ANIMATION_EVENTS.STOP_ALL_ANIMATIONS, {
+            modelId: objectConfig.id
+        });
+    }
+
+    /**
+     * Enregistre un modèle chargé avec ses animations
+     * @param {string} objectKey - Clé de l'objet
+     * @param {Object} modelObject - Objet 3D du modèle
+     * @param {Object} gltf - Données GLTF/GLB
+     */
+    registerLoadedModelWithAnimations(objectKey, modelObject, gltf) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig) return;
+
+        // Extraire les animations du GLTF
+        const animations = gltf.animations || [];
+
+        // Enregistrer le modèle dans le gestionnaire d'animations
+        modelAnimationManager.registerModel(objectConfig.id, modelObject, animations);
+
+        console.log(`🎭 Modèle ${objectConfig.id} enregistré avec ${animations.length} animations`);
+
+        // Log des animations disponibles pour le débogage
+        animations.forEach((clip, index) => {
+            console.log(`  📽️ Animation ${index}: "${clip.name}" (${clip.duration.toFixed(2)}s)`);
+        });
+
+        // Configurer les animations du modèle selon la configuration
+        if (objectConfig.animations) {
+            this._configureModelAnimations(objectConfig.id, objectConfig.animations);
+        }
+
+        // Jouer les animations par défaut
+        if (objectConfig.defaultAnimations) {
+            objectConfig.defaultAnimations.forEach(animKey => {
+                if (objectConfig.animations[animKey] && objectConfig.animations[animKey].autoplay) {
+                    setTimeout(() => {
+                        this._playAnimation(objectConfig.id, animKey);
+                    }, 100); // Petit délai pour s'assurer que tout est initialisé
+                }
+            });
+        }
+    }
+
+    /**
+     * Configure les animations d'un modèle
+     * @param {string} modelId - ID du modèle
+     * @param {Object} animationsConfig - Configuration des animations
+     */
+    _configureModelAnimations(modelId, animationsConfig) {
+        // Ajouter la configuration au gestionnaire d'animations
+        const modelConfig = {
+            modelId: modelId,
+            animations: animationsConfig,
+            defaultAnimations: Object.keys(animationsConfig).filter(key =>
+                animationsConfig[key].autoplay === true
+            )
+        };
+
+        modelAnimationManager.addModelAnimationAssociation(modelId, modelConfig);
+    }
+
+    /**
+     * Méthodes utilitaires pour l'interface utilisateur et le débogage
+     */
+
+    /**
+     * Obtient l'état des animations actives
+     */
+    getActiveAnimationsState() {
+        return modelAnimationManager.getActiveAnimations();
+    }
+
+    /**
+     * Obtient la liste des modèles enregistrés
+     */
+    getRegisteredModels() {
+        return modelAnimationManager.getRegisteredModels();
+    }
+
+    /**
+     * Obtient les animations disponibles pour un objet
+     * @param {string} objectKey - Clé de l'objet
+     */
+    getAvailableAnimationsForObject(objectKey) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig || !objectConfig.animations) return [];
+
+        return Object.keys(objectConfig.animations);
+    }
+
+    /**
+     * Obtient les triggers disponibles pour un objet
+     * @param {string} objectKey - Clé de l'objet
+     */
+    getAvailableTriggersForObject(objectKey) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig || !objectConfig.animationTriggers) return [];
+
+        return Object.keys(objectConfig.animationTriggers);
+    }
+
+    /**
+     * Teste une animation (pour le débogage)
+     * @param {string} objectKey - Clé de l'objet
+     * @param {string} animationKey - Clé de l'animation
+     * @param {Object} options - Options de test
+     */
+    testAnimation(objectKey, animationKey, options = {}) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+        if (!objectConfig) {
+            console.error(`Objet "${objectKey}" non trouvé`);
+            return;
+        }
+
+        if (!objectConfig.animations || !objectConfig.animations[animationKey]) {
+            console.error(`Animation "${animationKey}" non trouvée pour l'objet "${objectKey}"`);
+            return;
+        }
+
+        console.log(`🧪 Test de l'animation: ${objectKey} -> ${animationKey}`);
+        this._playAnimation(objectConfig.id, animationKey, options);
+    }
+
+    /**
+     * Teste un trigger (pour le débogage)
+     * @param {string} objectKey - Clé de l'objet
+     * @param {string} trigger - Nom du trigger
+     * @param {Object} options - Options de test
+     */
+    testTrigger(objectKey, trigger, options = {}) {
+        console.log(`🧪 Test du trigger: ${objectKey} -> ${trigger}`);
+        this.triggerAnimationByEvent(objectKey, trigger, options);
     }
 
     handleThirdStopCompletion() {
