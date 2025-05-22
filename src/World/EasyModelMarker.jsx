@@ -143,33 +143,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         };
     }, [gltf, textureModelId, useTextures, markerId]);
 
-    // Personnaliser les paramètres d'effet - optimisé pour éviter les recalculs inutiles
-    useEffect(() => {
-        if (!updateEffectRef || !updateEffectRef.current) return;
-
-        const effectRef = updateEffectRef.current;
-
-
-        if (effectRef.thickness !== outlineThickness) {
-            effectRef.thickness = outlineThickness;
-        }
-
-        if (effectRef.intensity !== outlineIntensity) {
-            effectRef.intensity = outlineIntensity;
-        }
-
-        // Désactiver complètement la pulsation si outlinePulse est false
-        const targetPulseSpeed = outlinePulse ? outlinePulseSpeed : 0;
-        if (effectRef.pulseSpeed !== targetPulseSpeed) {
-            effectRef.pulseSpeed = targetPulseSpeed;
-        }
-
-        // Force une mise à jour immédiate pour arrêter tout mouvement existant
-        if (!outlinePulse && effectRef.pulseRef) {
-            effectRef.pulseRef.current = {value: 0, direction: 0};
-        }
-    }, [outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
-
     // Surveiller l'état d'interaction de manière optimisée
     useEffect(() => {
         // Vérifier si ce modèle est l'objet qui nécessite une interaction
@@ -469,8 +442,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
             // Si nous sommes à l'étape correcte et en attente d'interaction
             if (isWaitingForInteraction || (isCorrectStep && !isInteractionCompleted)) {
-                // NOUVEAU: Émettre un événement seulement lors du premier affichage du contour
-                // pour éviter de déclencher plusieurs fois la narration
+                // Émettre un événement seulement lors du premier affichage du contour
                 if (!outlineVisibleRef.current) {
                     outlineVisibleRef.current = true;
 
@@ -483,20 +455,30 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 }
                 return true;
             }
-            // Sinon, n'afficher le contour que si alwaysVisible est true ou si l'élément est survolé
+            // Sinon, n'afficher le contour que si alwaysVisible est true
             else {
-                // Réinitialiser le flag si le contour disparaît
-                if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
+                // Réinitialiser le flag SEULEMENT si on n'est plus dans l'état d'attente
+                // et que alwaysVisible est false
+                if (outlineVisibleRef.current && !alwaysVisible && !isWaitingForInteraction) {
                     outlineVisibleRef.current = false;
                 }
                 return alwaysVisible;
             }
         } else {
             // Comportement par défaut pour les objets sans requiredStep
-            return isWaitingForInteraction || alwaysVisible || hovered;
+            // Afficher l'outline si on attend une interaction, si alwaysVisible, ou si l'objet est survolé
+            const shouldShow = isWaitingForInteraction || alwaysVisible || hovered;
+
+            // Gérer le flag pour les objets sans requiredStep
+            if (shouldShow && !outlineVisibleRef.current) {
+                outlineVisibleRef.current = true;
+            } else if (!shouldShow && outlineVisibleRef.current) {
+                outlineVisibleRef.current = false;
+            }
+
+            return shouldShow;
         }
     }, [
-        isMarkerHovered,
         showOutline,
         requiredStep,
         interaction?.currentStep,
@@ -504,8 +486,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         isWaitingForInteraction,
         isInteractionCompleted,
         alwaysVisible,
-        hovered,
+        hovered, // Garder hovered pour les objets sans requiredStep
         markerId
+        // ENLEVER isMarkerHovered des dépendances car il cause les conflits !
     ]);
 
     // Nouveau useEffect pour suivre les changements dans l'état d'attente d'interaction
@@ -609,20 +592,22 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Optimiser le rendu conditionnel de l'effet de contour
     const renderOutlineEffect = useMemo(() => {
-        if (active) return null;
+        const showOutlineNow = shouldShowOutline();
+
+        if (!showOutlineNow) return null;
 
         return (
             <OutlineEffect
                 objectRef={modelRef}
-                active={shouldShowOutline()}
-                color={effectSettings.color}
-                thickness={effectSettings.thickness}
-                intensity={effectSettings.intensity}
-                pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
-                ref={updateEffectRef}
+                active={true} // Toujours true quand on veut l'afficher
+                color="#ffffff"
+                thickness={0.01}
+                intensity={1.3}
+                technique="geometry"
+                debug={false}
             />
         );
-    }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
+    }, [shouldShowOutline]);
 
     const shouldModelBeVisible = useMemo(() => {
         // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
