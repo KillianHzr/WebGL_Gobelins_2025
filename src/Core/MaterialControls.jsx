@@ -5,12 +5,8 @@ import * as THREE from 'three';
 import {textureManager} from '../Config/TextureManager'; // Importer textureManager
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_MATERIALS = true;
+const DEBUG_MATERIALS = false;
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_MATERIALS) console.log(`[MaterialControls] ${message}`, ...args);
-};
 
 export default function MaterialControls() {
     const {scene, gl} = useThree();
@@ -310,7 +306,7 @@ export default function MaterialControls() {
             });
         });
 
-        debugLog(`Collected ${materials.size} unique materials and ${meshes.size} meshes from scene`);
+        // debugLog(`Collected ${materials.size} unique materials and ${meshes.size} meshes from scene`);
         return {
             materials: Array.from(materials.values()),
             meshes
@@ -430,7 +426,7 @@ export default function MaterialControls() {
             .map(uuid => meshesMap.get(uuid))
             .filter(mesh => mesh && mesh.material);
 
-        debugLog(`Propagating properties to ${childMeshes.length} children of ${material._objectName}`);
+        // debugLog(`Propagating properties to ${childMeshes.length} children of ${material._objectName}`);
 
         childMeshes.forEach(childMesh => {
             const childMaterial = childMesh.material;
@@ -465,7 +461,7 @@ export default function MaterialControls() {
             const tmProps = textureManager.getMaterialProperties(modelId);
             if (!tmProps) return;
 
-            debugLog(`Applying TextureManager properties to ${modelId}:`, tmProps);
+            // debugLog(`Applying TextureManager properties to ${modelId}:`, tmProps);
 
             // Appliquer les propriétés au matériau
             if (tmProps.roughness !== undefined && material.roughness !== undefined)
@@ -816,7 +812,7 @@ export default function MaterialControls() {
                         if (textureManager && modelId) {
                             try {
                                 textureManagerProps = textureManager.getMaterialProperties(modelId) || {};
-                                debugLog(`Found TextureManager properties for ${modelId}:`, textureManagerProps);
+                                // debugLog(`Found TextureManager properties for ${modelId}:`, textureManagerProps);
                             } catch (error) {
                                 console.warn(`Error getting properties from TextureManager for ${modelId}:`, error);
                             }
@@ -1065,7 +1061,7 @@ export default function MaterialControls() {
                                             }
                                         }
 
-                                        debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
+                                        // debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
                                     } catch (error) {
                                         console.warn(`Error updating envMapIntensity for ${material._objectName}:`, error);
                                     }
@@ -1710,7 +1706,7 @@ export default function MaterialControls() {
                                         };
 
                                         textureManager.setMaterialProperties(modelId, properties);
-                                        debugLog(`Saved properties to TextureManager for ${modelId}:`, properties);
+                                        // debugLog(`Saved properties to TextureManager for ${modelId}:`, properties);
 
                                         // Propager aux enfants si demandé
                                         if (materialControls.propagateToChildren) {
@@ -1721,7 +1717,7 @@ export default function MaterialControls() {
                                 resetInTextureManager: () => {
                                     if (modelId && textureManager) {
                                         textureManager.resetMaterialProperties(modelId);
-                                        debugLog(`Reset properties in TextureManager for ${modelId}`);
+                                        // debugLog(`Reset properties in TextureManager for ${modelId}`);
 
                                         // Mettre à jour l'interface
                                         const defaultProps = textureManager.defaultMaterialProperties;

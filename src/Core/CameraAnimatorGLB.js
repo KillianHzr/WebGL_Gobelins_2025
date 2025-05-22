@@ -1,14 +1,17 @@
+// CameraAnimatorGLB.js - Correction pour utiliser le nouveau format de modèle
 import * as THREE from 'three';
 
 export class CameraAnimatorGLB {
-    constructor(cameraModel, camera, targetAnimationName = 'Action.004') {
+    constructor(cameraModel, camera, targetAnimationName = 'Action.006') {
         this.camera = camera;
 
         // CORRECTION: Prendre en compte le nouveau format de modèle
         if (cameraModel && typeof cameraModel === 'object' && cameraModel.scene) {
+            // Nouveau format : {scene, animations}
             this.cameraModel = cameraModel.scene;
             this.animations = cameraModel.animations || [];
         } else {
+            // Ancien format : modèle direct
             this.cameraModel = cameraModel;
             this.animations = cameraModel?.animations || [];
         }

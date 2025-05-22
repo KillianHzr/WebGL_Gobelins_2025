@@ -38,6 +38,27 @@ class SceneObjectManager {
         // Catalogue des modèles disponibles pour les objets individuels
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
+
+
+            'TVScreen': {
+                id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.93887, 0.3095, 84.51408],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+            'ModernScreen': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-39.47393, 0.728, 83.68371],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }]
+            },
+
+
             /**
              * SCÈNE 01 - POINT DE DÉPART
              * Introduction narrative avec Célia (narratrice)

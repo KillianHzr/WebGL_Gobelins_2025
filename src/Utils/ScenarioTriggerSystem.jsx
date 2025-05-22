@@ -9,20 +9,6 @@ import sceneObjectManager from '../Config/SceneObjectManager';
  * Chaque scène contient les déclencheurs et les effets associés
  */
 const SCENARIO_CONFIG = {
-    // Scène 02 - Panneau d'information
-    'Scene02_PanneauInformation': {
-        markerId: 'DirectionPanelEndInteractive',
-        objectKey: 'DirectionPanelEndInteractive',
-        triggerType: 'interaction:detected',
-        narrationId: 'Scene02_PanneauInformation',
-        cameraAnimation: {
-            enabled: true,
-            lookAt: true,
-            zoom: true
-        },
-        interface: null
-    },
-
     // Scène 03 - Saut au-dessus de l'arbre
     'Scene03_SautAuDessusDeLArbre': {
         markerId: 'firstStop-marker',
@@ -111,19 +97,6 @@ const SCENARIO_CONFIG = {
         postInteractionAnimation: {
             name: 'camera-flash',
             options: { duration: 1.0 }
-        }
-    },
-
-    // Scène 09 - Facture
-    'Scene09_ClairiereDigitalisee': {
-        markerId: 'tenthStop-marker',
-        objectKey: 'DirectionPanelEndInteractive',
-        triggerType: 'interaction:detected',
-        narrationId: 'Scene09_ClairiereDigitalisee',
-        cameraAnimation: {
-            enabled: true,
-            lookAt: true,
-            zoom: true
         }
     },
 };
