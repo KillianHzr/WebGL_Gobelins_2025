@@ -5,6 +5,7 @@ import useStore from './Store/useStore'
 import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
 import BlackscreenInterface from "./Utils/BlackscreenInterface.jsx";
+import ImageInterface from "./Utils/ImageInterface.jsx"
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider, MARKER_EVENTS } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
@@ -439,6 +440,7 @@ export default function App() {
                     <BlackscreenInterface/>
                     <CaptureInterface />
                     <ScannerInterface />
+                    <ImageInterface />
                 </>
             )}
 

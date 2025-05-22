@@ -286,6 +286,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                             console.error("L'interface blackScreen n'est pas disponible dans le store");
                         }
                         break;
+                    case 'image':
+                        console.log(`Préparation de l'affichage de l'interface image`);
+                        if (store.interaction && typeof store.interaction.setShowImageInterface === 'function') {
+                            store.interaction.setShowImageInterface(true);
+                        } else {
+                            console.error("L'interface image n'est pas disponible dans le store");
+                        }
+                        break;
                     default:
                         console.warn(`Type d'interface non reconnu: ${interfaceToShow}`);
                 }
