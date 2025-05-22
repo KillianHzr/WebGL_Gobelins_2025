@@ -15,8 +15,8 @@ export default function Camera() {
 
     // Initialiser renderSettingsRef avec des valeurs persistantes
     const renderSettingsRef = useRef({
-        toneMapping: Number(guiConfig.camera.render.toneMapping.default),
-        toneMappingExposure: Number(guiConfig.camera.render.toneMappingExposure.default),
+        toneMapping: Number(guiConfig.renderer.toneMapping.default),
+        toneMappingExposure: Number(guiConfig.renderer.toneMappingExposure.default),
         shadowMapType: Number(guiConfig.renderer.shadowMap.type.default),
         shadowMapEnabled: guiConfig.renderer.shadowMap.enabled.default,
         shadowMapSize: Number(guiConfig.renderer.shadowMap.mapSize.default),
@@ -207,8 +207,8 @@ export default function Camera() {
     // Configurer le renderer avec les paramètres centralisés
     useEffect(() => {
         // Appliquer les valeurs par défaut indépendamment du mode debug
-        gl.toneMapping = guiConfig.camera.render.toneMapping.default;
-        gl.toneMappingExposure = guiConfig.camera.render.toneMappingExposure.default;
+        gl.toneMapping = guiConfig.renderer.toneMapping.default;
+        gl.toneMappingExposure = guiConfig.renderer.toneMappingExposure.default;
 
         if (gl.shadowMap) {
             gl.shadowMap.enabled = guiConfig.renderer.shadowMap.enabled.default;

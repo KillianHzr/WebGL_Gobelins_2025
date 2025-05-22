@@ -580,10 +580,20 @@ export default function MaterialControls() {
     };
 
     // Créer un input file caché pour l'upload
+    // Créer un input file caché pour l'upload
     const createHiddenFileInput = () => {
-        // Supprimer l'ancien input s'il existe
+        // Supprimer l'ancien input s'il existe et s'il est bien dans le DOM
         if (fileInputRef.current) {
-            document.body.removeChild(fileInputRef.current);
+            // Vérifier si l'élément est effectivement un enfant de document.body
+            if (document.body && document.body.contains(fileInputRef.current)) {
+                try {
+                    document.body.removeChild(fileInputRef.current);
+                } catch (error) {
+                    console.warn("Erreur lors de la suppression de l'input file:", error);
+                }
+            }
+            // Réinitialiser la référence
+            fileInputRef.current = null;
         }
 
         // Créer un nouvel input file
@@ -591,7 +601,14 @@ export default function MaterialControls() {
         input.type = 'file';
         input.accept = 'image/*';
         input.style.display = 'none';
-        document.body.appendChild(input);
+
+        // Vérifier que document.body existe avant d'ajouter l'élément
+        if (document.body) {
+            document.body.appendChild(input);
+        } else {
+            console.error("document.body n'est pas disponible pour ajouter l'input file");
+            return;
+        }
 
         // Ajouter un écouteur pour gérer la sélection de fichier
         input.addEventListener('change', (event) => {

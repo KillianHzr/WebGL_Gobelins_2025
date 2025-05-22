@@ -85,7 +85,7 @@ const guiFolderConfig = {
             "Render": false,
             "Controls": false,
             "Scene": false,
-            "Renderer": true,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
+            "Renderer": false,     // Les artistes ont souvent besoin des contrôles de rendu pour le visuel
             "Materials": true,
             "Lights": true,
             "Effects": false,

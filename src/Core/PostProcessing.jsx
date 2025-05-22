@@ -14,10 +14,11 @@ import {
     Vector2
 } from 'three';
 import guiConfig from "../Config/guiConfig.js";
+import GuiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {
     const { scene, camera, gl } = useThree();
-    const { debug, gui } = useStore();
+    const { debug, gui, debugConfig } = useStore();
     const composerRef = useRef(null);
     const bloomPassRef = useRef(null);
     const postProcessingGroupRef = useRef(null);
@@ -28,10 +29,76 @@ export default function PostProcessing() {
         threshold: 1.0
     });
 
+    // Fonction pour convertir les valeurs de tone mapping en constantes Three.js
+    const getToneMappingConstant = (value) => {
+        switch (value) {
+            case 0: return NoToneMapping;
+            case 1: return LinearToneMapping;
+            case 2: return ReinhardToneMapping;
+            case 3: return CineonToneMapping;
+            case 4: return ACESFilmicToneMapping;
+            default: return ReinhardToneMapping;
+        }
+    };
+
+    // Synchroniser les paramètres de tone mapping avec le debug config
+    useEffect(() => {
+        if (!gl || !debugConfig) return;
+
+        // Mettre à jour le tone mapping si la valeur a changé
+        if (debugConfig.toneMapping !== undefined) {
+            const newToneMapping = getToneMappingConstant(debugConfig.toneMapping);
+            if (gl.toneMapping !== newToneMapping) {
+                gl.toneMapping = newToneMapping;
+                console.log(`[PostProcessing] Tone mapping mis à jour:`, debugConfig.toneMapping);
+            }
+        }
+
+        // Mettre à jour l'exposition si la valeur a changé
+        if (debugConfig.toneMappingExposure !== undefined) {
+            if (gl.toneMappingExposure !== debugConfig.toneMappingExposure) {
+                gl.toneMappingExposure = debugConfig.toneMappingExposure;
+                console.log(`[PostProcessing] Exposition mise à jour:`, debugConfig.toneMappingExposure);
+            }
+        }
+
+        // Forcer la mise à jour du renderer
+        gl.needsUpdate = true;
+
+    }, [gl, debugConfig?.toneMapping, debugConfig?.toneMappingExposure]);
+
+    // Synchroniser avec les paramètres de rendu de la caméra si disponibles
+    useEffect(() => {
+        if (!gl || !debugConfig?.camera?.render) return;
+
+        const cameraRender = debugConfig.camera.render;
+
+        // Mettre à jour depuis les paramètres de la caméra si définis
+        if (cameraRender.toneMapping !== undefined) {
+            const newToneMapping = getToneMappingConstant(cameraRender.toneMapping);
+            if (gl.toneMapping !== newToneMapping) {
+                gl.toneMapping = newToneMapping;
+                console.log(`[PostProcessing] Tone mapping (camera) mis à jour:`, cameraRender.toneMapping);
+            }
+        }
+
+        if (cameraRender.toneMappingExposure !== undefined) {
+            if (gl.toneMappingExposure !== cameraRender.toneMappingExposure) {
+                gl.toneMappingExposure = cameraRender.toneMappingExposure;
+                console.log(`[PostProcessing] Exposition (camera) mise à jour:`, cameraRender.toneMappingExposure);
+            }
+        }
+
+        gl.needsUpdate = true;
+
+    }, [gl, debugConfig?.camera?.render?.toneMapping, debugConfig?.camera?.render?.toneMappingExposure]);
+
     useEffect(() => {
         gl.autoClear = false;
-        gl.toneMapping = CineonToneMapping;
-        gl.toneMappingExposure = 2.0;
+
+        // Configuration initiale du tone mapping depuis le config
+        gl.toneMapping = getToneMappingConstant(GuiConfig.renderer.toneMapping.default);
+        gl.toneMappingExposure = GuiConfig.renderer.toneMappingExposure.default;
 
         // Créer un groupe pour le post-processing
         if (!postProcessingGroupRef.current) {
@@ -107,7 +174,7 @@ export default function PostProcessing() {
 
             // Dossier pour le bloom
             const bloomFolder = ppFolder.addFolder('Bloom');
-
+            bloomFolder.hide();
             // Contrôles pour le bloom
             bloomFolder.add(bloomSettingsRef.current, 'enabled')
                 .name('Activer Bloom')
@@ -162,8 +229,40 @@ export default function PostProcessing() {
                     }
                 });
 
-                passesFolder.close();
+                passesFolder.hide();
             }
+
+            // Ajouter les contrôles de tone mapping directement dans le post-processing
+            const toneMappingFolder = ppFolder.addFolder('Tone Mapping');
+
+            const toneMappingSettings = {
+                toneMapping: gl.toneMapping,
+                toneMappingExposure: gl.toneMappingExposure
+            };
+
+            // Contrôle du type de tone mapping
+            toneMappingFolder.add(toneMappingSettings, 'toneMapping', {
+                'None': NoToneMapping,
+                'Linear': LinearToneMapping,
+                'Reinhard': ReinhardToneMapping,
+                'Cineon': CineonToneMapping,
+                'ACES Filmic': ACESFilmicToneMapping
+            })
+                .name('Type')
+                .onChange(value => {
+                    gl.toneMapping = parseInt(value);
+                    gl.needsUpdate = true;
+                });
+
+            // Contrôle de l'exposition
+            toneMappingFolder.add(toneMappingSettings, 'toneMappingExposure', 0, 5, 0.01)
+                .name('Exposition')
+                .onChange(value => {
+                    gl.toneMappingExposure = value;
+                    gl.needsUpdate = true;
+                });
+
+            toneMappingFolder.open();
 
             // Ouvrir le dossier principal pour accéder facilement aux contrôles de bloom
             ppFolder.open();
