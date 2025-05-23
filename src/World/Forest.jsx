@@ -23,7 +23,8 @@ const LOADING_CONFIG = {
 
 // Improved geometry cache with better memory management
 const GeometryCache = {
-    cache: new Map(), materials: new Map(), // New: Global material cache for strict reuse
+    cache: new Map(),
+    materials: new Map(),
     stats: {hits: 0, misses: 0},
 
     getKey(objectId, detailLevel) {
@@ -44,26 +45,110 @@ const GeometryCache = {
         this.cache.set(this.getKey(objectId, detailLevel), geometry);
     },
 
-    // New: Get or create shared material
+    // NOUVELLE MÉTHODE: Créer ou récupérer un matériau avec support haute qualité
     getMaterial(objectId, properties = {}) {
-        if (!this.materials.has(objectId)) {
-            // Create a new material if it doesn't exist
+        // Créer une clé unique basée sur les propriétés importantes
+        const preserveQuality = properties.preserveTextureQuality || false;
+        const materialKey = `${objectId}_${preserveQuality ? 'hq' : 'std'}`;
+
+        if (!this.materials.has(materialKey)) {
+            // Créer un nouveau matériau
             const material = textureManager.getMaterial(objectId, {
-                aoIntensity: 0.0, alphaTest: 1.0, ...properties
+                aoIntensity: 0.0,
+                alphaTest: 1.0,
+                ...properties
             });
 
-            // Important: Optimize material for instance rendering
             if (material) {
+                // Optimisations générales
                 material.uniformsNeedUpdate = false;
-                // Disable material features that cause additional draw calls
                 material.needsUpdate = false;
 
-                // Store in cache
-                this.materials.set(objectId, material);
+                // NOUVEAU: Si c'est un matériau haute qualité pour la végétation
+                if (preserveQuality) {
+                    console.log(`🌿 Création matériau haute qualité pour ${objectId}`);
+
+                    // Forcer les meilleurs paramètres pour toutes les textures
+                    const textureProperties = [
+                        'map', 'normalMap', 'roughnessMap', 'metalnessMap',
+                        'aoMap', 'alphaMap', 'emissiveMap'
+                    ];
+
+                    textureProperties.forEach(prop => {
+                        if (material[prop] && material[prop].isTexture) {
+                            const texture = material[prop];
+
+                            // Paramètres de haute qualité
+                            texture.minFilter = THREE.LinearMipmapLinearFilter;
+                            texture.magFilter = THREE.LinearFilter;
+                            texture.generateMipmaps = true;
+
+                            // Anisotropie maximale
+                            const renderer = window.gl || window.renderer;
+                            if (renderer) {
+                                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                            } else {
+                                texture.anisotropy = 16;
+                            }
+
+                            texture.needsUpdate = true;
+
+                            console.log(`  ✨ Haute qualité appliquée à ${prop} de ${objectId}`);
+                        }
+                    });
+
+                    // Marquer le matériau comme haute qualité
+                    material.userData = material.userData || {};
+                    material.userData.isHighQuality = true;
+                    material.userData.preserveQuality = true;
+                }
+
+                // Stocker dans le cache
+                this.materials.set(materialKey, material);
             }
             return material;
         }
-        return this.materials.get(objectId);
+
+        const cachedMaterial = this.materials.get(materialKey);
+
+        // NOUVEAU: Vérifier et réappliquer la haute qualité si nécessaire
+        if (preserveQuality && cachedMaterial && cachedMaterial.userData && !cachedMaterial.userData.qualityChecked) {
+            // Marquer comme vérifié pour éviter les vérifications répétées
+            cachedMaterial.userData.qualityChecked = true;
+
+            const textureProperties = ['map', 'normalMap', 'alphaMap'];
+            let needsUpdate = false;
+
+            textureProperties.forEach(prop => {
+                if (cachedMaterial[prop] && cachedMaterial[prop].isTexture) {
+                    const texture = cachedMaterial[prop];
+
+                    // Vérifier si les paramètres de qualité sont corrects
+                    const renderer = window.gl || window.renderer;
+                    const maxAnisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 16;
+
+                    if (texture.anisotropy < maxAnisotropy ||
+                        texture.minFilter !== THREE.LinearMipmapLinearFilter) {
+
+                        // Réappliquer la haute qualité
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.anisotropy = maxAnisotropy;
+                        texture.generateMipmaps = true;
+                        texture.needsUpdate = true;
+                        needsUpdate = true;
+
+                        console.log(`🔧 Correction qualité texture ${prop} pour ${objectId}`);
+                    }
+                }
+            });
+
+            if (needsUpdate) {
+                cachedMaterial.needsUpdate = true;
+            }
+        }
+
+        return cachedMaterial;
     },
 
     clear() {
@@ -74,13 +159,64 @@ const GeometryCache = {
         });
         this.cache.clear();
 
-        // Also dispose materials when clearing cache
+        // Disposer des matériaux lors du nettoyage du cache
         this.materials.forEach(material => {
             if (material && material.dispose) {
                 material.dispose();
             }
         });
         this.materials.clear();
+    },
+
+    // NOUVELLE MÉTHODE: Forcer la mise à jour de qualité pour tous les matériaux en cache
+    updateAllMaterialsQuality() {
+        console.log("🔄 Mise à jour qualité de tous les matériaux en cache...");
+
+        let updatedCount = 0;
+
+        this.materials.forEach((material, key) => {
+            // Vérifier si c'est un matériau de végétation
+            const isVegetationMaterial = key.includes('Bush') ||
+                key.includes('Plant') ||
+                key.includes('Flower') ||
+                key.includes('Branch') ||
+                key.includes('Grass') ||
+                key.includes('_hq'); // Matériaux marqués haute qualité
+
+            if (isVegetationMaterial && material) {
+                const textureProperties = ['map', 'normalMap', 'alphaMap'];
+                let materialUpdated = false;
+
+                textureProperties.forEach(prop => {
+                    if (material[prop] && material[prop].isTexture) {
+                        const texture = material[prop];
+
+                        // Appliquer la haute qualité
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.generateMipmaps = true;
+
+                        const renderer = window.gl || window.renderer;
+                        if (renderer) {
+                            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                        } else {
+                            texture.anisotropy = 16;
+                        }
+
+                        texture.needsUpdate = true;
+                        materialUpdated = true;
+                    }
+                });
+
+                if (materialUpdated) {
+                    material.needsUpdate = true;
+                    updatedCount++;
+                    console.log(`  ✅ Matériau mis à jour: ${key}`);
+                }
+            }
+        });
+
+        console.log(`🎨 ${updatedCount} matériaux de végétation mis à jour dans le cache`);
     }
 };
 
