@@ -1,6 +1,7 @@
 import React from 'react';
 import useStore from '../Store/useStore';
 import { Howler } from 'howler';
+import MapProgress from './MapProgress';
 
 /**
  * MainLayout component
@@ -27,6 +28,11 @@ const MainLayout = () => {
             {/* School logo in top-left */}
             <div className="main-layout-logo">
                 <img src="/images/logo-small.svg" alt="Layon Logo" />
+            </div>
+
+            {/* Map progress in center */}
+            <div className="main-layout-map">
+                <MapProgress />
             </div>
 
             {/* Audio button */}

@@ -275,7 +275,7 @@ export default function Experience() {
             <Camera/>
             <Controls/>
             <Lights/>
-            <MaterialControls/>
+            {debug && <MaterialControls/>}
             <PostProcessing/>
 
             <RayCaster>
