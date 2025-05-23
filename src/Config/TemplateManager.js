@@ -66,13 +66,13 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            // 'BranchTree002': {
-            //     id: 'BranchTree',
-            //     path: '/models/forest/branch/BranchTree.glb',
-            //     priority: 20,
-            //     useTextures: true,
-            //     group: 'regular'
-            // },
+            'BranchTree002': {
+                id: 'BranchTree',
+                path: '/models/forest/branch/BranchTree.glb',
+                priority: 20,
+                useTextures: true,
+                group: 'regular'
+            },
             //
             // // Bushes
             'BUSHv2': {

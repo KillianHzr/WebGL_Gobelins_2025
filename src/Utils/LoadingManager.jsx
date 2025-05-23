@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { EventBus } from './EventEmitter';
+import { EventBus } from './EventEmitter.jsx';
 import useStore from '../Store/useStore';
 
 const LoadingManager = ({ onComplete }) => {
@@ -143,6 +143,13 @@ const LoadingManager = ({ onComplete }) => {
             updateTotalAssets();
         });
 
+        // Debug: Add a listener to see all EventBus events
+        const debugUnsubscribe = EventBus.on('*', (eventName, ...args) => {
+            if (eventName === 'forest-ready' || eventName === 'forest-scene-ready') {
+                console.log(`DEBUG: EventBus received ${eventName}`, args);
+            }
+        });
+
         // In case the forest-ready event was missed, check every second if forest is loaded
         const checkInterval = setInterval(() => {
             const store = useStore.getState();
@@ -157,6 +164,12 @@ const LoadingManager = ({ onComplete }) => {
             const logs = getRecentLogs();
             if (logs.includes("Forest est prête") && progressRef.current < 100) {
                 console.log("Detected 'Forest est prête' in regular check - completing loading");
+                handleForestReady();
+            }
+
+            // Check for "Forest loading complete!" message
+            if (logs.includes("Forest loading complete!") && progressRef.current < 100) {
+                console.log("Detected 'Forest loading complete!' in regular check - completing loading");
                 handleForestReady();
             }
 
@@ -185,8 +198,8 @@ const LoadingManager = ({ onComplete }) => {
             if (!isCompleteRef.current) {
                 const allLogs = window._loadingLogs ? window._loadingLogs.join(' ') : '';
 
-                if (allLogs.includes("Forest est prête")) {
-                    console.log("Final fallback: Detected 'Forest est prête' in logs but missed event - completing loading");
+                if (allLogs.includes("Forest est prête") || allLogs.includes("Forest loading complete!")) {
+                    console.log("Final fallback: Detected forest completion in logs but missed event - completing loading");
                     handleForestReady();
                 }
             }
@@ -201,6 +214,7 @@ const LoadingManager = ({ onComplete }) => {
             forestStartUnsubscribe();
             modelLoadingUnsubscribe();
             assetManagerReadyUnsubscribe();
+            debugUnsubscribe();
             clearInterval(checkInterval);
             clearTimeout(fallbackTimer);
 
