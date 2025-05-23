@@ -4,88 +4,57 @@ import { EventBus } from './EventEmitter';
 const MapProgress = () => {
     // État pour suivre quels checkpoints sont complétés
     const [completedCheckpoints, setCompletedCheckpoints] = useState(new Set());
+    const [currentScrollPosition, setCurrentScrollPosition] = useState(0);
 
-    // Mapping des objets interactifs aux indices de checkpoints (0-7)
-    const interactionToCheckpoint = {
-        'DirectionPanelStartInteractive': 0,
-        'TrunkLargeInteractive': 1,
-        'AnimalPaws': 2, // Uniquement quand le scanner se ferme
-        'JumpRock4': 3,
-        'ThinTrunkInteractive': 4,
-        'TreeStump': 5,
-        'RiverCheckpoint': 6,
-        'Vison': 7
-    };
-
-    // Mapping des requiredStep aux checkpoints
-    const stepToCheckpoint = {
-        'initialStartStop': 0,
-        'firstStop': 1,
-        'fifthStop': 2, // AnimalPaws
-        'fourteenthStop': 3, // JumpRock4
-        'fourthStop': 4, // ThinTrunkInteractive
-        'seventeenStop': 6, // RiverCheckpoint
-        'sixthStop': 7 // Vison
-    };
+    // Définir les seuils de position pour chaque checkpoint (en pourcentage de la timeline 0-1)
+    // Ces valeurs correspondent approximativement aux positions des interactions
+    const checkpointThresholds = [
+        0.19,   // 0: DirectionPanelStartInteractive - très tôt
+        0.29,   // 1: TrunkLargeInteractive - après le premier obstacle
+        0.43,   // 2: AnimalPaws Scanner - après les feuilles
+        0.61,   // 3: JumpRock4 - après la traversée de rivière
+        0.76,   // 4: ThinTrunkInteractive - après les rochers
+        0.85,   // 5: RiverCheckpoint - vers la fin
+        0.95,   // 6: Vison - presque à la fin
+    ];
 
     useEffect(() => {
-        // Écouter les événements d'interaction complétée
-        const handleInteractionComplete = (data) => {
-            console.log('MapProgress - Interaction complétée:', data);
+        // Écouter la position normalisée de la timeline émise par ScrollControls
+        const handleTimelinePosition = (data) => {
+            const position = data.position; // Position normalisée entre 0 et 1
+            setCurrentScrollPosition(position);
 
-            let checkpointIndex = -1;
+            console.log(`MapProgress - Position scroll: ${(position * 100).toFixed(1)}%`);
 
-            // Essayer de mapper par requiredStep d'abord
-            if (data.requiredStep && stepToCheckpoint[data.requiredStep] !== undefined) {
-                checkpointIndex = stepToCheckpoint[data.requiredStep];
-            }
-            // Puis essayer par objectKey
-            else if (data.objectKey && interactionToCheckpoint[data.objectKey] !== undefined) {
-                checkpointIndex = interactionToCheckpoint[data.objectKey];
-            }
-            // Ou par l'id si c'est un step connu
-            else if (data.id && stepToCheckpoint[data.id] !== undefined) {
-                checkpointIndex = stepToCheckpoint[data.id];
-            }
+            // Calculer quels checkpoints devraient être actifs
+            const newCompletedCheckpoints = new Set();
 
-            if (checkpointIndex !== -1) {
-                console.log(`MapProgress - Activation du checkpoint ${checkpointIndex}`);
-                setCompletedCheckpoints(prev => new Set([...prev, checkpointIndex]));
-            }
+            checkpointThresholds.forEach((threshold, index) => {
+                if (position >= threshold) {
+                    newCompletedCheckpoints.add(index);
+                }
+            });
+
+            // Mettre à jour les checkpoints seulement s'il y a un changement
+            setCompletedCheckpoints(prev => {
+                const prevArray = Array.from(prev).sort();
+                const newArray = Array.from(newCompletedCheckpoints).sort();
+
+                // Comparer les arrays pour éviter les re-renders inutiles
+                if (JSON.stringify(prevArray) !== JSON.stringify(newArray)) {
+                    console.log(`MapProgress - Checkpoints actifs: ${newArray.join(', ')}`);
+                    return newCompletedCheckpoints;
+                }
+
+                return prev;
+            });
         };
 
-        // Écouter spécifiquement la fermeture du scanner pour AnimalPaws
-        const handleScannerAction = (data) => {
-            if (data.type === 'scanner' && data.action === 'close' && data.result === 'complete') {
-                console.log('MapProgress - Scanner fermé, activation checkpoint AnimalPaws');
-                setCompletedCheckpoints(prev => new Set([...prev, 2])); // AnimalPaws = checkpoint 2
-            }
-        };
-
-        // S'abonner aux événements
-        const unsubscribeInteraction = EventBus.on('INTERACTION_COMPLETE', handleInteractionComplete);
-        const unsubscribeMarkerInteraction = EventBus.on('marker:interaction:complete', handleInteractionComplete);
-        const unsubscribeObjectInteraction = EventBus.on('object:interaction:complete', handleInteractionComplete);
-        const unsubscribeInterfaceAction = EventBus.on('interface-action', handleScannerAction);
-
-        // Debug: écouter tous les événements pour voir ce qui passe
-        const handleDebugEvent = (data) => {
-            if (data && (data.requiredStep || data.objectKey || data.id)) {
-                console.log('MapProgress - Debug event reçu:', data);
-            }
-        };
-
-        // Écouter quelques événements supplémentaires pour debug
-        const unsubscribeDebug1 = EventBus.on('interaction-complete-set-allow-scroll', handleInteractionComplete);
-        const unsubscribeDebug2 = EventBus.on('marker:click', handleDebugEvent);
+        // S'abonner à l'événement de position normalisée
+        const unsubscribe = EventBus.on('timeline-position-normalized', handleTimelinePosition);
 
         return () => {
-            unsubscribeInteraction();
-            unsubscribeMarkerInteraction();
-            unsubscribeObjectInteraction();
-            unsubscribeInterfaceAction();
-            unsubscribeDebug1();
-            unsubscribeDebug2();
+            unsubscribe();
         };
     }, []);
 
@@ -107,6 +76,7 @@ const MapProgress = () => {
                     rx="6"
                     transform={`matrix(-1 0 0 1 ${x} ${y})`}
                     fill="#F9F9F9"
+                    className="checkpoint-completed"
                 />
             );
         } else {
@@ -136,17 +106,15 @@ const MapProgress = () => {
         }
     };
 
-    // Positions des checkpoints dans l'ordre du parcours
+    // Positions des checkpoints correspondant aux 7 interactions principales
     const checkpointPositions = [
         [11, 4],    // 0: DirectionPanelStartInteractive
         [85, 21],   // 1: TrunkLargeInteractive
-        [136, 22],  // 2: AnimalPaws (scanner)
-        [182, 23],  // 3: JumpRock4
+        [136, 22],  // 2: AnimalPaws Scanner
+        [182, 23],  // 3: JumpRock4 - dernière pierre
         [223, 6],   // 4: ThinTrunkInteractive
-        [275, 0],   // 5: TreeStump (pas d'interaction spécifique?)
-        [324, 9],   // 6: RiverCheckpoint
-        [370, 17],  // 7: Vison
-        [400, 40]   // 8: Point final (pas utilisé dans les interactions)
+        [324, 9],   // 5: RiverCheckpoint
+        [370, 17],  // 6: Vison
     ];
 
     return (
