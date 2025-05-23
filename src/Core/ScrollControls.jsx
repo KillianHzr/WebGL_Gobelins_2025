@@ -87,6 +87,9 @@ function CameraController({children}) {
     const SCROLL_SAFETY_OFFSET = 2.0; // Offset de sécurité pour éviter de revenir trop près de l'interaction
     const validatedPositionsRef = useRef([]); // Tableau des positions validées avec leurs offsets
 
+    // NOUVEAU : Référence pour la dernière position normalisée émise
+    const lastEmittedNormalizedPosition = useRef(-1);
+
     const [scrollDirection, setScrollDirection] = useState(0);
     const [showInteractionButton, setShowInteractionButton] = useState(false);
     const [countdown, setCountdown] = useState(null);
@@ -125,6 +128,29 @@ function CameraController({children}) {
 
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
+
+    // NOUVEAU : Fonction pour calculer et émettre la position normalisée
+    const emitNormalizedPosition = () => {
+        if (timelineLengthRef.current > 0) {
+            const normalizedPosition = Math.max(0, Math.min(1, timelinePositionRef.current / timelineLengthRef.current));
+
+            // N'émettre que si la position a changé de manière significative (évite le spam d'événements)
+            if (Math.abs(normalizedPosition - lastEmittedNormalizedPosition.current) > 0.001) {
+                lastEmittedNormalizedPosition.current = normalizedPosition;
+
+                EventBus.trigger('timeline-position-normalized', {
+                    position: normalizedPosition,
+                    rawPosition: timelinePositionRef.current,
+                    timelineLength: timelineLengthRef.current
+                });
+
+                // Debug log optionnel
+                if (debug?.active) {
+                    console.log(`Position normalisée émise: ${(normalizedPosition * 100).toFixed(1)}%`);
+                }
+            }
+        }
+    };
 
     // MODIFIÉ : Fonction pour mettre à jour la position minimale autorisée avec offset
     const updateMinAllowedPosition = (newPosition) => {
@@ -244,6 +270,20 @@ function CameraController({children}) {
 
             cameraAnimatorRef.current.setPosition(startChapterPosition);
 
+            // NOUVEAU : Émettre la position normalisée initiale
+            emitNormalizedPosition();
+
+            // NOUVEAU : Initialiser l'UI de debug si en mode debug
+            if (debug?.active) {
+                setTimeout(() => {
+                    createDebugUI();
+                    const normalizedPos = timelineLengthRef.current > 0 ?
+                        startChapterPosition / timelineLengthRef.current : 0;
+                    updateDebugIndicators(startChapterPosition, normalizedPos);
+                    console.log('Debug UI: Initialisé avec position de départ');
+                }, 100); // Petit délai pour s'assurer que l'interface est prête
+            }
+
             // Exposer la fonction jumpToChapter globalement
             window.jumpToChapter = jumpToChapter;
             window.smoothJumpTo = smoothJumpTo;
@@ -256,12 +296,17 @@ function CameraController({children}) {
                 getCurrentPosition: () => timelinePositionRef.current,
                 getEffectiveMinPosition: () => getEffectiveMinPosition(timelinePositionRef.current),
                 getMinAllowedPosition: () => minAllowedPositionRef.current,
-                forceUpdateOffsetFlags: () => updateOffsetFlags(timelinePositionRef.current)
+                forceUpdateOffsetFlags: () => updateOffsetFlags(timelinePositionRef.current),
+                getNormalizedPosition: () => timelinePositionRef.current / timelineLengthRef.current
             };
 
             // Créer l'interface de progression
             if (!debug) {
                 createProgressUI();
+            } else {
+                // En mode debug, créer les interfaces de debug en plus
+                createProgressUI();
+                createDebugUI();
             }
 
             // Configurer le scroll
@@ -289,6 +334,30 @@ function CameraController({children}) {
             cleanupUI();
         };
     }, [camera, cameraModel]);
+
+    // NOUVEAU : Gérer l'affichage des indicateurs de debug quand le mode debug change
+    useEffect(() => {
+        if (debug?.active && glbInitializedRef.current) {
+            // Créer l'interface de debug si elle n'existe pas
+            console.log('Debug UI: Mode debug activé, création de l\'interface');
+            createDebugUI();
+            // Mettre à jour immédiatement les indicateurs
+            const normalizedPos = timelineLengthRef.current > 0 ?
+                timelinePositionRef.current / timelineLengthRef.current : 0;
+            updateDebugIndicators(timelinePositionRef.current, normalizedPos);
+        } else if (!debug?.active) {
+            // Supprimer les éléments de debug si le mode debug est désactivé
+            console.log('Debug UI: Mode debug désactivé, suppression de l\'interface');
+            const debugElements = ['scroll-progress-counter', 'scroll-position-details'];
+            debugElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.remove();
+                    console.log(`Debug UI: Élément ${id} supprimé`);
+                }
+            });
+        }
+    }, [debug?.active, glbInitializedRef.current]);
 
     // Fonction pour trouver un objet dans la scène par son nom
     const findObjectByName = (name) => {
@@ -761,6 +830,9 @@ function CameraController({children}) {
             // Mettre à jour progressivement la position de la timeline
             timelinePositionRef.current = currentTimelinePos + (finalTargetPosition - currentTimelinePos) * progress;
 
+            // NOUVEAU : Émettre la position normalisée pendant la transition
+            emitNormalizedPosition();
+
             // Mettre à jour l'indicateur visuel de progression
             updateProgressIndicator(timelinePositionRef.current);
 
@@ -777,6 +849,9 @@ function CameraController({children}) {
                 if (finalTargetPosition > maxProgressReachedRef.current) {
                     maxProgressReachedRef.current = finalTargetPosition;
                 }
+
+                // NOUVEAU : Émettre la position normalisée finale
+                emitNormalizedPosition();
 
                 // Notifier la fin de transition
                 EventBus.trigger('distance-transition-complete', {
@@ -816,6 +891,12 @@ function CameraController({children}) {
         const indicator = document.getElementById('progress-indicator');
         if (indicator) {
             indicator.style.width = `${progressPercentage}%`;
+        }
+
+        // NOUVEAU : Mettre à jour aussi les indicateurs de debug si actifs
+        if (debug?.active && timelineLength > 0) {
+            const normalizedPos = position / timelineLength;
+            updateDebugIndicators(position, normalizedPos);
         }
     };
 
@@ -882,7 +963,7 @@ function CameraController({children}) {
         return true;
     }
 
-    // MODIFIÉ : Animation frame avec limitation du scroll arrière
+    // MODIFIÉ : Animation frame avec limitation du scroll arrière et émission de position
     useAnimationFrame(() => {
         if (!camera || !cameraAnimatorRef.current) return;
 
@@ -942,7 +1023,10 @@ function CameraController({children}) {
         // 3. Toujours appliquer la position au CameraAnimator
         cameraAnimatorRef.current.setPosition(timelinePositionRef.current);
 
-        // Mettre à jour l'indicateur de progression
+        // NOUVEAU : Émettre la position normalisée à chaque frame
+        emitNormalizedPosition();
+
+        // Mettre à jour l'indicateur de progression (qui inclut les indicateurs de debug)
         updateProgressIndicator(timelinePositionRef.current);
 
         // Détection de la fin du scroll
@@ -1094,24 +1178,7 @@ function CameraController({children}) {
 
     // Créer UI pour les progrès généraux
     const createProgressUI = () => {
-        if (!document.getElementById('scroll-debug-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'scroll-debug-indicator';
-            indicator.style.position = 'fixed';
-            indicator.style.bottom = '20px';
-            indicator.style.right = '20px';
-            indicator.style.padding = '8px 12px';
-            indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-            indicator.style.color = '#00ff00';
-            indicator.style.fontFamily = 'sans-serif';
-            indicator.style.fontSize = '14px';
-            indicator.style.borderRadius = '4px';
-            indicator.style.zIndex = '100';
-            indicator.style.transition = 'color 0.3s ease';
-            indicator.textContent = 'Scroll actif';
-            document.body.appendChild(indicator);
-        }
-
+        // Barre de progression en bas de l'écran
         if (!document.getElementById('timeline-progress')) {
             const progressBar = document.createElement('div');
             progressBar.id = 'timeline-progress';
@@ -1134,12 +1201,125 @@ function CameraController({children}) {
 
             progressBar.appendChild(progressIndicator);
             document.body.appendChild(progressBar);
+            console.log('UI: Barre de progression créée');
+        }
+
+        // Indicateur de debug simple (uniquement en mode non-debug)
+        if (!debug?.active && !document.getElementById('scroll-debug-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'scroll-debug-indicator';
+            indicator.style.position = 'fixed';
+            indicator.style.bottom = '20px';
+            indicator.style.right = '20px';
+            indicator.style.padding = '8px 12px';
+            indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+            indicator.style.color = '#00ff00';
+            indicator.style.fontFamily = 'sans-serif';
+            indicator.style.fontSize = '14px';
+            indicator.style.borderRadius = '4px';
+            indicator.style.zIndex = '100';
+            indicator.style.transition = 'color 0.3s ease';
+            indicator.textContent = 'Scroll actif';
+            document.body.appendChild(indicator);
+        }
+    };
+
+    // NOUVEAU : Créer UI pour le debug en mode développeur
+    const createDebugUI = () => {
+        if (!debug?.active) return;
+
+        // Compteur de progression en bas à gauche
+        if (!document.getElementById('scroll-progress-counter')) {
+            const progressCounter = document.createElement('div');
+            progressCounter.id = 'scroll-progress-counter';
+            progressCounter.style.position = 'fixed';
+            progressCounter.style.bottom = '20px';
+            progressCounter.style.right = '20px';
+            progressCounter.style.padding = '12px 16px';
+            progressCounter.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            progressCounter.style.color = '#00ff88';
+            progressCounter.style.fontFamily = 'Monaco, "Lucida Console", monospace';
+            progressCounter.style.fontSize = '16px';
+            progressCounter.style.fontWeight = 'bold';
+            progressCounter.style.borderRadius = '8px';
+            progressCounter.style.border = '2px solid rgba(0, 255, 136, 0.3)';
+            progressCounter.style.zIndex = '150';
+            progressCounter.style.minWidth = '180px';
+            progressCounter.style.textAlign = 'center';
+            progressCounter.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+            progressCounter.style.backdropFilter = 'blur(4px)';
+            progressCounter.textContent = '0.0%';
+            document.body.appendChild(progressCounter);
+        }
+
+        // Indicateur de position absolue (optionnel, plus détaillé)
+        if (!document.getElementById('scroll-position-details')) {
+            const positionDetails = document.createElement('div');
+            positionDetails.id = 'scroll-position-details';
+            positionDetails.style.position = 'fixed';
+            positionDetails.style.bottom = '70px';
+            positionDetails.style.right = '20px';
+            positionDetails.style.padding = '8px 12px';
+            positionDetails.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            positionDetails.style.color = '#cccccc';
+            positionDetails.style.fontFamily = 'Monaco, "Lucida Console", monospace';
+            positionDetails.style.fontSize = '12px';
+            positionDetails.style.borderRadius = '4px';
+            positionDetails.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            positionDetails.style.zIndex = '149';
+            positionDetails.style.maxWidth = '250px';
+            positionDetails.style.wordWrap = 'break-word';
+            positionDetails.innerHTML = 'Pos: 0.00 / 0.00<br>Min: 0.00';
+            document.body.appendChild(positionDetails);
+        }
+    };
+
+    // NOUVEAU : Mettre à jour les indicateurs de debug
+    const updateDebugIndicators = (currentPosition, normalizedPosition) => {
+        if (!debug?.active) return;
+
+        // Mettre à jour le compteur de progression principal
+        const progressCounter = document.getElementById('scroll-progress-counter');
+        if (progressCounter) {
+            const percentage = (normalizedPosition * 100).toFixed(1);
+            progressCounter.textContent = `${percentage}%`;
+
+            // Changer la couleur en fonction du progrès
+            if (normalizedPosition < 0.2) {
+                progressCounter.style.color = '#ff6b6b'; // Rouge pour début
+                progressCounter.style.borderColor = 'rgba(255, 107, 107, 0.3)';
+            } else if (normalizedPosition < 0.6) {
+                progressCounter.style.color = '#ffd93d'; // Jaune pour milieu
+                progressCounter.style.borderColor = 'rgba(255, 217, 61, 0.3)';
+            } else {
+                progressCounter.style.color = '#00ff88'; // Vert pour fin
+                progressCounter.style.borderColor = 'rgba(0, 255, 136, 0.3)';
+            }
+        }
+
+        // Mettre à jour les détails de position
+        const positionDetails = document.getElementById('scroll-position-details');
+        if (positionDetails) {
+            const timelineLength = timelineLengthRef.current;
+            const effectiveMin = getEffectiveMinPosition(currentPosition);
+            positionDetails.innerHTML =
+                `Pos: ${currentPosition.toFixed(2)} / ${timelineLength.toFixed(2)}<br>` +
+                `Min: ${effectiveMin.toFixed(2)} | Max: ${maxProgressReachedRef.current.toFixed(2)}`;
         }
     };
 
     const cleanupUI = () => {
         // Supprimer tous les éléments d'interface créés
-        ['scroll-debug-indicator', 'interaction-button', 'countdown-element', 'timeline-progress', 'interaction-instruction', 'chapter-navigation'].forEach(id => {
+        [
+            'scroll-debug-indicator',
+            'interaction-button',
+            'countdown-element',
+            'timeline-progress',
+            'interaction-instruction',
+            'chapter-navigation',
+            'scroll-progress-counter',      // NOUVEAU
+            'scroll-position-details'       // NOUVEAU
+        ].forEach(id => {
             const element = document.getElementById(id);
             if (element) element.remove();
         });
