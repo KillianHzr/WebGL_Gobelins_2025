@@ -155,7 +155,7 @@ class SceneObjectManager {
                 },
                 // defaultAnimations: ['run'],
                 animationTriggers: {
-                    'timeline-position-normalized': {
+                    'subtitle-changed': {
                         animation: 'run',
                         options: {
                             timeScale: 5.0,
@@ -732,15 +732,7 @@ class SceneObjectManager {
         const totalMappings = Object.values(mappings).reduce((acc, val) => acc + val.length, 0);
         console.log(`✅ ${totalEvents} événements automatiquement liés à ${totalMappings} animations`);
 
-        // Vérifier spécifiquement la configuration pour l'événement timeline-position-normalized
-        if (mappings['timeline-position-normalized']) {
-            console.log(`👍 L'événement timeline-position-normalized est correctement configuré avec ${mappings['timeline-position-normalized'].length} animations associées:`);
-            mappings['timeline-position-normalized'].forEach(([objKey, config]) => {
-                console.log(`  - ${objKey}: ${config.animation}`);
-            });
-        } else {
-            console.warn('⚠️ L\'événement timeline-position-normalized n\'est pas configuré !');
-        }
+
     }
 
     /**
@@ -1031,62 +1023,7 @@ class SceneObjectManager {
         console.groupEnd();
     }
 
-    /**
-     * Méthode pour réparer spécifiquement le problème du vison
-     */
-    fixVisonRunAnimation() {
-        console.log('🩺 Tentative de réparation de l\'animation du VisonRun...');
 
-        // 1. Diagnostiquer le problème
-        this.diagnoseAnimationIssue('VisonRun');
-
-        // 2. Vérifier que l'événement timeline-position-normalized est bien configuré
-        const hasMapping = this.autoEventMappings &&
-            this.autoEventMappings['timeline-position-normalized'] &&
-            this.autoEventMappings['timeline-position-normalized'].some(([key]) => key === 'VisonRun');
-
-        if (!hasMapping) {
-            console.log('⚠️ L\'événement timeline-position-normalized n\'est pas correctement mappé, création manuelle...');
-
-            // Recréer le mapping manuellement
-            if (!this.autoEventMappings) {
-                this.autoEventMappings = {};
-            }
-
-            if (!this.autoEventMappings['timeline-position-normalized']) {
-                this.autoEventMappings['timeline-position-normalized'] = [];
-
-                // Créer l'écouteur d'événement
-                safeEventBus().on('timeline-position-normalized', (data) => {
-                    console.log('📢 Événement timeline-position-normalized reçu:', data);
-                    this.autoEventMappings['timeline-position-normalized'].forEach(([objKey, triggerConfig]) => {
-                        this.triggerAnimationByEvent(objKey, 'timeline-position-normalized', data || {});
-                    });
-                });
-            }
-
-            // Ajouter le mapping
-            const visonConfig = this.getObjectFromCatalog('VisonRun');
-            if (visonConfig && visonConfig.animationTriggers && visonConfig.animationTriggers['timeline-position-normalized']) {
-                this.autoEventMappings['timeline-position-normalized'].push(['VisonRun', visonConfig.animationTriggers['timeline-position-normalized']]);
-                console.log('✅ Mapping recréé manuellement pour timeline-position-normalized → VisonRun');
-            }
-        }
-
-        // 3. Forcer directement l'animation pour voir si elle fonctionne
-        this.forceAnimation('VisonRun', 'run', {
-            timeScale: 2.0,
-            loopCount: -1
-        });
-
-        // 4. Redéclencher l'événement au cas où
-        setTimeout(() => {
-            console.log('🔄 Redéclenchement de l\'événement timeline-position-normalized...');
-            safeEventBus().trigger('timeline-position-normalized', {status: 'ready', forced: true});
-        }, 500);
-
-        return true;
-    }
 
     /**
      * Gère les triggers basés sur la timeline

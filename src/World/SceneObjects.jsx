@@ -379,122 +379,51 @@ export const StaticObject = React.memo(function StaticObject({
         };
     }, [mixer]);
 
+
+// Configuration dynamique des écouteurs d'événements pour les animationTriggers
     useEffect(() => {
-        if (!objectRef.current || !mixer || !actions) return;
+        if (!objectRef.current || !mixer || !actions || !textureModelId || !objectKey) return;
 
-        const handleForceLocalAnimation = (data) => {
-            if ((data.objectKey === objectKey || data.modelId === textureModelId) && data.animationName) {
-                console.log(`🎬 Réception de force-local-animation pour ${objectKey || textureModelId}`);
+        // Récupérer la configuration de l'objet
+        const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+        if (!objectConfig || !objectConfig.animationTriggers) return;
 
-                // Rechercher l'action correspondante
-                const actionName = data.animationName;
-                let action = actions[actionName];
+        console.log(`🎮 Configuration d'écouteurs dynamiques pour ${objectKey}`);
 
-                // Si non trouvée par le nom exact, essayer de faire correspondre avec les noms des clips
-                if (!action) {
-                    // Chercher parmi toutes les actions disponibles
+        // Créer des écouteurs pour tous les triggers définis dans la configuration
+        const cleanupFunctions = [];
+
+        Object.entries(objectConfig.animationTriggers).forEach(([eventName, triggerConfig]) => {
+            console.log(`📡 Configuration écouteur pour événement "${eventName}" sur ${objectKey}`);
+
+            const handleAnimationEvent = (data) => {
+                console.log(`🎬 Événement "${eventName}" reçu pour ${objectKey}:`, data);
+
+                const animationKey = triggerConfig.animation;
+                const animationConfig = objectConfig.animations[animationKey];
+
+                if (!animationConfig) {
+                    console.warn(`❌ Configuration animation "${animationKey}" manquante pour ${objectKey}`);
+                    return;
+                }
+
+                // Rechercher l'action correspondante en utilisant le nom réel de l'animation
+                const animationName = animationConfig.animationName;
+                const targetAction = actions[animationName] || actions[animationKey];
+
+                // Si pas trouvée, essayer de chercher par nom de clip
+                let foundAction = targetAction;
+                if (!foundAction) {
                     for (const key in actions) {
-                        if (actions[key]._clip && actions[key]._clip.name === actionName) {
-                            action = actions[key];
+                        if (actions[key]._clip && actions[key]._clip.name === animationName) {
+                            foundAction = actions[key];
                             break;
                         }
                     }
                 }
 
-                if (action) {
-                    // Arrêter l'animation en cours
-                    if (currentAnimationRef.current) {
-                        currentAnimationRef.current.stop();
-                    }
-
-                    // Configurer la nouvelle animation
-                    action.reset();
-                    action.timeScale = data.options?.timeScale || 1.0;
-                    action.clampWhenFinished = data.options?.clampWhenFinished || false;
-                    action.setLoop(
-                        data.options?.loop === false ? THREE.LoopOnce : THREE.LoopRepeat,
-                        data.options?.loopCount === -1 ? Infinity : (data.options?.loopCount || 1)
-                    );
-
-                    // Jouer l'animation
-                    action.play();
-
-                    // Mettre à jour les références
-                    currentAnimationRef.current = action;
-                    animationState.current = {
-                        isPlaying: true,
-                        currentName: action._clip.name,
-                        loop: data.options?.loop !== false,
-                        clamp: data.options?.clampWhenFinished || false,
-                        timeScale: data.options?.timeScale || 1.0
-                    };
-
-                    console.log(`✅ Animation locale forcée: ${action._clip.name}`);
-                } else {
-                    console.warn(`❌ Action "${actionName}" non trouvée dans les actions disponibles:`,
-                        Object.keys(actions).map(key => ({
-                            key: key,
-                            clipName: actions[key]._clip ? actions[key]._clip.name : 'clip inconnu'
-                        })));
-                }
-            }
-        };
-
-        // Éviter les erreurs si EventBus n'est pas disponible
-        let cleanup = () => {};
-        try {
-            if (window.EventBus && typeof window.EventBus.on === 'function') {
-                cleanup = window.EventBus.on('force-local-animation', handleForceLocalAnimation);
-            } else {
-                console.warn('⚠️ EventBus non disponible pour l\'écouteur force-local-animation');
-            }
-        } catch (error) {
-            console.error('❌ Erreur lors de l\'enregistrement de l\'écouteur force-local-animation:', error);
-        }
-
-        return () => {
-            try {
-                cleanup();
-            } catch (error) {
-                console.warn('⚠️ Erreur lors du nettoyage de l\'écouteur force-local-animation:', error);
-            }
-        };
-    }, [objectKey, textureModelId, mixer, actions]);
-
-// Si l'objet est un VisonRun, ajoutez également cet écouteur spécifique
-    useEffect(() => {
-        if (!objectRef.current || !mixer || !actions || !textureModelId) return;
-
-        // Vérifier si cet objet est un VisonRun
-        if (objectKey === 'VisonRun' || textureModelId === 'VisonRun') {
-            console.log(`🎮 Configuration d'un écouteur direct pour "timeline-position-normalized" sur VisonRun`);
-
-            const handleForestReady = (data) => {
-                console.log(`🌲 Événement timeline-position-normalized reçu directement par VisonRun:`, data);
-
-                // Récupérer la configuration du VisonRun depuis SceneObjectManager
-                const visonRunConfig = sceneObjectManager.getObjectFromCatalog('VisonRun');
-
-                if (!visonRunConfig || !visonRunConfig.animationTriggers || !visonRunConfig.animationTriggers['timeline-position-normalized']) {
-                    console.warn(`❌ Configuration ou trigger manquant pour VisonRun`);
-                    return;
-                }
-
-                const triggerConfig = visonRunConfig.animationTriggers['timeline-position-normalized'];
-                const animationKey = triggerConfig.animation; // 'run'
-                const animationConfig = visonRunConfig.animations[animationKey]; // Configuration de l'animation 'run'
-
-                if (!animationConfig) {
-                    console.warn(`❌ Configuration animation "${animationKey}" manquante pour VisonRun`);
-                    return;
-                }
-
-                // Rechercher l'action correspondante en utilisant le nom réel de l'animation
-                const animationName = animationConfig.animationName; // 'animation_0'
-                const runAction = actions[animationName] || actions['run'] || actions['animation_0'];
-
-                if (runAction) {
-                    console.log(`🎬 Déclenchement animation "${animationKey}" (${animationName}) sur VisonRun`);
+                if (foundAction) {
+                    console.log(`🎬 Déclenchement animation "${animationKey}" (${animationName}) sur ${objectKey}`);
 
                     // Arrêter l'animation en cours si nécessaire
                     if (currentAnimationRef.current) {
@@ -502,50 +431,50 @@ export const StaticObject = React.memo(function StaticObject({
                     }
 
                     // Configurer l'animation en combinant la config de base et les options du trigger
-                    runAction.reset();
-                    runAction.timeScale = triggerConfig.options.timeScale || animationConfig.timeScale || 1.0; // 5.0
-                    runAction.clampWhenFinished = animationConfig.clampWhenFinished || false;
+                    foundAction.reset();
+                    foundAction.timeScale = triggerConfig.options?.timeScale || animationConfig.timeScale || 1.0;
+                    foundAction.clampWhenFinished = animationConfig.clampWhenFinished || false;
 
                     // Gérer les boucles selon la configuration du trigger
-                    const loopCount = triggerConfig.options.loopCount !== undefined ?
+                    const loopCount = triggerConfig.options?.loopCount !== undefined ?
                         triggerConfig.options.loopCount :
                         (animationConfig.loopCount !== undefined ? animationConfig.loopCount : 1);
 
                     if (loopCount === -1) {
-                        runAction.setLoop(THREE.LoopRepeat, Infinity);
+                        foundAction.setLoop(THREE.LoopRepeat, Infinity);
                     } else if (loopCount === 0) {
-                        runAction.setLoop(THREE.LoopOnce);
+                        foundAction.setLoop(THREE.LoopOnce);
                     } else {
-                        runAction.setLoop(THREE.LoopRepeat, loopCount); // 2 fois
+                        foundAction.setLoop(THREE.LoopRepeat, loopCount);
                     }
 
                     // Jouer l'animation
-                    runAction.play();
+                    foundAction.play();
 
                     // Mettre à jour les références
-                    currentAnimationRef.current = runAction;
+                    currentAnimationRef.current = foundAction;
                     animationState.current = {
                         isPlaying: true,
                         currentName: animationName,
                         loop: loopCount !== 0,
                         clamp: animationConfig.clampWhenFinished || false,
-                        timeScale: triggerConfig.options.timeScale || animationConfig.timeScale || 1.0
+                        timeScale: triggerConfig.options?.timeScale || animationConfig.timeScale || 1.0
                     };
 
-                    console.log(`✅ Animation "${animationKey}" (${animationName}) démarrée sur VisonRun avec:`);
-                    console.log(`   - timeScale: ${runAction.timeScale}`);
+                    console.log(`✅ Animation "${animationKey}" (${animationName}) démarrée sur ${objectKey} avec:`);
+                    console.log(`   - timeScale: ${foundAction.timeScale}`);
                     console.log(`   - loopCount: ${loopCount}`);
-                    console.log(`   - clampWhenFinished: ${runAction.clampWhenFinished}`);
+                    console.log(`   - clampWhenFinished: ${foundAction.clampWhenFinished}`);
 
                 } else {
-                    console.warn(`❌ Animation "${animationName}" non trouvée pour VisonRun`);
+                    console.warn(`❌ Animation "${animationName}" non trouvée pour ${objectKey}`);
                     console.log('Actions disponibles:', Object.keys(actions).map(key => ({
                         key: key,
                         clipName: actions[key]._clip ? actions[key]._clip.name : 'clip inconnu'
                     })));
 
                     // Debug supplémentaire
-                    console.log('Configuration VisonRun:', {
+                    console.log(`Configuration ${objectKey}:`, {
                         animationKey,
                         animationName,
                         triggerOptions: triggerConfig.options,
@@ -555,28 +484,29 @@ export const StaticObject = React.memo(function StaticObject({
             };
 
             // S'abonner à l'événement
-            let cleanup = () => {};
             try {
                 if (window.EventBus && typeof window.EventBus.on === 'function') {
-                    cleanup = window.EventBus.on('timeline-position-normalized', handleForestReady);
-                    console.log(`✅ Écouteur direct pour "timeline-position-normalized" enregistré sur VisonRun`);
+                    const cleanup = window.EventBus.on(eventName, handleAnimationEvent);
+                    cleanupFunctions.push(cleanup);
+                    console.log(`✅ Écouteur dynamique pour "${eventName}" enregistré sur ${objectKey}`);
                 } else {
-                    console.warn('⚠️ EventBus non disponible pour l\'écouteur timeline-position-normalized');
+                    console.warn(`⚠️ EventBus non disponible pour l'écouteur ${eventName}`);
                 }
             } catch (error) {
-                console.error(`❌ Erreur lors de l'enregistrement de l'écouteur direct:`, error);
+                console.error(`❌ Erreur lors de l'enregistrement de l'écouteur pour "${eventName}":`, error);
             }
+        });
 
-            return () => {
+        // Fonction de nettoyage qui supprime tous les écouteurs
+        return () => {
+            cleanupFunctions.forEach(cleanup => {
                 try {
                     cleanup();
                 } catch (error) {
-                    console.warn(`⚠️ Erreur lors du nettoyage de l'écouteur direct:`, error);
+                    console.warn(`⚠️ Erreur lors du nettoyage d'un écouteur:`, error);
                 }
-            };
-        }
-
-        return undefined;
+            });
+        };
     }, [objectKey, textureModelId, mixer, actions]);
 
 
@@ -689,6 +619,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
             triggerListener();
         };
     }, [placements]);
+
 
     // Rendu optimisé des objets statiques
     const staticObjects = useMemo(() => {
