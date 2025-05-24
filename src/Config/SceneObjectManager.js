@@ -81,15 +81,7 @@ class SceneObjectManager {
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-            // // 'WaterPlane': {
-            // //     id: 'WaterPlane',
-            // //     path: '/models/forest/river/River.glb',
-            // //     scale: [1, 1, 1],
-            // //     interactive: false,
-            // //     useTextures: true,
-            // //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
-            // // },
-            //
+
             /**
              * SCÈNE 02 - PANNEAU D'INFORMATION
              * Premier point interactif avec informations contextuelles
@@ -134,9 +126,6 @@ class SceneObjectManager {
                 }
             },
 
-            // initialStop au click -> progression dans la timeline pour rotation de la camera vers le panneau + zoom caméra sur le panneau
-            // intialStopEnd au maintient -> dézoom caméra sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-
             /**
              * SCÈNE 03 - OBSTACLE DU TRONC D'ARBRE
              * Apprentissage du mouvement vertical
@@ -161,7 +150,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [1.833, 0, -11.911], rotation: [0, 0, 0], outlinePulse: false,
                 }
-            }, // firstStop au drag -> progression dans la timeline pour animation de saut par dessus du tronc
+            },
 
             /**
              * SCÈNE 04 - RECHERCHE DES INDICES
@@ -212,8 +201,7 @@ class SceneObjectManager {
                     rotation: [0, 24.64264, 0],
                     scale: [1.3031, 1.3031, 1.3031],
                 }
-            }, // fifthStop au click -> apparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers les empreintes
-            // fifthStopEnd au maintient -> disparition de l'overlay de scanner + progression dans la timeline pour rotation de la caméra vers le chemin
+            },
 
             /**
              * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
@@ -328,7 +316,7 @@ class SceneObjectManager {
                 defaultPlacement: {
                     position: [-41.732, 0.05, -115.572], rotation: [0.0, -0.60, -0.075], outlinePulse: false
                 }
-            }, // fourthStop au drag -> progression dans la timeline pour animation de passage sous la branche
+            },
             'BigRock': {
                 id: 'BigRock',
                 path: '/models/rock/BigRock.glb',
@@ -342,7 +330,7 @@ class SceneObjectManager {
                 }]
             },
             'TreeStump': {
-                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb', // scale: [0.108, 0.07866, 0.108],
+                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
                 interactive: false, useTextures: true, defaultPlacements: [{
                     position: [-41.25625, 0.06409, -115.15076],
                     rotation: [-3.14159, 40.80581, -3.14159],
@@ -373,73 +361,11 @@ class SceneObjectManager {
                     requiredStep: 'seventeenStop'
                 }],
                 defaultPlacement: {
-                    // position: [0.42004, -0.70173, -141.44714],
                     position: [0.1004, -0.70173, -141.54714],
-                    // position: [0.108, -0.702, -141.176],
-                    // position: [-39.47393, 0.2628, 83.18371],
                     rotation: [0, 0, 0],
                     scale: [1, 1, 1],
                 }
             },
-
-
-            /**
-             * Scène 08: Découverte du vison mort
-             *  - Animation automatique d'éclairage révélant le vison
-             *  - CLICK "Immortalise le moment" pour prendre photo
-             *  - Flash d'appareil photo et transition vers scène suivante
-             */
-
-
-
-
-            'Vison': {
-                id: 'Vison',
-                path: '/models/primary/AnimalVisonMortV1.glb',
-                scale: [0.04874, 0.04874, 0.04874],
-                interactive: true,
-                useTextures: false,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "capture",
-                    chapterDistance: 0.28,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [51.67054, 0.04409, -134.37912],
-                    rotation: [-3.14159, 25.90977, -3.14159],
-                    scale: [1, 1, 1],
-                    outlinePulse: false,
-                }
-            },
-
-
-            //
-            // 'VisonRun': {
-            //     id: 'VisonRun',
-            //     path: '/models/primary/VisonRun.glb',
-            //     scale: [0.04874, 0.04874, 0.04874],
-            //     interactive: true,
-            //     useTextures: false,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "capture",
-            //         chapterDistance: 0.28,
-            //         requiredStep: 'sixthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [51.67054, 0.04409, -134.37912],
-            //         rotation: [-3.14159, 25.90977, -3.14159],
-            //         scale: [1, 1, 1],
-            //         outlinePulse: false,
-            //     }
-            // },
 
             'DataCenter': {
                 id: 'DataCenter', path: '/models/digital/DataCenter.glb',
@@ -448,47 +374,38 @@ class SceneObjectManager {
                     rotation: [-3.14159, -54.12542, -3.14159],
                     scale: [1.79768, 1.79768, 1.79768],
                 }]
-                //todo: ajouter DataCenter au groupe Screen et trigger à la fin
             },
-            // 'Vison': {
-            //     id: 'Vison',
-            //     path: '/models/primary/AnimalVisonMortV1.glb',
-            //     scale: [0.07888, 0.07888, 0.07888],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Immortaliser le moment",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.01,
-            //         requiredStep: 'sixthStop'
-            //     }],
-            //     // animations: {
-            //     //     // Tester plusieurs variations possibles du nom de l'animation
-            //     //     'action': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action.001': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, 'Action.001.001': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }, // Ajouter cette variante au cas où
-            //     //     '*': {
-            //     //         autoplay: true, defaultLoop: true, defaultClamp: false, defaultTimeScale: 1.0
-            //     //     }
-            //     // },
-            //     defaultPlacements: [{
-            //         position: [52.11705, 0, -129.83212],
-            //         rotation: [-3.14159, 67.09271, -3.14159],
-            //         scale: [0.07888, 0.07888, 0.07888],
-            //         outlinePulse: false,
-            //     }]
-            // },
-            // sixthStop au click -> apparition de l'overlay de camera + progression dans la timeline pour rotation de la caméra vers le vison + zoom sur le vison
-            // sixthStopEnd au click -> voile blanc sur tout l'écran + disparition de l'overlay de camera + dézoom de la camera + progression dans la timeline pour rotation de la caméra vers le chemin + caché le groupe de mesh End + afficher le groupe de mesh Screen
+            'Vison': {
+                id: 'Vison',
+                path: '/models/primary/Vison.glb',
+                scale: [5, 5, 5],
+                interactive: false,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Immortaliser le moment",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.01,
+                    requiredStep: 'sixthStop'
+                }],
+                animations: {
+                    // Animation principale du vison
+                    'animation_0': {
+                        autoplay: false, // Contrôle manuel
+                        defaultLoop: true,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                },
+                defaultPlacements: [{
+                    position: [-33.943, 0, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [5, 5, 5],
+                }]
+            },
+
             /**
              * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
              * Scène 09: Clairière digitalisée avec panneau interactif
@@ -534,8 +451,6 @@ class SceneObjectManager {
                     outlinePulse: false,
                 }
             },
-            // tenthStopEnd au maintient -> dézoom sur le panneau + progression dans la timeline pour rotation de la caméra vers le chemin
-
 
             'RadioInteractive': {
                 id: 'Radio',
@@ -557,10 +472,8 @@ class SceneObjectManager {
                     scale: [0.13, 0.13, 0.13],
                 }
             }
-            // seventhStop au click -> voile noir sur tout l'écran
-
-
         };
+
         // Liste des placements d'objets dans la scène
         this.placements = [];
 
@@ -569,6 +482,247 @@ class SceneObjectManager {
 
         // Initialiser les placements par défaut
         this._initializeDefaultPlacements();
+
+        // Exposer l'API globale pour contrôle externe des animations
+        window.animationControls = {
+            play: (identifier, animationName, options = {}) => {
+                return this.playAnimation(identifier, animationName, options);
+            },
+
+            stop: (identifier) => {
+                return this.stopAnimation(identifier);
+            },
+
+            pause: (identifier) => {
+                return this.pauseAnimation(identifier);
+            },
+
+            resume: (identifier) => {
+                return this.resumeAnimation(identifier);
+            },
+
+            updateParams: (identifier, params) => {
+                return this.updateAnimationParams(identifier, params);
+            },
+
+            getState: (identifier) => {
+                return this.getAnimationState(identifier);
+            },
+
+            getAvailable: (objectKey) => {
+                return this.getAvailableAnimationsForObject(objectKey);
+            },
+
+            playByStep: (stepId, animationName, options = {}) => {
+                return this.playAnimationByStep(stepId, animationName, options);
+            }
+        };
+    }
+
+    /**
+     * SYSTÈME DE CONTRÔLE D'ANIMATIONS EXTERNES
+     * ========================================
+     */
+    _setupAnimationEventListeners() {
+        // Écouter les commandes d'animation externes
+        EventBus.on('external-animation-play', (data) => {
+            this.playAnimation(data.identifier, data.animationName, data.options);
+        });
+
+        EventBus.on('external-animation-stop', (data) => {
+            this.stopAnimation(data.identifier);
+        });
+
+        EventBus.on('external-animation-pause', (data) => {
+            this.pauseAnimation(data.identifier);
+        });
+
+        EventBus.on('external-animation-resume', (data) => {
+            this.resumeAnimation(data.identifier);
+        });
+
+        EventBus.on('external-animation-update-params', (data) => {
+            this.updateAnimationParams(data.identifier, data.params);
+        });
+    }
+
+    // Méthode pour jouer une animation sur un objet spécifique
+    playAnimation(identifier, animationName, options = {}) {
+        const placements = this.findPlacementsByIdentifier(identifier);
+
+        placements.forEach(placement => {
+            const objectConfig = this.getObjectFromCatalog(placement.objectKey);
+
+            if (!objectConfig || !objectConfig.animations || !objectConfig.animations[animationName]) {
+                console.warn(`Animation "${animationName}" non trouvée pour ${placement.objectKey}`);
+                return;
+            }
+
+            const animConfig = objectConfig.animations[animationName];
+
+            // Mettre à jour le placement avec les nouvelles propriétés d'animation
+            const animationUpdate = {
+                animation: {
+                    play: true,
+                    name: animationName,
+                    loop: options.loop !== undefined ? options.loop : animConfig.defaultLoop,
+                    clamp: options.clamp !== undefined ? options.clamp : animConfig.defaultClamp,
+                    timeScale: options.timeScale !== undefined ? options.timeScale : animConfig.defaultTimeScale,
+                    onComplete: options.onComplete || null
+                }
+            };
+
+            this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
+
+            // Émettre un événement pour informer les composants
+            EventBus.trigger('animation-control-update', {
+                identifier: identifier,
+                objectKey: placement.objectKey,
+                action: 'play',
+                animationName: animationName,
+                placement: placement
+            });
+        });
+
+        return placements.length > 0;
+    }
+
+    // Méthode pour arrêter une animation
+    stopAnimation(identifier) {
+        const placements = this.findPlacementsByIdentifier(identifier);
+
+        placements.forEach(placement => {
+            if (placement.animation) {
+                const animationUpdate = {
+                    animation: {
+                        ...placement.animation,
+                        play: false
+                    }
+                };
+
+                this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
+
+                EventBus.trigger('animation-control-update', {
+                    identifier: identifier,
+                    objectKey: placement.objectKey,
+                    action: 'stop',
+                    placement: placement
+                });
+            }
+        });
+
+        return placements.length > 0;
+    }
+
+    // Méthode pour mettre en pause une animation
+    pauseAnimation(identifier) {
+        return this.stopAnimation(identifier);
+    }
+
+    // Méthode pour reprendre une animation
+    resumeAnimation(identifier) {
+        const placements = this.findPlacementsByIdentifier(identifier);
+
+        placements.forEach(placement => {
+            if (placement.animation && placement.animation.name) {
+                const animationUpdate = {
+                    animation: {
+                        ...placement.animation,
+                        play: true
+                    }
+                };
+
+                this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
+
+                EventBus.trigger('animation-control-update', {
+                    identifier: identifier,
+                    objectKey: placement.objectKey,
+                    action: 'resume',
+                    placement: placement
+                });
+            }
+        });
+
+        return placements.length > 0;
+    }
+
+    // Méthode pour modifier les paramètres d'une animation en cours
+    updateAnimationParams(identifier, params = {}) {
+        const placements = this.findPlacementsByIdentifier(identifier);
+
+        placements.forEach(placement => {
+            if (placement.animation) {
+                const animationUpdate = {
+                    animation: {
+                        ...placement.animation,
+                        ...params
+                    }
+                };
+
+                this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
+
+                EventBus.trigger('animation-control-update', {
+                    identifier: identifier,
+                    objectKey: placement.objectKey,
+                    action: 'update-params',
+                    params: params,
+                    placement: placement
+                });
+            }
+        });
+
+        return placements.length > 0;
+    }
+
+    // Méthode utilitaire pour trouver les placements par identifier
+    findPlacementsByIdentifier(identifier) {
+        return this.placements.filter(placement => {
+            return placement.markerId === identifier ||
+                placement.objectKey === identifier ||
+                (placement.requiredStep && placement.requiredStep === identifier);
+        });
+    }
+
+    // Méthode utilitaire pour obtenir l'index d'un placement
+    _getPlacementIndex(targetPlacement) {
+        return this.placements.findIndex(placement => placement === targetPlacement);
+    }
+
+    // Méthode pour obtenir l'état d'animation d'un objet
+    getAnimationState(identifier) {
+        const placements = this.findPlacementsByIdentifier(identifier);
+
+        return placements.map(placement => ({
+            objectKey: placement.objectKey,
+            markerId: placement.markerId,
+            animation: placement.animation || null,
+            isPlaying: placement.animation?.play || false
+        }));
+    }
+
+    // Méthode pour lister toutes les animations disponibles pour un objet
+    getAvailableAnimationsForObject(objectKey) {
+        const objectConfig = this.getObjectFromCatalog(objectKey);
+
+        if (!objectConfig || !objectConfig.animations) {
+            return [];
+        }
+
+        return Object.keys(objectConfig.animations).map(animName => ({
+            name: animName,
+            config: objectConfig.animations[animName]
+        }));
+    }
+
+    // Méthode globale pour jouer une animation par étape de scénario
+    playAnimationByStep(stepId, animationName, options = {}) {
+        const placements = this.getObjectsForStep(stepId);
+
+        placements.forEach(placement => {
+            this.playAnimation(placement.markerId || placement.objectKey, animationName, options);
+        });
+
+        return placements.length > 0;
     }
 
     _getCurrentInteraction(objectConfig, placement) {
@@ -871,7 +1025,6 @@ class SceneObjectManager {
         });
     }
 
-
     // Ajouter un texte standard pour une étape
     addStepText(stepId, text) {
         this.stepTexts[stepId] = text;
@@ -884,8 +1037,6 @@ class SceneObjectManager {
     }
 
     // Configurer les écouteurs d'événements
-    // Configurer les écouteurs d'événements
-    // Inside the _setupEventListeners method
     _setupEventListeners() {
         // Réagir aux interactions complétées
         EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, (data) => {
@@ -937,7 +1088,6 @@ class SceneObjectManager {
             this.handleThirdStopCompletion();
         });
 
-
         // Ajouter un écouteur spécifique pour INTERACTION_COMPLETE provenant du store
         EventBus.on('INTERACTION_COMPLETE', (data) => {
             console.log('Événement INTERACTION_COMPLETE direct reçu:', data);
@@ -947,8 +1097,10 @@ class SceneObjectManager {
                 this.handleThirdStopCompletion();
             }
         });
-    }
 
+        // NOUVEAU: Configurer les écouteurs d'événements d'animation
+        this._setupAnimationEventListeners();
+    }
 
     // Ajouter un nouvel objet au catalogue
     addObjectToCatalog(key, config) {
@@ -1278,7 +1430,6 @@ class SceneObjectManager {
         });
     }
 
-
     // Récupérer uniquement les placements d'objets interactifs
     getInteractivePlacements(filters = {}) {
         return this.getPlacements({...filters, interactive: true});
@@ -1390,7 +1541,6 @@ class SceneObjectManager {
             });
         });
     }
-
 
     getAvailableAnimations(key) {
         const objectConfig = this.objectCatalog[key];

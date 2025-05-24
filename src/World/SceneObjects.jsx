@@ -7,20 +7,16 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
-import {FrontSide, LoopOnce} from 'three';
+import {FrontSide, LoopOnce, LoopRepeat} from 'three';
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = false;
 
-
-/**
- * Composant pour afficher un objet statique individuel avec textures
- * Version optimisée pour éviter les problèmes de performance
- */
 /**
  * Composant pour afficher un objet statique individuel avec textures
  * Version optimisée pour éviter les problèmes de performance et améliorer les ombres
+ * NOUVEAU: Avec support complet du contrôle d'animations externes
  */
 export const StaticObject = React.memo(function StaticObject({
                                                                  path,
@@ -45,6 +41,10 @@ export const StaticObject = React.memo(function StaticObject({
     const animationRef = useRef(null);
     const currentAnimationRef = useRef(null);
     const isGroundObjectRef = useRef(false);
+
+    // NOUVEAU: État pour déclencher des re-renders lors de mises à jour d'animation externes
+    const [animationTrigger, setAnimationTrigger] = useState(0);
+    const [externalAnimationProps, setExternalAnimationProps] = useState(null);
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
     const {scene: modelScene, animations} = useGLTF(path);
@@ -104,34 +104,90 @@ export const StaticObject = React.memo(function StaticObject({
         timeScale: animationTimeScale
     });
 
-    // Mettre à jour l'animation lorsque les props changent
+    // NOUVEAU: Écouteur pour les mises à jour d'animation externes
+    useEffect(() => {
+        const handleAnimationControlUpdate = (data) => {
+            // Vérifier si cette mise à jour concerne cet objet
+            const matchesIdentifier = data.objectKey === textureModelId ||
+                data.identifier === textureModelId ||
+                (data.placement && (
+                    data.placement.markerId === textureModelId ||
+                    data.placement.objectKey === textureModelId
+                ));
+
+            if (matchesIdentifier && data.placement && data.placement.animation) {
+                console.log(`Mise à jour d'animation externe reçue pour ${textureModelId}:`, data);
+
+                // Stocker les nouvelles propriétés d'animation
+                setExternalAnimationProps(data.placement.animation);
+
+                // Déclencher un re-render
+                setAnimationTrigger(prev => prev + 1);
+            }
+        };
+
+        const cleanup = EventBus.on('animation-control-update', handleAnimationControlUpdate);
+
+        return cleanup;
+    }, [textureModelId]);
+
+    // Fonction pour déterminer les propriétés d'animation effectives
+    const getEffectiveAnimationProps = () => {
+        // Les propriétés externes ont la priorité sur les props du composant
+        if (externalAnimationProps) {
+            return {
+                playAnimation: externalAnimationProps.play,
+                animationName: externalAnimationProps.name,
+                animationLoop: externalAnimationProps.loop,
+                animationClamp: externalAnimationProps.clamp,
+                animationTimeScale: externalAnimationProps.timeScale,
+                onAnimationComplete: externalAnimationProps.onComplete || onAnimationComplete
+            };
+        }
+
+        // Utiliser les props normales du composant
+        return {
+            playAnimation,
+            animationName,
+            animationLoop,
+            animationClamp,
+            animationTimeScale,
+            onAnimationComplete
+        };
+    };
+
+    // Mettre à jour l'animation lorsque les props changent ou lors de mises à jour externes
     useEffect(() => {
         if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
 
+        // Obtenir les propriétés d'animation effectives
+        const effectiveProps = getEffectiveAnimationProps();
+
         // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
-        if (Object.keys(actions).length > 0 && !animationName) {
+        if (Object.keys(actions).length > 0 && !effectiveProps.animationName && effectiveProps.playAnimation) {
             const firstAnimName = Object.keys(actions)[0];
             const action = actions[firstAnimName];
             action.reset().play();
             currentAnimationRef.current = action;
             return;
         }
+
         // Si l'animation doit être jouée
-        if (playAnimation && animationName) {
+        if (effectiveProps.playAnimation && effectiveProps.animationName) {
             // Si c'est une nouvelle animation ou si l'animation était arrêtée
-            if (animationName !== animationState.current.currentName || !animationState.current.isPlaying) {
+            if (effectiveProps.animationName !== animationState.current.currentName || !animationState.current.isPlaying) {
                 // Arrêter l'animation en cours si elle existe
                 if (currentAnimationRef.current) {
                     currentAnimationRef.current.stop();
                 }
 
-                const action = actions[animationName];
+                const action = actions[effectiveProps.animationName];
                 if (action) {
                     // Configurer l'animation
                     action.reset();
-                    action.clampWhenFinished = animationClamp;
-                    action.timeScale = animationTimeScale;
-                    action.setLoop(animationLoop ? LoopRepeat : LoopOnce);
+                    action.clampWhenFinished = effectiveProps.animationClamp;
+                    action.timeScale = effectiveProps.animationTimeScale;
+                    action.setLoop(effectiveProps.animationLoop ? LoopRepeat : LoopOnce);
 
                     // Démarrer l'animation
                     action.play();
@@ -140,16 +196,16 @@ export const StaticObject = React.memo(function StaticObject({
                     currentAnimationRef.current = action;
                     animationState.current = {
                         isPlaying: true,
-                        currentName: animationName,
-                        loop: animationLoop,
-                        clamp: animationClamp,
-                        timeScale: animationTimeScale
+                        currentName: effectiveProps.animationName,
+                        loop: effectiveProps.animationLoop,
+                        clamp: effectiveProps.animationClamp,
+                        timeScale: effectiveProps.animationTimeScale
                     };
 
-                    // debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
+                    console.log(`Animation "${effectiveProps.animationName}" démarrée sur ${textureModelId || path}`);
 
                     // Gérer la fin d'animation si elle n'est pas en boucle
-                    if (!animationLoop && onAnimationComplete && mixer) {
+                    if (!effectiveProps.animationLoop && effectiveProps.onAnimationComplete && mixer) {
                         // Nettoyer d'abord tout écouteur existant
                         if (animationRef.current) {
                             mixer.removeEventListener('finished', animationRef.current);
@@ -158,9 +214,18 @@ export const StaticObject = React.memo(function StaticObject({
                         // Créer une nouvelle fonction de rappel pour cet événement spécifique
                         const finishCallback = (e) => {
                             if (isComponentMounted.current && e.action === action) {
-                                // debugLog(`Animation "${animationName}" terminée`);
+                                console.log(`Animation "${effectiveProps.animationName}" terminée`);
                                 animationState.current.isPlaying = false;
-                                onAnimationComplete(animationName);
+
+                                // Réinitialiser les propriétés d'animation externes si elles existent
+                                if (externalAnimationProps) {
+                                    setExternalAnimationProps(prev => ({
+                                        ...prev,
+                                        play: false
+                                    }));
+                                }
+
+                                effectiveProps.onAnimationComplete(effectiveProps.animationName);
                             }
                         };
 
@@ -171,32 +236,36 @@ export const StaticObject = React.memo(function StaticObject({
                         mixer.addEventListener('finished', finishCallback);
                     }
                 } else {
-                    console.warn(`Animation "${animationName}" non trouvée dans le modèle ${textureModelId || path}`);
+                    console.warn(`Animation "${effectiveProps.animationName}" non trouvée dans le modèle ${textureModelId || path}`);
                 }
             } else if (currentAnimationRef.current) {
                 // Mettre à jour les paramètres de l'animation en cours si nécessaire
-                if (animationState.current.loop !== animationLoop) {
-                    currentAnimationRef.current.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce);
-                    animationState.current.loop = animationLoop;
+                if (animationState.current.loop !== effectiveProps.animationLoop) {
+                    currentAnimationRef.current.setLoop(effectiveProps.animationLoop ? LoopRepeat : LoopOnce);
+                    animationState.current.loop = effectiveProps.animationLoop;
                 }
 
-                if (animationState.current.timeScale !== animationTimeScale) {
-                    currentAnimationRef.current.timeScale = animationTimeScale;
-                    animationState.current.timeScale = animationTimeScale;
+                if (animationState.current.timeScale !== effectiveProps.animationTimeScale) {
+                    currentAnimationRef.current.timeScale = effectiveProps.animationTimeScale;
+                    animationState.current.timeScale = effectiveProps.animationTimeScale;
                 }
 
-                if (animationState.current.clamp !== animationClamp) {
-                    currentAnimationRef.current.clampWhenFinished = animationClamp;
-                    animationState.current.clamp = animationClamp;
+                if (animationState.current.clamp !== effectiveProps.animationClamp) {
+                    currentAnimationRef.current.clampWhenFinished = effectiveProps.animationClamp;
+                    animationState.current.clamp = effectiveProps.animationClamp;
                 }
             }
-        } else if (!playAnimation && animationState.current.isPlaying && currentAnimationRef.current) {
+        } else if (!effectiveProps.playAnimation && animationState.current.isPlaying && currentAnimationRef.current) {
             // Arrêter l'animation si playAnimation est passé à false
             currentAnimationRef.current.stop();
             animationState.current.isPlaying = false;
-            // debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
+            console.log(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
         }
-    }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
+    }, [
+        playAnimation, animationName, animationLoop, animationClamp, animationTimeScale,
+        actions, mixer, path, textureModelId, onAnimationComplete,
+        animationTrigger, externalAnimationProps // NOUVEAU: Dépendances pour les animations externes
+    ]);
 
     // Mettre à jour le mixer d'animation à chaque frame si des animations sont en cours
     useAnimationFrame((state, delta) => {
@@ -207,15 +276,15 @@ export const StaticObject = React.memo(function StaticObject({
 
     useEffect(() => {
         if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            if (playAnimation && animationName) {
-                if (!actions[animationName]) {
-                    console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
+            const effectiveProps = getEffectiveAnimationProps();
+            if (effectiveProps.playAnimation && effectiveProps.animationName) {
+                if (!actions[effectiveProps.animationName]) {
+                    console.warn(`Animation "${effectiveProps.animationName}" introuvable. Animations disponibles:`,
                         Object.keys(actions));
-                } else {
                 }
             }
         }
-    }, [animations, actions, path, playAnimation, animationName]);
+    }, [animations, actions, path, animationTrigger]); // Ajout d'animationTrigger comme dépendance
 
     // Appliquer les textures au modèle après le montage - avec optimisations
     useEffect(() => {
@@ -226,7 +295,6 @@ export const StaticObject = React.memo(function StaticObject({
         const applyTextures = async () => {
             try {
                 await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
-
 
                 if (isComponentMounted.current && isApplyingTextures) {
                     // debugLog(`Textures appliquées à ${textureModelId}`);
@@ -245,7 +313,6 @@ export const StaticObject = React.memo(function StaticObject({
             isApplyingTextures = false;
         };
     }, [textureModelId, useTextures]);
-
 
     // Nettoyer lors du démontage
     useEffect(() => {
@@ -297,10 +364,6 @@ export const StaticObject = React.memo(function StaticObject({
 
 /**
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
- * Version optimisée
- */
-/**
- * Composant pour afficher les objets statiques (non-interactifs) dans la scène
  * Version optimisée avec support des animations
  */
 export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
@@ -333,7 +396,6 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
             textureManager.forceEmissiveOnObjects(scene);
         }
     }, [filter, updatePlacements, scene]);
-
 
     // Optimiser le rendu avec useMemo
     const staticObjects = useMemo(() => {
@@ -375,14 +437,15 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     }
                 }
             } : {};
+
             if (placement.animation) {
                 console.log(`Animation pour ${placement.objectKey} :`,
                     placement.animation ? {
                         play: placement.animation.play,
                         name: placement.animation.name
                     } : 'Aucune animation');
-
             }
+
             return (
                 <StaticObject
                     key={key}
@@ -408,6 +471,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         </group>
     );
 });
+
 /**
  * Composant pour gérer et afficher les objets interactifs dans la scène
  * Version optimisée
@@ -430,9 +494,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
         updatePlacements();
     }, [updatePlacements]);
 
-
     useEffect(() => {
-
         // S'abonner à l'événement de complétion d'interaction
         const completeCleanup = EventBus.on('object:interaction:complete', (data) => {
             // Directement mettre à jour les placements
@@ -713,6 +775,7 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
 
     return <StaticObject {...staticProps} />;
 });
+
 /**
  * Composant principal qui affiche tous les objets de scène
  * Utilise les deux sous-composants pour objets statiques et interactifs
