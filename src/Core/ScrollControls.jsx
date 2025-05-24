@@ -301,9 +301,7 @@ function CameraController({children}) {
             };
 
             // Créer l'interface de progression
-            if (!debug) {
-                createProgressUI();
-            } else {
+            if (debug) {
                 // En mode debug, créer les interfaces de debug en plus
                 createProgressUI();
                 createDebugUI();

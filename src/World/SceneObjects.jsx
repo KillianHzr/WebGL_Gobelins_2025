@@ -467,25 +467,57 @@ export const StaticObject = React.memo(function StaticObject({
 
         // Vérifier si cet objet est un VisonRun
         if (objectKey === 'VisonRun' || textureModelId === 'VisonRun') {
-            console.log(`🎮 Configuration d'un écouteur direct pour "forest-ready" sur VisonRun`);
+            console.log(`🎮 Configuration d'un écouteur direct pour "timeline-position-normalized" sur VisonRun`);
 
             const handleForestReady = (data) => {
-                console.log(`🌲 Événement forest-ready reçu directement par VisonRun:`, data);
+                console.log(`🌲 Événement timeline-position-normalized reçu directement par VisonRun:`, data);
 
-                // Rechercher l'animation 'run' dans les actions disponibles
-                const runAction = actions['run'] || actions['animation_0'];
+                // Récupérer la configuration du VisonRun depuis SceneObjectManager
+                const visonRunConfig = sceneObjectManager.getObjectFromCatalog('VisonRun');
+
+                if (!visonRunConfig || !visonRunConfig.animationTriggers || !visonRunConfig.animationTriggers['timeline-position-normalized']) {
+                    console.warn(`❌ Configuration ou trigger manquant pour VisonRun`);
+                    return;
+                }
+
+                const triggerConfig = visonRunConfig.animationTriggers['timeline-position-normalized'];
+                const animationKey = triggerConfig.animation; // 'run'
+                const animationConfig = visonRunConfig.animations[animationKey]; // Configuration de l'animation 'run'
+
+                if (!animationConfig) {
+                    console.warn(`❌ Configuration animation "${animationKey}" manquante pour VisonRun`);
+                    return;
+                }
+
+                // Rechercher l'action correspondante en utilisant le nom réel de l'animation
+                const animationName = animationConfig.animationName; // 'animation_0'
+                const runAction = actions[animationName] || actions['run'] || actions['animation_0'];
 
                 if (runAction) {
+                    console.log(`🎬 Déclenchement animation "${animationKey}" (${animationName}) sur VisonRun`);
+
                     // Arrêter l'animation en cours si nécessaire
                     if (currentAnimationRef.current) {
                         currentAnimationRef.current.stop();
                     }
 
-                    // Configurer l'animation
+                    // Configurer l'animation en combinant la config de base et les options du trigger
                     runAction.reset();
-                    runAction.timeScale = 2.0;
-                    runAction.clampWhenFinished = false;
-                    runAction.setLoop(THREE.LoopRepeat, Infinity);
+                    runAction.timeScale = triggerConfig.options.timeScale || animationConfig.timeScale || 1.0; // 5.0
+                    runAction.clampWhenFinished = animationConfig.clampWhenFinished || false;
+
+                    // Gérer les boucles selon la configuration du trigger
+                    const loopCount = triggerConfig.options.loopCount !== undefined ?
+                        triggerConfig.options.loopCount :
+                        (animationConfig.loopCount !== undefined ? animationConfig.loopCount : 1);
+
+                    if (loopCount === -1) {
+                        runAction.setLoop(THREE.LoopRepeat, Infinity);
+                    } else if (loopCount === 0) {
+                        runAction.setLoop(THREE.LoopOnce);
+                    } else {
+                        runAction.setLoop(THREE.LoopRepeat, loopCount); // 2 fois
+                    }
 
                     // Jouer l'animation
                     runAction.play();
@@ -494,19 +526,31 @@ export const StaticObject = React.memo(function StaticObject({
                     currentAnimationRef.current = runAction;
                     animationState.current = {
                         isPlaying: true,
-                        currentName: 'run',
-                        loop: true,
-                        clamp: false,
-                        timeScale: 2.0
+                        currentName: animationName,
+                        loop: loopCount !== 0,
+                        clamp: animationConfig.clampWhenFinished || false,
+                        timeScale: triggerConfig.options.timeScale || animationConfig.timeScale || 1.0
                     };
 
-                    console.log(`✅ Animation "run" démarrée directement sur VisonRun`);
+                    console.log(`✅ Animation "${animationKey}" (${animationName}) démarrée sur VisonRun avec:`);
+                    console.log(`   - timeScale: ${runAction.timeScale}`);
+                    console.log(`   - loopCount: ${loopCount}`);
+                    console.log(`   - clampWhenFinished: ${runAction.clampWhenFinished}`);
+
                 } else {
-                    console.warn(`❌ Animation "run" ou "animation_0" non trouvée pour VisonRun`);
+                    console.warn(`❌ Animation "${animationName}" non trouvée pour VisonRun`);
                     console.log('Actions disponibles:', Object.keys(actions).map(key => ({
                         key: key,
                         clipName: actions[key]._clip ? actions[key]._clip.name : 'clip inconnu'
                     })));
+
+                    // Debug supplémentaire
+                    console.log('Configuration VisonRun:', {
+                        animationKey,
+                        animationName,
+                        triggerOptions: triggerConfig.options,
+                        baseConfig: animationConfig
+                    });
                 }
             };
 
@@ -514,10 +558,10 @@ export const StaticObject = React.memo(function StaticObject({
             let cleanup = () => {};
             try {
                 if (window.EventBus && typeof window.EventBus.on === 'function') {
-                    cleanup = window.EventBus.on('forest-ready', handleForestReady);
-                    console.log(`✅ Écouteur direct pour "forest-ready" enregistré sur VisonRun`);
+                    cleanup = window.EventBus.on('timeline-position-normalized', handleForestReady);
+                    console.log(`✅ Écouteur direct pour "timeline-position-normalized" enregistré sur VisonRun`);
                 } else {
-                    console.warn('⚠️ EventBus non disponible pour l\'écouteur forest-ready');
+                    console.warn('⚠️ EventBus non disponible pour l\'écouteur timeline-position-normalized');
                 }
             } catch (error) {
                 console.error(`❌ Erreur lors de l'enregistrement de l'écouteur direct:`, error);

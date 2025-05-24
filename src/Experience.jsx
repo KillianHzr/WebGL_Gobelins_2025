@@ -269,13 +269,13 @@ export default function Experience() {
             {/*<CameraSwitcher/>*/}
             <SceneFog />
 
-            {debug && <Stats />}
+            {/*{debug && <Stats />}*/}
             {debug && <Debug />}
-
+            <Stats />
             <Camera/>
             <Controls/>
             <Lights/>
-            {debug && <MaterialControls/>}
+            {/*{debug && <MaterialControls/>}*/}
             <PostProcessing/>
 
             <RayCaster>

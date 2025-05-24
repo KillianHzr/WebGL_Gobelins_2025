@@ -128,6 +128,42 @@ class SceneObjectManager {
             // //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]}]
             // // },
             //
+
+
+            'VisonRun': {
+                id: 'VisonRun',
+                path: '/models/primary/Vison.glb',
+                scale: [10, 10, 10],
+                interactive: false,
+                useTextures: false,
+                defaultPlacements: [{
+                    position: [-33.943, 0, 45.149],
+                    rotation: [0, 0, 0]
+                }],
+                animations: {
+                    'run': {
+                        animationName: 'animation_0', // Nom correct basé sur les logs
+                        autoplay: false,
+                        loop: true,
+                        loopCount: 1,
+                        timeScale: 1.0,
+                        clampWhenFinished: false,
+                        fadeInDuration: 0.1,
+                        fadeOutDuration: 0.1,
+                        weight: 0.8
+                    }
+                },
+                // defaultAnimations: ['run'],
+                animationTriggers: {
+                    'timeline-position-normalized': {
+                        animation: 'run',
+                        options: {
+                            timeScale: 5.0,
+                            loopCount: 2
+                        }
+                    },
+                }
+            },
             /**
              * SCÈNE 02 - PANNEAU D'INFORMATION
              * Premier point interactif avec informations contextuelles
@@ -696,14 +732,14 @@ class SceneObjectManager {
         const totalMappings = Object.values(mappings).reduce((acc, val) => acc + val.length, 0);
         console.log(`✅ ${totalEvents} événements automatiquement liés à ${totalMappings} animations`);
 
-        // Vérifier spécifiquement la configuration pour l'événement forest-ready
-        if (mappings['forest-ready']) {
-            console.log(`👍 L'événement forest-ready est correctement configuré avec ${mappings['forest-ready'].length} animations associées:`);
-            mappings['forest-ready'].forEach(([objKey, config]) => {
+        // Vérifier spécifiquement la configuration pour l'événement timeline-position-normalized
+        if (mappings['timeline-position-normalized']) {
+            console.log(`👍 L'événement timeline-position-normalized est correctement configuré avec ${mappings['timeline-position-normalized'].length} animations associées:`);
+            mappings['timeline-position-normalized'].forEach(([objKey, config]) => {
                 console.log(`  - ${objKey}: ${config.animation}`);
             });
         } else {
-            console.warn('⚠️ L\'événement forest-ready n\'est pas configuré !');
+            console.warn('⚠️ L\'événement timeline-position-normalized n\'est pas configuré !');
         }
     }
 
@@ -1004,36 +1040,36 @@ class SceneObjectManager {
         // 1. Diagnostiquer le problème
         this.diagnoseAnimationIssue('VisonRun');
 
-        // 2. Vérifier que l'événement forest-ready est bien configuré
+        // 2. Vérifier que l'événement timeline-position-normalized est bien configuré
         const hasMapping = this.autoEventMappings &&
-            this.autoEventMappings['forest-ready'] &&
-            this.autoEventMappings['forest-ready'].some(([key]) => key === 'VisonRun');
+            this.autoEventMappings['timeline-position-normalized'] &&
+            this.autoEventMappings['timeline-position-normalized'].some(([key]) => key === 'VisonRun');
 
         if (!hasMapping) {
-            console.log('⚠️ L\'événement forest-ready n\'est pas correctement mappé, création manuelle...');
+            console.log('⚠️ L\'événement timeline-position-normalized n\'est pas correctement mappé, création manuelle...');
 
             // Recréer le mapping manuellement
             if (!this.autoEventMappings) {
                 this.autoEventMappings = {};
             }
 
-            if (!this.autoEventMappings['forest-ready']) {
-                this.autoEventMappings['forest-ready'] = [];
+            if (!this.autoEventMappings['timeline-position-normalized']) {
+                this.autoEventMappings['timeline-position-normalized'] = [];
 
                 // Créer l'écouteur d'événement
-                safeEventBus().on('forest-ready', (data) => {
-                    console.log('📢 Événement forest-ready reçu:', data);
-                    this.autoEventMappings['forest-ready'].forEach(([objKey, triggerConfig]) => {
-                        this.triggerAnimationByEvent(objKey, 'forest-ready', data || {});
+                safeEventBus().on('timeline-position-normalized', (data) => {
+                    console.log('📢 Événement timeline-position-normalized reçu:', data);
+                    this.autoEventMappings['timeline-position-normalized'].forEach(([objKey, triggerConfig]) => {
+                        this.triggerAnimationByEvent(objKey, 'timeline-position-normalized', data || {});
                     });
                 });
             }
 
             // Ajouter le mapping
             const visonConfig = this.getObjectFromCatalog('VisonRun');
-            if (visonConfig && visonConfig.animationTriggers && visonConfig.animationTriggers['forest-ready']) {
-                this.autoEventMappings['forest-ready'].push(['VisonRun', visonConfig.animationTriggers['forest-ready']]);
-                console.log('✅ Mapping recréé manuellement pour forest-ready → VisonRun');
+            if (visonConfig && visonConfig.animationTriggers && visonConfig.animationTriggers['timeline-position-normalized']) {
+                this.autoEventMappings['timeline-position-normalized'].push(['VisonRun', visonConfig.animationTriggers['timeline-position-normalized']]);
+                console.log('✅ Mapping recréé manuellement pour timeline-position-normalized → VisonRun');
             }
         }
 
@@ -1045,8 +1081,8 @@ class SceneObjectManager {
 
         // 4. Redéclencher l'événement au cas où
         setTimeout(() => {
-            console.log('🔄 Redéclenchement de l\'événement forest-ready...');
-            safeEventBus().trigger('forest-ready', {status: 'ready', forced: true});
+            console.log('🔄 Redéclenchement de l\'événement timeline-position-normalized...');
+            safeEventBus().trigger('timeline-position-normalized', {status: 'ready', forced: true});
         }, 500);
 
         return true;
