@@ -81,6 +81,9 @@ function CameraController({children}) {
     const timelineLengthRef = useRef(0);
     const scrollVelocity = useRef(0);
 
+    // CORRECTION: Déplacer visonTriggeredRef au niveau du composant
+    const visonTriggeredRef = useRef(false);
+
     // MODIFIÉ : Limitation du scroll arrière avec offset de sécurité
     const minAllowedPositionRef = useRef(0); // Position minimum de base (dernière étape validée)
     const maxProgressReachedRef = useRef(0); // Position maximale atteinte par l'utilisateur
@@ -129,7 +132,7 @@ function CameraController({children}) {
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
 
-    // NOUVEAU : Fonction pour calculer et émettre la position normalisée
+    // CORRIGÉ : Fonction pour calculer et émettre la position normalisée
     const emitNormalizedPosition = () => {
         if (timelineLengthRef.current > 0) {
             const normalizedPosition = Math.max(0, Math.min(1, timelinePositionRef.current / timelineLengthRef.current));
@@ -145,12 +148,16 @@ function CameraController({children}) {
 
                 const VISON_TRIGGER = 0.02;
 
-                if (normalizedPosition >= VISON_TRIGGER && window.animationControls) {
-                    sceneObjectManager.triggerAnimation('Vison', 'animation_0', {
-                        loop: false,
-                        timeScale: 0.2
-                    })
+                if (normalizedPosition >= VISON_TRIGGER && !visonTriggeredRef.current) {
+                    console.log("🦡 Déclenchement animation Vison à la position:", normalizedPosition);
 
+                    visonTriggeredRef.current = true;
+
+
+                    if (window.startVisonAnimation) {
+                        const success = window.startVisonAnimation();
+                        console.log(`🦡 Fallback direct: ${success}`);
+                    }
                 }
             }
         }

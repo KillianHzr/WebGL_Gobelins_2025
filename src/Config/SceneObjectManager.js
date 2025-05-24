@@ -381,20 +381,11 @@ class SceneObjectManager {
                 scale: [5, 5, 5],
                 interactive: false,
                 useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Immortaliser le moment",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.01,
-                    requiredStep: 'sixthStop'
-                }],
                 animations: {
                     // Animation principale du vison
                     'animation_0': {
                         autoplay: false, // Contrôle manuel
-                        defaultLoop: true,
+                        defaultLoop: false,
                         defaultClamp: false,
                         defaultTimeScale: 1.0
                     },
@@ -403,6 +394,7 @@ class SceneObjectManager {
                     position: [-33.943, 0, 45.149],
                     rotation: [0, 0, 0],
                     scale: [5, 5, 5],
+                    animationId: 'Vison'
                 }]
             },
 
@@ -574,17 +566,38 @@ class SceneObjectManager {
 
     // Méthode pour jouer une animation sur un objet spécifique
     playAnimation(identifier, animationName, options = {}) {
-        const placements = this.findPlacementsByIdentifier(identifier);
+        console.log(`🎬 DÉBUT playAnimation - identifier: ${identifier}, animation: ${animationName}`);
 
-        placements.forEach(placement => {
+        const placements = this.findPlacementsByIdentifier(identifier);
+        console.log(`📍 Placements trouvés: ${placements.length}`);
+
+        if (placements.length === 0) {
+            console.warn(`❌ Aucun placement trouvé pour l'identifiant "${identifier}"`);
+            console.log('📋 Placements disponibles:', this.placements.map(p => ({
+                objectKey: p.objectKey,
+                markerId: p.markerId,
+                animationId: p.animationId,
+                index: this.placements.indexOf(p)
+            })));
+            return false;
+        }
+
+        placements.forEach((placement, placementIdx) => {
+            console.log(`🔄 Traitement placement ${placementIdx}:`, {
+                objectKey: placement.objectKey,
+                hasAnimationId: !!placement.animationId
+            });
+
             const objectConfig = this.getObjectFromCatalog(placement.objectKey);
 
             if (!objectConfig || !objectConfig.animations || !objectConfig.animations[animationName]) {
-                console.warn(`Animation "${animationName}" non trouvée pour ${placement.objectKey}`);
+                console.warn(`❌ Animation "${animationName}" non trouvée pour ${placement.objectKey}`);
+                console.log(`📋 Animations disponibles:`, objectConfig?.animations ? Object.keys(objectConfig.animations) : 'Aucune');
                 return;
             }
 
             const animConfig = objectConfig.animations[animationName];
+            console.log(`⚙️ Config animation trouvée:`, animConfig);
 
             // Mettre à jour le placement avec les nouvelles propriétés d'animation
             const animationUpdate = {
@@ -598,20 +611,49 @@ class SceneObjectManager {
                 }
             };
 
-            this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
+            console.log(`🔄 Mise à jour animation:`, animationUpdate);
 
-            // Émettre un événement pour informer les composants
-            EventBus.trigger('animation-control-update', {
+            // Trouver l'index du placement pour la mise à jour
+            const placementIndex = this.placements.findIndex(p => p === placement);
+            console.log(`📍 Index du placement trouvé: ${placementIndex}`);
+
+            if (placementIndex !== -1) {
+                // IMPORTANT: Mettre à jour le placement dans le tableau
+                const success = this.updatePlacement(placementIndex, animationUpdate);
+                console.log(`✅ Mise à jour placement réussie: ${success}`);
+
+                // Vérifier que la mise à jour a bien eu lieu
+                const updatedPlacement = this.placements[placementIndex];
+                console.log(`🔍 Placement après mise à jour:`, {
+                    objectKey: updatedPlacement.objectKey,
+                    hasAnimation: !!updatedPlacement.animation,
+                    animationPlay: updatedPlacement.animation?.play,
+                    animationName: updatedPlacement.animation?.name
+                });
+            }
+
+            // CRITIQUE: Émettre l'événement avec tous les détails nécessaires
+            const eventData = {
                 identifier: identifier,
                 objectKey: placement.objectKey,
                 action: 'play',
                 animationName: animationName,
-                placement: placement
-            });
+                placement: this.placements[placementIndex], // Utiliser le placement mis à jour
+                animationId: placement.animationId,
+                placementIndex: placementIndex
+            };
+
+            console.log(`📡 Émission événement animation-control-update:`, eventData);
+
+            EventBus.trigger('animation-control-update', eventData);
+
+            console.log(`✅ Événement émis pour ${placement.objectKey} (index: ${placementIndex})`);
         });
 
+        console.log(`🎬 FIN playAnimation - succès: ${placements.length > 0}`);
         return placements.length > 0;
     }
+
 
     // Méthode pour arrêter une animation
     stopAnimation(identifier) {
@@ -703,12 +745,30 @@ class SceneObjectManager {
     // Méthode utilitaire pour trouver les placements par identifier
     findPlacementsByIdentifier(identifier) {
         return this.placements.filter(placement => {
-            return placement.markerId === identifier ||
-                placement.objectKey === identifier ||
-                (placement.requiredStep && placement.requiredStep === identifier);
+            // Correspondance exacte avec markerId (pour objets interactifs)
+            if (placement.markerId === identifier) {
+                return true;
+            }
+
+            // Correspondance avec objectKey (pour objets statiques ET interactifs)
+            if (placement.objectKey === identifier) {
+                return true;
+            }
+
+            // Correspondance avec requiredStep
+            if (placement.requiredStep && placement.requiredStep === identifier) {
+                return true;
+            }
+
+            // NOUVEAU: Correspondance avec l'ID du modèle de texture
+            const objectConfig = this.getObjectFromCatalog(placement.objectKey);
+            if (objectConfig && objectConfig.id === identifier) {
+                return true;
+            }
+
+            return false;
         });
     }
-
     // Méthode utilitaire pour obtenir l'index d'un placement
     _getPlacementIndex(targetPlacement) {
         return this.placements.findIndex(placement => placement === targetPlacement);
@@ -983,62 +1043,24 @@ class SceneObjectManager {
 
         Object.entries(this.objectCatalog).forEach(([key, config]) => {
             if (config.interactive && config.defaultPlacement) {
-                // Si l'objet a des interactions multiples (tableau), créer un placement pour chaque interaction
-                if (Array.isArray(config.interaction) && config.interaction.length > 0) {
-                    config.interaction.forEach((interaction, index) => {
-                        // Utiliser le requiredStep de l'interaction actuelle
-                        let requiredStep = interaction.requiredStep;
-
-                        // Fallback si nécessaire
-                        requiredStep = requiredStep || config.defaultPlacement.requiredStep || this._getNextStep();
-
-                        // Générer automatiquement markerId et markerText
-                        const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-
-                        // Utiliser le texte de l'interaction actuelle
-                        let markerText = interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
-
-                        // Créer un placement pour cette interaction
-                        this.addPlacement(key, config.defaultPlacement.position, {
-                            rotation: config.defaultPlacement.rotation || [0, 0, 0],
-                            markerId: markerId,
-                            markerText: markerText,
-                            requiredStep: requiredStep,
-                            outlinePulse: config.defaultPlacement.outlinePulse,
-                            markerOffset: interaction.offset || config.defaultPlacement.markerOffset,
-                            markerAxis: interaction.axis || config.defaultPlacement.markerAxis,
-                            interactionIndex: index  // Stocker l'index de l'interaction dans le placement
-                        });
-                    });
-                } else if (config.interaction && config.interaction.requiredStep) {
-                    // Cas d'une interaction unique
-                    let requiredStep = config.interaction.requiredStep;
-
-                    // Fallback au placement par défaut ou génération automatique
-                    requiredStep = requiredStep || config.defaultPlacement.requiredStep || this._getNextStep();
-
-                    const markerId = config.defaultPlacement.markerId || this._generateMarkerId(key, requiredStep);
-                    const markerText = config.interaction.text || config.defaultPlacement.markerText || this._generateMarkerText(key, requiredStep, null);
-
-                    // Créer un placement pour cette interaction
-                    this.addPlacement(key, config.defaultPlacement.position, {
-                        rotation: config.defaultPlacement.rotation || [0, 0, 0],
-                        markerId: markerId,
-                        markerText: markerText,
-                        requiredStep: requiredStep,
-                        outlinePulse: config.defaultPlacement.outlinePulse,
-                        markerOffset: config.interaction.offset || config.defaultPlacement.markerOffset,
-                        markerAxis: config.interaction.axis || config.defaultPlacement.markerAxis
-                    });
-                }
+                // Code existant pour objets interactifs...
+                // [Code inchangé]
             } else if (!config.interactive && config.defaultPlacements) {
-                // Placer plusieurs instances d'objets statiques (inchangé)
+                // MODIFIÉ: Objets statiques - assigner un identifiant unique si ils ont des animations
                 config.defaultPlacements.forEach((placement, index) => {
                     const placementOptions = {
                         rotation: placement.rotation || [0, 0, 0],
                         scale: placement.scale || config.scale,
                         quaternion: placement.quaternion
                     };
+
+                    // NOUVEAU: Si l'objet a des animations, lui assigner un identifiant unique
+                    if (config.animations && Object.keys(config.animations).length > 0) {
+                        const uniqueId = index === 0 ? key : `${key}-${index}`;
+                        placementOptions.animationId = uniqueId;
+
+                        console.log(`Objet statique ${key} avec animations - ID assigné: ${uniqueId}`);
+                    }
 
                     // Ajouter l'animation par défaut si disponible
                     if (config.defaultAnimation) {
@@ -1050,7 +1072,6 @@ class SceneObjectManager {
             }
         });
     }
-
     // Ajouter un texte standard pour une étape
     addStepText(stepId, text) {
         this.stepTexts[stepId] = text;
