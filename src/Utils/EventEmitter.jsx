@@ -1,7 +1,7 @@
 import React, {createContext, forwardRef, useContext, useImperativeHandle, useState} from 'react';
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_EVENTS = false;
+const DEBUG_EVENTS = true;
 
 
 // Singleton pour stocker l'instance de l'EventEmitter
@@ -359,10 +359,11 @@ const EventEmitter = forwardRef((props, ref) => {
                 // debugLog(`Event '${_name}' triggered but no callbacks were found`);
             }
         }
-        if (_name.includes('marker:') || _name.includes('scenario:') || _name.includes('narration:')) {
-            console.log(`%c${_name}`, 'background: #555; color: white; padding: 2px;',
-                _args && _args.length > 0 ? _args[0] : '');
-        }
+
+        // Log tous les événements émis avec un style visuel distinctif
+        console.log(`%c📢 EVENT: ${_name}`, 'background: #555; color: white; padding: 2px; font-weight: bold;',
+            _args && _args.length > 0 ? _args[0] : '(pas de données)');
+
         return finalResult;
     };
 

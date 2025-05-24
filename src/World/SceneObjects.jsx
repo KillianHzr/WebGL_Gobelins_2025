@@ -7,20 +7,23 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import * as THREE from 'three';
-import {FrontSide, LoopOnce} from 'three';
+import {FrontSide, LoopOnce, LoopRepeat} from 'three';
 import {useAnimationFrame} from "../Utils/AnimationManager.js";
+import { modelAnimationManager, ANIMATION_EVENTS } from '../Config/ModelAnimationManager';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = false;
 
+// Fonction utilitaire pour le logging conditionnel
+const debugLog = (...args) => {
+    if (DEBUG_SCENE_OBJECTS) {
+        console.log(...args);
+    }
+};
 
 /**
  * Composant pour afficher un objet statique individuel avec textures
- * Version optimisée pour éviter les problèmes de performance
- */
-/**
- * Composant pour afficher un objet statique individuel avec textures
- * Version optimisée pour éviter les problèmes de performance et améliorer les ombres
+ * Version optimisée et synchronisée
  */
 export const StaticObject = React.memo(function StaticObject({
                                                                  path,
@@ -38,13 +41,18 @@ export const StaticObject = React.memo(function StaticObject({
                                                                  animationLoop = true,
                                                                  animationClamp = false,
                                                                  animationTimeScale = 1.0,
-                                                                 onAnimationComplete = null
+                                                                 onAnimationComplete = null,
+                                                                 objectKey = null
                                                              }) {
     const objectRef = useRef();
     const isComponentMounted = useRef(true);
     const animationRef = useRef(null);
     const currentAnimationRef = useRef(null);
     const isGroundObjectRef = useRef(false);
+    const registrationState = useRef({
+        isRegistered: false,
+        registrationId: null
+    });
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
     const {scene: modelScene, animations} = useGLTF(path);
@@ -53,7 +61,7 @@ export const StaticObject = React.memo(function StaticObject({
     const model = useMemo(() => {
         const clonedModel = modelScene.clone();
 
-        // Déterminer si c'est un objet de type sol en fonction du nom ou du chemin
+        // Déterminer si c'est un objet de type sol
         const isGroundObject = path.toLowerCase().includes('ground') ||
             textureModelId?.toLowerCase().includes('ground');
         isGroundObjectRef.current = isGroundObject;
@@ -62,27 +70,18 @@ export const StaticObject = React.memo(function StaticObject({
         clonedModel.traverse((child) => {
             if (child.isMesh) {
                 if (isGroundObject) {
-                    // Le sol reçoit des ombres mais n'en projette pas
                     child.castShadow = false;
                     child.receiveShadow = true;
-
-                    // Améliorer le matériau pour mieux recevoir les ombres
                     if (child.material) {
-                        child.material.roughness = 0.8; // Plus rugueux pour mieux montrer les ombres
-                        child.material.metalness = 0.2; // Légèrement métallique
-
-                        // S'assurer que le matériau est configuré pour les ombres
+                        child.material.roughness = 0.8;
+                        child.material.metalness = 0.2;
                         child.material.shadowSide = FrontSide;
                         child.material.needsUpdate = true;
                     }
                 } else {
-                    // Les autres objets peuvent projeter et recevoir des ombres
                     child.castShadow = castShadow;
                     child.receiveShadow = receiveShadow;
-
-                    // Améliorer les paramètres du matériau pour de meilleures ombres
                     if (child.material) {
-                        // Assurez-vous que tous les matériaux sont configurés pour les ombres
                         child.material.needsUpdate = true;
                     }
                 }
@@ -92,10 +91,10 @@ export const StaticObject = React.memo(function StaticObject({
         return clonedModel;
     }, [modelScene, path, textureModelId, castShadow, receiveShadow]);
 
-    // Utiliser useAnimations pour gérer les animations
+    // Utiliser useAnimations pour gérer les animations locales
     const {actions, mixer} = useAnimations(animations, objectRef);
 
-    // Référence pour suivre l'état de lecture
+    // État local des animations
     const animationState = useRef({
         isPlaying: false,
         currentName: null,
@@ -104,23 +103,101 @@ export const StaticObject = React.memo(function StaticObject({
         timeScale: animationTimeScale
     });
 
-    // Mettre à jour l'animation lorsque les props changent
+    // Enregistrer le modèle avec le gestionnaire d'animations (une seule fois)
+    useEffect(() => {
+        if (!objectRef.current || !mixer || !animations || !textureModelId) return;
+
+        // Créer un ID d'enregistrement unique basé sur le modèle et son UUID
+        const registrationId = `${textureModelId}-${objectRef.current.uuid}`;
+
+        // Vérifier si déjà enregistré avec ce même ID
+        if (registrationState.current.isRegistered &&
+            registrationState.current.registrationId === registrationId) {
+            debugLog(`Modèle ${textureModelId} déjà enregistré avec ID ${registrationId}`);
+            return;
+        }
+
+        // Enregistrer avec le ModelAnimationManager
+        if (animations.length > 0) {
+            debugLog(`🎭 Enregistrement du modèle ${textureModelId} avec ${animations.length} animations`);
+            modelAnimationManager.registerModel(textureModelId, objectRef.current, animations);
+
+            // Marquer comme enregistré
+            registrationState.current = {
+                isRegistered: true,
+                registrationId: registrationId
+            };
+
+            // Informer le SceneObjectManager
+            if (objectKey) {
+                sceneObjectManager.registerLoadedModelWithAnimations(objectKey, objectRef.current, { animations });
+            }
+
+            // 🎯 DÉCLENCHEMENT DES ANIMATIONS PAR DÉFAUT
+            // Attendre un court délai pour s'assurer que tout est configuré
+            setTimeout(() => {
+                // Vérifier si ce modèle a des animations par défaut à jouer
+                const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+                if (objectConfig && objectConfig.defaultAnimations && objectConfig.animations) {
+                    objectConfig.defaultAnimations.forEach(animKey => {
+                        const animConfig = objectConfig.animations[animKey];
+                        if (animConfig && animConfig.autoplay) {
+                            console.log(`🎬 Déclenchement animation par défaut: ${animKey} pour ${textureModelId}`);
+
+                            // Trouver l'action correspondante dans les actions locales
+                            const localAction = actions[animConfig.animationName];
+                            if (localAction) {
+                                // Configurer et jouer l'animation localement
+                                localAction.reset();
+                                localAction.timeScale = animConfig.timeScale || 1.0;
+                                localAction.clampWhenFinished = animConfig.clampWhenFinished || false;
+                                localAction.setLoop(
+                                    animConfig.loop !== false ? LoopRepeat : LoopOnce,
+                                    animConfig.loopCount === -1 ? Infinity : (animConfig.loopCount || 1)
+                                );
+
+                                localAction.play();
+
+                                // Mettre à jour l'état local
+                                currentAnimationRef.current = localAction;
+                                animationState.current = {
+                                    isPlaying: true,
+                                    currentName: animConfig.animationName,
+                                    loop: animConfig.loop !== false,
+                                    clamp: animConfig.clampWhenFinished || false,
+                                    timeScale: animConfig.timeScale || 1.0
+                                };
+
+                                console.log(`✅ Animation par défaut "${animKey}" (${animConfig.animationName}) démarrée pour ${textureModelId}`);
+                            } else {
+                                console.warn(`❌ Action locale "${animConfig.animationName}" non trouvée pour ${textureModelId}`);
+                                console.log('Actions disponibles:', Object.keys(actions));
+                            }
+                        }
+                    });
+                }
+            }, 200); // Délai pour s'assurer que les actions sont prêtes
+        }
+
+        return () => {
+            // Nettoyer lors du démontage seulement
+            if (registrationState.current.isRegistered) {
+                debugLog(`Nettoyage de l'enregistrement pour ${textureModelId}`);
+                registrationState.current = {
+                    isRegistered: false,
+                    registrationId: null
+                };
+            }
+        };
+    }, [textureModelId, objectKey, actions]); // Ajouter actions aux dépendances
+
+    // Gérer les animations locales (indépendamment du ModelAnimationManager)
     useEffect(() => {
         if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
 
-        // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
-        if (Object.keys(actions).length > 0 && !animationName) {
-            const firstAnimName = Object.keys(actions)[0];
-            const action = actions[firstAnimName];
-            action.reset().play();
-            currentAnimationRef.current = action;
-            return;
-        }
-        // Si l'animation doit être jouée
         if (playAnimation && animationName) {
-            // Si c'est une nouvelle animation ou si l'animation était arrêtée
             if (animationName !== animationState.current.currentName || !animationState.current.isPlaying) {
-                // Arrêter l'animation en cours si elle existe
+                // Arrêter l'animation en cours
                 if (currentAnimationRef.current) {
                     currentAnimationRef.current.stop();
                 }
@@ -146,78 +223,121 @@ export const StaticObject = React.memo(function StaticObject({
                         timeScale: animationTimeScale
                     };
 
-                    // debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
+                    debugLog(`Animation locale "${animationName}" démarrée sur ${textureModelId || path}`);
 
-                    // Gérer la fin d'animation si elle n'est pas en boucle
+                    // Gérer la fin d'animation
                     if (!animationLoop && onAnimationComplete && mixer) {
-                        // Nettoyer d'abord tout écouteur existant
                         if (animationRef.current) {
                             mixer.removeEventListener('finished', animationRef.current);
                         }
 
-                        // Créer une nouvelle fonction de rappel pour cet événement spécifique
                         const finishCallback = (e) => {
                             if (isComponentMounted.current && e.action === action) {
-                                // debugLog(`Animation "${animationName}" terminée`);
+                                debugLog(`Animation locale "${animationName}" terminée`);
                                 animationState.current.isPlaying = false;
                                 onAnimationComplete(animationName);
                             }
                         };
 
-                        // Stocker la référence pour le nettoyage ultérieur
                         animationRef.current = finishCallback;
-
-                        // Ajouter l'écouteur
                         mixer.addEventListener('finished', finishCallback);
                     }
                 } else {
                     console.warn(`Animation "${animationName}" non trouvée dans le modèle ${textureModelId || path}`);
                 }
-            } else if (currentAnimationRef.current) {
-                // Mettre à jour les paramètres de l'animation en cours si nécessaire
-                if (animationState.current.loop !== animationLoop) {
-                    currentAnimationRef.current.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce);
-                    animationState.current.loop = animationLoop;
-                }
-
-                if (animationState.current.timeScale !== animationTimeScale) {
-                    currentAnimationRef.current.timeScale = animationTimeScale;
-                    animationState.current.timeScale = animationTimeScale;
-                }
-
-                if (animationState.current.clamp !== animationClamp) {
-                    currentAnimationRef.current.clampWhenFinished = animationClamp;
-                    animationState.current.clamp = animationClamp;
-                }
             }
         } else if (!playAnimation && animationState.current.isPlaying && currentAnimationRef.current) {
-            // Arrêter l'animation si playAnimation est passé à false
             currentAnimationRef.current.stop();
             animationState.current.isPlaying = false;
-            // debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
+            debugLog(`Animation locale arrêtée sur ${textureModelId || path}`);
         }
     }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
 
-    // Mettre à jour le mixer d'animation à chaque frame si des animations sont en cours
+    // Écouter les événements d'animation du ModelAnimationManager
+    useEffect(() => {
+        if (!textureModelId || !mixer || !actions) return;
+
+        const handleAnimationStart = (data) => {
+            if (data.modelId === textureModelId && data.animationKey && actions[data.animationKey]) {
+                // Arrêter l'animation locale en cours
+                if (currentAnimationRef.current) {
+                    currentAnimationRef.current.stop();
+                }
+
+                const action = actions[data.animationKey];
+                if (action) {
+                    action.reset();
+                    action.timeScale = data.options?.timeScale || 1.0;
+                    action.clampWhenFinished = data.options?.clampWhenFinished || false;
+                    action.setLoop(
+                        data.options?.loop === false ? LoopOnce : LoopRepeat,
+                        data.options?.loopCount || Infinity
+                    );
+
+                    if (data.options?.fadeInDuration > 0) {
+                        action.fadeIn(data.options.fadeInDuration);
+                    } else {
+                        action.play();
+                    }
+
+                    currentAnimationRef.current = action;
+                    animationState.current.isPlaying = true;
+                    animationState.current.currentName = data.animationKey;
+
+                    debugLog(`Animation globale ${data.animationKey} démarrée pour ${textureModelId}`);
+                }
+            }
+        };
+
+        const handleAnimationStop = (data) => {
+            if (data.modelId === textureModelId && data.animationKey && actions[data.animationKey]) {
+                const action = actions[data.animationKey];
+                if (action) {
+                    if (data.options?.fadeOutDuration > 0) {
+                        action.fadeOut(data.options.fadeOutDuration);
+                    } else {
+                        action.stop();
+                    }
+
+                    if (currentAnimationRef.current === action) {
+                        currentAnimationRef.current = null;
+                        animationState.current.isPlaying = false;
+                    }
+
+                    debugLog(`Animation globale ${data.animationKey} arrêtée pour ${textureModelId}`);
+                }
+            }
+        };
+
+        const handleStopAllAnimations = (data) => {
+            if (!data.modelId || data.modelId === textureModelId) {
+                mixer.stopAllAction();
+                currentAnimationRef.current = null;
+                animationState.current.isPlaying = false;
+                debugLog(`Toutes les animations arrêtées pour ${textureModelId}`);
+            }
+        };
+
+        // S'abonner aux événements
+        const startListener = EventBus.on(ANIMATION_EVENTS.MODEL_ANIMATION_START, handleAnimationStart);
+        const stopListener = EventBus.on(ANIMATION_EVENTS.MODEL_ANIMATION_STOP, handleAnimationStop);
+        const stopAllListener = EventBus.on(ANIMATION_EVENTS.STOP_ALL_ANIMATIONS, handleStopAllAnimations);
+
+        return () => {
+            startListener();
+            stopListener();
+            stopAllListener();
+        };
+    }, [textureModelId, mixer, actions]);
+
+    // Mettre à jour le mixer d'animation local à chaque frame
     useAnimationFrame((state, delta) => {
         if (mixer && animationState.current.isPlaying) {
             mixer.update(delta);
         }
     }, 'animation');
 
-    useEffect(() => {
-        if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            if (playAnimation && animationName) {
-                if (!actions[animationName]) {
-                    console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
-                        Object.keys(actions));
-                } else {
-                }
-            }
-        }
-    }, [animations, actions, path, playAnimation, animationName]);
-
-    // Appliquer les textures au modèle après le montage - avec optimisations
+    // Appliquer les textures au modèle après le montage
     useEffect(() => {
         if (!objectRef.current || !useTextures || !textureModelId || !textureManager) return;
 
@@ -226,10 +346,8 @@ export const StaticObject = React.memo(function StaticObject({
         const applyTextures = async () => {
             try {
                 await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
-
-
                 if (isComponentMounted.current && isApplyingTextures) {
-                    // debugLog(`Textures appliquées à ${textureModelId}`);
+                    debugLog(`Textures appliquées à ${textureModelId}`);
                 }
             } catch (error) {
                 if (isComponentMounted.current && isApplyingTextures) {
@@ -240,12 +358,10 @@ export const StaticObject = React.memo(function StaticObject({
 
         applyTextures();
 
-        // Nettoyage
         return () => {
             isApplyingTextures = false;
         };
     }, [textureModelId, useTextures]);
-
 
     // Nettoyer lors du démontage
     useEffect(() => {
@@ -254,11 +370,8 @@ export const StaticObject = React.memo(function StaticObject({
         return () => {
             isComponentMounted.current = false;
 
-            // Arrêter toutes les animations en cours
             if (mixer) {
                 mixer.stopAllAction();
-
-                // Supprimer l'écouteur d'événement si présent
                 if (animationRef.current) {
                     mixer.removeEventListener('finished', animationRef.current);
                 }
@@ -266,7 +379,164 @@ export const StaticObject = React.memo(function StaticObject({
         };
     }, [mixer]);
 
-    // Éviter les re-rendus inutiles des attributs de primitive
+    useEffect(() => {
+        if (!objectRef.current || !mixer || !actions) return;
+
+        const handleForceLocalAnimation = (data) => {
+            if ((data.objectKey === objectKey || data.modelId === textureModelId) && data.animationName) {
+                console.log(`🎬 Réception de force-local-animation pour ${objectKey || textureModelId}`);
+
+                // Rechercher l'action correspondante
+                const actionName = data.animationName;
+                let action = actions[actionName];
+
+                // Si non trouvée par le nom exact, essayer de faire correspondre avec les noms des clips
+                if (!action) {
+                    // Chercher parmi toutes les actions disponibles
+                    for (const key in actions) {
+                        if (actions[key]._clip && actions[key]._clip.name === actionName) {
+                            action = actions[key];
+                            break;
+                        }
+                    }
+                }
+
+                if (action) {
+                    // Arrêter l'animation en cours
+                    if (currentAnimationRef.current) {
+                        currentAnimationRef.current.stop();
+                    }
+
+                    // Configurer la nouvelle animation
+                    action.reset();
+                    action.timeScale = data.options?.timeScale || 1.0;
+                    action.clampWhenFinished = data.options?.clampWhenFinished || false;
+                    action.setLoop(
+                        data.options?.loop === false ? THREE.LoopOnce : THREE.LoopRepeat,
+                        data.options?.loopCount === -1 ? Infinity : (data.options?.loopCount || 1)
+                    );
+
+                    // Jouer l'animation
+                    action.play();
+
+                    // Mettre à jour les références
+                    currentAnimationRef.current = action;
+                    animationState.current = {
+                        isPlaying: true,
+                        currentName: action._clip.name,
+                        loop: data.options?.loop !== false,
+                        clamp: data.options?.clampWhenFinished || false,
+                        timeScale: data.options?.timeScale || 1.0
+                    };
+
+                    console.log(`✅ Animation locale forcée: ${action._clip.name}`);
+                } else {
+                    console.warn(`❌ Action "${actionName}" non trouvée dans les actions disponibles:`,
+                        Object.keys(actions).map(key => ({
+                            key: key,
+                            clipName: actions[key]._clip ? actions[key]._clip.name : 'clip inconnu'
+                        })));
+                }
+            }
+        };
+
+        // Éviter les erreurs si EventBus n'est pas disponible
+        let cleanup = () => {};
+        try {
+            if (window.EventBus && typeof window.EventBus.on === 'function') {
+                cleanup = window.EventBus.on('force-local-animation', handleForceLocalAnimation);
+            } else {
+                console.warn('⚠️ EventBus non disponible pour l\'écouteur force-local-animation');
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'enregistrement de l\'écouteur force-local-animation:', error);
+        }
+
+        return () => {
+            try {
+                cleanup();
+            } catch (error) {
+                console.warn('⚠️ Erreur lors du nettoyage de l\'écouteur force-local-animation:', error);
+            }
+        };
+    }, [objectKey, textureModelId, mixer, actions]);
+
+// Si l'objet est un VisonRun, ajoutez également cet écouteur spécifique
+    useEffect(() => {
+        if (!objectRef.current || !mixer || !actions || !textureModelId) return;
+
+        // Vérifier si cet objet est un VisonRun
+        if (objectKey === 'VisonRun' || textureModelId === 'VisonRun') {
+            console.log(`🎮 Configuration d'un écouteur direct pour "forest-ready" sur VisonRun`);
+
+            const handleForestReady = (data) => {
+                console.log(`🌲 Événement forest-ready reçu directement par VisonRun:`, data);
+
+                // Rechercher l'animation 'run' dans les actions disponibles
+                const runAction = actions['run'] || actions['animation_0'];
+
+                if (runAction) {
+                    // Arrêter l'animation en cours si nécessaire
+                    if (currentAnimationRef.current) {
+                        currentAnimationRef.current.stop();
+                    }
+
+                    // Configurer l'animation
+                    runAction.reset();
+                    runAction.timeScale = 2.0;
+                    runAction.clampWhenFinished = false;
+                    runAction.setLoop(THREE.LoopRepeat, Infinity);
+
+                    // Jouer l'animation
+                    runAction.play();
+
+                    // Mettre à jour les références
+                    currentAnimationRef.current = runAction;
+                    animationState.current = {
+                        isPlaying: true,
+                        currentName: 'run',
+                        loop: true,
+                        clamp: false,
+                        timeScale: 2.0
+                    };
+
+                    console.log(`✅ Animation "run" démarrée directement sur VisonRun`);
+                } else {
+                    console.warn(`❌ Animation "run" ou "animation_0" non trouvée pour VisonRun`);
+                    console.log('Actions disponibles:', Object.keys(actions).map(key => ({
+                        key: key,
+                        clipName: actions[key]._clip ? actions[key]._clip.name : 'clip inconnu'
+                    })));
+                }
+            };
+
+            // S'abonner à l'événement
+            let cleanup = () => {};
+            try {
+                if (window.EventBus && typeof window.EventBus.on === 'function') {
+                    cleanup = window.EventBus.on('forest-ready', handleForestReady);
+                    console.log(`✅ Écouteur direct pour "forest-ready" enregistré sur VisonRun`);
+                } else {
+                    console.warn('⚠️ EventBus non disponible pour l\'écouteur forest-ready');
+                }
+            } catch (error) {
+                console.error(`❌ Erreur lors de l'enregistrement de l'écouteur direct:`, error);
+            }
+
+            return () => {
+                try {
+                    cleanup();
+                } catch (error) {
+                    console.warn(`⚠️ Erreur lors du nettoyage de l'écouteur direct:`, error);
+                }
+            };
+        }
+
+        return undefined;
+    }, [objectKey, textureModelId, mixer, actions]);
+
+
+    // Propriétés de la primitive optimisées
     const primitiveProps = useMemo(() => {
         const props = {
             position,
@@ -276,7 +546,6 @@ export const StaticObject = React.memo(function StaticObject({
             visible
         };
 
-        // Utiliser quaternion si disponible, sinon utiliser rotation
         if (quaternion) {
             props.quaternion = quaternion;
         } else {
@@ -297,11 +566,7 @@ export const StaticObject = React.memo(function StaticObject({
 
 /**
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
- * Version optimisée
- */
-/**
- * Composant pour afficher les objets statiques (non-interactifs) dans la scène
- * Version optimisée avec support des animations
+ * Version optimisée et synchronisée
  */
 export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
     const [placements, setPlacements] = useState([]);
@@ -314,18 +579,16 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         setPlacements(staticPlacements);
     }, [filter]);
 
-    // Récupérer les placements au chargement et lorsque le filtre change
+    // Récupérer les placements au chargement
     useEffect(() => {
-        // Vérifier si le filtre a changé
         if (JSON.stringify(lastFilter.current) !== JSON.stringify(filter)) {
             lastFilter.current = filter;
             updatePlacements();
         } else {
-            // Mise à jour initiale
             updatePlacements();
         }
 
-        // Appliquer la correction pour les ombres des planes une seule fois au chargement
+        // Corrections de matériaux une seule fois
         if (textureManager && typeof textureManager.fixAllPlantMaterials === 'function') {
             textureManager.fixAllPlantMaterials();
         }
@@ -334,68 +597,127 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         }
     }, [filter, updatePlacements, scene]);
 
+    // Écouter les événements de trigger d'animation
+    useEffect(() => {
+        const handleAnimationTrigger = (data) => {
+            const { objectKey, trigger, options = {} } = data;
 
-    // Optimiser le rendu avec useMemo
+            const placementIndex = placements.findIndex(p => p.objectKey === objectKey);
+
+            if (placementIndex !== -1) {
+                const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+                if (!objectConfig || !objectConfig.animationTriggers || !objectConfig.animationTriggers[trigger]) {
+                    return;
+                }
+
+                const triggerConfig = objectConfig.animationTriggers[trigger];
+
+                setPlacements(prevPlacements => {
+                    const newPlacements = [...prevPlacements];
+                    const placement = {...newPlacements[placementIndex]};
+
+                    if (triggerConfig.stop) {
+                        if (placement.animation) {
+                            placement.animation.play = false;
+                        }
+                    } else {
+                        placement.animation = {
+                            play: true,
+                            name: triggerConfig.animation,
+                            loop: triggerConfig.options?.loop !== false,
+                            clamp: triggerConfig.options?.clampWhenFinished || false,
+                            timeScale: triggerConfig.options?.timeScale || 1.0,
+                            ...options
+                        };
+                    }
+
+                    newPlacements[placementIndex] = placement;
+                    return newPlacements;
+                });
+
+                debugLog(`Animation trigger "${trigger}" appliqué à ${objectKey}`);
+            }
+        };
+
+        const triggerListener = EventBus.on('trigger_animation', handleAnimationTrigger);
+
+        return () => {
+            triggerListener();
+        };
+    }, [placements]);
+
+    // Rendu optimisé des objets statiques
     const staticObjects = useMemo(() => {
         return placements.map((placement, index) => {
             const objectConfig = sceneObjectManager.getObjectFromCatalog(placement.objectKey);
             if (!objectConfig) return null;
 
-            // Obtenir les informations sur les textures
             const textureModelId = sceneObjectManager.getTextureModelId(placement.objectKey);
             const useTextures = placement.useTextures !== undefined ?
                 placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
 
-            const key = `static-${placement.objectKey}-${index}`;
+            const key = `static-${placement.objectKey}-${index}-${objectConfig.path}`;
 
-            // Ajouter les informations d'animations si présentes
-            const animationProps = placement.animation ? {
-                playAnimation: placement.animation.play,
-                animationName: placement.animation.name,
-                animationLoop: placement.animation.loop,
-                animationClamp: placement.animation.clamp,
-                animationTimeScale: placement.animation.timeScale,
-                onAnimationComplete: (animName) => {
-                    if (placement.animation.onComplete) {
-                        placement.animation.onComplete(animName, index);
-                    }
+            // Propriétés d'animation
+            let animationProps = {};
 
-                    // Si l'animation n'est pas en boucle, mettre à jour le placement pour indiquer qu'elle est terminée
-                    if (!placement.animation.loop) {
-                        const updatedPlacement = {...placement};
-                        updatedPlacement.animation.play = false;
-                        sceneObjectManager.updatePlacement(index, updatedPlacement);
-
-                        // Mettre à jour l'état local
-                        setPlacements(prevPlacements => {
-                            const newPlacements = [...prevPlacements];
-                            newPlacements[index] = updatedPlacement;
-                            return newPlacements;
-                        });
-                    }
-                }
-            } : {};
             if (placement.animation) {
-                console.log(`Animation pour ${placement.objectKey} :`,
-                    placement.animation ? {
-                        play: placement.animation.play,
-                        name: placement.animation.name
-                    } : 'Aucune animation');
+                animationProps = {
+                    playAnimation: placement.animation.play,
+                    animationName: placement.animation.name,
+                    animationLoop: placement.animation.loop,
+                    animationClamp: placement.animation.clamp,
+                    animationTimeScale: placement.animation.timeScale,
+                    onAnimationComplete: (animName) => {
+                        if (placement.animation.onComplete) {
+                            placement.animation.onComplete(animName, index);
+                        }
 
+                        if (!placement.animation.loop) {
+                            const updatedPlacement = {...placement};
+                            updatedPlacement.animation.play = false;
+                            sceneObjectManager.updatePlacement(index, updatedPlacement);
+
+                            setPlacements(prevPlacements => {
+                                const newPlacements = [...prevPlacements];
+                                newPlacements[index] = updatedPlacement;
+                                return newPlacements;
+                            });
+                        }
+                    }
+                };
+            } else if (objectConfig.defaultAnimations && objectConfig.animations) {
+                const defaultAnim = objectConfig.defaultAnimations[0];
+                if (defaultAnim && objectConfig.animations[defaultAnim]) {
+                    const animConfig = objectConfig.animations[defaultAnim];
+
+                    animationProps = {
+                        playAnimation: animConfig.autoplay === true,
+                        animationName: animConfig.animationName,
+                        animationLoop: animConfig.loop !== false,
+                        animationClamp: animConfig.clampWhenFinished || false,
+                        animationTimeScale: animConfig.timeScale || 1.0,
+                        onAnimationComplete: () => {
+                            debugLog(`Animation par défaut ${defaultAnim} terminée pour ${placement.objectKey}`);
+                        }
+                    };
+                }
             }
+
             return (
                 <StaticObject
                     key={key}
                     path={objectConfig.path}
                     position={placement.position}
                     rotation={placement.rotation}
-                    quaternion={placement.quaternion} // Nouveau paramètre ajouté
+                    quaternion={placement.quaternion}
                     scale={placement.scale}
                     castShadow={placement.castShadow !== undefined ? placement.castShadow : true}
                     receiveShadow={placement.receiveShadow !== undefined ? placement.receiveShadow : true}
                     visible={placement.visible}
                     textureModelId={textureModelId}
                     useTextures={useTextures}
+                    objectKey={placement.objectKey}
                     {...animationProps}
                 />
             );
@@ -408,9 +730,10 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         </group>
     );
 });
+
 /**
  * Composant pour gérer et afficher les objets interactifs dans la scène
- * Version optimisée
+ * Version optimisée et synchronisée
  */
 export const InteractiveObjects = React.memo(function InteractiveObjects({filter = {}}) {
     const [placements, setPlacements] = useState([]);
@@ -430,12 +753,9 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
         updatePlacements();
     }, [updatePlacements]);
 
-
+    // S'abonner aux événements d'interaction
     useEffect(() => {
-
-        // S'abonner à l'événement de complétion d'interaction
         const completeCleanup = EventBus.on('object:interaction:complete', (data) => {
-            // Directement mettre à jour les placements
             updatePlacements();
         });
 
@@ -444,25 +764,21 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
         };
     }, [updatePlacements]);
 
-    // Récupérer les placements et configurer les écouteurs d'événements
+    // Récupérer les placements et configurer les écouteurs
     useEffect(() => {
         updatePlacements();
 
-        // S'abonner aux événements avec gestion des erreurs
         try {
-            // Nettoyer l'écouteur précédent s'il existe
             if (eventListenerRef.current) {
                 eventListenerRef.current();
                 eventListenerRef.current = null;
             }
 
-            // Ajouter le nouvel écouteur
             eventListenerRef.current = EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handleInteractionComplete);
         } catch (error) {
             console.error("Error setting up event listener in InteractiveObjects:", error);
         }
 
-        // Nettoyer les écouteurs
         return () => {
             try {
                 if (eventListenerRef.current) {
@@ -483,26 +799,22 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
         }
     }, [interaction?.currentStep, updatePlacements]);
 
-    // Optimiser le rendu avec useMemo
+    // Rendu optimisé des objets interactifs
     const interactiveObjects = useMemo(() => {
         return placements.map((placement, index) => {
             const objectConfig = sceneObjectManager.getObjectFromCatalog(placement.objectKey);
             if (!objectConfig) return null;
 
-            // Obtenir les informations sur les textures
             const textureModelId = sceneObjectManager.getTextureModelId(placement.objectKey);
             const useTextures = placement.useTextures !== undefined ?
                 placement.useTextures : sceneObjectManager.doesObjectUseTextures(placement.objectKey);
 
-            // Déterminer le bon markerType, markerText, markerOffset et markerAxis à partir de la bonne interaction
+            // Trouver l'interaction correspondante
             let interaction;
             if (Array.isArray(objectConfig.interaction)) {
-                // Trouver l'interaction correspondant au requiredStep du placement
                 interaction = objectConfig.interaction.find(
                     i => i.requiredStep === placement.requiredStep
                 );
-
-                // Fallback à la première interaction si aucune correspondance n'est trouvée
                 if (!interaction && objectConfig.interaction.length > 0) {
                     interaction = objectConfig.interaction[0];
                 }
@@ -515,7 +827,6 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                 return null;
             }
 
-            // Utiliser les propriétés du placement si définies, sinon utiliser celles de l'interaction trouvée
             const markerProps = {
                 modelPath: objectConfig.path,
                 position: placement.position,
@@ -530,10 +841,10 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                 markerText: placement.markerText || interaction.text,
                 markerOffset: placement.markerOffset || interaction.offset,
                 markerAxis: placement.markerAxis || interaction.axis,
-                interfaceToShow: interaction.interfaceToShow
+                interfaceToShow: interaction.interfaceToShow,
+                objectKey: placement.objectKey
             };
 
-            // IMPORTANT: Garantir que la key est unique et bien définie
             const markerKey = placement.markerId || `interactive-${placement.objectKey}-${index}`;
 
             return (
@@ -541,7 +852,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
                     key={markerKey}
                     {...markerProps}
                     onInteract={(event) => {
-                        // debugLog(`Interaction avec ${placement.markerId}:`, event);
+                        debugLog(`Interaction avec ${placement.markerId}:`, event);
                         if (placement.onInteract) {
                             placement.onInteract(event);
                         }
@@ -560,7 +871,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
 
 /**
  * Composant pour afficher un seul objet interactif
- * Version optimisée
+ * Version optimisée et synchronisée
  */
 export const SingleInteractiveObject = React.memo(function SingleInteractiveObject({
                                                                                        objectKey,
@@ -569,7 +880,6 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
                                                                                    }) {
     const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
 
-    // Early return si l'objet n'est pas valide
     if (!objectConfig || !objectConfig.interactive) {
         console.error(`Objet interactif "${objectKey}" non trouvé ou non interactif.`);
         return null;
@@ -583,7 +893,6 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
     // Déterminer le requiredStep
     let requiredStep = options.requiredStep;
     if (!requiredStep) {
-        // Chercher dans les interactions
         if (Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 0) {
             requiredStep = objectConfig.interaction[0].requiredStep;
         } else if (objectConfig.interaction && objectConfig.interaction.requiredStep) {
@@ -606,7 +915,6 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         return null;
     }
 
-    // Optimisation: utiliser useMemo pour les props
     const markerProps = useMemo(() => ({
         modelPath: objectConfig.path,
         position: position || [0, 0, 0],
@@ -621,7 +929,8 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         requiredStep: requiredStep,
         textureModelId: textureModelId,
         useTextures: useTextures,
-        interfaceToShow: matchingInteraction.interfaceToShow
+        interfaceToShow: matchingInteraction.interfaceToShow,
+        objectKey: objectKey
     }), [
         objectConfig,
         position,
@@ -630,12 +939,12 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
         textureModelId,
         useTextures,
         matchingInteraction,
-        requiredStep
+        requiredStep,
+        objectKey
     ]);
 
-    // Gérer l'interaction avec le callback mémorisé
     const handleInteract = useCallback((event) => {
-        // debugLog(`Interaction avec ${markerId}:`, event);
+        debugLog(`Interaction avec ${markerId}:`, event);
         if (options.onInteract) {
             options.onInteract(event);
         }
@@ -646,7 +955,7 @@ export const SingleInteractiveObject = React.memo(function SingleInteractiveObje
 
 /**
  * Composant pour afficher un seul objet statique
- * Version optimisée
+ * Version optimisée et synchronisée
  */
 export const SingleStaticObject = React.memo(function SingleStaticObject({
                                                                              objectKey,
@@ -655,7 +964,6 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
                                                                          }) {
     const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
 
-    // Early return si l'objet n'est pas valide
     if (!objectConfig || objectConfig.interactive) {
         console.error(`Objet statique "${objectKey}" non trouvé ou est interactif.`);
         return null;
@@ -665,32 +973,42 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
     const useTextures = options.useTextures !== undefined ?
         options.useTextures : sceneObjectManager.doesObjectUseTextures(objectKey);
 
-    // Préparer les propriétés d'animation si elles sont fournies
-    const animationProps = {};
+    // Préparer les propriétés d'animation
+    let animationProps = {};
+
     if (options.animation) {
-        // Vérifier si l'animation existe dans la configuration de l'objet
         const availableAnimations = sceneObjectManager.getAvailableAnimations(objectKey);
         const animationExists = availableAnimations.includes(options.animation.name);
 
         if (options.animation.name && animationExists) {
-            // Récupérer les paramètres par défaut de l'animation
             const animDefaults = objectConfig.animations?.[options.animation.name] || {};
 
-            animationProps.playAnimation = options.animation.play !== undefined ? options.animation.play : false;
-            animationProps.animationName = options.animation.name;
-            animationProps.animationLoop = options.animation.loop !== undefined ? options.animation.loop : (animDefaults.defaultLoop || true);
-            animationProps.animationClamp = options.animation.clamp !== undefined ? options.animation.clamp : (animDefaults.defaultClamp || false);
-            animationProps.animationTimeScale = options.animation.timeScale !== undefined ? options.animation.timeScale : (animDefaults.defaultTimeScale || 1.0);
-
-            if (options.animation.onComplete) {
-                animationProps.onAnimationComplete = options.animation.onComplete;
-            }
+            animationProps = {
+                playAnimation: options.animation.play !== undefined ? options.animation.play : false,
+                animationName: options.animation.name,
+                animationLoop: options.animation.loop !== undefined ? options.animation.loop : (animDefaults.loop !== false),
+                animationClamp: options.animation.clamp !== undefined ? options.animation.clamp : (animDefaults.clampWhenFinished || false),
+                animationTimeScale: options.animation.timeScale !== undefined ? options.animation.timeScale : (animDefaults.timeScale || 1.0),
+                onAnimationComplete: options.animation.onComplete
+            };
         } else if (options.animation.name) {
             console.warn(`Animation "${options.animation.name}" non trouvée pour l'objet "${objectKey}". Animations disponibles: ${availableAnimations.join(', ') || 'aucune'}`);
         }
+    } else if (objectConfig.defaultAnimations && objectConfig.animations) {
+        const defaultAnim = objectConfig.defaultAnimations[0];
+        if (defaultAnim && objectConfig.animations[defaultAnim]) {
+            const animConfig = objectConfig.animations[defaultAnim];
+
+            animationProps = {
+                playAnimation: animConfig.autoplay === true,
+                animationName: animConfig.animationName,
+                animationLoop: animConfig.loop !== false,
+                animationClamp: animConfig.clampWhenFinished || false,
+                animationTimeScale: animConfig.timeScale || 1.0
+            };
+        }
     }
 
-    // Optimisation: utiliser useMemo pour les props
     const staticProps = useMemo(() => ({
         path: objectConfig.path,
         position: position || [0, 0, 0],
@@ -701,6 +1019,7 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
         visible: options.visible !== undefined ? options.visible : true,
         textureModelId: textureModelId,
         useTextures: useTextures,
+        objectKey: objectKey,
         ...animationProps
     }), [
         objectConfig,
@@ -708,20 +1027,29 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
         options,
         textureModelId,
         useTextures,
+        objectKey,
         animationProps
     ]);
 
     return <StaticObject {...staticProps} />;
 });
+
 /**
  * Composant principal qui affiche tous les objets de scène
- * Utilise les deux sous-composants pour objets statiques et interactifs
- * Version optimisée
+ * Version optimisée et synchronisée
  */
 const SceneObjects = React.memo(function SceneObjects({
                                                           staticFilter = {},
                                                           interactiveFilter = {}
                                                       }) {
+    // Initialiser le système d'animation au montage
+    useEffect(() => {
+        if (modelAnimationManager && !modelAnimationManager.initialized) {
+            modelAnimationManager.init();
+            debugLog('✅ Système d\'animation initialisé via SceneObjects');
+        }
+    }, []);
+
     return (
         <group name="scene-objects">
             <StaticObjects filter={staticFilter}/>
