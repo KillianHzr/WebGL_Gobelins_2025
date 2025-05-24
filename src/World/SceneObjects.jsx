@@ -395,6 +395,119 @@ export const StaticObject = React.memo(function StaticObject({
         actions, mixer, path, textureModelId, onAnimationComplete,
         animationTrigger, externalAnimationProps // Dépendances pour les animations externes
     ]);
+
+    useEffect(() => {
+        if (textureModelId === 'Vison' || path.includes('Vison')) {
+            console.log(`🦡 Composant Vison prêt`);
+
+            // Exposer une fonction pour démarrer l'animation depuis l'extérieur
+            const startVisonAnimation = (objectKey,animationName, options = {}) => {
+                if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) {
+                    console.log(`❌ Objet ${objectKey} pas prêt pour animation`);
+                    return false;
+                }
+
+                console.log(`🎬 Démarrage animation dynamique pour ${objectKey}`);
+
+                // Récupérer la configuration de l'objet depuis le SceneObjectManager
+                const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+
+                if (!objectConfig) {
+                    console.warn(`❌ Configuration pour ${objectKey} non trouvée`);
+                    return false;
+                }
+
+                console.log(`📋 Animations disponibles dans la config:`,
+                    objectConfig.animations ? Object.keys(objectConfig.animations) : 'Aucune');
+                console.log(`📋 Actions disponibles:`, Object.keys(actions));
+
+                let animationDefaults = {};
+
+                // Priorité 1 : Animation spécifiée dans les options
+
+
+                // Vérifier que l'action existe
+                if (!actions[animationName]) {
+                    console.warn(`❌ Action '${animationName}' non trouvée dans le modèle ${objectKey}`);
+                    console.log(`📋 Actions disponibles:`, Object.keys(actions));
+                    return false;
+                }
+
+                // Récupérer les paramètres par défaut de l'animation depuis la config
+                if (objectConfig.animations && objectConfig.animations[animationName]) {
+                    animationDefaults = objectConfig.animations[animationName];
+                }
+
+                console.log(`🎬 Animation sélectionnée: ${animationName}`);
+                console.log(`📋 Config animation par défaut:`, animationDefaults);
+
+                const action = actions[animationName];
+
+                // Arrêter les autres animations
+                mixer.stopAllAction();
+
+                // Configurer l'animation avec les valeurs par défaut ou les options passées
+                action.reset();
+
+                // Configuration des paramètres avec hiérarchie : options > config > défaut système
+                const shouldLoop = options.loop !== undefined ? options.loop :
+                    (animationDefaults.defaultLoop !== undefined ? animationDefaults.defaultLoop : true);
+
+                const timeScale = options.timeScale !== undefined ? options.timeScale :
+                    (animationDefaults.defaultTimeScale !== undefined ? animationDefaults.defaultTimeScale : 1.0);
+
+                const shouldClamp = options.clamp !== undefined ? options.clamp :
+                    (animationDefaults.defaultClamp !== undefined ? animationDefaults.defaultClamp : false);
+
+                // Appliquer la configuration
+                action.setLoop(shouldLoop ? LoopRepeat : LoopOnce, shouldLoop ? Infinity : 1);
+                action.timeScale = timeScale;
+                action.clampWhenFinished = shouldClamp;
+
+                action.play();
+
+                console.log(`✅ Animation ${animationName} démarrée sur ${objectKey}:`, {
+                    animationName: animationName,
+                    loop: shouldLoop,
+                    timeScale: timeScale,
+                    clamp: shouldClamp,
+                    hasDefaults: Object.keys(animationDefaults).length > 0,
+                    source: 'dynamique'
+                });
+
+                // Mettre à jour l'état avec les valeurs effectives
+                animationState.current = {
+                    isPlaying: true,
+                    currentName: animationName,
+                    loop: shouldLoop,
+                    clamp: shouldClamp,
+                    timeScale: timeScale
+                };
+
+                currentAnimationRef.current = action;
+                return true;
+            };
+
+            // Exposer globalement
+            window.startVisonAnimation = startVisonAnimation;
+
+            // Écouter l'événement de déclenchement
+            const handleVisonTrigger = (data) => {
+                console.log(`🦡 Réception événement déclenchement Vison:`, data);
+                startVisonAnimation('Vison',data.options || {});
+            };
+
+            const cleanup = EventBus.on('START_VISON_ANIMATION', handleVisonTrigger);
+
+            return () => {
+                cleanup();
+                // Nettoyer la fonction globale
+                if (window.startVisonAnimation === startVisonAnimation) {
+                    delete window.startVisonAnimation;
+                }
+            };
+        }
+    }, [textureModelId, path, actions, mixer]);
 // Modifier l'useEffect de force Vison pour qu'il ne se déclenche que sur demande :
     useEffect(() => {
         if (textureModelId === 'Vison' || path.includes('Vison')) {
@@ -412,7 +525,6 @@ export const StaticObject = React.memo(function StaticObject({
                 // Récupérer la configuration de l'objet Vison depuis le SceneObjectManager
                 const visonConfig = sceneObjectManager.getObjectFromCatalog('Vison');
 
-                console.log(visonConfig.animations);
                 if (actions['animation_0']) {
                     const action = actions['animation_0'];
 
