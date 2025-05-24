@@ -548,9 +548,7 @@ export const StaticObject = React.memo(function StaticObject({
             const startAnimation = (objectKey, animationName, options = {}) => {
                 // Vérifier si c'est pour cet objet spécifique
                 const isTargetObject =
-                    objectKey === textureModelId ||
-                    path.includes(objectKey) ||
-                    (textureModelId && textureModelId.includes(objectKey));
+                    objectKey === textureModelId;
 
                 if (!isTargetObject) {
                     // Ce n'est pas notre objet, ignorer

@@ -397,6 +397,28 @@ class SceneObjectManager {
                     animationId: 'Vison'
                 }]
             },
+            'VisonRun': {
+                id: 'VisonRun',
+                path: '/models/primary/VisonRun.glb',
+                scale: [5, 5, 5],
+                interactive: false,
+                useTextures: true,
+                animations: {
+                    // Animation principale du vison
+                    'animation_0': {
+                        autoplay: false, // Contrôle manuel
+                        defaultLoop: false,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                },
+                defaultPlacements: [{
+                    position: [-34.943, 0, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [5, 5, 5],
+                    animationId: 'VisonRun'
+                }]
+            },
 
             /**
              * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION

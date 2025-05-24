@@ -83,6 +83,7 @@ function CameraController({children}) {
 
     // CORRECTION: Déplacer visonTriggeredRef au niveau du composant
     const visonTriggeredRef = useRef(false);
+    const visonRunTriggeredRef = useRef(false);
 
     // MODIFIÉ : Limitation du scroll arrière avec offset de sécurité
     const minAllowedPositionRef = useRef(0); // Position minimum de base (dernière étape validée)
@@ -146,7 +147,8 @@ function CameraController({children}) {
                     timelineLength: timelineLengthRef.current
                 });
 
-                const VISON_TRIGGER = 0.02;
+                const VISON_TRIGGER = 0.01;
+                const SCREEN_TRIGGER = 0.025;
 
                 if (normalizedPosition >= VISON_TRIGGER && !visonTriggeredRef.current) {
                     console.log("🦡 Déclenchement animation Vison à la position:", normalizedPosition);
@@ -157,6 +159,15 @@ function CameraController({children}) {
                     if (window.startAnimation) {
                         const success = window.startAnimation('Vison', 'animation_0');
                         console.log(`🦡 Animation Vison déclenchée: ${success}`);
+                    }
+                }
+                if (normalizedPosition >= SCREEN_TRIGGER && !visonRunTriggeredRef.current) {
+                    visonRunTriggeredRef.current = true;
+
+                    // Utiliser la nouvelle fonction globale
+                    if (window.startAnimation) {
+                        const success = window.startAnimation('VisonRun', 'animation_0');
+                        console.log(`🦡 Animation VisonRun déclenchée: ${success}`);
                     }
                 }
             }
