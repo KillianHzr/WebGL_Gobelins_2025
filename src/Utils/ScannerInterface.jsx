@@ -270,7 +270,7 @@ export default function ScannerInterface() {
                                 onTouchEnd={handleScanButtonUp}
                             >
                                 <div className="scanner-interface-scan-button-inner-text">
-                                    Scan
+                                    Maintiens
                                 </div>
                                 <div
                                     className="scanner-interface-scan-button-inner-progress"

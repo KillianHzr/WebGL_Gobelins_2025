@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import LoadingManager from './LoadingManager';
 import DesktopLanding from './DesktopLanding';
 import useStore from '../Store/useStore';
+import { EventBus } from './EventEmitter.jsx';
 
 /**
  * LoadingScreen component
@@ -132,13 +133,12 @@ const LoadingScreen = ({ onComplete }) => {
             }
         };
 
-        // Listen for forest ready event directly
-        const forestReadyUnsubscribe = window.EventBus?.on('forest-ready', handleForestReady);
-        const forestSceneReadyUnsubscribe = window.EventBus?.on('forest-scene-ready', handleForestReady);
+        const forestReadyUnsubscribe = EventBus.on('forest-ready', handleForestReady);
+        const forestSceneReadyUnsubscribe = EventBus.on('forest-scene-ready', handleForestReady);
 
         // Check logs for "Forest est prête" periodically
         const checkInterval = setInterval(() => {
-            if (!loadingComplete && console.logs && console.logs.join(' ').includes("Forest est prête")) {
+            if (!loadingComplete && window._loadingLogs && window._loadingLogs.join(' ').includes("Forest est prête")) {
                 console.log("Loading screen detected 'Forest est prête' in logs");
                 handleLoadingComplete();
             }
