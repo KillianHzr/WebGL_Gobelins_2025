@@ -153,10 +153,10 @@ function CameraController({children}) {
 
                     visonTriggeredRef.current = true;
 
-
-                    if (window.startVisonAnimation) {
-                        const success = window.startVisonAnimation();
-                        console.log(`🦡 Fallback direct: ${success}`);
+                    // Utiliser la nouvelle fonction globale
+                    if (window.startAnimation) {
+                        const success = window.startAnimation('Vison', 'animation_0');
+                        console.log(`🦡 Animation Vison déclenchée: ${success}`);
                     }
                 }
             }
