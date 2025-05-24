@@ -146,62 +146,11 @@ function CameraController({children}) {
                 const VISON_TRIGGER = 0.02;
 
                 if (normalizedPosition >= VISON_TRIGGER && window.animationControls) {
-                    console.log("🦡 Tentative d'animation Vison à la position :", normalizedPosition);
+                    sceneObjectManager.triggerAnimation('Vison', 'animation_0', {
+                        loop: false,
+                        timeScale: 0.2
+                    })
 
-                    // DEBUG COMPLET
-                    console.log("🔍 Debug complet Vison:");
-                    console.log("- window.animationControls existe:", !!window.animationControls);
-                    console.log("- Méthodes disponibles:", Object.keys(window.animationControls || {}));
-
-                    // Vérifier les placements Vison
-                    const visonPlacements = sceneObjectManager.getPlacements({objectKey: 'Vison'});
-                    console.log("- Placements Vison trouvés:", visonPlacements.length);
-                    console.log("- Détail placements:", visonPlacements);
-
-                    // Vérifier les animations disponibles
-                    const availableAnimations = sceneObjectManager.getAvailableAnimations('Vison');
-                    console.log("- Animations disponibles pour Vison:", availableAnimations);
-
-                    // Vérifier l'état actuel
-                    const currentState = window.animationControls.getState('Vison');
-                    console.log("- État actuel Vison:", currentState);
-
-                    // Essayer plusieurs identifiants
-                    console.log("🎬 Tentatives de déclenchement:");
-
-                    // Méthode 1: Par objectKey
-                    try {
-                        const result1 = window.animationControls.play('Vison', 'animation_0', {
-                            loop: false,
-                            timeScale: 0.2
-                        });
-                        console.log("- Résultat méthode 1 (objectKey):", result1);
-                    } catch (error) {
-                        console.error("- Erreur méthode 1:", error);
-                    }
-
-                    // // Méthode 2: Par ID
-                    // try {
-                    //     const result2 = window.animationControls.play('Vison', 'animation_0', {
-                    //         loop: true,
-                    //         timeScale: 1.0
-                    //     });
-                    //     console.log("- Résultat méthode 2 (ID):", result2);
-                    // } catch (error) {
-                    //     console.error("- Erreur méthode 2:", error);
-                    // }
-                    //
-                    // // Méthode 3: Forcer via EventBus
-                    // // try {
-                    // //     EventBus.trigger('external-animation-play', {
-                    // //         identifier: 'Vison',
-                    // //         animationName: 'animation_0',
-                    // //         options: { loop: false, timeScale: 1.0 }
-                    // //     });
-                    // //     console.log("- Déclenchement via EventBus envoyé");
-                    // // } catch (error) {
-                    // //     console.error("- Erreur EventBus:", error);
-                    // // }
                 }
             }
         }

@@ -546,6 +546,32 @@ class SceneObjectManager {
         });
     }
 
+    triggerAnimation(identifier, animationName, options = {}) {
+        // Vérifier les placements Vison
+        const visonPlacements = sceneObjectManager.getPlacements({objectKey: identifier});
+        console.log("- Placements Vison trouvés:", visonPlacements.length);
+        console.log("- Détail placements:", visonPlacements);
+
+        // Vérifier les animations disponibles
+        const availableAnimations = sceneObjectManager.getAvailableAnimations(identifier);
+        console.log("- Animations disponibles pour Vison:", availableAnimations);
+
+        // Vérifier l'état actuel
+        const currentState = window.animationControls.getState(identifier);
+        console.log("- État actuel Vison:", currentState);
+
+        // Essayer plusieurs identifiants
+        console.log("🎬 Tentatives de déclenchement:");
+
+        // Méthode 1: Par objectKey
+        try {
+            const result1 = window.animationControls.play(identifier, animationName, options);
+            console.log("- Résultat méthode 1 (objectKey):", result1);
+        } catch (error) {
+            console.error("- Erreur méthode 1:", error);
+        }
+    }
+
     // Méthode pour jouer une animation sur un objet spécifique
     playAnimation(identifier, animationName, options = {}) {
         const placements = this.findPlacementsByIdentifier(identifier);
