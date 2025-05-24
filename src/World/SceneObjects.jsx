@@ -503,14 +503,43 @@ export const StaticObject = React.memo(function StaticObject({
         }
     }, [textureModelId, path, actions, mixer]);
 
+    const getAnimatedObjectsFromCatalog = () => {
+        const animatedObjects = [];
+        const catalog = sceneObjectManager.objectCatalog;
+
+        Object.entries(catalog).forEach(([objectKey, config]) => {
+            if (config.animations && Object.keys(config.animations).length > 0) {
+                animatedObjects.push({
+                    objectKey: objectKey,
+                    id: config.id,
+                    path: config.path
+                });
+            }
+        });
+
+        console.log(`🎬 Objets avec animations détectés:`, animatedObjects);
+        return animatedObjects;
+    };
+
+// Fonction pour vérifier si un objet est animable
+    const isObjectAnimatable = (textureModelId, path) => {
+        const animatedObjects = getAnimatedObjectsFromCatalog();
+
+        return animatedObjects.some(obj =>
+            obj.id === textureModelId ||
+            obj.objectKey === textureModelId ||
+            path.includes(obj.objectKey) ||
+            path.includes(obj.id) ||
+            (textureModelId && (
+                textureModelId.includes(obj.objectKey) ||
+                textureModelId.includes(obj.id)
+            ))
+        );
+    };
 
     useEffect(() => {
-        // MODIFIÉ: Étendre la condition pour inclure les objets avec animations
-        const isAnimatableObject =
-            textureModelId === 'Vison' || path.includes('Vison') ||
-            textureModelId === 'Screen' || path.includes('Screen') ||
-            textureModelId === 'ScreenOld' || path.includes('ScreenOld') ||
-            textureModelId === 'ModernScreen' || path.includes('ModernScreen');
+        // NOUVEAU: Détection automatique des objets avec animations
+        const isAnimatableObject = isObjectAnimatable(textureModelId, path);
 
         if (isAnimatableObject) {
             console.log(`🎬 Composant ${textureModelId || path} prêt pour animations`);
@@ -626,7 +655,7 @@ export const StaticObject = React.memo(function StaticObject({
                 };
             }
 
-            // Maintenir la compatibilité avec l'ancien nom (optionnel)
+            // Maintenir la compatibilité avec l'ancien nom pour Vison
             if (textureModelId === 'Vison' || path.includes('Vison')) {
                 window.startVisonAnimation = startAnimation;
             }

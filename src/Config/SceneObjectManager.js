@@ -1083,6 +1083,7 @@ class SceneObjectManager {
         return this.stepTexts[stepId] || `Point d'intérêt`;
     }
 
+
     // Configurer les écouteurs d'événements
     _setupEventListeners() {
         // Réagir aux interactions complétées
