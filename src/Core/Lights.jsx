@@ -557,14 +557,73 @@ export default function Lights() {
             });
         };
     }, [debug, normalizedPosition, updateLightingBasedOnPosition]);
+    const lastSentValuesRef = useRef({
+        currentMode: '',
+        normalizedPosition: 0,
+        transitionFactor: 0,
+        mainLightIntensity: 0,
+        ambientIntensity: 0,
+        mainLightColor: '',
+        ambientColor: '',
+        position: [0, 0, 0]
+    });
 
+    // Fonction pour vérifier si les valeurs ont suffisamment changé
+    const hasSignificantChange = (newValues, oldValues) => {
+        // Seuils de changement pour déclencher une mise à jour
+        const thresholds = {
+            intensity: 50,        // Changement d'intensité minimum
+            position: 0.5,        // Changement de position minimum
+            transitionFactor: 0.01, // Changement de facteur de transition minimum
+            normalizedPosition: 0.005 // Changement de position normalisée minimum
+        };
+
+        // Vérifier le mode (changement de string)
+        if (newValues.currentMode !== oldValues.currentMode) {
+            return true;
+        }
+
+        // Vérifier la position normalisée
+        if (Math.abs(newValues.normalizedPosition - oldValues.normalizedPosition) > thresholds.normalizedPosition) {
+            return true;
+        }
+
+        // Vérifier le facteur de transition
+        if (Math.abs(newValues.transitionFactor - oldValues.transitionFactor) > thresholds.transitionFactor) {
+            return true;
+        }
+
+        // Vérifier l'intensité de la lumière principale
+        if (Math.abs(newValues.mainLightIntensity - oldValues.mainLightIntensity) > thresholds.intensity) {
+            return true;
+        }
+
+        // Vérifier l'intensité ambiante
+        if (Math.abs(newValues.ambientIntensity - oldValues.ambientIntensity) > thresholds.intensity) {
+            return true;
+        }
+
+        // Vérifier les couleurs (conversion en valeurs comparables)
+        if (newValues.mainLightColor !== oldValues.mainLightColor ||
+            newValues.ambientColor !== oldValues.ambientColor) {
+            return true;
+        }
+
+        // Vérifier la position (changement significatif sur au moins un axe)
+        for (let i = 0; i < 3; i++) {
+            if (Math.abs(newValues.position[i] - oldValues.position[i]) > thresholds.position) {
+                return true;
+            }
+        }
+
+        return false;
+    };
 // Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
     useEffect(() => {
         if (!debug?.active) return;
 
-        // Envoyer les valeurs actuelles au GUI toutes les 100ms
         const interval = setInterval(() => {
-            EventBus.trigger('lights-values-updated', {
+            const currentValues = {
                 currentMode: activeMode,
                 normalizedPosition: normalizedPosition,
                 transitionFactor: transitionFactor,
@@ -572,8 +631,18 @@ export default function Lights() {
                 ambientIntensity: smoothedLightRef.current.ambientIntensity,
                 mainLightColor: smoothedLightRef.current.color,
                 ambientColor: smoothedLightRef.current.ambientColor,
-                position: smoothedLightRef.current.position
-            });
+                position: [...smoothedLightRef.current.position] // Copie du tableau
+            };
+
+            // Ne déclencher l'événement que si les valeurs ont suffisamment changé
+            if (hasSignificantChange(currentValues, lastSentValuesRef.current)) {
+                EventBus.trigger('lights-values-updated', currentValues);
+
+                // Mettre à jour les valeurs de référence
+                lastSentValuesRef.current = { ...currentValues };
+
+                console.log('🔄 Lights values updated (significant change detected)');
+            }
         }, 100);
 
         return () => clearInterval(interval);

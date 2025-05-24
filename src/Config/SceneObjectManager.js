@@ -158,8 +158,8 @@ class SceneObjectManager {
                     'subtitle-changed': {
                         animation: 'run',
                         options: {
-                            timeScale: 5.0,
-                            loopCount: 2
+                            timeScale: 1,
+                            loopCount: 1
                         }
                     },
                 }
