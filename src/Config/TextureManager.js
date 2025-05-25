@@ -617,8 +617,13 @@ class TextureManager {
 
         // Rochers
         this.addTextureMapping('BigRock', 'rock', null, {
-            roughness: 1.0, metalness: 0.05, envMapIntensity: 0.2, aoIntensity: 0.8
+            roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7,
         });
+
+        this.addTextureMapping('TreeStump', 'forest/tree', 'TreeStump', {
+            roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08, color: '#47370b', useTextures: {
+                baseColor: false,
+            }        });
 
         this.addTextureMapping('RockWater', 'rock', null, {
             roughness: 0.8, metalness: 0.1, envMapIntensity: 0.5, castShadow: true, receivedShadow: true,

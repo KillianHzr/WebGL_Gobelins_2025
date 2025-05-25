@@ -162,27 +162,27 @@ class SceneObjectManager {
             //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
             //  * Effet 2: Analyse des empreintes avec explication par Célia
             //  */
-            'MultipleLeaf': {
-                id: 'MultipleLeaf',
-                path: '/models/primary/MultipleLeaf.glb',
-                scale: [1, 1, 1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_RIGHT,
-                    text: "Tire",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.5,
-                    requiredStep: 'thirdStop'
-                }],
-                defaultPlacement: {
-                    position: [0.41938, -0.07564, -30.79174],
-                    rotation: [0, 0, 0],
-                    scale: [1, 1, 1],
-                }
-            },
+            // 'MultipleLeaf': {
+            //     id: 'MultipleLeaf',
+            //     path: '/models/primary/MultipleLeaf.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_RIGHT,
+            //         text: "Tire",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.5,
+            //         requiredStep: 'thirdStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [0.41938, -0.07564, -30.79174],
+            //         rotation: [0, 0, 0],
+            //         scale: [1, 1, 1],
+            //     }
+            // },
             // 'AnimalPaws': {
             //     id: 'AnimalPaws',
             //     path: '/models/primary/AnimalPaws.glb',
@@ -331,6 +331,8 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{
                     position: [-41.86723, 0.06409, -115.2628],
+                    // position: [-33.943, 0.51133, 45.149],
+
                     rotation: [-3.14159, -52.79977, -3.14159],
                     scale: [0.1671, 0.1671, 0.1671],
                 }]
@@ -339,6 +341,8 @@ class SceneObjectManager {
                 id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
                 interactive: false, useTextures: true, defaultPlacements: [{
                     position: [-40.33271, 0.06409, -113.93519],
+                    // position: [-34.943, 0.51133, 45.149],
+
                     rotation: [-3.14159, 40.80581, -3.14159],
                     scale: [0.09007, 0.09007, 0.09007],
                 }]
