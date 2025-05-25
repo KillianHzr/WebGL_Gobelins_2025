@@ -18,7 +18,7 @@ const baseAssets = [
     {
         name: 'MapInstance',
         type: 'gltf',
-        path: '/models/MapSceneInstance.glb',
+        path: '/models/MapDefault.glb',
         license: 'CC-BY',
         author: 'Author',
         url: ''

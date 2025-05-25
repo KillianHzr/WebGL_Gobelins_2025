@@ -44,12 +44,12 @@ class TemplateManager {
             //     useTextures: true,
             //     group: 'regular'
             // },
-            // 'TreeRoof': {
-            //     id: 'TreeRoof',
-            //     path: '/models/forest/tree/TreeRoof.glb',
-            //     priority: 21,
-            //     useTextures: true
-            // },
+            'TreeRoof': {
+                id: 'TreeRoof',
+                path: '/models/forest/tree/TreeRoof.glb',
+                priority: 21,
+                useTextures: true
+            },
             //
             // // Branches
             'BranchEucalyptus_1': {
@@ -66,13 +66,13 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            // 'BranchTree002': {
-            //     id: 'BranchTree',
-            //     path: '/models/forest/branch/BranchTree.glb',
-            //     priority: 20,
-            //     useTextures: true,
-            //     group: 'regular'
-            // },
+            'BranchTree002': {
+                id: 'BranchTree',
+                path: '/models/forest/branch/BranchTree.glb',
+                priority: 20,
+                useTextures: true,
+                group: 'regular'
+            },
             //
             // // Bushes
             'BUSHv2': {
@@ -193,12 +193,12 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            // 'Grass_1': {
-            //     id: 'Grass',
-            //     path: '/models/forest/plant/Grass.glb',
-            //     priority: 22,
-            //     useTextures: true
-            // },
+            'Grass001': {
+                id: 'Grass',
+                path: '/models/forest/plant/Grass.glb',
+                priority: 22,
+                useTextures: true
+            },
 
             // ===================================
             // END GROUP - Elements for end positions
