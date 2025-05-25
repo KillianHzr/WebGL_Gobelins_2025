@@ -637,6 +637,7 @@ class TextureManager {
             normalScale: 1.0,
             castShadow: false,
             receivedShadow: true,
+
         });
 
 
