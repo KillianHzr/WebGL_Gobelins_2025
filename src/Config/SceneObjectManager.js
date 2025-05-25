@@ -452,27 +452,27 @@ class SceneObjectManager {
             // },
             //
             //
-            // 'VisonDead': {
-            //     id: 'Vison',
-            //     path: '/models/primary/AnimalVisonMortV1.glb',
-            //     scale: [0.105783, 0.105783, 0.105783],
-            //     interactive: true,
-            //     useTextures: false,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "capture",
-            //         chapterDistance: 0.28,
-            //         requiredStep: 'sixthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [2.19121, -0.07878, -134.6256],
-            //         rotation: [-3.14159, -6.18583, -3.14159],
-            //         scale: [0.105783, 0.105783, 0.105783],
-            //     }
-            // },
+            'VisonDead': {
+                id: 'Vison',
+                path: '/models/primary/AnimalVisonDead.glb',
+                scale: [1.05783, 1.05783, 1.05783],
+                interactive: true,
+                useTextures: false,
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "capture",
+                    chapterDistance: 0.28,
+                    requiredStep: 'sixthStop'
+                }],
+                defaultPlacement: {
+                    position: [2.19121, -0.07878, -134.6256],
+                    rotation: [-3.14159, -6.18583, -3.14159],
+                    scale: [1.05783, 1.05783, 1.05783],
+                }
+            },
 
 
             /**
