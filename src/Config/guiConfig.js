@@ -315,7 +315,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 25
+                default: 100
             }
         },
         // Nouvelle section pour les paramètres de rendu de la caméra

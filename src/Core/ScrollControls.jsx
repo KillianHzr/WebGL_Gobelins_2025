@@ -45,10 +45,10 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 0.05;
 const DECELERATION = 0.95;
-const MIN_VELOCITY = 0.001;
-const BASE_SENSITIVITY = 0.01;
+const MIN_VELOCITY = 0.005;
+const BASE_SENSITIVITY = 0.05;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 // Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
@@ -461,7 +461,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 5.0;
+        const TRIGGER_PROXIMITY = 3.5;
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
