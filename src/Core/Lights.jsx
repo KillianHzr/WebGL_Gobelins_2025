@@ -21,8 +21,8 @@ export const LightConfig = {
             }
         },
         night: {
-            ambientIntensity: 1.0,
-            ambientColor: "#FFFFFF",
+            ambientIntensity: 0.1,
+            ambientColor: "#333366",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
                 intensity: 13100,
@@ -33,8 +33,8 @@ export const LightConfig = {
         },
         // Ajout de nouveaux états intermédiaires pour une transition plus fluide
         transition1: { // 25% du parcours
-            ambientIntensity: 1.0,
-            ambientColor: "#FFFFFF",
+            ambientIntensity: 0.7,
+            ambientColor: "#FFF0D6",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
                 intensity: 10000,
@@ -44,8 +44,8 @@ export const LightConfig = {
             }
         },
         transition2: { // 50% du parcours
-            ambientIntensity: 1.0,
-            ambientColor: "#FFFFFF",
+            ambientIntensity: 0.4,
+            ambientColor: "#B0C0E6",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
                 intensity: 11500,
