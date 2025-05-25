@@ -10,7 +10,7 @@ import {EventBus} from "../Utils/EventEmitter.jsx"; // Ajout de l'import
 export const LightConfig = {
     modes: {
         day: {
-            ambientIntensity: 1.0,
+            ambientIntensity: 10.0,
             ambientColor: "#FFFFFF",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
@@ -21,7 +21,7 @@ export const LightConfig = {
             }
         },
         night: {
-            ambientIntensity: 0.1,
+            ambientIntensity: 10.0,
             ambientColor: "#333366",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
@@ -33,7 +33,7 @@ export const LightConfig = {
         },
         // Ajout de nouveaux états intermédiaires pour une transition plus fluide
         transition1: { // 25% du parcours
-            ambientIntensity: 0.7,
+            ambientIntensity: 10.0,
             ambientColor: "#FFF0D6",
             mainLight: {
                 position: [53.764, 31.716, -56.134],
@@ -44,7 +44,7 @@ export const LightConfig = {
             }
         },
         transition2: { // 50% du parcours
-            ambientIntensity: 0.4,
+            ambientIntensity: 10.0,
             ambientColor: "#B0C0E6",
             mainLight: {
                 position: [53.764, 31.716, -56.134],

@@ -84,6 +84,17 @@ export const StaticObject = React.memo(function StaticObject({
                 }
             }
         });
+        if (useTextures && textureModelId && textureManager) {
+            console.log(`🎨 Application des textures pour ${textureModelId}`);
+
+            // Application asynchrone des textures
+            textureManager.applyTexturesToModel(textureModelId, clonedModel, {
+                preserveSpecialMaterials: true,
+                optimizeGeometry: true
+            }).catch(error => {
+                console.warn(`Erreur lors de l'application des textures pour ${textureModelId}:`, error);
+            });
+        }
 
         return clonedModel;
     }, [modelScene, path, textureModelId, castShadow, receiveShadow]);

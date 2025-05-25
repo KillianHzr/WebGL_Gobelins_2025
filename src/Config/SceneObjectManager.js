@@ -162,27 +162,27 @@ class SceneObjectManager {
             //  * Déclencheur 2: CLICK MAINTENU sur empreintes "Scan les traces"
             //  * Effet 2: Analyse des empreintes avec explication par Célia
             //  */
-            // 'MultipleLeaf': {
-            //     id: 'MultipleLeaf',
-            //     path: '/models/primary/MultipleLeaf.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: true,
-            //     useTextures: false,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_RIGHT,
-            //         text: "Tire",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'thirdStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [0.41938, -0.07564, -30.79174],
-            //         rotation: [0, 0, 0],
-            //         scale: [1, 1, 1],
-            //     }
-            // },
+            'MultipleLeaf': {
+                id: 'MultipleLeaf',
+                path: '/models/primary/MultipleLeaf.glb',
+                scale: [1, 1, 1],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_RIGHT,
+                    text: "Tire",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.5,
+                    requiredStep: 'thirdStop'
+                }],
+                defaultPlacement: {
+                    position: [0.41938, -0.07564, -30.79174],
+                    rotation: [0, 0, 0],
+                    scale: [1, 1, 1],
+                }
+            },
             // 'AnimalPaws': {
             //     id: 'AnimalPaws',
             //     path: '/models/primary/AnimalPaws.glb',
@@ -317,8 +317,8 @@ class SceneObjectManager {
                     requiredStep: 'fourthStop'
                 }],
                 defaultPlacement: {
-                    // position: [-38.33459, 0.51133, -112.1474],
-                    position: [-33.943, 0.51133, 45.149],
+                    position: [-38.33459, 0.51133, -112.1474],
+                    // position: [-33.943, 0.51133, 45.149],
                     rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
                     scale: [0.27658, 0.27658, 0.27658],
                 }
