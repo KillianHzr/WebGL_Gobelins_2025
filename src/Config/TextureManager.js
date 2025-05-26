@@ -1069,7 +1069,9 @@ class TextureManager {
                     if (lodScale < 1.0) {
                         texture.minFilter = LinearFilter;
                         texture.magFilter = LinearFilter;
-                        texture.anisotropy = Math.max(1, Math.floor(16 * lodScale));
+                        texture.anisotropy = Math.max(2, Math.floor(8 * lodScale));
+                    } else {
+                        texture.anisotropy = 16;
                     }
 
                     const originalSize = (texture.image?.width || 0) * (texture.image?.height || 0) * 4;
@@ -1142,8 +1144,24 @@ class TextureManager {
 
         texture.wrapS = RepeatWrapping;
         texture.wrapT = RepeatWrapping;
+
+        if (textureType === 'alpha' || textureType === 'opacity') {
+            texture.minFilter = LinearFilter;
+            texture.magFilter = LinearFilter;
+            texture.generateMipmaps = false;
+
+            texture.anisotropy = 16;
+
+            texture.needsUpdate = true;
+
+            console.log(`Texture alpha optimisée: ${textureType}`);
+        } else {
+            texture.anisotropy = 4;
+        }
+
         texture.needsUpdate = true;
     }
+
 
     /**
      * Créer ou récupérer un matériau du pool de matériaux
