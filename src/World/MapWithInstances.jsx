@@ -383,7 +383,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         });
 
         // Ajustement du seuil - utiliser un seuil RELATIF plutôt que absolu
-        const MATCH_THRESHOLD = 2.5;
+        const MATCH_THRESHOLD = 0.3;
 
         if (bestScore > MATCH_THRESHOLD) {
             console.log(`No good match found. Best match was between node "${node.name}" and template "${bestMatch}" with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);

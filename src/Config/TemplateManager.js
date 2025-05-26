@@ -193,12 +193,6 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'Grass001': {
-                id: 'Grass',
-                path: '/models/forest/plant/Grass.glb',
-                priority: 22,
-                useTextures: true
-            },
 
             // ===================================
             // END GROUP - Elements for end positions
