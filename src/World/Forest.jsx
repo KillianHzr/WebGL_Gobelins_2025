@@ -222,9 +222,12 @@ export default function Forest() {
         window.endGroupRef = endGroupRef;
         window.screenGroupRef = screenGroupRef;
         // Todo: set avec le state
-        window.endGroupRef.current.visible = false;
-        window.screenGroupRef.current.visible = true;
-
+        if (window.endGroupRef.current) {
+            window.endGroupRef.current.visible = endGroupVisible;
+        }
+        if (window.screenGroupRef.current) {
+            window.screenGroupRef.current.visible = screenGroupVisible;
+        }
         console.log('Références de groupe exposées:', {
             endGroupRef: endGroupRef.current, screenGroupRef: screenGroupRef.current
         });
