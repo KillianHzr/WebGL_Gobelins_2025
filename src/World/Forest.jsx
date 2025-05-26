@@ -164,28 +164,20 @@ export default function Forest() {
         // Create the group for "End" objects
         const endGroup = new THREE.Group();
         endGroup.name = 'EndObjects';
-        endGroup.visible = endGroupVisible; // Use store value
+        endGroup.visible = endGroupVisible; // Utiliser la valeur du store
         forestGroup.add(endGroup);
         endGroupRef.current = endGroup;
 
         // Create the group for screens
         const screenGroup = new THREE.Group();
         screenGroup.name = 'ScreenObjects';
-        screenGroup.visible = screenGroupVisible; // Use store value
+        screenGroup.visible = screenGroupVisible; // Utiliser la valeur du store
         forestGroup.add(screenGroup);
         screenGroupRef.current = screenGroup;
 
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Update the store with the default visibility states
-        // setEndGroupVisible(true);
-        // setScreenGroupVisible(false);
-
-
-
-        setEndGroupVisible(false);
-        setScreenGroupVisible(true);
 
         // Trigger events to notify other components about initial visibility
         EventBus.trigger('end-group-visibility-changed', true);
@@ -218,15 +210,21 @@ export default function Forest() {
 
 
     useEffect(() => {
-        // Exposer les références des groupes au niveau global pour l'accès externe
+        // Synchroniser les références globales avec l'état du store
         window.endGroupRef = endGroupRef;
         window.screenGroupRef = screenGroupRef;
-        // Todo: set avec le state
-        window.endGroupRef.current.visible = false;
-        window.screenGroupRef.current.visible = true;
 
-        console.log('Références de groupe exposées:', {
-            endGroupRef: endGroupRef.current, screenGroupRef: screenGroupRef.current
+        // S'assurer que la visibilité des groupes correspond à l'état du store
+        if (endGroupRef.current) {
+            endGroupRef.current.visible = endGroupVisible;
+        }
+        if (screenGroupRef.current) {
+            screenGroupRef.current.visible = screenGroupVisible;
+        }
+
+        console.log('Group references updated:', {
+            endGroup: endGroupVisible ? 'visible' : 'hidden',
+            screenGroup: screenGroupVisible ? 'visible' : 'hidden'
         });
 
         return () => {

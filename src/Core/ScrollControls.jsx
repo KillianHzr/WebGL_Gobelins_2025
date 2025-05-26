@@ -885,19 +885,19 @@ function CameraController({children}) {
             // Basculer entre End et Screen à la fin du scroll
             // Si on est sur End, passer à Screen
             if (endGroupVisible && !screenGroupVisible) {
-                setEndGroupVisible(false);
+                setEndGroupVisible(true);
                 setScreenGroupVisible(true);
 
                 // Mettre à jour directement les références DOM
                 if (window.endGroupRef && window.endGroupRef.current) {
-                    window.endGroupRef.current.visible = false;
+                    window.endGroupRef.current.visible = true;
                 }
                 if (window.screenGroupRef && window.screenGroupRef.current) {
                     window.screenGroupRef.current.visible = true;
                 }
 
                 // Émettre les événements
-                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('end-group-visibility-changed', true);
                 EventBus.trigger('screen-group-visibility-changed', true);
             }
 
