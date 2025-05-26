@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class CameraAnimatorGLB {
-    constructor(cameraModel, camera, targetAnimationName = 'Action.006') {
+    constructor(cameraModel, camera, targetAnimationName = 'Action.007') {
         this.camera = camera;
 
         // CORRECTION: Prendre en compte le nouveau format de modèle

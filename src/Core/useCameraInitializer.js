@@ -95,7 +95,7 @@ function createDefaultCameraAnimation(camera) {
     const rotZTrack = new THREE.KeyframeTrack('camera.rotation[z]', times, rotations.filter((_, i) => i % 3 === 2));
 
     // Créer le clip d'animation
-    const clip = new THREE.AnimationClip('Action.006', duration, [
+    const clip = new THREE.AnimationClip('Action.007', duration, [
         posXTrack, posYTrack, posZTrack,
         rotXTrack, rotYTrack, rotZTrack
     ]);

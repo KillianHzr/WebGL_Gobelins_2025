@@ -269,9 +269,9 @@ function CameraController({children}) {
 
         try {
             if (model.scene && Array.isArray(model.animations)) {
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.007');
             } else {
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.006');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.007');
             }
 
             // Vérifier si l'initialisation a fonctionné
