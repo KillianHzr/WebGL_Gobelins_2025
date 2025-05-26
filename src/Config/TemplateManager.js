@@ -414,13 +414,13 @@ class TemplateManager {
                 useTextures: true,
                 group: 'screen'
             },
-            'BUSHv2_2': {
-                id: 'BushScreen',
-                path: '/models/forest/bush/Bush.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
+            // 'BUSHv2_2': {
+            //     id: 'BushScreen',
+            //     path: '/models/forest/bush/Bush.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
             'BushTrunk_1': {
                 id: 'BushTrunkScreen',
                 path: '/models/forest/bush/BushTrunk.glb',

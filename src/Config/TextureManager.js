@@ -556,7 +556,10 @@ class TextureManager {
         }, 'BushStrawberry');
 
         this.addPlantTexture('BushTrunkEnd', 'forest/bush', {
-            roughness: 0.7, metalness: 0.0,
+            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.10,
+            // castShadow: true,
+            // receivedShadow: false,
+            color: '#7a7a7a',
         }, 'BushTrunk');
 
         // Buissons - Groupe SCREEN
@@ -565,7 +568,10 @@ class TextureManager {
         }, 'Bush');
 
         this.addPlantTexture('BushTrunkScreen', 'forest/bush', {
-            roughness: 0.7, metalness: 0.0,
+            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.10,
+            // castShadow: true,
+            // receivedShadow: false,
+            color: '#7a7a7a',
         }, 'BushTrunk');
 
         // Plantes
