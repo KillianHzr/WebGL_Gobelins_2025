@@ -97,8 +97,8 @@ const useStore = create((set, get) => ({
     sequenceLength: 1,
 
 
-    endGroupVisible: true,
-    screenGroupVisible: false,
+    endGroupVisible: false,
+    screenGroupVisible: true,
 
     setEndGroupVisible: (visible) => set({endGroupVisible: visible}),
     setScreenGroupVisible: (visible) => set({screenGroupVisible: visible}),
