@@ -40,23 +40,37 @@ class SceneObjectManager {
         this.objectCatalog = {
 
 
-            // 'TVScreen': {
-            //     id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [-39.93887, 0.3095, 84.51408],
-            //         rotation: [0, 0, 0],
-            //         scale: [1, 1, 1],
-            //     }]
-            // },
-            // 'ModernScreen': {
-            //     id: 'Screen',
-            //     path: '/models/digital/screen/Screen.glb',
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [-39.47393, 0.728, 83.68371],
-            //         rotation: [0, 0, 0],
-            //         scale: [1, 1, 1],
-            //     }]
-            // },
+            'TVScreen': {
+                id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
+                interactive: false, useTextures: false, defaultPlacements: [{
+                    // position: [-39.93887, 0.3095, 84.51408],
+                    position: [-33.943, 0.51133, 45.149],
+
+                    rotation: [0, 0, 0],
+                    scale: [0.1, 0.1, 0.1],
+                }]
+            },
+            'ModernScreen': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                interactive: false, useTextures: false, defaultPlacements: [{
+                    // position: [-39.47393, 0.728, 83.68371],
+                    position: [-34.943, 0.51133, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [0.1, 0.1, 0.1],
+                }]
+            },
+            'Server': {
+                id: 'Server',
+                path: '/models/digital/Server.glb',
+
+                interactive: false, useTextures: false, defaultPlacements: [{
+                    // position: [-39.47393, 0.728, 83.68371],
+                    position: [-32.943, 0.51133, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [0.5, 0.5, 0.5],
+                }]
+            },
 
 
             /**
@@ -301,53 +315,28 @@ class SceneObjectManager {
             //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
             //  * Effet: Animation de passage sous la branche
             //  */
-            'ThinTrunkInteractive': {
-                id: 'TrunkThin',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                scale: [0.27658, 0.27658, 0.27658],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DRAG_DOWN,
-                    text: "Tire",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.6,
-                    requiredStep: 'fourthStop'
-                }],
-                defaultPlacement: {
-                    position: [-38.33459, 0.51133, -112.1474],
-                    // position: [-33.943, 0.51133, 45.149],
-                    rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
-                    scale: [0.27658, 0.27658, 0.27658],
-                }
-            },
-            'BigRock': {
-                id: 'BigRock',
-                path: '/models/rock/BigRock.glb',
-                scale: [0.12371, 0.12371, 0.12371],
-                interactive: false,
-                useTextures: true,
-                defaultPlacements: [{
-                    position: [-41.86723, 0.06409, -115.2628],
-                    // position: [-33.943, 0.51133, 45.149],
-
-                    rotation: [-3.14159, -52.79977, -3.14159],
-                    scale: [0.1671, 0.1671, 0.1671],
-                }]
-            },
-            'TreeStump': {
-                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    position: [-40.33271, 0.06409, -113.93519],
-                    // position: [-34.943, 0.51133, 45.149],
-
-                    rotation: [-3.14159, 40.80581, -3.14159],
-                    scale: [0.09007, 0.09007, 0.09007],
-                }]
-            },
-
+            // 'ThinTrunkInteractive': {
+            //     id: 'TrunkThin',
+            //     path: '/models/forest/tree/ThinTrunk.gltf',
+            //     scale: [0.27658, 0.27658, 0.27658],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DRAG_DOWN,
+            //         text: "Tire",
+            //         offset: -0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 0.6,
+            //         requiredStep: 'fourthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-38.33459, 0.51133, -112.1474],
+            //         // position: [-33.943, 0.51133, 45.149],
+            //         rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
+            //         scale: [0.27658, 0.27658, 0.27658],
+            //     }
+            // },
             // 'BigRock': {
             //     id: 'BigRock',
             //     path: '/models/rock/BigRock.glb',
@@ -355,17 +344,21 @@ class SceneObjectManager {
             //     interactive: false,
             //     useTextures: true,
             //     defaultPlacements: [{
-            //         position: [-42.79226, 0.06409, -116.47688],
+            //         position: [-41.86723, 0.06409, -115.2628],
+            //         // position: [-33.943, 0.51133, 45.149],
+            //
             //         rotation: [-3.14159, -52.79977, -3.14159],
-            //         scale: [0.1371, 0.1371, 0.1371],
+            //         scale: [0.1671, 0.1671, 0.1671],
             //     }]
             // },
             // 'TreeStump': {
             //     id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
             //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [-41.25625, 0.06409, -115.15076],
+            //         position: [-40.33271, 0.06409, -113.93519],
+            //         // position: [-34.943, 0.51133, 45.149],
+            //
             //         rotation: [-3.14159, 40.80581, -3.14159],
-            //         scale: [0.07507, 0.07507, 0.07507],
+            //         scale: [0.09007, 0.09007, 0.09007],
             //     }]
             // },
             //
@@ -452,27 +445,27 @@ class SceneObjectManager {
             // },
             //
             //
-            'VisonDead': {
-                id: 'Vison',
-                path: '/models/primary/AnimalVisonDead.glb',
-                scale: [1.05783, 1.05783, 1.05783],
-                interactive: true,
-                useTextures: false,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "capture",
-                    chapterDistance: 0.28,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [2.19121, -0.07878, -134.6256],
-                    rotation: [-3.14159, -6.18583, -3.14159],
-                    scale: [1.05783, 1.05783, 1.05783],
-                }
-            },
+            // 'VisonDead': {
+            //     id: 'Vison',
+            //     path: '/models/primary/AnimalVisonDead.glb',
+            //     scale: [1.05783, 1.05783, 1.05783],
+            //     interactive: true,
+            //     useTextures: false,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "capture",
+            //         chapterDistance: 0.28,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [2.19121, -0.07878, -134.6256],
+            //         rotation: [-3.14159, -6.18583, -3.14159],
+            //         scale: [1.05783, 1.05783, 1.05783],
+            //     }
+            // },
 
 
             /**

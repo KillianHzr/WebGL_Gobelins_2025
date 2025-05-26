@@ -384,24 +384,8 @@ class TextureManager {
     }
 
     // Initialisation des textures avec propriétés complètes
+// Initialisation des textures avec propriétés complètes
     initializeTextures() {
-
-        // this.addTextureMapping('TrunkThin', 'forest/tree', 'TrunkThin', {
-        //     roughness: 0.0,
-        //     metalness: 0.0,
-        //     envMapIntensity: 0.8,
-        //     color: '#8B4513',
-        //     normalScale: 1.0,
-        //     aoIntensity: 0.0,
-        //     castShadow: true,
-        //     receiveShadow: true,
-        //     useTextures: {
-        //         baseColor: false,
-        //         normal: false,        // Pas de normal mapping pour le sol
-        //         metalness: false,     // Pas de texture de métallicité
-        //         envMap: false        // Pas d'environment mapping
-        //     }
-        // });
         // Arbres
         this.addTextureMapping('TreeNaked', 'forest/tree', null, {
             roughness: 1.0, metalness: 0.59, envMapIntensity: 0.08, color: '#765419', useTextures: {
@@ -421,11 +405,11 @@ class TextureManager {
             }
         });
 
-        // this.addPlantTexture('TrunkThinPlane', 'forest/tree', {
-        //     roughness: 0.81,
-        //     metalness: 0.7,
-        //     envMapIntensity: 0.08
-        // });
+        // ===== TEXTURES POUR LES ÉLÉMENTS "END" =====
+        // Troncs et arbres - Groupe END
+        this.addTextureMapping('TreeNakedEnd', 'forest/tree', 'TreeNaked', {
+            roughness: 1.0, metalness: 0.59, envMapIntensity: 0.08
+        });
 
         this.addTextureMapping('TrunkLargeEnd', 'forest/tree', 'TrunkLarge', {
             roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08
@@ -434,10 +418,22 @@ class TextureManager {
         this.addTextureMapping('TrunkThinEnd', 'forest/tree', 'TrunkThin', {
             roughness: 0.81, metalness: 0.7, envMapIntensity: 0.08
         });
-        this.addTextureMapping('TreeNakedEnd', 'forest/tree', 'TreeNaked', {
+
+        // ===== TEXTURES POUR LES ÉLÉMENTS "SCREEN" (DIGITAUX) =====
+        // Troncs et arbres - Groupe SCREEN
+        this.addTextureMapping('TreeNakedScreen', 'forest/tree', 'TreeNaked', {
             roughness: 1.0, metalness: 0.59, envMapIntensity: 0.08
         });
 
+        this.addTextureMapping('TrunkLargeScreen', 'forest/tree', 'TrunkLarge', {
+            roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08
+        });
+
+        this.addTextureMapping('TrunkThinScreen', 'forest/tree', 'TrunkThin', {
+            roughness: 0.81, metalness: 0.7, envMapIntensity: 0.08
+        });
+
+        // Variantes digitales
         this.addTextureMapping('TrunkLargeDigital', 'forest/tree', 'TrunkLarge', {
             roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08
         });
@@ -453,6 +449,7 @@ class TextureManager {
         this.addTextureMapping('TreeRoots', 'forest/tree', null, {
             roughness: 0.81, metalness: 0.7, // envMapIntensity: 0.08
         });
+
         this.addRandomizedTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0, metalness: 0.0, // envMapIntensity: 0.05
             color: '#1d6d35', useTextures: {
@@ -460,7 +457,7 @@ class TextureManager {
             }
         });
 
-        // Branches et Buissons
+        // Branches
         this.addPlantTexture('BranchTree', 'forest/branch', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true, receivedShadow: true,
@@ -484,6 +481,28 @@ class TextureManager {
                 // baseColor: false,
             }
         });
+
+        // Branches - Groupe END
+        this.addPlantTexture('BranchTreeEnd', 'forest/branch', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'BranchTree');
+
+        this.addPlantTexture('BranchEucalyptusEnd', 'forest/branch', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'BranchEucalyptus');
+
+        this.addPlantTexture('BranchFigEnd', 'forest/branch', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'BranchFig');
+
+        // Branches - Groupe SCREEN
+        this.addPlantTexture('BranchEucalyptusScreen', 'forest/branch', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'BranchEucalyptus');
+
+        this.addPlantTexture('BranchFigScreen', 'forest/branch', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'BranchFig');
 
         // Buissons
         this.addPlantTexture('Bush', 'forest/bush', {
@@ -513,17 +532,44 @@ class TextureManager {
         });
 
         this.addPlantTexture('BushTrunk', 'forest/bush', {
-
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.10,
             // castShadow: true,
-
             // receivedShadow: false,
             color: '#7a7a7a',
         });
 
+        // Buissons - Groupe END
+        this.addPlantTexture('BushEnd', 'forest/bush', {
+            roughness: 1.0,
+        }, 'Bush');
+
+        this.addPlantTexture('BushBlueberryEnd', 'forest/bush', {
+            roughness: 1.0,
+        }, 'BushBlueberry');
+
+        this.addPlantTexture('BushRaspberryEnd', 'forest/bush', {
+            roughness: 1.0,
+        }, 'BushRaspberry');
+
+        this.addPlantTexture('BushStrawberryEnd', 'forest/bush', {
+            roughness: 1.0,
+        }, 'BushStrawberry');
+
+        this.addPlantTexture('BushTrunkEnd', 'forest/bush', {
+            roughness: 0.7, metalness: 0.0,
+        }, 'BushTrunk');
+
+        // Buissons - Groupe SCREEN
+        this.addPlantTexture('BushScreen', 'forest/bush', {
+            roughness: 1.0,
+        }, 'Bush');
+
+        this.addPlantTexture('BushTrunkScreen', 'forest/bush', {
+            roughness: 0.7, metalness: 0.0,
+        }, 'BushTrunk');
+
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant', {
-
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
@@ -531,47 +577,49 @@ class TextureManager {
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
-
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
             color: '#dfe09f',
-        });
-        this.addPlantTexture('animalPaws', 'primary', {
-
-            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
         });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
-
             color: '#8b9c92',
         });
 
         this.addPlantTexture('PlantClematis', 'forest/plant', {
-
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
             color: '#6edd8a',
-
         });
+
         this.addPlantTexture('Grass', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
             color: '#1f7a53',
         });
-        this.addPlantTexture('PineCone', 'forest/plant', {
-            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#919191',
-        });
+
+        // Plantes - Groupe END
+        this.addPlantTexture('PlantPuccinelliaEnd', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PlantPuccinellia');
+
+        this.addPlantTexture('PlantReedEnd', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PlantReed');
+
+        this.addPlantTexture('PlantMiscanthusEnd', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PlantMiscanthus');
+
+        this.addPlantTexture('PlantClematisEnd', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PlantClematis');
 
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
@@ -579,14 +627,12 @@ class TextureManager {
             castShadow: true,
             receivedShadow: true,
             color: '#b5a5bb',
-
         });
 
         this.addPlantTexture('FlowerClover', 'forest/flower', {
             roughness: 0.8, // metalness: 1.0,
             // envMapIntensity: 0.46
             color: '#ae9ea6',
-
         });
 
         this.addPlantTexture('FlowerChicory', 'forest/flower', {
@@ -594,12 +640,24 @@ class TextureManager {
             // envMapIntensity: 0.46
         });
 
+        // Fleurs - Groupe END
+        this.addPlantTexture('FlowerBellEnd', 'forest/flower', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'FlowerBell');
+
+        this.addPlantTexture('FlowerCloverEnd', 'forest/flower', {
+            roughness: 0.8,
+        }, 'FlowerClover');
+
+        this.addPlantTexture('FlowerChicoryEnd', 'forest/flower', {
+            roughness: 0.75,
+        }, 'FlowerChicory');
+
         // Champignons
         this.addPlantTexture('MushroomSolo', 'forest/mushroom', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             castShadow: true,
             receivedShadow: true,
-
             color: '#9c8e70',
         });
 
@@ -608,8 +666,49 @@ class TextureManager {
             castShadow: true,
             receivedShadow: true,
             color: '#bc9494',
-
         });
+
+        // Champignons - Groupe END
+        this.addPlantTexture('MushroomSoloEnd', 'forest/mushroom', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'MushroomSolo');
+
+        this.addPlantTexture('MushroomDuoEnd', 'forest/mushroom', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'MushroomDuo');
+
+        // Champignons - Groupe SCREEN
+        this.addPlantTexture('MushroomSoloScreen', 'forest/mushroom', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'MushroomSolo');
+
+        this.addPlantTexture('MushroomDuoScreen', 'forest/mushroom', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'MushroomDuo');
+
+        // Pine Cones
+        this.addPlantTexture('PineCone', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
+            castShadow: true,
+            receivedShadow: true,
+            color: '#919191',
+        });
+
+        // Pine Cones - Groupe END
+        this.addPlantTexture('PineConeEnd', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PineCone');
+
+        // Pine Cones - Groupe SCREEN
+        this.addPlantTexture('PineConeScreen', 'forest/plant', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        }, 'PineCone');
+
+        // Empreintes d'animaux
+        this.addPlantTexture('animalPaws', 'primary', {
+            roughness: 0.7, metalness: 0.0, castShadow: true, receivedShadow: true,
+        });
+
         this.addPlantTexture('AnimalPaws', 'primary', {
             roughness: 0.96, // metalness: 0.4,
             // envMapIntensity: 0.25
@@ -620,31 +719,27 @@ class TextureManager {
             roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7,
         });
 
-        this.addTextureMapping('TreeStump', 'forest/tree', 'TreeStump', {
-            roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08, color: '#47370b', useTextures: {
-                baseColor: false,
-            }        });
-
         this.addTextureMapping('RockWater', 'rock', null, {
             roughness: 0.8, metalness: 0.1, envMapIntensity: 0.5, castShadow: true, receivedShadow: true,
         });
-        // Sol
-        this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
-            roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.0,
-            aoIntensity: 1.5,
-            normalScale: 1.0,
-            castShadow: false,
-            receivedShadow: true,
 
+        // Sol
+        this.addTextureMapping('Ground', 'ground', 'ForestGrass', {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0
         });
 
+        this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0
+        });
+
+        // Ajouter explicitement les textures de chemin pour le mélange
+        this.addTextureMapping('ForestRoad', 'ground', 'ForestRoad', {
+            roughness: 0.9, metalness: 0.0, envMapIntensity: 0.0
+        });
 
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
     }
-
     // Définir des groupes de matériaux qui peuvent être fusionnés
     defineMaterialGroups() {
         this.materialGroups = {

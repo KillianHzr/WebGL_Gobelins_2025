@@ -179,13 +179,13 @@ export default function Forest() {
         forestRef.current = forestGroup;
 
         // Update the store with the default visibility states
-        // setEndGroupVisible(true);
-        // setScreenGroupVisible(false);
+        setEndGroupVisible(true);
+        setScreenGroupVisible(false);
 
 
-
-        setEndGroupVisible(false);
-        setScreenGroupVisible(true);
+        //
+        // setEndGroupVisible(false);
+        // setScreenGroupVisible(true);
 
         // Trigger events to notify other components about initial visibility
         EventBus.trigger('end-group-visibility-changed', true);
