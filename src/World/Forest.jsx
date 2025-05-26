@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
@@ -122,6 +122,11 @@ export default function Forest() {
     const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
     const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
 
+    // État pour attendre la stabilité de la caméra
+    const [cameraStable, setCameraStable] = useState(false);
+    const [forestLoadingStarted, setForestLoadingStarted] = useState(false);
+    const cameraStabilityTimerRef = useRef(null);
+
     // Refs for data and state
     const objectPositionsRef = useRef(null);
     const objectModelsRef = useRef(null);
@@ -146,6 +151,52 @@ export default function Forest() {
         totalInstances: 0, visibleInstances: 0, instancedMeshes: 0, lastUpdate: 0
     });
 
+    // Fonction pour vérifier la stabilité de la caméra
+    const checkCameraStability = () => {
+        console.log("Checking camera stability...");
+
+        // Nettoyer le timer précédent s'il existe
+        if (cameraStabilityTimerRef.current) {
+            clearTimeout(cameraStabilityTimerRef.current);
+        }
+
+        // Attendre 2 secondes de stabilité avant de considérer la caméra comme stable
+        cameraStabilityTimerRef.current = setTimeout(() => {
+            console.log("Camera is now stable - ready to load forest");
+            setCameraStable(true);
+        }, 2000);
+    };
+
+    // Écouteur pour les changements de mode de caméra
+    useEffect(() => {
+        const handleCameraModeChange = (data) => {
+            console.log("Forest received camera mode change event:", data);
+            setCameraStable(false);
+            checkCameraStability();
+        };
+
+        const handleCameraTeleport = (data) => {
+            console.log("Forest received camera teleport event:", data);
+            setCameraStable(false);
+            checkCameraStability();
+        };
+
+        // S'abonner aux événements de caméra
+        const cameraModeUnsubscribe = EventBus.on('camera-mode-changed', handleCameraModeChange);
+        const teleportUnsubscribe = EventBus.on('camera-teleported', handleCameraTeleport);
+
+        // Vérifier la stabilité initiale
+        checkCameraStability();
+
+        return () => {
+            if (cameraStabilityTimerRef.current) {
+                clearTimeout(cameraStabilityTimerRef.current);
+            }
+            cameraModeUnsubscribe();
+            teleportUnsubscribe();
+        };
+    }, []);
+
     // Function to toggle group visibility
     const toggleGroupVisibility = (groupRef, currentVisibility, setVisibility) => {
         const newVisibility = !currentVisibility;
@@ -157,6 +208,9 @@ export default function Forest() {
     };
 
     useEffect(() => {
+        // Marquer le chargement comme non terminé au début
+        window.forestLoadingComplete = false;
+
         // Create the main group and subgroups
         const forestGroup = new THREE.Group();
         forestGroup.name = 'Forest';
@@ -178,50 +232,36 @@ export default function Forest() {
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        // Update the store with the default visibility states
-        // setEndGroupVisible(true);
-        // setScreenGroupVisible(false);
-
-
-
         setEndGroupVisible(false);
         setScreenGroupVisible(true);
 
         // Trigger events to notify other components about initial visibility
-        EventBus.trigger('end-group-visibility-changed', true);
-        EventBus.trigger('screen-group-visibility-changed', false);
+        EventBus.trigger('end-group-visibility-changed', false);
+        EventBus.trigger('screen-group-visibility-changed', true);
 
-        console.log('Default scene group visibility set: endGroup=visible, screenGroup=hidden');
-
-        const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
-        });
-        const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
-        });
+        console.log('Forest groups created, waiting for camera stability before loading...');
 
         // Initialize worker pool
         initializeWorkerPool();
 
-        // Load forest data
-        initForestLoading();
-
-        // forceGroupVisibility(true);
-
-        // Clean up resources
         return () => {
             cleanupResources();
-            endGroupUnsubscribe();
-            screenGroupUnsubscribe();
         };
     }, [scene, camera, assetManager]);
 
+    // Effet pour commencer le chargement quand la caméra est stable
+    useEffect(() => {
+        if (cameraStable && !forestLoadingStarted) {
+            console.log("Camera is stable, starting forest loading...");
+            setForestLoadingStarted(true);
+            initForestLoading();
+        }
+    }, [cameraStable, forestLoadingStarted]);
 
     useEffect(() => {
         // Exposer les références des groupes au niveau global pour l'accès externe
         window.endGroupRef = endGroupRef;
         window.screenGroupRef = screenGroupRef;
-        // Todo: set avec le state
         window.endGroupRef.current.visible = false;
         window.screenGroupRef.current.visible = true;
 
@@ -234,6 +274,7 @@ export default function Forest() {
             delete window.screenGroupRef;
         };
     }, [endGroupVisible, screenGroupVisible]);
+
     const forceGroupVisibility = (force = true) => {
         // Update store
         useStore.getState().setEndGroupVisible(force);
@@ -263,6 +304,8 @@ export default function Forest() {
     // Main function for loading the forest
     const initForestLoading = async () => {
         try {
+            console.log("Starting forest loading process...");
+
             // 1. Load positions first
             const positions = await loadObjectPositions();
             if (!positions) {
@@ -481,6 +524,10 @@ export default function Forest() {
         if (queue.length === 0) {
             isLoadingRef.current = false;
 
+            // Marquer le chargement comme terminé
+            window.forestLoadingComplete = true;
+            console.log('Forest loading complete! CameraSwitcher can now safely interact with forest objects.');
+
             // Trigger event when everything is loaded
             EventBus.trigger('forest-ready');
             objectsLoadedRef.current = true;
@@ -553,7 +600,7 @@ export default function Forest() {
             if (objectGroup === 'screen' || chunk.chunkId.includes('Screen')) {
                 targetGroup = screenGroupRef.current;
             }
-// Objects with "End" in their ID go to "End" group
+            // Objects with "End" in their ID go to "End" group
             else if (objectGroup === 'end' || chunk.chunkId.includes('End')) {
                 targetGroup = endGroupRef.current;
             }
@@ -1018,6 +1065,15 @@ export default function Forest() {
             cancelAnimationFrame(animationFrameIdRef.current);
             animationFrameIdRef.current = null;
         }
+
+        // Nettoyer le timer de stabilité
+        if (cameraStabilityTimerRef.current) {
+            clearTimeout(cameraStabilityTimerRef.current);
+            cameraStabilityTimerRef.current = null;
+        }
+
+        // Marquer le chargement comme non terminé
+        window.forestLoadingComplete = false;
 
         // Clean up event listeners
         EventBus.off('tree-positions-ready');
