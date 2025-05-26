@@ -339,12 +339,12 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
             // Facteurs de pondération pour donner plus d'importance à certains aspects
             const weights = {
-                vertexCount: 0.5,
-                faceCount: 0.5,
-                meshCount: 2.0,
+                vertexCount: 1.5,
+                faceCount: 1.5,
+                meshCount: 1.5,
                 materialCount: 1.0,
                 volume: 0.8,
-                aspectRatio: 1.5
+                aspectRatio: 0.5
             };
 
             // Calcul des différences relatives (en pourcentage) plutôt qu'absolues
@@ -383,15 +383,16 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         });
 
         // Ajustement du seuil - utiliser un seuil RELATIF plutôt que absolu
-        const MATCH_THRESHOLD = 0.3;
+        const MATCH_THRESHOLD = 2.5;
 
         if (bestScore > MATCH_THRESHOLD) {
-            // console.log(`No good match found. Best match was ${bestMatch} with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);
-            // console.log('Scores:', scores);
+            console.log(`No good match found. Best match was between node "${node.name}" and template "${bestMatch}" with score ${bestScore.toFixed(3)}. Using 'Undefined'.`);
+            console.log('All scores:', scores);
+
             return templateManager.undefinedCategory;
         }
 
-        // console.log(`Found match: ${bestMatch} with score ${bestScore.toFixed(3)}`);
+        console.log(`Found match: node "${node.name}" and template "${bestMatch}" with score ${bestScore.toFixed(3)}`);
         return bestMatch;
     };
 
@@ -419,18 +420,18 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         }
     });
 
-    // console.log("Templates identifiés:", Object.keys(templateModels));
+    console.log("Templates identifiés:", Object.keys(templateModels));
 
     // Si aucun template n'a été trouvé, afficher un avertissement
     if (Object.keys(templateModels).length === 0) {
-        console.warn("ATTENTION: Aucun template n'a été trouvé dans le modèle. Vérifiez les noms des modèles.");
+        console.warn(`ATTENTION: Aucun template n'a été trouvé dans le modèle ${templateModels}. Vérifiez les noms des modèles.`);
     }
 
     // Créer la structure de positions
     const modelPositions = templateManager.createEmptyPositionsStructure();
 
     // Deuxième passe : analyser chaque instance et déterminer son template
-    // console.log("Deuxième passe: Analyse des instances...");
+    console.log("Deuxième passe: Analyse des instances...");
 
     // Parcourir le modèle pour trouver les instances
     const processQueue = [mapModel];
