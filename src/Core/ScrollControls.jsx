@@ -94,6 +94,9 @@ function CameraController({children}) {
     // NOUVEAU : Référence pour la dernière position normalisée émise
     const lastEmittedNormalizedPosition = useRef(-1);
 
+    // NOUVEAU: Flag pour indiquer si une réinitialisation est en cours
+    const isReinitializingRef = useRef(false);
+
     const [scrollDirection, setScrollDirection] = useState(0);
     const [showInteractionButton, setShowInteractionButton] = useState(false);
     const [countdown, setCountdown] = useState(null);
@@ -132,6 +135,126 @@ function CameraController({children}) {
 
     // Récupérer dynamiquement les points d'interaction depuis le SceneObjectManager
     const [interactions, setInteractions] = useState([]);
+
+    // NOUVEAU: Fonction pour extraire et appliquer les paramètres de caméra depuis le modèle GLB
+    const applyCameraParametersFromGLB = (model) => {
+        if (!model || !camera) return;
+
+        console.log("🎥 Extracting camera parameters from GLB model");
+
+        try {
+            // Chercher la caméra dans le modèle GLB
+            let glbCamera = null;
+            const scene = model.scene || model;
+
+            scene.traverse((object) => {
+                if (object.isCamera && !glbCamera) {
+                    glbCamera = object;
+                    console.log("🎥 Found camera in GLB:", object.name, "FOV:", object.fov);
+                }
+            });
+
+            // Si pas de caméra trouvée, chercher un objet qui pourrait être une caméra
+            if (!glbCamera) {
+                scene.traverse((object) => {
+                    if (object.name && object.name.toLowerCase().includes('camera') && !glbCamera) {
+                        glbCamera = object;
+                        console.log("🎥 Found camera-like object:", object.name);
+                    }
+                });
+            }
+
+            if (glbCamera) {
+                // Appliquer les paramètres de la caméra GLB
+                if (glbCamera.isCamera) {
+                    console.log("🎥 Applying camera parameters from GLB:");
+                    console.log("🎥 - FOV:", glbCamera.fov, "→", camera.fov);
+                    console.log("🎥 - Near:", glbCamera.near, "→", camera.near);
+                    console.log("🎥 - Far:", glbCamera.far, "→", camera.far);
+                    console.log("🎥 - Aspect:", glbCamera.aspect, "→", camera.aspect);
+
+                    camera.fov = glbCamera.fov || 24; // Valeur par défaut si pas de FOV
+                    camera.near = glbCamera.near || 0.1;
+                    camera.far = glbCamera.far || 1000;
+                    camera.aspect = glbCamera.aspect || camera.aspect;
+                    camera.zoom = glbCamera.zoom || 1;
+
+                    // IMPORTANT: Mettre à jour la matrice de projection
+                    camera.updateProjectionMatrix();
+
+                    console.log("🎥 Camera parameters applied successfully. Final FOV:", camera.fov);
+                } else if (glbCamera.fov !== undefined) {
+                    // Si l'objet a des propriétés de caméra mais n'est pas une vraie caméra
+                    console.log("🎥 Applying FOV from camera-like object:", glbCamera.fov);
+                    camera.fov = glbCamera.fov;
+                    camera.updateProjectionMatrix();
+                }
+            } else {
+                console.warn("🎥 No camera found in GLB model, using default FOV");
+                camera.fov = 24; // FOV par défaut
+                camera.updateProjectionMatrix();
+            }
+        } catch (error) {
+            console.error("🎥 Error extracting camera parameters:", error);
+            // Appliquer des valeurs par défaut en cas d'erreur
+            camera.fov = 24;
+            camera.updateProjectionMatrix();
+        }
+    };
+
+    // NOUVEAU: Fonction pour réinitialiser complètement le système de caméra
+    const reinitializeCameraSystem = (model) => {
+        if (isReinitializingRef.current) {
+            console.log("🎥 Camera reinitialisation already in progress, skipping...");
+            return;
+        }
+
+        isReinitializingRef.current = true;
+        console.log("🎥 REINITIALIZING CAMERA SYSTEM...");
+
+        try {
+            // 1. Nettoyer l'animateur existant s'il y en a un
+            if (cameraAnimatorRef.current) {
+                console.log("🎥 Disposing existing camera animator");
+                if (typeof cameraAnimatorRef.current.dispose === 'function') {
+                    cameraAnimatorRef.current.dispose();
+                }
+                cameraAnimatorRef.current = null;
+            }
+
+            // 2. Réinitialiser les références
+            glbInitializedRef.current = false;
+            timelinePositionRef.current = 0;
+            timelineLengthRef.current = 0;
+            scrollVelocity.current = 0;
+
+            // 3. Réinitialiser les limites de scroll
+            minAllowedPositionRef.current = 0;
+            maxProgressReachedRef.current = 0;
+            validatedPositionsRef.current = [];
+
+            // 4. Réinitialiser les triggers d'animation
+            visonTriggeredRef.current = false;
+            visonRunTriggeredRef.current = false;
+            lastEmittedNormalizedPosition.current = -1;
+
+            // 5. NOUVEAU: Appliquer les paramètres de caméra depuis le modèle GLB
+            applyCameraParametersFromGLB(model);
+
+            console.log("🎥 Camera system reset complete, initializing with model:", model);
+
+            // 6. Initialiser avec le nouveau modèle après un court délai
+            setTimeout(() => {
+                initializeGLBAnimator(model);
+                isReinitializingRef.current = false;
+                console.log("🎥 Camera system reinitialisation complete");
+            }, 100);
+
+        } catch (error) {
+            console.error("🎥 Error during camera system reinitialisation:", error);
+            isReinitializingRef.current = false;
+        }
+    };
 
     // CORRIGÉ : Fonction pour calculer et émettre la position normalisée
     const emitNormalizedPosition = () => {
@@ -239,6 +362,42 @@ function CameraController({children}) {
         return Math.max(effectiveMinPos, Math.min(maxPos, position));
     };
 
+    // NOUVEAU: Écouter les événements de reload de caméra
+    useEffect(() => {
+        const handleCameraReload = (data) => {
+            console.log("🎥 ScrollControls received camera reload event:", data);
+
+            if (data && data.cameraModel) {
+                console.log("🎥 Reinitializing camera system with reloaded model");
+                reinitializeCameraSystem(data.cameraModel);
+            } else {
+                console.warn("🎥 Camera reload event received but no model provided");
+            }
+        };
+
+        const handleForceReinitialize = (data) => {
+            console.log("🎥 ScrollControls received force reinitialize event:", data);
+
+            // Utiliser le modèle du store
+            const currentModel = useStore.getState().cameraModel;
+            if (currentModel) {
+                console.log("🎥 Force reinitializing with current store model");
+                reinitializeCameraSystem(currentModel);
+            } else {
+                console.warn("🎥 Force reinitialize requested but no model in store");
+            }
+        };
+
+        // S'abonner aux événements
+        const reloadSubscription = EventBus.on('camera-glb-reloaded', handleCameraReload);
+        const forceReinitSubscription = EventBus.on('force-reinitialize-scroll-controls', handleForceReinitialize);
+
+        return () => {
+            reloadSubscription();
+            forceReinitSubscription();
+        };
+    }, []);
+
     // Écouter les événements de chargement de la caméra GLB
     useEffect(() => {
         const handleCameraGLBLoaded = (data) => {
@@ -267,7 +426,15 @@ function CameraController({children}) {
     const initializeGLBAnimator = (model) => {
         if (!model || glbInitializedRef.current) return;
 
+        // Éviter les réinitialisations multiples
+        if (isReinitializingRef.current && glbInitializedRef.current) {
+            console.log("🎥 GLB animator already initialized and reinitialisation in progress, skipping");
+            return;
+        }
+
         try {
+            console.log("🎥 Initializing GLB animator with model:", model);
+
             if (model.scene && Array.isArray(model.animations)) {
                 cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.007');
             } else {
@@ -277,8 +444,10 @@ function CameraController({children}) {
             // Vérifier si l'initialisation a fonctionné
             if (cameraAnimatorRef.current.timelineLength > 0) {
                 timelineLengthRef.current = cameraAnimatorRef.current.getLength();
+                console.log("🎥 Camera animator initialized successfully, timeline length:", timelineLengthRef.current);
             } else {
                 timelineLengthRef.current = 30; // Valeur par défaut de 30 secondes
+                console.warn("🎥 Camera animator timeline length is 0, using default 30s");
             }
 
             // Déterminer la position de départ
@@ -341,6 +510,8 @@ function CameraController({children}) {
             EventBus.trigger('camera-animator-ready', {
                 animator: cameraAnimatorRef.current
             });
+
+            console.log("🎥 GLB camera animator initialization complete");
         } catch (error) {
             console.error('Erreur lors de l\'initialisation de CameraAnimatorGLB:', error);
         }
@@ -348,7 +519,8 @@ function CameraController({children}) {
 
     // Initialiser l'animateur dès que la caméra ou le modèle est disponible
     useEffect(() => {
-        if (camera && cameraModel && !glbInitializedRef.current) {
+        if (camera && cameraModel && !glbInitializedRef.current && !isReinitializingRef.current) {
+            console.log("🎥 Camera and model available, initializing GLB animator");
             initializeGLBAnimator(cameraModel);
         }
 
