@@ -24,6 +24,8 @@ import SceneFog from "./Core/SceneFog.jsx";
 import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
 import {useAnimationFrame} from "./Utils/AnimationManager.js";
+import {GodRaysEffect} from "./Core/GodRaysEffect.jsx";
+import {Sun} from "./Core/Sun.jsx";
 
 
 export default function Experience() {
@@ -32,6 +34,7 @@ export default function Experience() {
     const eventListenersRef = useRef([]);
     const isMountedRef = useRef(true);
 
+    const sunRef = useRef(null);
     // Refs pour la gestion des FPS et l'optimisation
     const frameCountRef = useRef(0);
     const lastFrameTimeRef = useRef(performance.now());
@@ -270,13 +273,14 @@ export default function Experience() {
             <SceneFog />
 
             {debug && <Stats />}
-            {debug && <Debug />}
+            {/*{debug && <Debug />}*/}
 
             <Camera/>
             <Controls/>
             <Lights/>
-            {debug && <MaterialControls/>}
-            <PostProcessing/>
+
+            {/*{debug && <MaterialControls/>}*/}
+            {/*<PostProcessing/>*/}
 
             <RayCaster>
                 <InteractiveMarkersProvider>
@@ -287,6 +291,9 @@ export default function Experience() {
                     </ScrollControls>
                 </InteractiveMarkersProvider>
             </RayCaster>
+            <Sun refProp={sunRef} />
+
+            <GodRaysEffect sunRef={sunRef} />
 
         </EventEmitterProvider>
     )
