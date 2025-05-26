@@ -459,9 +459,12 @@ class TextureManager {
 
         // Branches
         this.addPlantTexture('BranchTree', 'forest/branch', {
-            roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true, receivedShadow: true,
+            roughness: 0.7, metalness: 0.0,
+            castShadow: true,
+            receivedShadow: true,
             color: '#37c876',
+            alphaTest: 0.1,
+            transparent: false
         });
 
         this.addPlantTexture('BranchEucalyptus', 'forest/branch', {
@@ -1263,7 +1266,7 @@ class TextureManager {
 
             console.log(`Texture alpha optimisée: ${textureType}`);
         } else {
-            texture.anisotropy = 4;
+            texture.anisotropy = 16;
         }
 
         texture.needsUpdate = true;
