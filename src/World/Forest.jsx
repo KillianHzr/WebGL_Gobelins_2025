@@ -232,8 +232,14 @@ export default function Forest() {
         scene.add(forestGroup);
         forestRef.current = forestGroup;
 
-        setEndGroupVisible(false);
-        setScreenGroupVisible(true);
+        // Update the store with the default visibility states
+        setEndGroupVisible(true);
+        setScreenGroupVisible(false);
+
+
+        //
+        // setEndGroupVisible(false);
+        // setScreenGroupVisible(true);
 
         // Trigger events to notify other components about initial visibility
         EventBus.trigger('end-group-visibility-changed', false);
@@ -262,9 +268,13 @@ export default function Forest() {
         // Exposer les références des groupes au niveau global pour l'accès externe
         window.endGroupRef = endGroupRef;
         window.screenGroupRef = screenGroupRef;
-        window.endGroupRef.current.visible = false;
-        window.screenGroupRef.current.visible = true;
-
+        // Todo: set avec le state
+        if (window.endGroupRef.current) {
+            window.endGroupRef.current.visible = endGroupVisible;
+        }
+        if (window.screenGroupRef.current) {
+            window.screenGroupRef.current.visible = screenGroupVisible;
+        }
         console.log('Références de groupe exposées:', {
             endGroupRef: endGroupRef.current, screenGroupRef: screenGroupRef.current
         });

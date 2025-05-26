@@ -45,10 +45,10 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.01;
+const MAX_SCROLL_SPEED = 0.02;
 const DECELERATION = 0.95;
-const MIN_VELOCITY = 0.001;
-const BASE_SENSITIVITY = 0.01;
+const MIN_VELOCITY = 0.005;
+const BASE_SENSITIVITY = 0.05;
 const SCROLL_NORMALIZATION_FACTOR = 0.2;
 
 // Récupérer un paramètre de l'URL (pour permettre de démarrer à un chapitre spécifique)
@@ -115,7 +115,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 0.98; // 98% du scroll considéré comme fin
+    const END_SCROLL_THRESHOLD = 0.925; // 98% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -461,7 +461,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 5.0;
+        const TRIGGER_PROXIMITY = 3.5;
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
@@ -1062,23 +1062,29 @@ function CameraController({children}) {
 
         // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
         if (isNowAtEnd && !hasTriggeredEndSwitch) {
-            // Basculer entre End et Screen à la fin du scroll
-            // Si on est sur End, passer à Screen
+            console.log('🎬 Fin du scroll détectée, basculement vers screenGroup');
+
+            // Basculer de endGroup vers screenGroup
             if (endGroupVisible && !screenGroupVisible) {
+                // Mettre à jour le store
                 setEndGroupVisible(false);
                 setScreenGroupVisible(true);
 
                 // Mettre à jour directement les références DOM
                 if (window.endGroupRef && window.endGroupRef.current) {
                     window.endGroupRef.current.visible = false;
+                    console.log('✅ EndGroup caché');
                 }
                 if (window.screenGroupRef && window.screenGroupRef.current) {
                     window.screenGroupRef.current.visible = true;
+                    console.log('✅ ScreenGroup affiché');
                 }
 
                 // Émettre les événements
                 EventBus.trigger('end-group-visibility-changed', false);
                 EventBus.trigger('screen-group-visibility-changed', true);
+
+                console.log('🎬 Switch terminé: endGroup→CACHÉ, screenGroup→VISIBLE');
             }
 
             setHasTriggeredEndSwitch(true);
@@ -1088,6 +1094,7 @@ function CameraController({children}) {
                 setHasTriggeredEndSwitch(false);
             }, 3000);
         }
+
     }, 'camera');
 
     // Fonction pour configurer les gestionnaires d'événements de défilement
