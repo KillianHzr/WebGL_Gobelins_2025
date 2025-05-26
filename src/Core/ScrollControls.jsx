@@ -101,7 +101,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 0.9; // 90% du scroll considéré comme fin
+    const END_SCROLL_THRESHOLD = 1.0; // 90% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
