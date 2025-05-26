@@ -399,50 +399,50 @@ class SceneObjectManager {
             //         scale: [1.79768, 1.79768, 1.79768],
             //     }]
             // },
-            // 'Vison': {
-            //     id: 'Vison',
-            //     path: '/models/primary/Vison.glb',
-            //     scale: [5, 5, 5],
-            //     interactive: false,
-            //     useTextures: true,
-            //     animations: {
-            //         // Animation principale du vison
-            //         'animation_0': {
-            //             autoplay: false, // Contrôle manuel
-            //             defaultLoop: false,
-            //             defaultClamp: false,
-            //             defaultTimeScale: 1.0
-            //         },
-            //     },
-            //     defaultPlacements: [{
-            //         position: [-33.943, 0, 45.149],
-            //         rotation: [0, 0, 0],
-            //         scale: [5, 5, 5],
-            //         animationId: 'Vison'
-            //     }]
-            // },
-            // 'VisonRun': {
-            //     id: 'VisonRun',
-            //     path: '/models/primary/VisonRun.glb',
-            //     scale: [5, 5, 5],
-            //     interactive: false,
-            //     useTextures: true,
-            //     animations: {
-            //         // Animation principale du vison
-            //         'animation_0': {
-            //             autoplay: false, // Contrôle manuel
-            //             defaultLoop: false,
-            //             defaultClamp: false,
-            //             defaultTimeScale: 1.0
-            //         },
-            //     },
-            //     defaultPlacements: [{
-            //         position: [-34.943, 0, 45.149],
-            //         rotation: [0, 0, 0],
-            //         scale: [5, 5, 5],
-            //         animationId: 'VisonRun'
-            //     }]
-            // },
+             'Vison': {
+                id: 'Vison',
+                path: '/models/primary/Vison.glb',
+                scale: [5, 5, 5],
+                interactive: false,
+                useTextures: true,
+                animations: {
+                    // Animation principale du vison
+                    'animation_0': {
+                        autoplay: false, // Contrôle manuel
+                        defaultLoop: false,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                },
+                defaultPlacements: [{
+                    position: [-33.943, 0, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [5, 5, 5],
+                    animationId: 'Vison'
+                }]
+            },
+            'VisonRun': {
+                id: 'VisonRun',
+                path: '/models/primary/VisonRun.glb',
+                scale: [5, 5, 5],
+                interactive: false,
+                useTextures: true,
+                animations: {
+                    // Animation principale du vison
+                    'animation_0': {
+                        autoplay: false, // Contrôle manuel
+                        defaultLoop: false,
+                        defaultClamp: false,
+                        defaultTimeScale: 1.0
+                    },
+                },
+                defaultPlacements: [{
+                    position: [-34.943, 0, 45.149],
+                    rotation: [0, 0, 0],
+                    scale: [5, 5, 5],
+                    animationId: 'VisonRun'
+                }]
+            },
             //
             //
             // 'VisonDead': {
