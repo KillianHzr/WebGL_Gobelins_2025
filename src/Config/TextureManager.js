@@ -732,20 +732,24 @@ class TextureManager {
             roughness: 0.8, metalness: 0.1, envMapIntensity: 0.5, castShadow: true, receivedShadow: true,
         });
 
-        // Sol
-        this.addTextureMapping('Ground', 'ground', 'ForestGrass', {
-            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0
-        });
 
         this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
-            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: '#d1d1d1', castShadow: true, receivedShadow: true,
         });
 
-        // Ajouter explicitement les textures de chemin pour le mélange
-        this.addTextureMapping('ForestRoad', 'ground', 'ForestRoad', {
-            roughness: 0.9, metalness: 0.0, envMapIntensity: 0.0
-        });
 
+        this.addTextureMapping('Server', 'digital', null, {
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.24, normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+        });
+        this.addTextureMapping('Screen', 'digital/screen', null, {
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.24, normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+        });
+        this.addTextureMapping('ScreenOld', 'digital/screen', null, {
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.08, color: '#545454', normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+        });
+        this.addTextureMapping('DataCenter', 'digital', null, {
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.08, normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+        });
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
     }

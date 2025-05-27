@@ -5,7 +5,6 @@
 import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
 import {EventBus, MARKER_EVENTS} from '../Utils/EventEmitter';
 import {textureManager} from './TextureManager';
-import UseStore from "../Store/useStore.js";
 
 class SceneObjectManager {
     constructor() {
@@ -40,10 +39,19 @@ class SceneObjectManager {
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
 
-
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    // position: [66.95818, -0.50182, -123.19365],
+                    position: [-35.943, 0.0, 44.149],
+                    rotation: [-3.14159, -54.12542, -3.14159],
+                    // scale: [1.79768, 1.79768, 1.79768],
+                    scale: [0.59768, 0.59768, 0.59768],
+                }]
+            },
             'TVScreen': {
                 id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.93887, 0.3095, 84.51408],
                     position: [-33.943, 0.51133, 45.149],
 
@@ -54,10 +62,10 @@ class SceneObjectManager {
             'ModernScreen': {
                 id: 'Screen',
                 path: '/models/digital/screen/Screen.glb',
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.47393, 0.728, 83.68371],
                     position: [-34.943, 0.51133, 45.149],
-                    rotation: [0, 0, 0],
+                    rotation: [0,  -3.14 / 2, 0],
                     scale: [0.1, 0.1, 0.1],
                 }]
             },
@@ -65,7 +73,7 @@ class SceneObjectManager {
                 id: 'Server',
                 path: '/models/digital/Server.glb',
 
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.47393, 0.728, 83.68371],
                     position: [-32.943, 0.51133, 45.149],
                     rotation: [0, 0, 0],
@@ -74,36 +82,36 @@ class SceneObjectManager {
             },
 
 
-            // /**
-            //  * SCÈNE 01 - POINT DE DÉPART
-            //  * Introduction narrative avec Célia (narratrice)
-            //  * Déclencheur: Fin de la cinématique d'introduction
-            //  * Type: Événement automatique basé sur la timeline
-            //  */
+            /**
+             * SCÈNE 01 - POINT DE DÉPART
+             * Introduction narrative avec Célia (narratrice)
+             * Déclencheur: Fin de la cinématique d'introduction
+             * Type: Événement automatique basé sur la timeline
+             */
             'Ground': {
                 id: 'Ground',
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
+                useTextures: true,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            },
+            'Camera': {
+                id: 'Camera',
+                path: '/models/Camera.glb',
+                scale: [1, 1, 1],
+                interactive: false,
                 useTextures: false,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-            // 'Camera': {
-            //     id: 'Camera',
-            //     path: '/models/Camera.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: false,
-            //     useTextures: false,
-            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
-            // },
-            //
-            // /**
-            //  * SCÈNE 02 - PANNEAU D'INFORMATION
-            //  * Premier point interactif avec informations contextuelles
-            //  * Déclencheur: CLICK sur le panneau "Lis le panneau"
-            //  * Effet: Rotation et zoom vers le panneau, narration par Célia
-            //  * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
-            //  */
+
+            /**
+             * SCÈNE 02 - PANNEAU D'INFORMATION
+             * Premier point interactif avec informations contextuelles
+             * Déclencheur: CLICK sur le panneau "Lis le panneau"
+             * Effet: Rotation et zoom vers le panneau, narration par Célia
+             * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
+             */
             // 'DirectionPanelStartInteractive': {
             //     id: 'DirectionPanel',
             //     path: '/models/primary/DirectionPanel.glb',
@@ -382,62 +390,40 @@ class SceneObjectManager {
             //  * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
             //  *  - Explication du problème de pénurie d'eau
             //  */
-
-            'RiverCheckpoint': {
-                id: 'Screen',
-                path: '/models/digital/screen/Screen.glb',
-                scale: [0.1, 0.1, 0.1],
-                interactive: true,
-                useTextures: true,
-                interaction: [{
-                    type: INTERACTION_TYPES.DISABLE,
-                    text: "Maintiens",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.3,
-                    requiredStep: 'seventeenStop'
-                }],
-                defaultPlacement: {
-                    position: [-14.93628, -0.75, -135.53311],
-                    rotation: [0, -89.39436, 0],
-                    scale: [0.1, 0.1, 0.1],
-                }
-            },
-
-            'DataCenter': {
-                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    position: [66.95818, -0.50182, -123.19365],
-                    rotation: [-3.14159, -54.12542, -3.14159],
-                    scale: [1.79768, 1.79768, 1.79768],
-                }]
-            },
-             'Vison': {
-                id: 'Vison',
-                path: '/models/primary/Vison.glb',
-                scale: [5, 5, 5],
-                interactive: false,
-                useTextures: true,
-                animations: {
-                    // Animation principale du vison
-                    'animation_0': {
-                        autoplay: false, // Contrôle manuel
-                        defaultLoop: false,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                },
-                defaultPlacements: [{
-                    position: [-38.33459, 0.51133, -112.1474],
-                    rotation: [0, 0, 0],
-                    scale: [5, 5, 5],
-                    animationId: 'Vison'
-                }]
-            },
-            // 'VisonRun': {
-            //     id: 'VisonRun',
-            //     path: '/models/primary/VisonRun.glb',
+            //
+            // 'RiverCheckpoint': {
+            //     id: 'Screen',
+            //     path: '/models/digital/screen/Screen.glb',
+            //     scale: [0.1, 0.1, 0.1],
+            //     interactive: true,
+            //     useTextures: true,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.DISABLE,
+            //         text: "Maintiens",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "none",
+            //         chapterDistance: 1.75,
+            //         requiredStep: 'seventeenStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [-14.93628, -0.75, -135.53311],
+            //         rotation: [0, -89.39436, 0],
+            //         scale: [0.1, 0.1, 0.1],
+            //     }
+            // },
+            //
+            // 'DataCenter': {
+            //     id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+            //     interactive: false, useTextures: true, defaultPlacements: [{
+            //         position: [66.95818, -0.50182, -123.19365],
+            //         rotation: [-3.14159, -54.12542, -3.14159],
+            //         scale: [1.79768, 1.79768, 1.79768],
+            //     }]
+            // },
+            //  'Vison': {
+            //     id: 'Vison',
+            //     path: '/models/primary/Vison.glb',
             //     scale: [5, 5, 5],
             //     interactive: false,
             //     useTextures: true,
@@ -451,35 +437,57 @@ class SceneObjectManager {
             //         },
             //     },
             //     defaultPlacements: [{
-            //         position: [-34.943, 0, 45.149],
+            //         position: [-38.33459, 0.51133, -112.1474],
             //         rotation: [0, 0, 0],
             //         scale: [5, 5, 5],
-            //         animationId: 'VisonRun'
+            //         animationId: 'Vison'
             //     }]
             // },
-            //
-            //
-            'VisonDead': {
-                id: 'Vison',
-                path: '/models/primary/AnimalVisonDead.glb',
-                scale: [1.05783, 1.05783, 1.05783],
-                interactive: true,
-                useTextures: false,
-                interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "capture",
-                    chapterDistance: 0.28,
-                    requiredStep: 'sixthStop'
-                }],
-                defaultPlacement: {
-                    position: [2.19121, -0.07878, -134.6256],
-                    rotation: [-180, -6.18583, -180],
-                    scale: [1.05783, 1.05783, 1.05783],
-                }
-            },
+            // // 'VisonRun': {
+            // //     id: 'VisonRun',
+            // //     path: '/models/primary/VisonRun.glb',
+            // //     scale: [5, 5, 5],
+            // //     interactive: false,
+            // //     useTextures: true,
+            // //     animations: {
+            // //         // Animation principale du vison
+            // //         'animation_0': {
+            // //             autoplay: false, // Contrôle manuel
+            // //             defaultLoop: false,
+            // //             defaultClamp: false,
+            // //             defaultTimeScale: 1.0
+            // //         },
+            // //     },
+            // //     defaultPlacements: [{
+            // //         position: [-34.943, 0, 45.149],
+            // //         rotation: [0, 0, 0],
+            // //         scale: [5, 5, 5],
+            // //         animationId: 'VisonRun'
+            // //     }]
+            // // },
+            // //
+            // //
+            // 'VisonDead': {
+            //     id: 'Vison',
+            //     path: '/models/primary/AnimalVisonDead.glb',
+            //     scale: [1.05783, 1.05783, 1.05783],
+            //     interactive: true,
+            //     useTextures: false,
+            //     interaction: [{
+            //         type: INTERACTION_TYPES.CLICK,
+            //         text: "Clique",
+            //         offset: 0.5,
+            //         axis: "y",
+            //         interfaceToShow: "capture",
+            //         chapterDistance: 1.4,
+            //         requiredStep: 'sixthStop'
+            //     }],
+            //     defaultPlacement: {
+            //         position: [4.14742, -0.07878, -134.82784],
+            //         rotation: [-3.14159, -6.18583, -3.14159],
+            //         scale: [1.05783, 1.05783, 1.05783],
+            //     }
+            // },
 
 
             /**

@@ -269,7 +269,7 @@ export default function Experience() {
             {/*<CameraSwitcher/>*/}
             <SceneFog />
 
-            {/*{debug && <Stats />}*/}
+            {debug && <Stats />}
             {/*{debug && <Debug />}*/}
 
             <Camera/>
