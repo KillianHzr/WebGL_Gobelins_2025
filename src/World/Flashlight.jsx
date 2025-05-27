@@ -78,7 +78,7 @@ export default function Flashlight() {
     const [advancedParams, setAdvancedParams] = useState({
         angle: 0.271,
         penumbra: 1,
-        distance: 25,
+        distance: 30,
         decay: 1.1
     });
 
