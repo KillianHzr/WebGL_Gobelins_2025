@@ -400,62 +400,62 @@ class TemplateManager {
                 useTextures: false,
                 group: 'screen'
             },
-            'BranchEucalyptus_2': {
-                id: 'BranchEucalyptusScreen',
-                path: '/models/forest/branch/BranchEucalyptus.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            'BranchFig_3': {
-                id: 'BranchFigScreen',
-                path: '/models/forest/branch/BranchFig.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            // 'BUSHv2_2': {
-            //     id: 'BushScreen',
-            //     path: '/models/forest/bush/Bush.glb',
+            // 'BranchEucalyptus_2': {
+            //     id: 'BranchEucalyptusScreen',
+            //     path: '/models/forest/branch/BranchEucalyptus.glb',
             //     priority: 5,
             //     useTextures: true,
             //     group: 'screen'
             // },
-            'BushTrunk_1': {
-                id: 'BushTrunkScreen',
-                path: '/models/forest/bush/BushTrunk.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            'MushwoomDuo_1': {
-                id: 'MushroomDuoScreen',
-                path: '/models/forest/mushroom/MushroomDuo.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            'MushwoomSolo_1': {
-                id: 'MushroomSoloScreen',
-                path: '/models/forest/mushroom/MushroomSolo.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            'PineCone_1': {
-                id: 'PineConeScreen',
-                path: '/models/forest/plant/PineCone.glb',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
-            'Retopo_TRONC_FIN_8': {
-                id: 'TrunkThinScreen',
-                path: '/models/forest/tree/ThinTrunk.gltf',
-                priority: 5,
-                useTextures: true,
-                group: 'screen'
-            },
+            // 'BranchFig_3': {
+            //     id: 'BranchFigScreen',
+            //     path: '/models/forest/branch/BranchFig.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // // 'BUSHv2_2': {
+            // //     id: 'BushScreen',
+            // //     path: '/models/forest/bush/Bush.glb',
+            // //     priority: 5,
+            // //     useTextures: true,
+            // //     group: 'screen'
+            // // },
+            // 'BushTrunk_1': {
+            //     id: 'BushTrunkScreen',
+            //     path: '/models/forest/bush/BushTrunk.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'MushwoomDuo_1': {
+            //     id: 'MushroomDuoScreen',
+            //     path: '/models/forest/mushroom/MushroomDuo.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'MushwoomSolo_1': {
+            //     id: 'MushroomSoloScreen',
+            //     path: '/models/forest/mushroom/MushroomSolo.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'PineCone_1': {
+            //     id: 'PineConeScreen',
+            //     path: '/models/forest/plant/PineCone.glb',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'Retopo_TRONC_FIN_8': {
+            //     id: 'TrunkThinScreen',
+            //     path: '/models/forest/tree/ThinTrunk.gltf',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
 
             // Template for adding new items
             // 'NewTemplate': {

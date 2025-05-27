@@ -144,7 +144,7 @@ const guiConfig = {
                 options: [256, 512, 1024, 2048, 4096]
             },
             bias: {
-                default: -0.001,
+                default: -0.01,
                 min: -0.01,
                 max: 0.01,
                 step: 0.0001

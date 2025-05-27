@@ -69,16 +69,16 @@ export default function Flashlight() {
     // État pour stocker les paramètres de direction
     const [directionParams, setDirectionParams] = useState({
         offsetX: 0,
-        offsetY: -0.03,
+        offsetY: 0,
         offsetZ: -0.25,
         distance: 1
     });
 
     // État pour stocker les paramètres avancés
     const [advancedParams, setAdvancedParams] = useState({
-        angle: 0.25,
+        angle: 0.271,
         penumbra: 1,
-        distance: 15,
+        distance: 25,
         decay: 1.1
     });
 
