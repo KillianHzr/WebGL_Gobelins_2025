@@ -268,7 +268,7 @@ function findTargetAnimation(animations) {
 
     // Noms d'animations à chercher par ordre de priorité
     const targetNames = [
-        'Action.006',       // Nom cible principal
+        'Action.007',       // Nom cible principal
         'Camera',           // Noms alternatifs
         'CameraAction',
         'Main',
@@ -412,7 +412,7 @@ export function createDefaultCameraAnimation(camera) {
         Array.from(rotations).filter((_, i) => i % 3 === 2));
 
     // Créer le clip d'animation
-    const clip = new THREE.AnimationClip('Action.006', duration, [
+    const clip = new THREE.AnimationClip('Action.007', duration, [
         posXTrack, posYTrack, posZTrack,
         rotXTrack, rotYTrack, rotZTrack
     ]);

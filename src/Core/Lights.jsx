@@ -113,6 +113,7 @@ export default function Lights() {
         shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
+
     // Écouter l'événement de position normalisée de la timeline
     useEffect(() => {
         const handleTimelinePositionUpdate = (data) => {
@@ -370,6 +371,226 @@ export default function Lights() {
             cancelAnimationFrame(frameId);
         };
     }, []);
+
+    // Ajouter cet useEffect dans Lights.jsx pour écouter les événements GUI
+
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        console.log('Lights listening for GUI events');
+
+        const subscriptions = [
+            // Mode d'éclairage
+            EventBus.on('lights-mode-changed', (data) => {
+                console.log('Lights mode changed:', data.mode);
+                if (data.mode === 'auto') {
+                    setForcedNightMode(false);
+                    // Reprendre le mode automatique basé sur la position
+                    updateLightingBasedOnPosition(normalizedPosition);
+                } else if (data.mode === 'night') {
+                    setForcedNightMode(true);
+                } else if (data.mode === 'day') {
+                    setForcedNightMode(false);
+                    // Forcer le mode jour
+                    const dayConfig = LightConfig.modes.day;
+                    lightSettingsRef.current.current = {
+                        position: dayConfig.mainLight.position,
+                        intensity: dayConfig.mainLight.intensity,
+                        color: dayConfig.mainLight.color,
+                        ambientIntensity: dayConfig.ambientIntensity,
+                        ambientColor: dayConfig.ambientColor
+                    };
+                    setActiveMode('Day (Forced)');
+                    lightSettingsRef.current.needsUpdate = true;
+                }
+            }),
+
+            EventBus.on('lights-night-mode-forced', (data) => {
+                console.log('Night mode forced:', data.forced);
+                setForcedNightMode(data.forced);
+            }),
+
+            // Lumière principale - visibilité
+            EventBus.on('lights-main-visibility-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.visible = data.visible;
+                }
+            }),
+
+            // Lumière principale - position
+            EventBus.on('lights-main-position-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.position.set(...data.position);
+                    // Mettre à jour les paramètres de référence
+                    lightSettingsRef.current.current.position = data.position;
+                }
+            }),
+
+            // Lumière principale - intensité
+            EventBus.on('lights-main-intensity-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.intensity = data.intensity;
+                    lightSettingsRef.current.current.intensity = data.intensity;
+                    // Mettre à jour l'affichage
+                    setActiveValues(prev => ({ ...prev, intensity: data.intensity }));
+                }
+            }),
+
+            // Lumière principale - couleur
+            EventBus.on('lights-main-color-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.color.set(data.color);
+                    lightSettingsRef.current.current.color = data.color;
+                    // Mettre à jour l'affichage
+                    setActiveValues(prev => ({ ...prev, color: data.color }));
+                }
+            }),
+
+            // Lumière principale - ombres
+            EventBus.on('lights-main-shadow-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.castShadow = data.castShadow;
+                }
+            }),
+
+            // Lumière ambiante - visibilité
+            EventBus.on('lights-ambient-visibility-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.visible = data.visible;
+                }
+            }),
+
+            // Lumière ambiante - intensité
+            EventBus.on('lights-ambient-intensity-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.intensity = data.intensity;
+                    lightSettingsRef.current.current.ambientIntensity = data.intensity;
+                }
+            }),
+
+            // Lumière ambiante - couleur
+            EventBus.on('lights-ambient-color-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.color.set(data.color);
+                    lightSettingsRef.current.current.ambientColor = data.color;
+                }
+            }),
+
+            // Seuils de transition
+            EventBus.on('lights-threshold-changed', (data) => {
+                console.log('Threshold changed:', data.threshold, data.value);
+                LightConfig.transitionThresholds[data.threshold] = data.value;
+                // Recalculer l'éclairage avec les nouveaux seuils
+                updateLightingBasedOnPosition(normalizedPosition);
+            }),
+
+            // Paramètres d'ombre
+            EventBus.on('lights-shadow-mapsize-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.mapSize.width = data.mapSize;
+                    directionalLightRef.current.shadow.mapSize.height = data.mapSize;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowMapSize = data.mapSize;
+            }),
+
+            EventBus.on('lights-shadow-bias-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.bias = data.bias;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowBias = data.bias;
+            }),
+
+            EventBus.on('lights-shadow-normal-bias-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.normalBias = data.normalBias;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowNormalBias = data.normalBias;
+            }),
+
+            EventBus.on('lights-shadow-radius-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.radius = data.radius;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+            }),
+
+            // Presets
+            EventBus.on('lights-preset-applied', (data) => {
+                console.log('Applying preset:', data.preset);
+
+                if (data.preset === 'day') {
+                    const dayConfig = LightConfig.modes.day;
+                    lightSettingsRef.current.current = {
+                        position: dayConfig.mainLight.position,
+                        intensity: dayConfig.mainLight.intensity,
+                        color: dayConfig.mainLight.color,
+                        ambientIntensity: dayConfig.ambientIntensity,
+                        ambientColor: dayConfig.ambientColor
+                    };
+                    setActiveMode('Day (Preset)');
+                    setForcedNightMode(false);
+                } else if (data.preset === 'night') {
+                    const nightConfig = LightConfig.modes.night;
+                    lightSettingsRef.current.current = {
+                        position: nightConfig.mainLight.position,
+                        intensity: nightConfig.mainLight.intensity,
+                        color: nightConfig.mainLight.color,
+                        ambientIntensity: nightConfig.ambientIntensity,
+                        ambientColor: nightConfig.ambientColor
+                    };
+                    setActiveMode('Night (Preset)');
+                    setForcedNightMode(true);
+                }
+
+                lightSettingsRef.current.needsUpdate = true;
+            })
+        ];
+
+        return () => {
+            subscriptions.forEach(unsub => {
+                if (typeof unsub === 'function') {
+                    unsub();
+                }
+            });
+        };
+    }, [debug, normalizedPosition, updateLightingBasedOnPosition]);
+
+// Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        // Envoyer les valeurs actuelles au GUI toutes les 100ms
+        const interval = setInterval(() => {
+            EventBus.trigger('lights-values-updated', {
+                currentMode: activeMode,
+                normalizedPosition: normalizedPosition,
+                transitionFactor: transitionFactor,
+                mainLightIntensity: smoothedLightRef.current.intensity,
+                ambientIntensity: smoothedLightRef.current.ambientIntensity,
+                mainLightColor: smoothedLightRef.current.color,
+                ambientColor: smoothedLightRef.current.ambientColor,
+                position: smoothedLightRef.current.position
+            });
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [debug, activeMode, normalizedPosition, transitionFactor]);
+
+// Ajouter des logs de diagnostic
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        console.log('=== LIGHTS DEBUG DIAGNOSTICS ===');
+        console.log('Current mode:', activeMode);
+        console.log('Normalized position:', normalizedPosition);
+        console.log('Transition factor:', transitionFactor);
+        console.log('Forced night mode:', forcedNightMode);
+        console.log('Active values:', activeValues);
+        console.log('Light settings:', lightSettingsRef.current);
+    }, [debug, activeMode, normalizedPosition, transitionFactor, forcedNightMode, activeValues]);
 
     return (
         <>

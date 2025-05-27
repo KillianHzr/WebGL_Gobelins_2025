@@ -213,6 +213,8 @@ const useStore = create((set, get) => ({
         showCaptureInterface: false,
         showScannerInterface: false,
         showBlackscreenInterface: false,
+        showImageInterface: false,
+        imageInterfaceSource: null,
 
         setShowCaptureInterface: (show) => set(state => ({
             interaction: {
@@ -227,10 +229,19 @@ const useStore = create((set, get) => ({
                 showScannerInterface: show
             }
         })),
+
         setShowBlackscreenInterface: (show) => set(state => ({
             interaction: {
                 ...state.interaction,
                 showBlackscreenInterface: show
+            }
+        })),
+
+        setShowImageInterface: (show, imageSource = null) => set(state => ({
+            interaction: {
+                ...state.interaction,
+                showImageInterface: show,
+                imageInterfaceSource: imageSource
             }
         })),
 

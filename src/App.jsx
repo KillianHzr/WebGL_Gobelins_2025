@@ -5,6 +5,7 @@ import useStore from './Store/useStore'
 import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
 import BlackscreenInterface from "./Utils/BlackscreenInterface.jsx";
+import ImageInterface from "./Utils/ImageInterface.jsx"
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider, MARKER_EVENTS } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
@@ -27,6 +28,63 @@ export default function App() {
     const canvasRef = useRef(null)
     const narrationEndedRef = useRef(false)
 
+    // Forcer le reload/réinitialisation de la caméra
+    const forceReloadCamera = () => {
+        console.log("🎥 FORCE RELOAD CAMERA: Starting camera system reload...");
+
+        try {
+            // 1. Récupérer le modèle de caméra depuis le store
+            const store = useStore.getState();
+            const cameraModel = store.cameraModel;
+
+            if (!cameraModel) {
+                console.warn("🎥 FORCE RELOAD CAMERA: No camera model in store, trying to reload from AssetManager");
+
+                // Essayer de recharger depuis l'AssetManager
+                if (window.assetManager && typeof window.assetManager.getItem === 'function') {
+                    const freshCameraModel = window.assetManager.getItem('Camera');
+                    if (freshCameraModel) {
+                        console.log("🎥 FORCE RELOAD CAMERA: Found camera model in AssetManager");
+
+                        // Créer une structure combinée
+                        const combinedModel = {
+                            scene: freshCameraModel.scene?.clone() || freshCameraModel.scene,
+                            animations: freshCameraModel.animations || []
+                        };
+
+                        // Mettre à jour le store
+                        store.setCameraModel(combinedModel);
+
+                        // Émettre l'événement de rechargement
+                        EventBus.trigger('camera-glb-reloaded', {
+                            cameraModel: combinedModel,
+                            forced: true
+                        });
+                    }
+                }
+            } else {
+                console.log("🎥 FORCE RELOAD CAMERA: Camera model found in store, triggering reload event");
+
+                // Émettre l'événement de rechargement avec le modèle existant
+                EventBus.trigger('camera-glb-reloaded', {
+                    cameraModel: cameraModel,
+                    forced: true
+                });
+            }
+
+            // 2. Forcer la réinitialisation du ScrollControls
+            EventBus.trigger('force-reinitialize-scroll-controls', {
+                reason: 'camera-reload',
+                timestamp: Date.now()
+            });
+
+            console.log("🎥 FORCE RELOAD CAMERA: Camera reload events triggered");
+
+        } catch (error) {
+            console.error("🎥 FORCE RELOAD CAMERA: Error during camera reload:", error);
+        }
+    };
+
     // Si nous sommes en mode debug avec skipIntro, afficher directement l'expérience
     useEffect(() => {
         if (debug?.skipIntro) {
@@ -38,6 +96,11 @@ export default function App() {
                 canvasRef.current.style.visibility = 'visible';
                 canvasRef.current.focus();
             }
+
+            // AJOUT: Forcer le reload de la caméra en mode debug aussi
+            setTimeout(() => {
+                forceReloadCamera();
+            }, 1000);
 
             // On peut aussi déclencher directement la narration Scene01_Mission si nécessaire
             setTimeout(() => {
@@ -276,8 +339,10 @@ export default function App() {
                 narrationManager.playNarration('Scene09_ClairiereDigitalisee');
             }
         };
+
+        window.forceReloadCamera = forceReloadCamera;
     }, []);
-    
+
     const onAssetsReady = () => {
         // Callback passé au AssetManager
         if (assetsLoaded) {
@@ -338,6 +403,9 @@ export default function App() {
                             console.log("Radio off sound complete, proceeding to 3D scene");
                             narrationEndedRef.current = true;
 
+                            console.log("🎥 FORCING CAMERA RELOAD BEFORE SHOWING 3D SCENE");
+                            forceReloadCamera();
+
                             // Transition to 3D scene after narration ends
                             setShowExperience(true);
 
@@ -346,17 +414,19 @@ export default function App() {
                                 canvasRef.current.focus();
                             }
 
-                            // Démarrer l'ambiance nature en fondu
-                            if (audioManager && typeof audioManager.playNatureAmbience === 'function') {
-                                console.log("Starting nature ambience after radio narrations");
-                                audioManager.playNatureAmbience(3000); // Fondu sur 3 secondes
-                            }
-
-                            // Play the next narration after showing the 3D scene
                             setTimeout(() => {
-                                narrationManager.playNarration('Scene01_Mission');
-                                console.log("Lecture de la narration Scene01_Mission après transition");
-                            }, 2000);
+                                // Démarrer l'ambiance nature en fondu
+                                if (window.audioManager && typeof window.audioManager.playNatureAmbience === 'function') {
+                                    console.log("Starting nature ambience after camera reload and radio narrations");
+                                    window.audioManager.playNatureAmbience(3000); // Fondu sur 3 secondes
+                                }
+
+                                // Play the next narration after showing the 3D scene
+                                setTimeout(() => {
+                                    narrationManager.playNarration('Scene01_Mission');
+                                    console.log("Lecture de la narration Scene01_Mission après transition et camera reload");
+                                }, 2000);
+                            }, 1500);
                         }, 1000); // Attendre 1 seconde pour le son radio off
                     }
                 });
@@ -372,6 +442,9 @@ export default function App() {
                     if (!narrationEndedRef.current) {
                         console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
                         narrationEndedRef.current = true;
+
+                        console.log("🎥 FORCING CAMERA RELOAD IN FALLBACK");
+                        forceReloadCamera();
 
                         // Transition to 3D scene after the fallback duration
                         setShowExperience(true);
@@ -439,6 +512,7 @@ export default function App() {
                     <BlackscreenInterface/>
                     <CaptureInterface />
                     <ScannerInterface />
+                    <ImageInterface />
                 </>
             )}
 

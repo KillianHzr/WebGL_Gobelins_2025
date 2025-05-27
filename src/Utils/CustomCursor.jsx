@@ -100,8 +100,14 @@ const CustomCursor = () => {
     // Special handler for links and interactive elements
     useEffect(() => {
         const handleInteractiveElems = () => {
-            const interactiveElements = document.querySelectorAll('a, button, [role="button"]');
-
+            const interactiveElements = document.querySelectorAll(`
+                a, 
+                button, 
+                [role="button"],
+                .camera-viewport-zoom-indicator,
+                .camera-viewport-zoom-plus,
+                .camera-viewport-zoom-minus
+            `);
             const onInteractiveEnter = () => {
                 if (cursorRef.current) {
                     cursorRef.current.classList.add('cursor-interactive');
