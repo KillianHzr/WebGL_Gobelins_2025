@@ -828,6 +828,11 @@ class TextureManager {
             envMapIntensity: 0.08
         });
 
+
+        this.addPlantTexture('TrunkThinPlane', 'forest/tree', {
+            transparent: true
+        });
+
         // ===== TEXTURES POUR LES ÉLÉMENTS "END" =====
         // Troncs et arbres - Groupe END
         this.addTextureMapping('TreeNakedEnd', 'forest/tree', 'TreeNaked', {

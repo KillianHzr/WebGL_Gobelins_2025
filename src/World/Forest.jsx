@@ -560,7 +560,7 @@ export default function Forest() {
             instances.forEach(instance => {
                 // If it's a TrunkThinPlane, hide it initially
                 if (instance.userData.objectId === 'TrunkThinPlane') {
-                    instance.visible = false;
+                    instance.visible = true;
                 }
 
                 targetGroup.add(instance);
