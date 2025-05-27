@@ -436,9 +436,9 @@ function CameraController({children}) {
             console.log("🎥 Initializing GLB animator with model:", model);
 
             if (model.scene && Array.isArray(model.animations)) {
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.007');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.008');
             } else {
-                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.007');
+                cameraAnimatorRef.current = new CameraAnimatorGLB(model, camera, 'Action.008');
             }
 
             // Vérifier si l'initialisation a fonctionné

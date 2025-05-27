@@ -617,10 +617,6 @@ export default function Forest() {
 
             // Add instances to appropriate group and instance list
             instances.forEach(instance => {
-                // If it's a TrunkThinPlane, hide it initially
-                if (instance.userData.objectId === 'TrunkThinPlane') {
-                    instance.visible = true;
-                }
 
                 targetGroup.add(instance);
                 lodInstancesRef.current.push(instance);
@@ -723,15 +719,6 @@ export default function Forest() {
             instancedMesh.userData.objectId = objectId;
             instancedMesh.userData.chunkId = chunkId;
 
-            // For TrunkThin, calculate custom threshold
-            if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
-                // Extract chunkX and chunkZ from chunkId
-                const parts = chunkId.split('_');
-                const chunkX = parts.length > 1 ? parseInt(parts[1]) : 0;
-                const chunkZ = parts.length > 2 ? parseInt(parts[2]) : 0;
-
-                instancedMesh.userData.customSwitchThreshold = getChunkCustomThreshold(chunkId, chunkX, chunkZ);
-            }
 
             // Calculate bounding sphere for frustum culling
             const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
@@ -779,13 +766,7 @@ export default function Forest() {
         return TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE + variation;
     };
 
-    const resetProcessingFlags = () => {
-        lodInstancesRef.current.forEach(instance => {
-            if (instance.userData && (instance.userData.objectId === 'TrunkThin' || instance.userData.objectId === 'TrunkThinPlane')) {
-                instance.userData.processed = false;
-            }
-        });
-    };
+
 
     // IMPROVED: Optimized geometry simplification for fewer polygons while maintaining shape
     const createOptimizedGeometry = (geometry, detailLevel, objectId) => {
@@ -930,7 +911,7 @@ export default function Forest() {
         frameSkipRef.current = 0;
 
         // Reset processing flags
-        resetProcessingFlags();
+        // resetProcessingFlags();
 
         if (camera && lodInstancesRef.current.length > 0) {
             const cameraPosition = camera.position;
@@ -939,21 +920,15 @@ export default function Forest() {
             projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
-            // Create Maps to store TrunkThin and TrunkThinPlane objects by position
             const trunkThinMap = new Map();
-            const trunkThinPlaneMap = new Map();
 
             // Reset visible instance counter
             instanceStatsRef.current.visibleInstances = 0;
 
-            // First pass: identify and index all TrunkThin and TrunkThinPlane
             lodInstancesRef.current.forEach(instance => {
                 if (!instance.userData) return;
 
                 const objectId = instance.userData.objectId;
-
-                // Skip objects other than TrunkThin and TrunkThinPlane
-                if (objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') return;
 
                 // Create key based on position to identify pairs
                 const posKey = instance.userData.chunkCenter ? `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
@@ -968,9 +943,8 @@ export default function Forest() {
                         instance.userData.customSwitchThreshold = getChunkCustomThreshold(instance.userData.chunkId, chunkX || 0, chunkZ || 0);
                     }
                     trunkThinMap.set(posKey, instance);
-                } else if (objectId === 'TrunkThinPlane') {
-                    trunkThinPlaneMap.set(posKey, instance);
                 }
+
             });
 
             // Second pass: update visibility of all objects
@@ -986,68 +960,24 @@ export default function Forest() {
                 // Check frustum culling first (major optimization)
                 const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
 
-                const objectId = instance.userData.objectId;
 
-                // Special logic for TrunkThin and TrunkThinPlane
-                if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
-                    // Create position key
-                    const posKey = `${chunkCenter.x.toFixed(2)}_${chunkCenter.y.toFixed(2)}_${chunkCenter.z.toFixed(2)}`;
 
-                    if (visible) {
-                        if (objectId === 'TrunkThin') {
-                            // Use custom threshold if available
-                            const switchThreshold = instance.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+                // Standard logic for other objects
+                if (visible) {
+                    // Check if this LOD level should be visible based on distance
+                    const minDistance = instance.userData.minDistance || 0;
+                    const maxDistance = instance.userData.maxDistance || Infinity;
 
-                            // TrunkThin is visible if distance is less than custom threshold
-                            instance.visible = distance < switchThreshold;
+                    // Define visibility based on distance
+                    instance.visible = (distance >= minDistance && distance < maxDistance);
 
-                            // Update corresponding TrunkThinPlane if found
-                            const planeInstance = trunkThinPlaneMap.get(posKey);
-                            if (planeInstance) {
-                                planeInstance.visible = visible && distance >= switchThreshold;
-                                if (planeInstance.visible) {
-                                    instanceStatsRef.current.visibleInstances += planeInstance.count || 0;
-                                }
-                            }
-                        } else if (objectId === 'TrunkThinPlane') {
-                            // Find corresponding TrunkThin to get threshold
-                            const thinInstance = trunkThinMap.get(posKey);
-                            const switchThreshold = thinInstance?.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
-
-                            // TrunkThinPlane is visible if distance is greater or equal to threshold
-                            instance.visible = true;
-
-                            // Skip if corresponding TrunkThin already processed, otherwise update
-                            if (thinInstance && !thinInstance.userData.processed) {
-                                thinInstance.visible = visible && distance < switchThreshold;
-                                thinInstance.userData.processed = true; // Mark as processed
-                                if (thinInstance.visible) {
-                                    instanceStatsRef.current.visibleInstances += thinInstance.count || 0;
-                                }
-                            }
-                        }
-                    } else {
-                        // Not in frustum, hide
-                        instance.visible = false;
+                    // Count visible instances
+                    if (instance.visible) {
+                        instanceStatsRef.current.visibleInstances += instance.count || 0;
                     }
                 } else {
-                    // Standard logic for other objects
-                    if (visible) {
-                        // Check if this LOD level should be visible based on distance
-                        const minDistance = instance.userData.minDistance || 0;
-                        const maxDistance = instance.userData.maxDistance || Infinity;
-
-                        // Define visibility based on distance
-                        instance.visible = (distance >= minDistance && distance < maxDistance);
-
-                        // Count visible instances
-                        if (instance.visible) {
-                            instanceStatsRef.current.visibleInstances += instance.count || 0;
-                        }
-                    } else {
-                        // Not in view frustum, hide it
-                        instance.visible = false;
-                    }
+                    // Not in view frustum, hide it
+                    instance.visible = false;
                 }
             });
 

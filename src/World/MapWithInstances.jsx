@@ -258,7 +258,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
         let vertexCount = 0;
         let faceCount = 0;
         let materialCount = 0;
-        let boundingSize = { x: 0, y: 0, z: 0 };
+        let boundingSize = {x: 0, y: 0, z: 0};
         let meshCount = 0;
         let materialTypes = new Set();
 
@@ -408,7 +408,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
 
             // Enregistrer ce modèle comme référence et son empreinte détaillée
             const fingerprint = getGeometryFingerprint(node);
-            templateModels[node.name] = { node, fingerprint };
+            templateModels[node.name] = {node, fingerprint};
 
             // Préchargement des textures pour ce template si nécessaire
             const modelId = templateManager.getObjectTypeFromTemplate(node.name);
@@ -527,15 +527,15 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     Object.keys(treePositions).forEach(treeType => {
         if (modelPositions[treeType]) {
             treePositions[treeType] = modelPositions[treeType].map(instance => ({
-                x: instance.position.x,
-                y: instance.position.y, // Ajustement de la position Y
-                z: instance.position.z,
+                x: instance.position.x + (Math.random() < 0.5 ? 1 : -1) * (2 + Math.random() * 1.5),
+                y: instance.position.y - 0.2 + 8 + Math.random() * 1.5,
+                z: instance.position.z + (Math.random() < 0.5 ? 1 : -1) * (2 + Math.random() * 1.5),
                 rotationX: instance.rotation.x,
                 rotationY: instance.rotation.y,
                 rotationZ: instance.rotation.z,
-                scaleX: instance.scale.x,
-                scaleY: instance.scale.y,
-                scaleZ: instance.scale.z
+                scaleX: 2.3 + Math.random() * 0.4,
+                scaleY: 2.3 + Math.random() * 0.4,
+                scaleZ: 2.3 + Math.random() * 0.4
             }));
         }
     });
@@ -560,7 +560,7 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     // console.log("GeoNodes positions extracted and saved!");
 
 
-    return { modelPositions, treePositions };
+    return {modelPositions, treePositions};
 }
 
 // Fonction pour sauvegarder un fichier JSON

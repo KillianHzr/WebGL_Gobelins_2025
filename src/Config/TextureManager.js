@@ -451,13 +451,16 @@ class TextureManager {
         });
 
         this.addPlantTexture('TreeRoof', 'forest/tree', {
-            roughness: 1.0, metalness: 0.0, // envMapIntensity: 0.05
+            roughness: 1.0, metalness: 0.0,
+            envMapIntensity: 0.4,
+            castShadow: (Math.random() < 0.01),
             color: '#1d6d35', useTextures: {
                 // baseColor: false,
             }
         });
         this.addPlantTexture('TrunkThinPlane', 'forest/tree', {
-            transparent: true
+            roughness: 0.81, metalness: 0.7,
+
         });
 
         // Branches
@@ -736,12 +739,12 @@ class TextureManager {
         });
 
 
-        this.addTextureMapping('Ground', 'ground', 'ForestRoad', {
+        this.addTextureMapping('Ground', 'ground', null, {
             roughness: 1.0,
             metalness: 0.0,
             envMapIntensity: 0.0,
             color: '#d1d1d1',
-            castShadow: true,
+            castShadow: false,
             receivedShadow: true,
         });
 
