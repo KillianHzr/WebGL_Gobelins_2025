@@ -1182,74 +1182,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     </div>
                 </Html>)}
 
-            // Dans EnhancedObjectMarker.jsx, modifiez le rendu des marqueurs de type DISABLE
-            // Recherchez ce code (ligne 1084 environ) :
 
-            {markerType === INTERACTION_TYPES.DISABLE && (
-                <Html
-                    className="marker-button disable"
-                    position={[0, 0, 0.002]}
-                    center
-                >
-                    <div
-                        className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}
-                        onMouseEnter={(e) => {
-                            stopAllPropagation(e);
-                            setButtonHovered(true);
-
-                            // Déclencher l'interaction directement au survol
-                            if (onClick) {
-                                onClick({
-                                    type: 'hover'
-                                });
-                            }
-
-                            // Émettre l'événement d'interaction complète
-                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
-                                id, type: markerType
-                            });
-
-                            if (onPointerEnter) onPointerEnter(e);
-                        }}
-                        onMouseLeave={(e) => {
-                            stopAllPropagation(e);
-                            setButtonHovered(false);
-                            if (onPointerLeave) onPointerLeave(e);
-                        }}
-                        // Pour le support tactile
-                        onTouchStart={(e) => {
-                            stopAllPropagation(e);
-                            setButtonHovered(true);
-
-                            // Déclencher l'interaction au toucher sur mobile
-                            if (onClick) {
-                                onClick({
-                                    type: 'touch'
-                                });
-                            }
-
-                            // Émettre l'événement d'interaction complète
-                            EventBus.trigger(MARKER_EVENTS.INTERACTION_COMPLETE, {
-                                id, type: markerType
-                            });
-                        }}
-                    >
-                        <div className="marker-button-inner-text">
-                            {text}
-                        </div>
-                        <div
-                            className="marker-button-inner-progress"
-                            style={{
-                                width: '72px',
-                                height: '72px',
-                                opacity: 0.7,
-                            }}
-                        />
-                    </div>
-                </Html>
-            )}
-
-            // Et remplacez-le par ce code :
 
             {markerType === INTERACTION_TYPES.DISABLE && (
                 <Html

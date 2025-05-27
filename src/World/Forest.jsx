@@ -54,9 +54,9 @@ const GeometryCache = {
 
             // Important: Optimize material for instance rendering
             if (material) {
-                material.uniformsNeedUpdate = false;
+                material.uniformsNeedUpdate = true;
                 // Disable material features that cause additional draw calls
-                material.needsUpdate = false;
+                material.needsUpdate = true;
 
                 // Store in cache
                 this.materials.set(objectId, material);
