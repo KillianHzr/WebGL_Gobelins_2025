@@ -38,7 +38,7 @@ export default function App() {
             const cameraModel = store.cameraModel;
 
             if (!cameraModel) {
-                console.warn("🎥 FORCE RELOAD CAMERA: No camera model in store, trying to reload from AssetManager");
+                // console.warn("🎥 FORCE RELOAD CAMERA: No camera model in store, trying to reload from AssetManager");
 
                 // Essayer de recharger depuis l'AssetManager
                 if (window.assetManager && typeof window.assetManager.getItem === 'function') {

@@ -191,13 +191,13 @@ function CameraController({children}) {
                 }
             } else {
                 console.warn("🎥 No camera found in GLB model, using default FOV");
-                camera.fov = 24; // FOV par défaut
+                camera.fov = 30; // FOV par défaut
                 camera.updateProjectionMatrix();
             }
         } catch (error) {
             console.error("🎥 Error extracting camera parameters:", error);
             // Appliquer des valeurs par défaut en cas d'erreur
-            camera.fov = 24;
+            camera.fov = 30;
             camera.updateProjectionMatrix();
         }
     };
@@ -633,7 +633,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 3.5;
+        const TRIGGER_PROXIMITY = 4.75;
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {

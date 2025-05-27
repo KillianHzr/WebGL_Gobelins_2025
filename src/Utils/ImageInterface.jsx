@@ -131,7 +131,6 @@ export default function ImageInterface() {
         if (audioManager) {
             audioManager.playSound('click', { volume: 0.8 });
         }
-
         setIsVisible(false);
 
         if (interaction?.setShowImageInterface) {
@@ -150,7 +149,7 @@ export default function ImageInterface() {
 
             // Jump to next chapter if doJumpToChapter is available
             if (window.doJumpToChapter) {
-                window.doJumpToChapter(0.01);
+                window.doJumpToChapter(1.2)
             }
         }
     };

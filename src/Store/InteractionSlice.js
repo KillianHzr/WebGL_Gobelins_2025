@@ -74,7 +74,7 @@ export const createInteractionSlice = (set, get) => ({
                 interaction: {
                     ...state.interaction,
                     showImageInterface: show,
-                    imageInterfaceSource: imageSource
+                    imageInterfaceSource: imageSource,
                 }
             };
         }),
