@@ -739,10 +739,10 @@ class TextureManager {
 
 
         this.addTextureMapping('Server', 'digital', null, {
-            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.24, normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.3, color: '#c9c9c9', normalScale: new Vector2(1.2, 1.2), castShadow: true, receivedShadow: true,
         });
         this.addTextureMapping('Screen', 'digital/screen', null, {
-            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.24, normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
+            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.05, castShadow: true, receivedShadow: true,
         });
         this.addTextureMapping('ScreenOld', 'digital/screen', null, {
             roughness: 1.0, metalness: 1.0, envMapIntensity: 0.08, color: '#545454', normalScale: new Vector2(1.5, 1.5), castShadow: true, receivedShadow: true,
