@@ -39,10 +39,19 @@ class SceneObjectManager {
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
 
-
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    // position: [66.95818, -0.50182, -123.19365],
+                    position: [-35.943, 0.0, 44.149],
+                    rotation: [-3.14159, -54.12542, -3.14159],
+                    // scale: [1.79768, 1.79768, 1.79768],
+                    scale: [0.59768, 0.59768, 0.59768],
+                }]
+            },
             'TVScreen': {
                 id: 'ScreenOld', path: '/models/digital/screen/ScreenOld.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.93887, 0.3095, 84.51408],
                     position: [-33.943, 0.51133, 45.149],
 
@@ -53,10 +62,10 @@ class SceneObjectManager {
             'ModernScreen': {
                 id: 'Screen',
                 path: '/models/digital/screen/Screen.glb',
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.47393, 0.728, 83.68371],
                     position: [-34.943, 0.51133, 45.149],
-                    rotation: [0, 0, 0],
+                    rotation: [0,  -3.14 / 2, 0],
                     scale: [0.1, 0.1, 0.1],
                 }]
             },
@@ -64,7 +73,7 @@ class SceneObjectManager {
                 id: 'Server',
                 path: '/models/digital/Server.glb',
 
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.47393, 0.728, 83.68371],
                     position: [-32.943, 0.51133, 45.149],
                     rotation: [0, 0, 0],
@@ -84,7 +93,7 @@ class SceneObjectManager {
                 path: '/models/Ground.glb',
                 scale: [1, 1, 1],
                 interactive: false,
-                useTextures: false,
+                useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
             'Camera': {
@@ -96,13 +105,13 @@ class SceneObjectManager {
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
 
-            // /**
-            //  * SCÈNE 02 - PANNEAU D'INFORMATION
-            //  * Premier point interactif avec informations contextuelles
-            //  * Déclencheur: CLICK sur le panneau "Lis le panneau"
-            //  * Effet: Rotation et zoom vers le panneau, narration par Célia
-            //  * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
-            //  */
+            /**
+             * SCÈNE 02 - PANNEAU D'INFORMATION
+             * Premier point interactif avec informations contextuelles
+             * Déclencheur: CLICK sur le panneau "Lis le panneau"
+             * Effet: Rotation et zoom vers le panneau, narration par Célia
+             * Sortie: CLICK MAINTENU "Quitte le panneau" pour dézoomer
+             */
             // 'DirectionPanelStartInteractive': {
             //     id: 'DirectionPanel',
             //     path: '/models/primary/DirectionPanel.glb',
@@ -115,7 +124,7 @@ class SceneObjectManager {
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "image",
-            //         chapterDistance: 0.5,
+            //         chapterDistance: 1.5,
             //         requiredStep: 'initialStartStop',
             //         // Ajouter cette fonction callback pour jouer la narration et afficher l'interface image
             //         onInteract: () => {
@@ -158,7 +167,7 @@ class SceneObjectManager {
             //         offset: -0.5,
             //         axis: "y",
             //         interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
-            //         chapterDistance: 0.6,
+            //         chapterDistance: 1.85,
             //         requiredStep: 'firstStop'
             //     }],
             //     defaultPlacement: {
@@ -210,7 +219,7 @@ class SceneObjectManager {
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "scanner",
-            //         chapterDistance: 0.5,
+            //         chapterDistance: 0.33,
             //         requiredStep: 'fifthStop'
             //     }],
             //     defaultPlacement: {
@@ -229,9 +238,9 @@ class SceneObjectManager {
             // 'JumpRock1': {
             //     id: 'RockWater',
             //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.279, 0.279, 0.279],
+            //     scale: [0.87951, 0.87951, 0.87951],
             //     interactive: true,
-            //     useTextures: true,
+            //     useTextures: false,
             //     interaction: [{
             //         type: INTERACTION_TYPES.DRAG_UP,
             //         text: "Tire",
@@ -239,20 +248,23 @@ class SceneObjectManager {
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
+            //         chapterDistance: 1.66,
             //         requiredStep: 'eleventhStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [-30.164, 0, -75.977], rotation: [0, 0, 0], outlinePulse: false
+            //         position: [-18.9548, -0.44604, -53.6215],
+            //         rotation: [0, -47.69659, 0],
+            //         scale: [0.87951, 0.87951, 0.87951],
+            //         outlinePulse: false
             //     }
             // },
             //
             // 'JumpRock2': {
             //     id: 'RockWater',
             //     path: '/models/rock/RockWater2.glb',
-            //     scale: [0.279, 0.279, 0.279],
+            //     scale: [0.86286, 0.86286, 0.86286],
             //     interactive: true,
-            //     useTextures: true,
+            //     useTextures: false,
             //     interaction: [{
             //         type: INTERACTION_TYPES.DRAG_UP,
             //         text: "Tire",
@@ -260,20 +272,23 @@ class SceneObjectManager {
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 0.7,
+            //         chapterDistance: 0.9,
             //         requiredStep: 'twelfthStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [-30.137, 0, -76.954], rotation: [0, 0, 0], outlinePulse: false
+            //         position: [-16.5692, -0.44358, -54.4309],
+            //         rotation: [0, -36.97567, 0],
+            //         scale: [0.86286, 0.86286, 0.86286],
+            //         outlinePulse: false
             //     }
             // },
             //
             // 'JumpRock3': {
             //     id: 'RockWater',
             //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.279, 0.279, 0.279],
+            //     scale: [0.87951, 0.87951, 0.87951],
             //     interactive: true,
-            //     useTextures: true,
+            //     useTextures: false,
             //     interaction: [{
             //         type: INTERACTION_TYPES.DRAG_UP,
             //         text: "Tire",
@@ -281,32 +296,39 @@ class SceneObjectManager {
             //         offset: 0.6,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
+            //         chapterDistance: 0.75,
             //         requiredStep: 'thirteenthStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [-31.319, 0, -76.848], rotation: [0, 0, 0], outlinePulse: false
+            //         position: [-15.0924, -0.44604, -52.4855],
+            //         rotation: [0, 0, 0],
+            //         scale: [0.87951, 0.87951, 0.87951],
+            //         outlinePulse: false
             //     }
             // },
+            //
             //
             // 'JumpRock4': {
             //     id: 'RockWater',
             //     path: '/models/rock/RockWater2.glb',
-            //     scale: [0.279, 0.279, 0.279],
+            //     scale: [0.86286, 0.86286, 0.86286],
             //     interactive: true,
-            //     useTextures: true,
+            //     useTextures: false,
             //     interaction: [{
             //         type: INTERACTION_TYPES.DRAG_UP,
             //         text: "Tire",
             //
-            //         offset: 0.5,
+            //         offset: 0.33,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 1.5,
+            //         chapterDistance: 1.1,
             //         requiredStep: 'fourteenthStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [-31.648, 0, -77.683], rotation: [0, 0, 0], outlinePulse: false
+            //         position: [-13.076, -0.44358, -53.9481],
+            //         rotation: [0, 0, 0],
+            //         scale: [0.86286, 0.86286, 0.86286],
+            //         outlinePulse: false
             //     }
             // },
             // /**
@@ -327,7 +349,7 @@ class SceneObjectManager {
             //         offset: -0.5,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 0.6,
+            //         chapterDistance: 0.9,
             //         requiredStep: 'fourthStop'
             //     }],
             //     defaultPlacement: {
@@ -372,22 +394,22 @@ class SceneObjectManager {
             // 'RiverCheckpoint': {
             //     id: 'Screen',
             //     path: '/models/digital/screen/Screen.glb',
-            //     scale: [1, 1, 1],
+            //     scale: [0.1, 0.1, 0.1],
             //     interactive: true,
             //     useTextures: true,
             //     interaction: [{
             //         type: INTERACTION_TYPES.DISABLE,
             //         text: "Maintiens",
-            //         offset: -0.5,
+            //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "none",
-            //         chapterDistance: 0.3,
+            //         chapterDistance: 1.75,
             //         requiredStep: 'seventeenStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [0.1004, -0.70173, -141.54714],
-            //         rotation: [0, 0, 0],
-            //         scale: [1, 1, 1],
+            //         position: [-14.93628, -0.75, -135.53311],
+            //         rotation: [0, -89.39436, 0],
+            //         scale: [0.1, 0.1, 0.1],
             //     }
             // },
             //
@@ -399,52 +421,52 @@ class SceneObjectManager {
             //         scale: [1.79768, 1.79768, 1.79768],
             //     }]
             // },
-             'Vison': {
-                id: 'Vison',
-                path: '/models/primary/Vison.glb',
-                scale: [5, 5, 5],
-                interactive: false,
-                useTextures: true,
-                animations: {
-                    // Animation principale du vison
-                    'animation_0': {
-                        autoplay: false, // Contrôle manuel
-                        defaultLoop: false,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                },
-                defaultPlacements: [{
-                    position: [-33.943, 0, 45.149],
-                    rotation: [0, 0, 0],
-                    scale: [5, 5, 5],
-                    animationId: 'Vison'
-                }]
-            },
-            'VisonRun': {
-                id: 'VisonRun',
-                path: '/models/primary/VisonRun.glb',
-                scale: [5, 5, 5],
-                interactive: false,
-                useTextures: true,
-                animations: {
-                    // Animation principale du vison
-                    'animation_0': {
-                        autoplay: false, // Contrôle manuel
-                        defaultLoop: false,
-                        defaultClamp: false,
-                        defaultTimeScale: 1.0
-                    },
-                },
-                defaultPlacements: [{
-                    position: [-34.943, 0, 45.149],
-                    rotation: [0, 0, 0],
-                    scale: [5, 5, 5],
-                    animationId: 'VisonRun'
-                }]
-            },
-            //
-            //
+            //  'Vison': {
+            //     id: 'Vison',
+            //     path: '/models/primary/Vison.glb',
+            //     scale: [5, 5, 5],
+            //     interactive: false,
+            //     useTextures: true,
+            //     animations: {
+            //         // Animation principale du vison
+            //         'animation_0': {
+            //             autoplay: false, // Contrôle manuel
+            //             defaultLoop: false,
+            //             defaultClamp: false,
+            //             defaultTimeScale: 1.0
+            //         },
+            //     },
+            //     defaultPlacements: [{
+            //         position: [-38.33459, 0.51133, -112.1474],
+            //         rotation: [0, 0, 0],
+            //         scale: [5, 5, 5],
+            //         animationId: 'Vison'
+            //     }]
+            // },
+            // // 'VisonRun': {
+            // //     id: 'VisonRun',
+            // //     path: '/models/primary/VisonRun.glb',
+            // //     scale: [5, 5, 5],
+            // //     interactive: false,
+            // //     useTextures: true,
+            // //     animations: {
+            // //         // Animation principale du vison
+            // //         'animation_0': {
+            // //             autoplay: false, // Contrôle manuel
+            // //             defaultLoop: false,
+            // //             defaultClamp: false,
+            // //             defaultTimeScale: 1.0
+            // //         },
+            // //     },
+            // //     defaultPlacements: [{
+            // //         position: [-34.943, 0, 45.149],
+            // //         rotation: [0, 0, 0],
+            // //         scale: [5, 5, 5],
+            // //         animationId: 'VisonRun'
+            // //     }]
+            // // },
+            // //
+            // //
             // 'VisonDead': {
             //     id: 'Vison',
             //     path: '/models/primary/AnimalVisonDead.glb',
@@ -457,11 +479,11 @@ class SceneObjectManager {
             //         offset: 0.5,
             //         axis: "y",
             //         interfaceToShow: "capture",
-            //         chapterDistance: 0.28,
+            //         chapterDistance: 1.4,
             //         requiredStep: 'sixthStop'
             //     }],
             //     defaultPlacement: {
-            //         position: [2.19121, -0.07878, -134.6256],
+            //         position: [4.14742, -0.07878, -134.82784],
             //         rotation: [-3.14159, -6.18583, -3.14159],
             //         scale: [1.05783, 1.05783, 1.05783],
             //     }

@@ -85,14 +85,14 @@ export const StaticObject = React.memo(function StaticObject({
             }
         });
         if (useTextures && textureModelId && textureManager) {
-            console.log(`🎨 Application des textures pour ${textureModelId}`);
+            // console.log(`🎨 Application des textures pour ${textureModelId}`);
 
             // Application asynchrone des textures
             textureManager.applyTexturesToModel(textureModelId, clonedModel, {
                 preserveSpecialMaterials: true,
                 optimizeGeometry: true
             }).catch(error => {
-                console.warn(`Erreur lors de l'application des textures pour ${textureModelId}:`, error);
+                // console.warn(`Erreur lors de l'application des textures pour ${textureModelId}:`, error);
             });
         }
 
@@ -202,7 +202,7 @@ export const StaticObject = React.memo(function StaticObject({
         console.log("=== FIN DEBUG ===");
     };
 
-    console.log("🛠️ Debug tools installés - utilisez window.debugVisonAnimation() pour tester");
+    // console.log("🛠️ Debug tools installés - utilisez window.debugVisonAnimation() pour tester");
 
     // MODIFIÉ: Écouteur pour les mises à jour d'animation externes avec meilleure identification
     useEffect(() => {

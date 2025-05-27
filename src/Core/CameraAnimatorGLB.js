@@ -34,9 +34,9 @@ export class CameraAnimatorGLB {
             enabled: true,
             mouseX: 0.5, // Position normalisée (0-1)
             mouseY: 0.5, // Position normalisée (0-1)
-            maxRotationX: Math.PI / 8, // 22.5° vertical
-            maxRotationY: Math.PI / 8, // 22.5° horizontal
-            smoothing: 0.1, // Facteur de lissage
+            maxRotationX: Math.PI / 16  , // 22.5° vertical
+            maxRotationY: Math.PI / 9, // 22.5° horizontal
+            smoothing: 0.02, // Facteur de lissage
             currentOffsetX: 0, // Rotation actuelle X
             currentOffsetY: 0  // Rotation actuelle Y
         };

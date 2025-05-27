@@ -19,6 +19,8 @@
     "vite-plugin-unused-code": "^0.1.6"
   },
   "dependencies": {
+    "@gltf-transform/core": "^4.1.4",
+    "@gltf-transform/functions": "^4.1.4",
     "@react-three/drei": "^10.0.8",
     "@react-three/fiber": "^9.1.2",
     "gsap": "^3.13.0",

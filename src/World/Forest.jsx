@@ -54,9 +54,9 @@ const GeometryCache = {
 
             // Important: Optimize material for instance rendering
             if (material) {
-                material.uniformsNeedUpdate = false;
+                material.uniformsNeedUpdate = true;
                 // Disable material features that cause additional draw calls
-                material.needsUpdate = false;
+                material.needsUpdate = true;
 
                 // Store in cache
                 this.materials.set(objectId, material);
@@ -619,7 +619,7 @@ export default function Forest() {
             instances.forEach(instance => {
                 // If it's a TrunkThinPlane, hide it initially
                 if (instance.userData.objectId === 'TrunkThinPlane') {
-                    instance.visible = false;
+                    instance.visible = true;
                 }
 
                 targetGroup.add(instance);
@@ -1015,7 +1015,7 @@ export default function Forest() {
                             const switchThreshold = thinInstance?.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
 
                             // TrunkThinPlane is visible if distance is greater or equal to threshold
-                            instance.visible = distance >= switchThreshold;
+                            instance.visible = true;
 
                             // Skip if corresponding TrunkThin already processed, otherwise update
                             if (thinInstance && !thinInstance.userData.processed) {

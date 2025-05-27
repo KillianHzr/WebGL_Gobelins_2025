@@ -45,7 +45,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.02;
+const MAX_SCROLL_SPEED = 0.1;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.005;
 const BASE_SENSITIVITY = 0.05;
@@ -88,7 +88,7 @@ function CameraController({children}) {
     // MODIFIÉ : Limitation du scroll arrière avec offset de sécurité
     const minAllowedPositionRef = useRef(0); // Position minimum de base (dernière étape validée)
     const maxProgressReachedRef = useRef(0); // Position maximale atteinte par l'utilisateur
-    const SCROLL_SAFETY_OFFSET = 2.0; // Offset de sécurité pour éviter de revenir trop près de l'interaction
+    const SCROLL_SAFETY_OFFSET = 0.0; // Offset de sécurité pour éviter de revenir trop près de l'interaction
     const validatedPositionsRef = useRef([]); // Tableau des positions validées avec leurs offsets
 
     // NOUVEAU : Référence pour la dernière position normalisée émise
@@ -118,7 +118,7 @@ function CameraController({children}) {
     const {debug, updateDebugConfig, getDebugConfigValue, clickListener, cameraModel, cameraAnimation} = useStore();
     const [isAtEndOfScroll, setIsAtEndOfScroll] = useState(false);
     const [hasTriggeredEndSwitch, setHasTriggeredEndSwitch] = useState(false);
-    const END_SCROLL_THRESHOLD = 0.925; // 98% du scroll considéré comme fin
+    const END_SCROLL_THRESHOLD = 0.925; // 92.5% du scroll considéré comme fin
 
     const endGroupVisible = useStore(state => state.endGroupVisible);
     const screenGroupVisible = useStore(state => state.screenGroupVisible);
@@ -191,13 +191,13 @@ function CameraController({children}) {
                 }
             } else {
                 console.warn("🎥 No camera found in GLB model, using default FOV");
-                camera.fov = 24; // FOV par défaut
+                camera.fov = 30; // FOV par défaut
                 camera.updateProjectionMatrix();
             }
         } catch (error) {
             console.error("🎥 Error extracting camera parameters:", error);
             // Appliquer des valeurs par défaut en cas d'erreur
-            camera.fov = 24;
+            camera.fov = 30;
             camera.updateProjectionMatrix();
         }
     };
@@ -633,7 +633,7 @@ function CameraController({children}) {
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
 
         // Définir une distance maximale
-        const TRIGGER_PROXIMITY = 3.5;
+        const TRIGGER_PROXIMITY = 4.75;
 
         // Fonction utilitaire pour vérifier les prérequis d'une interaction
         const checkInteractionPrerequisites = (interaction) => {
