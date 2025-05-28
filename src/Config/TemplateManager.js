@@ -384,20 +384,35 @@ class TemplateManager {
                 group: 'screen'
             },
 
-            // Template for adding new items
-            'GN_Instance_12351': {
-                id: 'Screen',
-                path: '/models/digital/screen/screentest.glb',
-                priority: 22,
-                useTextures: false,
-                group: 'screen'
-            },
+            // 'GN_Instance_12351': {
+            //     id: 'Screen',
+            //     path: '/models/digital/screen/Screen.glb',
+            //     priority: 22,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
+            // // Screens
+            // 'mesh002_1': {
+            //     id: 'ScreenOld',
+            //     path: '/models/digital/screen/ScreenOld.glb',
+            //     priority: 21,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
+            //
+            // 'ScreenEmission': {
+            //     id: 'ScreenEmission',
+            //     path: '/models/digital/screen/ScreenEmission.glb',
+            //     priority: 22,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
             // Screens
-            'mesh002_1': {
-                id: 'ScreenOld',
-                path: '/models/digital/screen/ScreenOld.glb',
+            'ScreenOldEmission': {
+                id: 'ScreenOldEmission',
+                path: '/models/digital/screen/ScreenOldEmission.glb',
                 priority: 21,
-                useTextures: false,
+                useTextures: true,
                 group: 'screen'
             },
             // // 'BranchEucalyptus_2': {

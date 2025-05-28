@@ -43,7 +43,9 @@ class TextureManager {
         this.materialPool = {};
 
         // Liste des noms d'objets qui recevront une texture d'émission
-        this.emissiveObjectNames = [];
+        this.emissiveObjectNames = [
+            'ScreenEmission'
+        ];
 
         // Configuration par défaut pour les émissions
         this.emissiveConfig = {
