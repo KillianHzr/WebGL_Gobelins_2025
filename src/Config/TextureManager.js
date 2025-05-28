@@ -453,7 +453,7 @@ class TextureManager {
         this.addPlantTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0, metalness: 0.0,
             envMapIntensity: 0.4,
-            castShadow: (Math.random() < 0.01),
+            // castShadow: false,
             color: '#1d6d35', useTextures: {
                 // baseColor: false,
             }
