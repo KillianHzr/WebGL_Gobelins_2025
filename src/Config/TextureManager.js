@@ -778,6 +778,11 @@ class TextureManager {
             castShadow: true,
             receivedShadow: true,
         });
+
+
+        this.addTextureMapping('DirectionPanel', 'primary', null, {
+            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color: "#3b1e02", castShadow: true, receivedShadow: true,
+        });
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
     }

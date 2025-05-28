@@ -117,7 +117,7 @@ class SceneObjectManager {
                 path: '/models/primary/DirectionPanel.glb',
                 scale: [0.60463, 0.60463, 0.60463],
                 interactive: true,
-                useTextures: true,
+                useTextures: false,
                 interaction: [{
                     type: INTERACTION_TYPES.LONG_PRESS,
                     text: "Maintiens",

@@ -170,7 +170,7 @@ export default function ScannerInterface() {
 
         if (interaction?.completeInteraction) {
             interaction.completeInteraction();
-            window.doJumpToChapter(0.66)
+            window.doJumpToChapter(1.2)
 
 
         }
