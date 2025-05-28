@@ -31,7 +31,7 @@ const DesktopLanding = ({ onEnterExperience, enabled = false }) => {
                 </button>
 
                 <p className="desktop-landing-message">
-                    Projet Gobelins pour La Quadrature du Net
+                    Pour une immersion complète, utilise un casque.
                 </p>
             </div>
         </div>

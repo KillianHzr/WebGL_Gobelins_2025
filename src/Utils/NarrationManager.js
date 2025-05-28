@@ -44,7 +44,7 @@ class NarrationManager {
             color: #F9FFFB;
             font-size: 16px;
             font-family: Roboto, sans-serif;
-            font-weight: 600;
+            font-weight: 700;
             font-style: italic;
             text-align: center;
             z-index: 12000;
