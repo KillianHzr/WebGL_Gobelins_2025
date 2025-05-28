@@ -1,9 +1,8 @@
-import {useEffect, useRef, useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import GUI from 'lil-gui';
 import * as THREE from 'three';
-import {getProject} from '@theatre/core';
 import guiConfig from '../Config/guiConfig';
 import {EventBus} from './EventEmitter';
 import guiFolderConfig from "../Config/guiFolderConfig.js";
@@ -57,11 +56,26 @@ const DebugInitializer = () => {
             guiFolderConfig.foldersVisibility[folderPath] = isVisible;
         }
 
+        // *** NOUVEAU *** S'assurer que les dossiers alwaysVisible restent visibles
+        if (guiFolderConfig.folderDependencies.alwaysVisible) {
+            guiFolderConfig.folderDependencies.alwaysVisible.forEach(folderPath => {
+                guiFolderConfig.foldersVisibility[folderPath] = true;
+                console.log(`Force visibility for always-visible folder: ${folderPath}`);
+            });
+        }
+
         return true;
     }, []);
 
     // Fonction pour définir la visibilité d'un dossier et ses dépendances
     const setFolderVisibility = useCallback((folderPath, isVisible) => {
+        // *** NOUVEAU *** Vérifier si le dossier doit toujours être visible
+        if (guiFolderConfig.folderDependencies.alwaysVisible &&
+            guiFolderConfig.folderDependencies.alwaysVisible.includes(folderPath)) {
+            console.log(`Skipping visibility change for always-visible folder: ${folderPath}`);
+            isVisible = true; // Forcer à true
+        }
+
         // Récupérer le dossier depuis la map de référence
         const folder = foldersRef.current.get(folderPath);
 
@@ -121,6 +135,13 @@ const DebugInitializer = () => {
                 setFolderVisibility(path, true);
             }
         });
+
+        // *** NOUVEAU *** Force la visibilité des dossiers alwaysVisible après application du profil
+        if (guiFolderConfig.folderDependencies.alwaysVisible) {
+            guiFolderConfig.folderDependencies.alwaysVisible.forEach(folderPath => {
+                setFolderVisibility(folderPath, true);
+            });
+        }
 
         return true;
     }, [setFolderVisibility]);
@@ -299,39 +320,6 @@ const DebugInitializer = () => {
             const cameraOffset = new THREE.Vector3(0, 2, 5);
             const cameraPos = interactionPos.clone().add(cameraOffset);
 
-            // Obtenir le mode de caméra actuel
-            const cameraMode = useStore.getState().visualization?.cameraMode || 'free';
-
-            // Si nous sommes en mode Theatre.js, mettre à jour l'état dans Theatre.js
-            if (cameraMode === 'theatre' || cameraMode === 'Theatre.js') {
-                // Téléporter la caméra
-                camera.position.set(cameraPos.x, cameraPos.y, cameraPos.z);
-                camera.lookAt(interactionPos);
-                camera.updateProjectionMatrix();
-
-                // Mettre à jour Theatre.js si disponible
-                if (window.__theatreStudio) {
-                    try {
-                        const project = getProject('WebGL_Gobelins');
-                        if (project) {
-                            const sheet = project.sheet('Scene');
-                            if (sheet) {
-                                const obj = sheet.object('Camera');
-                                if (obj) {
-                                    obj.set({
-                                        position: {
-                                            x: cameraPos.x, y: cameraPos.y, z: cameraPos.z
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                    } catch (error) {
-                        console.warn("Failed to update Theatre.js camera:", error);
-                    }
-                }
-            }
-
             // Mettre à jour la configuration
             safeUpdateConfig('camera.position.x.value', cameraPos.x);
             safeUpdateConfig('camera.position.y.value', cameraPos.y);
@@ -352,7 +340,7 @@ const DebugInitializer = () => {
 
     // Fonction pour créer une méthode addFolder améliorée avec tracking des dossiers
     const createEnhancedAddFolder = useCallback((gui, originalAddFolder) => {
-        return function(name) {
+        return function (name) {
             try {
                 const folder = originalAddFolder.call(this, name);
 
@@ -374,10 +362,23 @@ const DebugInitializer = () => {
                 // Stocker la référence au dossier avec son chemin complet
                 foldersRef.current.set(folderPath, folder);
 
+                // *** NOUVEAU *** Vérifier si le dossier doit toujours être visible
+                const shouldAlwaysBeVisible = guiFolderConfig.folderDependencies.alwaysVisible &&
+                    guiFolderConfig.folderDependencies.alwaysVisible.includes(folderPath);
+
                 // Appliquer la visibilité initiale selon la configuration
-                const isVisible = guiFolderConfig.foldersVisibility[folderPath] !== false;
+                let isVisible = guiFolderConfig.foldersVisibility[folderPath] !== false;
+
+                // Forcer la visibilité si c'est un dossier alwaysVisible
+                if (shouldAlwaysBeVisible) {
+                    isVisible = true;
+                    console.log(`Forcing visibility for always-visible folder: ${folderPath}`);
+                }
+
                 if (!isVisible && folder.domElement) {
                     folder.domElement.style.display = 'none';
+                } else if (isVisible && folder.domElement) {
+                    folder.domElement.style.display = 'block';
                 }
 
                 // Remplacer également la méthode addFolder pour ce nouveau dossier
@@ -389,9 +390,20 @@ const DebugInitializer = () => {
                 console.error(`Error creating folder '${name}':`, error);
                 // Retourner un objet factice qui ne provoquera pas d'erreur
                 return {
-                    add: () => ({ onChange: () => {} }),
-                    addColor: () => ({ onChange: () => {} }),
-                    addFolder: () => ({ add: () => ({ onChange: () => {} }) }),
+                    add: () => ({
+                        onChange: () => {
+                        }
+                    }),
+                    addColor: () => ({
+                        onChange: () => {
+                        }
+                    }),
+                    addFolder: () => ({
+                        add: () => ({
+                            onChange: () => {
+                            }
+                        })
+                    }),
                     folders: [],
                     domElement: null
                 };
@@ -494,7 +506,7 @@ const DebugInitializer = () => {
                     // Fallback if triggerEnding not available
                     state.setEndingLandingVisible(true);
                 }
-                console.log('Full ending triggered');
+                // // console.log('Full ending triggered');
             },
         };
 
@@ -535,7 +547,7 @@ const DebugInitializer = () => {
                     window.history.replaceState({}, '', url);
 
                     // Informer l'utilisateur qu'un rechargement est nécessaire pour appliquer le changement
-                    console.log(`Intro mode updated: ${value ? 'skipping' : 'showing'} intro. Reload page to apply changes.`);
+                    // console.log(`Intro mode updated: ${value ? 'skipping' : 'showing'} intro. Reload page to apply changes.`);
                     // Option: ajouter une notification visuelle indiquant qu'un rechargement est nécessaire
                 }
             });
@@ -672,6 +684,677 @@ const DebugInitializer = () => {
         }
     }, [jumpToChapter]);
 
+    // Dans DebugInitializer.jsx, ajouter cette fonction après setupChaptersControls
+
+// Setup des contrôles de Flashlight
+    const setupFlashlightControls = useCallback((gui) => {
+        const flashlightFolder = gui.addFolder('Flashlight');
+        const getDebugConfigValue = useStore.getState().getDebugConfigValue;
+
+        // Configuration des seuils d'activation de la lampe torche
+        const flashlightThresholdsRef = {
+            startActivation: 0.65,
+            fullActivation: 0.8
+        };
+
+        // Références pour le clignottement
+        const flickerRef = {
+            enabled: false,
+            intensity: 0.3,
+            frequency: 2.0,
+            irregularity: 0.7,
+            microFlicker: 0.2,
+            duration: 2.0,
+            patternIndex: 0,
+            isActive: false
+        };
+
+        // Patterns de clignottement prédéfinis
+        const flickerPatterns = [
+            [1, 0.3, 0.8, 0.1, 1, 0.5, 0.2, 1, 0.4, 0.9],
+            [0.8, 0.2, 1, 0.1, 0.6, 0.3, 1, 0.1, 0.4, 0.7, 1],
+            [1, 0.9, 0.8, 0.9, 1, 0.8, 0.9, 1, 0.7, 0.9, 1],
+            [1, 0.8, 0.6, 0.4, 0.2, 0.1, 0.3, 0.6, 0.8, 1]
+        ];
+
+        // Fonction pour déclencher le clignottement
+        const triggerFlicker = (duration = 0, patternIndex = null) => {
+            flickerRef.isActive = true;
+            flickerRef.startTime = performance.now() * 0.001;
+            flickerRef.duration = duration;
+
+            if (patternIndex !== null) {
+                flickerRef.patternIndex = patternIndex;
+            } else {
+                flickerRef.patternIndex = Math.floor(Math.random() * flickerPatterns.length);
+            }
+
+            flickerRef.noiseOffset = Math.random() * 1000;
+
+            // Émettre un événement pour que Flashlight.jsx puisse réagir
+            EventBus.trigger('flashlight-flicker-triggered', {
+                duration,
+                patternIndex: flickerRef.patternIndex,
+                flickerRef
+            });
+        };
+
+        // Objet proxy pour les contrôles
+        const flashlightProxy = {
+            // État principal
+            active: true,
+            autoActivate: true,
+            intensity: 0,
+            normalIntensity: guiConfig.flashlight.intensity.default,
+
+            // Seuils d'activation
+            startActivationThreshold: flashlightThresholdsRef.startActivation,
+            fullActivationThreshold: flashlightThresholdsRef.fullActivation,
+
+            // Paramètres de clignottement
+            flickerEnabled: flickerRef.enabled,
+            flickerIntensity: flickerRef.intensity,
+            flickerFrequency: flickerRef.frequency,
+            flickerIrregularity: flickerRef.irregularity,
+            flickerMicroFlicker: flickerRef.microFlicker,
+            flickerDuration: flickerRef.duration,
+            flickerPattern: 0,
+
+            // Fonctions de déclenchement
+            triggerFlicker1s: () => triggerFlicker(1, 0),
+            triggerFlicker3s: () => triggerFlicker(3, 1),
+            triggerFlicker5s: () => triggerFlicker(5, 2),
+            triggerFlickerInfinite: () => triggerFlicker(0, 3),
+            stopFlicker: () => {
+                flickerRef.isActive = false;
+                EventBus.trigger('flashlight-flicker-stopped');
+            },
+
+            // Paramètres de lumière
+            color: guiConfig.flashlight.color.default,
+            angle: guiConfig.flashlight.angle.default,
+            penumbra: guiConfig.flashlight.penumbra.default,
+            distance: guiConfig.flashlight.distance.default,
+            decay: guiConfig.flashlight.decay.default,
+
+            // Position et direction
+            offsetX: guiConfig.flashlight.position.offsetX.default,
+            offsetY: guiConfig.flashlight.position.offsetY.default,
+            offsetZ: guiConfig.flashlight.position.offsetZ.default,
+            directionX: guiConfig.flashlight.target.offsetX.default,
+            directionY: guiConfig.flashlight.target.offsetY.default,
+            directionZ: guiConfig.flashlight.target.offsetZ.default,
+            directionDistance: guiConfig.flashlight.target.distance.default,
+
+            // Ombres
+            shadowsEnabled: guiConfig.flashlight.shadows.enabled.default,
+            shadowMapSize: guiConfig.flashlight.shadows.mapSize.default,
+            shadowBias: guiConfig.flashlight.shadows.bias.default,
+            shadowNormalBias: guiConfig.flashlight.shadows.normalBias.default
+        };
+
+        // Contrôles de base
+        flashlightFolder.add(flashlightProxy, 'active')
+            .name('Activer')
+            .onChange(value => {
+                EventBus.trigger('flashlight-active-changed', {active: value});
+                safeUpdateConfig('flashlight.active.value', value);
+            });
+
+        flashlightFolder.add(flashlightProxy, 'autoActivate')
+            .name('Activation automatique')
+            .onChange(value => {
+                EventBus.trigger('flashlight-auto-activate-changed', {autoActivate: value});
+                safeUpdateConfig('flashlight.autoActivate.value', value);
+            });
+
+        // Section Clignottement
+        const flickerFolder = flashlightFolder.addFolder('🔦 Clignottement');
+
+        flickerFolder.add(flashlightProxy, 'flickerEnabled')
+            .name('Activer clignottement')
+            .onChange(value => {
+                flickerRef.enabled = value;
+                EventBus.trigger('flashlight-flicker-enabled-changed', {enabled: value});
+            });
+
+        flickerFolder.add(flashlightProxy, 'flickerIntensity', 0, 1, 0.01)
+            .name('Intensité clignottement')
+            .onChange(value => {
+                flickerRef.intensity = value;
+                EventBus.trigger('flashlight-flicker-intensity-changed', {intensity: value});
+            });
+
+        flickerFolder.add(flashlightProxy, 'flickerFrequency', 0.1, 10, 0.1)
+            .name('Fréquence (Hz)')
+            .onChange(value => {
+                flickerRef.frequency = value;
+                EventBus.trigger('flashlight-flicker-frequency-changed', {frequency: value});
+            });
+
+        flickerFolder.add(flashlightProxy, 'flickerIrregularity', 0, 1, 0.01)
+            .name('Irrégularité')
+            .onChange(value => {
+                flickerRef.irregularity = value;
+                EventBus.trigger('flashlight-flicker-irregularity-changed', {irregularity: value});
+            });
+
+        flickerFolder.add(flashlightProxy, 'flickerMicroFlicker', 0, 1, 0.01)
+            .name('Micro-clignotements')
+            .onChange(value => {
+                flickerRef.microFlicker = value;
+                EventBus.trigger('flashlight-flicker-micro-changed', {microFlicker: value});
+            });
+
+        flickerFolder.add(flashlightProxy, 'flickerPattern', {
+            'Rapide avec pauses': 0,
+            'Irrégulier': 1,
+            'Micro-clignotements': 2,
+            'Défaillance progressive': 3
+        })
+            .name('Pattern')
+            .onChange(value => {
+                flickerRef.patternIndex = parseInt(value);
+                EventBus.trigger('flashlight-flicker-pattern-changed', {patternIndex: flickerRef.patternIndex});
+            });
+
+        // Boutons de déclenchement
+        flickerFolder.add(flashlightProxy, 'triggerFlicker1s').name('⚡ Clignotter 1s (Rapide)');
+        flickerFolder.add(flashlightProxy, 'triggerFlicker3s').name('⚡ Clignotter 3s (Irrégulier)');
+        flickerFolder.add(flashlightProxy, 'triggerFlicker5s').name('⚡ Clignotter 5s (Micro)');
+        flickerFolder.add(flashlightProxy, 'triggerFlickerInfinite').name('⚡ Clignotter infini (Défaillance)');
+        flickerFolder.add(flashlightProxy, 'stopFlicker').name('🛑 Arrêter clignottement');
+
+        flickerFolder.add(flashlightProxy, 'flickerDuration', 0, 10, 0.1)
+            .name('Durée (s, 0=infini)')
+            .onChange(value => {
+                flickerRef.duration = value;
+            });
+
+        // Seuils d'activation
+        flashlightFolder.add(flashlightProxy, 'startActivationThreshold', 0, 1, 0.01)
+            .name('Seuil début activation')
+            .onChange(value => {
+                flashlightThresholdsRef.startActivation = value;
+                EventBus.trigger('flashlight-threshold-changed', {startActivation: value});
+            });
+
+        flashlightFolder.add(flashlightProxy, 'fullActivationThreshold', 0, 1, 0.01)
+            .name('Seuil activation complète')
+            .onChange(value => {
+                flashlightThresholdsRef.fullActivation = value;
+                EventBus.trigger('flashlight-threshold-changed', {fullActivation: value});
+            });
+
+        // Intensité
+        flashlightFolder.add(flashlightProxy, 'intensity', 0, guiConfig.flashlight.intensity.max, guiConfig.flashlight.intensity.step)
+            .name('Intensité actuelle')
+            .onChange(value => {
+                EventBus.trigger('flashlight-intensity-changed', {intensity: value});
+                safeUpdateConfig('flashlight.intensity.value', value);
+            });
+
+        flashlightFolder.add(flashlightProxy, 'normalIntensity', guiConfig.flashlight.intensity.min, guiConfig.flashlight.intensity.max, guiConfig.flashlight.intensity.step)
+            .name('Intensité normale')
+            .onChange(value => {
+                EventBus.trigger('flashlight-normal-intensity-changed', {normalIntensity: value});
+                safeUpdateConfig('flashlight.normalIntensity.value', value);
+            });
+
+        // Paramètres de lumière
+        const lightFolder = flashlightFolder.addFolder('Paramètres Lumière');
+
+        lightFolder.addColor(flashlightProxy, 'color')
+            .name('Couleur')
+            .onChange(value => {
+                EventBus.trigger('flashlight-color-changed', {color: value});
+            });
+
+        lightFolder.add(flashlightProxy, 'angle', guiConfig.flashlight.angle.min, guiConfig.flashlight.angle.max, guiConfig.flashlight.angle.step)
+            .name('Angle')
+            .onChange(value => {
+                EventBus.trigger('flashlight-angle-changed', {angle: value});
+            });
+
+        lightFolder.add(flashlightProxy, 'penumbra', guiConfig.flashlight.penumbra.min, guiConfig.flashlight.penumbra.max, guiConfig.flashlight.penumbra.step)
+            .name('Penumbra')
+            .onChange(value => {
+                EventBus.trigger('flashlight-penumbra-changed', {penumbra: value});
+            });
+
+        lightFolder.add(flashlightProxy, 'distance', guiConfig.flashlight.distance.min, guiConfig.flashlight.distance.max, guiConfig.flashlight.distance.step)
+            .name('Distance')
+            .onChange(value => {
+                EventBus.trigger('flashlight-distance-changed', {distance: value});
+            });
+
+        lightFolder.add(flashlightProxy, 'decay', guiConfig.flashlight.decay.min, guiConfig.flashlight.decay.max, guiConfig.flashlight.decay.step)
+            .name('Decay')
+            .onChange(value => {
+                EventBus.trigger('flashlight-decay-changed', {decay: value});
+            });
+
+        // Position et direction
+        const positionFolder = flashlightFolder.addFolder('Position');
+
+        positionFolder.add(flashlightProxy, 'offsetX', guiConfig.flashlight.position.offsetX.min, guiConfig.flashlight.position.offsetX.max, guiConfig.flashlight.position.offsetX.step)
+            .name(guiConfig.flashlight.position.offsetX.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-position-changed', {offsetX: value});
+            });
+
+        positionFolder.add(flashlightProxy, 'offsetY', guiConfig.flashlight.position.offsetY.min, guiConfig.flashlight.position.offsetY.max, guiConfig.flashlight.position.offsetY.step)
+            .name(guiConfig.flashlight.position.offsetY.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-position-changed', {offsetY: value});
+            });
+
+        positionFolder.add(flashlightProxy, 'offsetZ', guiConfig.flashlight.position.offsetZ.min, guiConfig.flashlight.position.offsetZ.max, guiConfig.flashlight.position.offsetZ.step)
+            .name(guiConfig.flashlight.position.offsetZ.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-position-changed', {offsetZ: value});
+            });
+
+        const directionFolder = flashlightFolder.addFolder('Direction');
+
+        directionFolder.add(flashlightProxy, 'directionX', guiConfig.flashlight.target.offsetX.min, guiConfig.flashlight.target.offsetX.max, guiConfig.flashlight.target.offsetX.step)
+            .name(guiConfig.flashlight.target.offsetX.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-direction-changed', {offsetX: value});
+            });
+
+        directionFolder.add(flashlightProxy, 'directionY', guiConfig.flashlight.target.offsetY.min, guiConfig.flashlight.target.offsetY.max, guiConfig.flashlight.target.offsetY.step)
+            .name(guiConfig.flashlight.target.offsetY.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-direction-changed', {offsetY: value});
+            });
+
+        directionFolder.add(flashlightProxy, 'directionZ', guiConfig.flashlight.target.offsetZ.min, guiConfig.flashlight.target.offsetZ.max, guiConfig.flashlight.target.offsetZ.step)
+            .name(guiConfig.flashlight.target.offsetZ.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-direction-changed', {offsetZ: value});
+            });
+
+        directionFolder.add(flashlightProxy, 'directionDistance', guiConfig.flashlight.target.distance.min, guiConfig.flashlight.target.distance.max, guiConfig.flashlight.target.distance.step)
+            .name(guiConfig.flashlight.target.distance.name)
+            .onChange(value => {
+                EventBus.trigger('flashlight-direction-changed', {distance: value});
+            });
+
+        // Ombres
+        const shadowsFolder = flashlightFolder.addFolder('Ombres');
+
+        shadowsFolder.add(flashlightProxy, 'shadowsEnabled')
+            .name('Activer ombres')
+            .onChange(value => {
+                EventBus.trigger('flashlight-shadows-changed', {enabled: value});
+            });
+
+        shadowsFolder.add(flashlightProxy, 'shadowMapSize', guiConfig.flashlight.shadows.mapSize.options)
+            .name('Taille shadow map')
+            .onChange(value => {
+                EventBus.trigger('flashlight-shadows-changed', {mapSize: value});
+            });
+
+        shadowsFolder.add(flashlightProxy, 'shadowBias', guiConfig.flashlight.shadows.bias.min, guiConfig.flashlight.shadows.bias.max, guiConfig.flashlight.shadows.bias.step)
+            .name('Shadow Bias')
+            .onChange(value => {
+                EventBus.trigger('flashlight-shadows-changed', {bias: value});
+            });
+
+        shadowsFolder.add(flashlightProxy, 'shadowNormalBias', guiConfig.flashlight.shadows.normalBias.min, guiConfig.flashlight.shadows.normalBias.max, guiConfig.flashlight.shadows.normalBias.step)
+            .name('Normal Bias')
+            .onChange(value => {
+                EventBus.trigger('flashlight-shadows-changed', {normalBias: value});
+            });
+
+        if (guiConfig.gui.closeFolders) {
+            flashlightFolder.close();
+            flickerFolder.close();
+            lightFolder.close();
+            positionFolder.close();
+            directionFolder.close();
+            shadowsFolder.close();
+        }
+
+    }, [safeUpdateConfig]);
+
+    // Ajouter cette fonction dans DebugInitializer.jsx après setupFlashlightControls
+
+// Setup des contrôles d'éclairage
+    const setupLightsControls = useCallback((gui) => {
+        const lightsFolder = gui.addFolder('Lights');
+
+        // Configuration par défaut basée sur guiConfig
+        const lightsProxy = {
+            // Mode d'éclairage
+            lightingMode: 'auto', // auto, day, night, transition1, transition2
+            forcedNightMode: false,
+
+            // Informations de debug (lecture seule)
+            currentMode: 'Day',
+            normalizedPosition: 0,
+            transitionFactor: 0,
+
+            // Lumière principale (point light)
+            mainLight: {
+                positionX: guiConfig.lights.defaults.Point[0].position.x,
+                positionY: guiConfig.lights.defaults.Point[0].position.y,
+                positionZ: guiConfig.lights.defaults.Point[0].position.z,
+                intensity: guiConfig.lights.defaults.Point[0].intensity,
+                color: guiConfig.lights.defaults.Point[0].color,
+                castShadow: guiConfig.lights.defaults.Point[0].castShadow,
+                visible: guiConfig.lights.defaults.Point[0].visible
+            },
+
+            // Lumière ambiante
+            ambientLight: {
+                intensity: guiConfig.lights.defaults.Ambient[0].intensity,
+                color: guiConfig.lights.defaults.Ambient[0].color,
+                visible: guiConfig.lights.defaults.Ambient[0].visible
+            },
+
+            // Seuils de transition
+            transitionThresholds: {
+                startDayToTransition1: 0.15,
+                startTransition1ToTransition2: 0.35,
+                startTransition2ToNight: 0.60,
+                completeNight: 0.80
+            },
+
+            // Paramètres d'ombre
+            shadows: {
+                mapSize: guiConfig.lights.shadows.mapSizes.default,
+                bias: guiConfig.lights.shadows.bias.default,
+                normalBias: guiConfig.lights.shadows.normalBias.default,
+                radius: guiConfig.lights.shadows.radius.default
+            },
+
+            // Fonctions utilitaires
+            resetToDay: () => {
+                lightsProxy.lightingMode = 'day';
+                EventBus.trigger('lights-mode-changed', {mode: 'day'});
+            },
+
+            resetToNight: () => {
+                lightsProxy.lightingMode = 'night';
+                EventBus.trigger('lights-mode-changed', {mode: 'night'});
+            },
+
+            resetToAuto: () => {
+                lightsProxy.lightingMode = 'auto';
+                EventBus.trigger('lights-mode-changed', {mode: 'auto'});
+            },
+
+            // Preset de lumières
+            applyPresetDay: () => {
+                lightsProxy.mainLight.intensity = 9000;
+                lightsProxy.mainLight.color = '#d6c0b3';
+                lightsProxy.ambientLight.intensity = 1.0;
+                lightsProxy.ambientLight.color = '#FFFFFF';
+                EventBus.trigger('lights-preset-applied', {preset: 'day'});
+            },
+
+            applyPresetNight: () => {
+                lightsProxy.mainLight.intensity = 13100;
+                lightsProxy.mainLight.color = '#6a74fb';
+                lightsProxy.ambientLight.intensity = 0.1;
+                lightsProxy.ambientLight.color = '#333366';
+                EventBus.trigger('lights-preset-applied', {preset: 'night'});
+            }
+        };
+
+        // Section Mode d'éclairage
+        const modeFolder = lightsFolder.addFolder('Mode Éclairage');
+
+        modeFolder.add(lightsProxy, 'lightingMode', {
+            'Automatique': 'auto',
+            'Jour': 'day',
+            'Coucher de soleil': 'transition1',
+            'Crépuscule': 'transition2',
+            'Nuit': 'night'
+        })
+            .name('Mode')
+            .onChange(value => {
+                EventBus.trigger('lights-mode-changed', {mode: value});
+                safeUpdateConfig('lights.mode.value', value);
+            });
+
+        modeFolder.add(lightsProxy, 'forcedNightMode')
+            .name('Forcer mode nuit')
+            .onChange(value => {
+                EventBus.trigger('lights-night-mode-forced', {forced: value});
+                safeUpdateConfig('lights.forcedNightMode.value', value);
+            });
+
+        // Section Debug Info (lecture seule)
+        const debugFolder = lightsFolder.addFolder('Debug Info');
+
+        const currentModeController = debugFolder.add(lightsProxy, 'currentMode').name('Mode actuel').disable();
+        const normalizedPosController = debugFolder.add(lightsProxy, 'normalizedPosition', 0, 1, 0.001).name('Position normalisée').disable();
+        const transitionFactorController = debugFolder.add(lightsProxy, 'transitionFactor', 0, 1, 0.001).name('Facteur transition').disable();
+
+        // Section Lumière principale
+        const mainLightFolder = lightsFolder.addFolder('Lumière Principale');
+
+        mainLightFolder.add(lightsProxy.mainLight, 'visible')
+            .name('Visible')
+            .onChange(value => {
+                EventBus.trigger('lights-main-visibility-changed', {visible: value});
+            });
+
+        // Position de la lumière principale
+        const mainPositionFolder = mainLightFolder.addFolder('Position');
+
+        mainPositionFolder.add(lightsProxy.mainLight, 'positionX', guiConfig.lights.position.x.min, guiConfig.lights.position.x.max, guiConfig.lights.position.x.step)
+            .name(guiConfig.lights.position.x.name)
+            .onChange(value => {
+                EventBus.trigger('lights-main-position-changed', {
+                    axis: 'x',
+                    value: value,
+                    position: [value, lightsProxy.mainLight.positionY, lightsProxy.mainLight.positionZ]
+                });
+            });
+
+        mainPositionFolder.add(lightsProxy.mainLight, 'positionY', guiConfig.lights.position.y.min, guiConfig.lights.position.y.max, guiConfig.lights.position.y.step)
+            .name(guiConfig.lights.position.y.name)
+            .onChange(value => {
+                EventBus.trigger('lights-main-position-changed', {
+                    axis: 'y',
+                    value: value,
+                    position: [lightsProxy.mainLight.positionX, value, lightsProxy.mainLight.positionZ]
+                });
+            });
+
+        mainPositionFolder.add(lightsProxy.mainLight, 'positionZ', guiConfig.lights.position.z.min, guiConfig.lights.position.z.max, guiConfig.lights.position.z.step)
+            .name(guiConfig.lights.position.z.name)
+            .onChange(value => {
+                EventBus.trigger('lights-main-position-changed', {
+                    axis: 'z',
+                    value: value,
+                    position: [lightsProxy.mainLight.positionX, lightsProxy.mainLight.positionY, value]
+                });
+            });
+
+        // Paramètres de la lumière principale
+        const mainIntensityController = mainLightFolder.add(lightsProxy.mainLight, 'intensity', guiConfig.lights.common.intensity.min, 50000, 100)
+            .name('Intensité')
+            .onChange(value => {
+                EventBus.trigger('lights-main-intensity-changed', {intensity: value});
+            });
+
+        mainLightFolder.addColor(lightsProxy.mainLight, 'color')
+            .name('Couleur')
+            .onChange(value => {
+                EventBus.trigger('lights-main-color-changed', {color: value});
+            });
+
+        mainLightFolder.add(lightsProxy.mainLight, 'castShadow')
+            .name('Projeter ombres')
+            .onChange(value => {
+                EventBus.trigger('lights-main-shadow-changed', {castShadow: value});
+            });
+
+        // Section Lumière ambiante
+        const ambientFolder = lightsFolder.addFolder('Lumière Ambiante');
+
+        ambientFolder.add(lightsProxy.ambientLight, 'visible')
+            .name('Visible')
+            .onChange(value => {
+                EventBus.trigger('lights-ambient-visibility-changed', {visible: value});
+            });
+
+        const ambientIntensityController = ambientFolder.add(lightsProxy.ambientLight, 'intensity', 0, 5, 0.01)
+            .name('Intensité')
+            .onChange(value => {
+                EventBus.trigger('lights-ambient-intensity-changed', {intensity: value});
+            });
+
+        ambientFolder.addColor(lightsProxy.ambientLight, 'color')
+            .name('Couleur')
+            .onChange(value => {
+                EventBus.trigger('lights-ambient-color-changed', {color: value});
+            });
+
+        // Section Seuils de transition
+        const thresholdsFolder = lightsFolder.addFolder('Seuils de Transition');
+
+        thresholdsFolder.add(lightsProxy.transitionThresholds, 'startDayToTransition1', 0, 1, 0.01)
+            .name('Début jour→coucher')
+            .onChange(value => {
+                EventBus.trigger('lights-threshold-changed', {
+                    threshold: 'startDayToTransition1',
+                    value: value
+                });
+            });
+
+        thresholdsFolder.add(lightsProxy.transitionThresholds, 'startTransition1ToTransition2', 0, 1, 0.01)
+            .name('Début coucher→crépuscule')
+            .onChange(value => {
+                EventBus.trigger('lights-threshold-changed', {
+                    threshold: 'startTransition1ToTransition2',
+                    value: value
+                });
+            });
+
+        thresholdsFolder.add(lightsProxy.transitionThresholds, 'startTransition2ToNight', 0, 1, 0.01)
+            .name('Début crépuscule→nuit')
+            .onChange(value => {
+                EventBus.trigger('lights-threshold-changed', {
+                    threshold: 'startTransition2ToNight',
+                    value: value
+                });
+            });
+
+        thresholdsFolder.add(lightsProxy.transitionThresholds, 'completeNight', 0, 1, 0.01)
+            .name('Nuit complète')
+            .onChange(value => {
+                EventBus.trigger('lights-threshold-changed', {
+                    threshold: 'completeNight',
+                    value: value
+                });
+            });
+
+        // Section Ombres
+        const shadowsFolder = lightsFolder.addFolder('Ombres');
+
+        shadowsFolder.add(lightsProxy.shadows, 'mapSize', guiConfig.lights.shadows.mapSizes.options)
+            .name(guiConfig.lights.shadows.mapSizes.name)
+            .onChange(value => {
+                EventBus.trigger('lights-shadow-mapsize-changed', {mapSize: value});
+            });
+
+        shadowsFolder.add(lightsProxy.shadows, 'bias', guiConfig.lights.shadows.bias.min, guiConfig.lights.shadows.bias.max, guiConfig.lights.shadows.bias.step)
+            .name(guiConfig.lights.shadows.bias.name)
+            .onChange(value => {
+                EventBus.trigger('lights-shadow-bias-changed', {bias: value});
+            });
+
+        shadowsFolder.add(lightsProxy.shadows, 'normalBias', guiConfig.lights.shadows.normalBias.min, guiConfig.lights.shadows.normalBias.max, guiConfig.lights.shadows.normalBias.step)
+            .name(guiConfig.lights.shadows.normalBias.name)
+            .onChange(value => {
+                EventBus.trigger('lights-shadow-normal-bias-changed', {normalBias: value});
+            });
+
+        shadowsFolder.add(lightsProxy.shadows, 'radius', guiConfig.lights.shadows.radius.min, guiConfig.lights.shadows.radius.max, guiConfig.lights.shadows.radius.step)
+            .name(guiConfig.lights.shadows.radius.name)
+            .onChange(value => {
+                EventBus.trigger('lights-shadow-radius-changed', {radius: value});
+            });
+
+        // Section Presets
+        const presetsFolder = lightsFolder.addFolder('Presets');
+
+        presetsFolder.add(lightsProxy, 'applyPresetDay').name('🌞 Appliquer Jour');
+        presetsFolder.add(lightsProxy, 'applyPresetNight').name('🌙 Appliquer Nuit');
+
+        // Section Actions rapides
+        const actionsFolder = lightsFolder.addFolder('Actions Rapides');
+
+        actionsFolder.add(lightsProxy, 'resetToDay').name('→ Mode Jour');
+        actionsFolder.add(lightsProxy, 'resetToNight').name('→ Mode Nuit');
+        actionsFolder.add(lightsProxy, 'resetToAuto').name('→ Mode Auto');
+
+        // Écouter les événements de mise à jour des valeurs debug
+        const updateDebugValues = () => {
+            // Cette fonction sera appelée par les événements pour mettre à jour l'affichage
+        };
+
+        // Écouter les événements de mise à jour depuis Lights.jsx
+        const subscriptions = [
+            EventBus.on('lights-values-updated', (data) => {
+                // Mettre à jour les valeurs affichées dans le GUI
+                lightsProxy.currentMode = data.currentMode || lightsProxy.currentMode;
+                lightsProxy.normalizedPosition = data.normalizedPosition || lightsProxy.normalizedPosition;
+                lightsProxy.transitionFactor = data.transitionFactor || lightsProxy.transitionFactor;
+
+                // Mettre à jour les contrôleurs si nécessaire
+                try {
+                    currentModeController.setValue(lightsProxy.currentMode);
+                    normalizedPosController.setValue(lightsProxy.normalizedPosition);
+                    transitionFactorController.setValue(lightsProxy.transitionFactor);
+
+                    if (data.mainLightIntensity !== undefined) {
+                        lightsProxy.mainLight.intensity = data.mainLightIntensity;
+                        mainIntensityController.setValue(data.mainLightIntensity);
+                    }
+
+                    if (data.ambientIntensity !== undefined) {
+                        lightsProxy.ambientLight.intensity = data.ambientIntensity;
+                        ambientIntensityController.setValue(data.ambientIntensity);
+                    }
+                } catch (error) {
+                    console.warn('Error updating GUI controllers:', error);
+                }
+            })
+        ];
+
+        // Nettoyer les subscriptions quand le GUI est détruit
+        const originalDestroy = gui.destroy;
+        gui.destroy = function () {
+            subscriptions.forEach(unsub => {
+                if (typeof unsub === 'function') {
+                    unsub();
+                }
+            });
+            originalDestroy.call(this);
+        };
+
+        if (guiConfig.gui.closeFolders) {
+            lightsFolder.close();
+            modeFolder.close();
+            debugFolder.close();
+            mainLightFolder.close();
+            mainPositionFolder.close();
+            ambientFolder.close();
+            thresholdsFolder.close();
+            shadowsFolder.close();
+            presetsFolder.close();
+            actionsFolder.close();
+        }
+
+    }, [safeUpdateConfig]);
+
     // Initialisation principale
     const initializeGui = useCallback(() => {
         if (!debug?.active || !debug?.showGui || initializedRef.current) return;
@@ -683,7 +1366,7 @@ const DebugInitializer = () => {
             initializeWithProfile(DEFAULT_PROFILE);
 
             // Créer le GUI
-            const gui = new GUI({ width: guiConfig.gui.width || 300 });
+            const gui = new GUI({width: guiConfig.gui.width || 300});
             gui.title(guiConfig.gui.title || 'Debug Controls');
 
             // Fermer tous les dossiers par défaut si configuré
@@ -705,7 +1388,7 @@ const DebugInitializer = () => {
                 });
             }
 
-            const profileSettings = { profile: DEFAULT_PROFILE };
+            const profileSettings = {profile: DEFAULT_PROFILE};
             guiConfigFolder.add(profileSettings, 'profile', profileOptions)
                 .name('Profil')
                 .onChange(value => applyProfile(value));
@@ -716,16 +1399,14 @@ const DebugInitializer = () => {
             setupInterfaceControls(gui);
             setupInteractionPoints(gui);
             setupChaptersControls(gui);
+            setupFlashlightControls(gui);
+            setupLightsControls(gui);
 
-            // Exposer CHAPTERS et jumpToChapter pour l'interopérabilité
-            if (typeof window !== 'undefined') {
-                window.CHAPTERS = CHAPTERS;
-                window.jumpToChapter = jumpToChapter;
-            }
 
             // Stocker l'interface GUI
             setGui(gui);
             console.log('Debug GUI initialized with profile:', DEFAULT_PROFILE);
+            console.log('Flashlight should be visible with alwaysVisible configuration');
 
         } catch (error) {
             console.error('Error initializing debug GUI:', error);
@@ -742,6 +1423,8 @@ const DebugInitializer = () => {
         setupInterfaceControls,
         setupInteractionPoints,
         setupChaptersControls,
+        setupFlashlightControls,
+        setupLightsControls,
         jumpToChapter,
         setGui
     ]);
@@ -753,7 +1436,7 @@ const DebugInitializer = () => {
         // Nettoyage lors du démontage
         return () => {
             try {
-                const { gui } = useStore.getState();
+                const {gui} = useStore.getState();
                 if (gui) {
                     gui.destroy();
                     setGui(null);

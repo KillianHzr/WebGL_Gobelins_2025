@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {EventBus, useEventEmitter} from '../Utils/EventEmitter';
@@ -54,9 +54,9 @@ const GeometryCache = {
 
             // Important: Optimize material for instance rendering
             if (material) {
-                material.uniformsNeedUpdate = false;
+                material.uniformsNeedUpdate = true;
                 // Disable material features that cause additional draw calls
-                material.needsUpdate = false;
+                material.needsUpdate = true;
 
                 // Store in cache
                 this.materials.set(objectId, material);
@@ -122,6 +122,11 @@ export default function Forest() {
     const setEndGroupVisible = useStore(state => state.setEndGroupVisible);
     const setScreenGroupVisible = useStore(state => state.setScreenGroupVisible);
 
+    // État pour attendre la stabilité de la caméra
+    const [cameraStable, setCameraStable] = useState(false);
+    const [forestLoadingStarted, setForestLoadingStarted] = useState(false);
+    const cameraStabilityTimerRef = useRef(null);
+
     // Refs for data and state
     const objectPositionsRef = useRef(null);
     const objectModelsRef = useRef(null);
@@ -146,6 +151,52 @@ export default function Forest() {
         totalInstances: 0, visibleInstances: 0, instancedMeshes: 0, lastUpdate: 0
     });
 
+    // Fonction pour vérifier la stabilité de la caméra
+    const checkCameraStability = () => {
+        console.log("Checking camera stability...");
+
+        // Nettoyer le timer précédent s'il existe
+        if (cameraStabilityTimerRef.current) {
+            clearTimeout(cameraStabilityTimerRef.current);
+        }
+
+        // Attendre 2 secondes de stabilité avant de considérer la caméra comme stable
+        cameraStabilityTimerRef.current = setTimeout(() => {
+            console.log("Camera is now stable - ready to load forest");
+            setCameraStable(true);
+        }, 2000);
+    };
+
+    // Écouteur pour les changements de mode de caméra
+    useEffect(() => {
+        const handleCameraModeChange = (data) => {
+            console.log("Forest received camera mode change event:", data);
+            setCameraStable(false);
+            checkCameraStability();
+        };
+
+        const handleCameraTeleport = (data) => {
+            console.log("Forest received camera teleport event:", data);
+            setCameraStable(false);
+            checkCameraStability();
+        };
+
+        // S'abonner aux événements de caméra
+        const cameraModeUnsubscribe = EventBus.on('camera-mode-changed', handleCameraModeChange);
+        const teleportUnsubscribe = EventBus.on('camera-teleported', handleCameraTeleport);
+
+        // Vérifier la stabilité initiale
+        checkCameraStability();
+
+        return () => {
+            if (cameraStabilityTimerRef.current) {
+                clearTimeout(cameraStabilityTimerRef.current);
+            }
+            cameraModeUnsubscribe();
+            teleportUnsubscribe();
+        };
+    }, []);
+
     // Function to toggle group visibility
     const toggleGroupVisibility = (groupRef, currentVisibility, setVisibility) => {
         const newVisibility = !currentVisibility;
@@ -157,6 +208,9 @@ export default function Forest() {
     };
 
     useEffect(() => {
+        // Marquer le chargement comme non terminé au début
+        window.forestLoadingComplete = false;
+
         // Create the main group and subgroups
         const forestGroup = new THREE.Group();
         forestGroup.name = 'Forest';
@@ -179,52 +233,48 @@ export default function Forest() {
         forestRef.current = forestGroup;
 
         // Update the store with the default visibility states
-        // setEndGroupVisible(true);
-        // setScreenGroupVisible(false);
+        setEndGroupVisible(true);
+        setScreenGroupVisible(false);
 
 
-
-        setEndGroupVisible(false);
-        setScreenGroupVisible(true);
+        //
+        // setEndGroupVisible(false);
+        // setScreenGroupVisible(true);
 
         // Trigger events to notify other components about initial visibility
-        EventBus.trigger('end-group-visibility-changed', true);
-        EventBus.trigger('screen-group-visibility-changed', false);
+        EventBus.trigger('end-group-visibility-changed', false);
+        EventBus.trigger('screen-group-visibility-changed', true);
 
-        console.log('Default scene group visibility set: endGroup=visible, screenGroup=hidden');
-
-        const endGroupUnsubscribe = EventBus.on('end-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: end-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
-        });
-        const screenGroupUnsubscribe = EventBus.on('screen-group-visibility-changed', (visible) => {
-            console.log(`Événement reçu: screen-group-visibility-changed -> ${visible ? 'visible' : 'caché'}`);
-        });
+        console.log('Forest groups created, waiting for camera stability before loading...');
 
         // Initialize worker pool
         initializeWorkerPool();
 
-        // Load forest data
-        initForestLoading();
-
-        // forceGroupVisibility(true);
-
-        // Clean up resources
         return () => {
             cleanupResources();
-            endGroupUnsubscribe();
-            screenGroupUnsubscribe();
         };
     }, [scene, camera, assetManager]);
 
+    // Effet pour commencer le chargement quand la caméra est stable
+    useEffect(() => {
+        if (cameraStable && !forestLoadingStarted) {
+            console.log("Camera is stable, starting forest loading...");
+            setForestLoadingStarted(true);
+            initForestLoading();
+        }
+    }, [cameraStable, forestLoadingStarted]);
 
     useEffect(() => {
         // Exposer les références des groupes au niveau global pour l'accès externe
         window.endGroupRef = endGroupRef;
         window.screenGroupRef = screenGroupRef;
         // Todo: set avec le state
-        window.endGroupRef.current.visible = false;
-        window.screenGroupRef.current.visible = true;
-
+        if (window.endGroupRef.current) {
+            window.endGroupRef.current.visible = endGroupVisible;
+        }
+        if (window.screenGroupRef.current) {
+            window.screenGroupRef.current.visible = screenGroupVisible;
+        }
         console.log('Références de groupe exposées:', {
             endGroupRef: endGroupRef.current, screenGroupRef: screenGroupRef.current
         });
@@ -234,6 +284,7 @@ export default function Forest() {
             delete window.screenGroupRef;
         };
     }, [endGroupVisible, screenGroupVisible]);
+
     const forceGroupVisibility = (force = true) => {
         // Update store
         useStore.getState().setEndGroupVisible(force);
@@ -263,6 +314,8 @@ export default function Forest() {
     // Main function for loading the forest
     const initForestLoading = async () => {
         try {
+            console.log("Starting forest loading process...");
+
             // 1. Load positions first
             const positions = await loadObjectPositions();
             if (!positions) {
@@ -481,6 +534,10 @@ export default function Forest() {
         if (queue.length === 0) {
             isLoadingRef.current = false;
 
+            // Marquer le chargement comme terminé
+            window.forestLoadingComplete = true;
+            console.log('Forest loading complete! CameraSwitcher can now safely interact with forest objects.');
+
             // Trigger event when everything is loaded
             EventBus.trigger('forest-ready');
             objectsLoadedRef.current = true;
@@ -536,7 +593,7 @@ export default function Forest() {
                 // Get the model
                 const model = objectModelsRef.current[objectId];
                 if (!model) {
-                    console.warn(`Model not found for ${objectId}`);
+                    // console.warn(`Model not found for ${objectId}`);
                     continue;
                 }
 
@@ -553,17 +610,13 @@ export default function Forest() {
             if (objectGroup === 'screen' || chunk.chunkId.includes('Screen')) {
                 targetGroup = screenGroupRef.current;
             }
-// Objects with "End" in their ID go to "End" group
+            // Objects with "End" in their ID go to "End" group
             else if (objectGroup === 'end' || chunk.chunkId.includes('End')) {
                 targetGroup = endGroupRef.current;
             }
 
             // Add instances to appropriate group and instance list
             instances.forEach(instance => {
-                // If it's a TrunkThinPlane, hide it initially
-                if (instance.userData.objectId === 'TrunkThinPlane') {
-                    instance.visible = false;
-                }
 
                 targetGroup.add(instance);
                 lodInstancesRef.current.push(instance);
@@ -666,15 +719,6 @@ export default function Forest() {
             instancedMesh.userData.objectId = objectId;
             instancedMesh.userData.chunkId = chunkId;
 
-            // For TrunkThin, calculate custom threshold
-            if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
-                // Extract chunkX and chunkZ from chunkId
-                const parts = chunkId.split('_');
-                const chunkX = parts.length > 1 ? parseInt(parts[1]) : 0;
-                const chunkZ = parts.length > 2 ? parseInt(parts[2]) : 0;
-
-                instancedMesh.userData.customSwitchThreshold = getChunkCustomThreshold(chunkId, chunkX, chunkZ);
-            }
 
             // Calculate bounding sphere for frustum culling
             const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
@@ -722,13 +766,7 @@ export default function Forest() {
         return TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE + variation;
     };
 
-    const resetProcessingFlags = () => {
-        lodInstancesRef.current.forEach(instance => {
-            if (instance.userData && (instance.userData.objectId === 'TrunkThin' || instance.userData.objectId === 'TrunkThinPlane')) {
-                instance.userData.processed = false;
-            }
-        });
-    };
+
 
     // IMPROVED: Optimized geometry simplification for fewer polygons while maintaining shape
     const createOptimizedGeometry = (geometry, detailLevel, objectId) => {
@@ -873,7 +911,7 @@ export default function Forest() {
         frameSkipRef.current = 0;
 
         // Reset processing flags
-        resetProcessingFlags();
+        // resetProcessingFlags();
 
         if (camera && lodInstancesRef.current.length > 0) {
             const cameraPosition = camera.position;
@@ -882,21 +920,15 @@ export default function Forest() {
             projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
             frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
 
-            // Create Maps to store TrunkThin and TrunkThinPlane objects by position
             const trunkThinMap = new Map();
-            const trunkThinPlaneMap = new Map();
 
             // Reset visible instance counter
             instanceStatsRef.current.visibleInstances = 0;
 
-            // First pass: identify and index all TrunkThin and TrunkThinPlane
             lodInstancesRef.current.forEach(instance => {
                 if (!instance.userData) return;
 
                 const objectId = instance.userData.objectId;
-
-                // Skip objects other than TrunkThin and TrunkThinPlane
-                if (objectId !== 'TrunkThin' && objectId !== 'TrunkThinPlane') return;
 
                 // Create key based on position to identify pairs
                 const posKey = instance.userData.chunkCenter ? `${instance.userData.chunkCenter.x.toFixed(2)}_${instance.userData.chunkCenter.y.toFixed(2)}_${instance.userData.chunkCenter.z.toFixed(2)}` : null;
@@ -911,9 +943,8 @@ export default function Forest() {
                         instance.userData.customSwitchThreshold = getChunkCustomThreshold(instance.userData.chunkId, chunkX || 0, chunkZ || 0);
                     }
                     trunkThinMap.set(posKey, instance);
-                } else if (objectId === 'TrunkThinPlane') {
-                    trunkThinPlaneMap.set(posKey, instance);
                 }
+
             });
 
             // Second pass: update visibility of all objects
@@ -929,68 +960,24 @@ export default function Forest() {
                 // Check frustum culling first (major optimization)
                 const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
 
-                const objectId = instance.userData.objectId;
 
-                // Special logic for TrunkThin and TrunkThinPlane
-                if (objectId === 'TrunkThin' || objectId === 'TrunkThinPlane') {
-                    // Create position key
-                    const posKey = `${chunkCenter.x.toFixed(2)}_${chunkCenter.y.toFixed(2)}_${chunkCenter.z.toFixed(2)}`;
 
-                    if (visible) {
-                        if (objectId === 'TrunkThin') {
-                            // Use custom threshold if available
-                            const switchThreshold = instance.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
+                // Standard logic for other objects
+                if (visible) {
+                    // Check if this LOD level should be visible based on distance
+                    const minDistance = instance.userData.minDistance || 0;
+                    const maxDistance = instance.userData.maxDistance || Infinity;
 
-                            // TrunkThin is visible if distance is less than custom threshold
-                            instance.visible = distance < switchThreshold;
+                    // Define visibility based on distance
+                    instance.visible = (distance >= minDistance && distance < maxDistance);
 
-                            // Update corresponding TrunkThinPlane if found
-                            const planeInstance = trunkThinPlaneMap.get(posKey);
-                            if (planeInstance) {
-                                planeInstance.visible = visible && distance >= switchThreshold;
-                                if (planeInstance.visible) {
-                                    instanceStatsRef.current.visibleInstances += planeInstance.count || 0;
-                                }
-                            }
-                        } else if (objectId === 'TrunkThinPlane') {
-                            // Find corresponding TrunkThin to get threshold
-                            const thinInstance = trunkThinMap.get(posKey);
-                            const switchThreshold = thinInstance?.userData.customSwitchThreshold || TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE;
-
-                            // TrunkThinPlane is visible if distance is greater or equal to threshold
-                            instance.visible = distance >= switchThreshold;
-
-                            // Skip if corresponding TrunkThin already processed, otherwise update
-                            if (thinInstance && !thinInstance.userData.processed) {
-                                thinInstance.visible = visible && distance < switchThreshold;
-                                thinInstance.userData.processed = true; // Mark as processed
-                                if (thinInstance.visible) {
-                                    instanceStatsRef.current.visibleInstances += thinInstance.count || 0;
-                                }
-                            }
-                        }
-                    } else {
-                        // Not in frustum, hide
-                        instance.visible = false;
+                    // Count visible instances
+                    if (instance.visible) {
+                        instanceStatsRef.current.visibleInstances += instance.count || 0;
                     }
                 } else {
-                    // Standard logic for other objects
-                    if (visible) {
-                        // Check if this LOD level should be visible based on distance
-                        const minDistance = instance.userData.minDistance || 0;
-                        const maxDistance = instance.userData.maxDistance || Infinity;
-
-                        // Define visibility based on distance
-                        instance.visible = (distance >= minDistance && distance < maxDistance);
-
-                        // Count visible instances
-                        if (instance.visible) {
-                            instanceStatsRef.current.visibleInstances += instance.count || 0;
-                        }
-                    } else {
-                        // Not in view frustum, hide it
-                        instance.visible = false;
-                    }
+                    // Not in view frustum, hide it
+                    instance.visible = false;
                 }
             });
 
@@ -1018,6 +1005,15 @@ export default function Forest() {
             cancelAnimationFrame(animationFrameIdRef.current);
             animationFrameIdRef.current = null;
         }
+
+        // Nettoyer le timer de stabilité
+        if (cameraStabilityTimerRef.current) {
+            clearTimeout(cameraStabilityTimerRef.current);
+            cameraStabilityTimerRef.current = null;
+        }
+
+        // Marquer le chargement comme non terminé
+        window.forestLoadingComplete = false;
 
         // Clean up event listeners
         EventBus.off('tree-positions-ready');

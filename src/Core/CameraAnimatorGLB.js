@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 
 export class CameraAnimatorGLB {
-    constructor(cameraModel, camera, targetAnimationName = 'Action.004') {
+    constructor(cameraModel, camera, targetAnimationName = 'Action.008') {
         this.camera = camera;
 
         // CORRECTION: Prendre en compte le nouveau format de modèle
         if (cameraModel && typeof cameraModel === 'object' && cameraModel.scene) {
+            // Nouveau format : {scene, animations}
             this.cameraModel = cameraModel.scene;
             this.animations = cameraModel.animations || [];
         } else {
+            // Ancien format : modèle direct
             this.cameraModel = cameraModel;
             this.animations = cameraModel?.animations || [];
         }
@@ -27,8 +29,134 @@ export class CameraAnimatorGLB {
             result: null
         };
 
+        // Variables pour le mouse look
+        this.mouseLook = {
+            enabled: true,
+            mouseX: 0.5, // Position normalisée (0-1)
+            mouseY: 0.5, // Position normalisée (0-1)
+            maxRotationX: Math.PI / 16  , // 22.5° vertical
+            maxRotationY: Math.PI / 9, // 22.5° horizontal
+            smoothing: 0.02, // Facteur de lissage
+            currentOffsetX: 0, // Rotation actuelle X
+            currentOffsetY: 0  // Rotation actuelle Y
+        };
+
+        // Initialiser le mouse tracking
+        this.initializeMouseTracking();
+
         // Initialiser les animations si disponibles
         this.initializeAnimation();
+    }
+
+    /**
+     * Initialise le système de suivi de la souris
+     */
+    initializeMouseTracking() {
+        // Écouter les mouvements de souris
+        const handleMouseMove = (event) => {
+            if (!this.mouseLook.enabled) return;
+
+            // Normaliser les coordonnées de la souris (0-1)
+            this.mouseLook.mouseX = event.clientX / window.innerWidth;
+            this.mouseLook.mouseY = event.clientY / window.innerHeight;
+
+            // Limiter les valeurs pour éviter les cas extrêmes
+            this.mouseLook.mouseX = Math.max(0, Math.min(1, this.mouseLook.mouseX));
+            this.mouseLook.mouseY = Math.max(0, Math.min(1, this.mouseLook.mouseY));
+        };
+
+        // Ajouter l'écouteur global
+        if (typeof window !== 'undefined') {
+            window.addEventListener('mousemove', handleMouseMove);
+
+            // Stocker la référence pour le nettoyage
+            this.mouseMoveHandler = handleMouseMove;
+        }
+    }
+
+    /**
+     * Calcule les offsets de rotation basés sur la position de la souris
+     */
+    calculateMouseLookOffsets() {
+        if (!this.mouseLook.enabled) {
+            return { offsetX: 0, offsetY: 0 };
+        }
+
+        const targetOffsetY = -((this.mouseLook.mouseX - 0.5) * 2 * this.mouseLook.maxRotationY);
+        const targetOffsetX = -((this.mouseLook.mouseY - 0.5) * 2 * this.mouseLook.maxRotationX);
+
+        // Appliquer le lissage pour éviter les mouvements brusques
+        this.mouseLook.currentOffsetX += (targetOffsetX - this.mouseLook.currentOffsetX) * this.mouseLook.smoothing;
+        this.mouseLook.currentOffsetY += (targetOffsetY - this.mouseLook.currentOffsetY) * this.mouseLook.smoothing;
+
+        return {
+            offsetX: this.mouseLook.currentOffsetX,
+            offsetY: this.mouseLook.currentOffsetY
+        };
+    }
+
+    /**
+     * Active/désactive le mouse look
+     */
+    setMouseLookEnabled(enabled) {
+        this.mouseLook.enabled = enabled;
+
+        // Si désactivé, réinitialiser progressivement les offsets
+        if (!enabled) {
+            const resetOffsets = () => {
+                this.mouseLook.currentOffsetX *= 0.9;
+                this.mouseLook.currentOffsetY *= 0.9;
+
+                if (Math.abs(this.mouseLook.currentOffsetX) > 0.001 ||
+                    Math.abs(this.mouseLook.currentOffsetY) > 0.001) {
+                    requestAnimationFrame(resetOffsets);
+                } else {
+                    this.mouseLook.currentOffsetX = 0;
+                    this.mouseLook.currentOffsetY = 0;
+                }
+            };
+            resetOffsets();
+        }
+    }
+
+    /**
+     * Configure les paramètres du mouse look
+     */
+    setMouseLookSettings(settings) {
+        if (settings.maxRotationX !== undefined) {
+            this.mouseLook.maxRotationX = settings.maxRotationX;
+        }
+        if (settings.maxRotationY !== undefined) {
+            this.mouseLook.maxRotationY = settings.maxRotationY;
+        }
+        if (settings.smoothing !== undefined) {
+            this.mouseLook.smoothing = Math.max(0.01, Math.min(1, settings.smoothing));
+        }
+    }
+
+    /**
+     * Obtient les paramètres actuels du mouse look
+     */
+    getMouseLookSettings() {
+        return {
+            enabled: this.mouseLook.enabled,
+            maxRotationX: this.mouseLook.maxRotationX,
+            maxRotationY: this.mouseLook.maxRotationY,
+            smoothing: this.mouseLook.smoothing,
+            currentOffsets: {
+                x: this.mouseLook.currentOffsetX,
+                y: this.mouseLook.currentOffsetY
+            }
+        };
+    }
+
+    /**
+     * Nettoie les écouteurs d'événements
+     */
+    dispose() {
+        if (this.mouseMoveHandler && typeof window !== 'undefined') {
+            window.removeEventListener('mousemove', this.mouseMoveHandler);
+        }
     }
 
     /**
@@ -87,8 +215,6 @@ export class CameraAnimatorGLB {
 
         return true;
     }
-
-    // Le reste du code CameraAnimatorGLB reste inchangé...
 
     /**
      * Extrait les données de position et rotation de chaque frame de l'animation
@@ -327,9 +453,12 @@ export class CameraAnimatorGLB {
     }
 
     /**
-     * Met à jour la caméra en fonction de l'animation
+     * Met à jour la caméra en fonction de l'animation ET du mouse look
      */
     updateCamera() {
+        let baseRotation = { x: 0, y: 0, z: 0 };
+        let basePosition = { x: 0, y: 0, z: 0 };
+
         // Si l'animation est disponible, utiliser la méthode directe
         if (this.mixer && this.animationAction) {
             // On a déjà mis à jour le mixer avec la nouvelle position dans setPosition()
@@ -351,40 +480,74 @@ export class CameraAnimatorGLB {
             }
 
             if (cameraObject) {
-                // Copier la transformation de la caméra du modèle à la caméra Three.js
-                this.camera.position.copy(cameraObject.position);
-                this.camera.rotation.copy(cameraObject.rotation);
-                this.camera.updateProjectionMatrix();
-
-                return {
-                    position: { ...cameraObject.position },
-                    rotation: { ...cameraObject.rotation }
+                // Récupérer la transformation de base de la caméra du modèle
+                basePosition = {
+                    x: cameraObject.position.x,
+                    y: cameraObject.position.y,
+                    z: cameraObject.position.z
+                };
+                baseRotation = {
+                    x: cameraObject.rotation.x,
+                    y: cameraObject.rotation.y,
+                    z: cameraObject.rotation.z
                 };
             }
+        } else {
+            // Fallback: Interpoler les données de frames
+            const frameData = this.interpolateFrames(this.position);
+            basePosition = frameData.position;
+            baseRotation = frameData.rotation;
         }
 
-        // Fallback: Interpoler les données de frames
-        const frameData = this.interpolateFrames(this.position);
-
-        // Appliquer à la caméra
+        // Appliquer la position de base
         this.camera.position.set(
-            frameData.position.x,
-            frameData.position.y,
-            frameData.position.z
+            basePosition.x,
+            basePosition.y,
+            basePosition.z
         );
 
-        this.camera.rotation.set(
-            frameData.rotation.x,
-            frameData.rotation.y,
-            frameData.rotation.z
+        // Calculer les offsets de mouse look
+        const mouseOffsets = this.calculateMouseLookOffsets();
+
+        // CORRIGÉ: Utiliser une approche par quaternions propre pour éviter les effets de gimbal
+        // 1. Créer le quaternion de base à partir de la rotation d'animation
+        const baseQuaternion = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(baseRotation.x, baseRotation.y, baseRotation.z, 'XYZ')
         );
+
+        // 2. Créer les quaternions pour les rotations additionnelles
+        // Rotation horizontale (yaw) autour de l'axe Y global
+        const yawQuaternion = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            mouseOffsets.offsetY
+        );
+
+        // Rotation verticale (pitch) autour de l'axe X global
+        const pitchQuaternion = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(1, 0, 0),
+            mouseOffsets.offsetX
+        );
+
+        // 3. Combiner les quaternions : Base * Yaw * Pitch
+        const finalQuaternion = new THREE.Quaternion()
+            .multiplyQuaternions(baseQuaternion, yawQuaternion)
+            .multiply(pitchQuaternion);
+
+        // 4. Appliquer le quaternion final à la caméra
+        this.camera.setRotationFromQuaternion(finalQuaternion);
 
         // Mettre à jour la matrice de la caméra
         this.camera.updateProjectionMatrix();
+        this.camera.updateMatrixWorld(true);
 
         return {
-            position: { ...frameData.position },
-            rotation: { ...frameData.rotation }
+            position: { ...basePosition },
+            rotation: {
+                x: this.camera.rotation.x,
+                y: this.camera.rotation.y,
+                z: this.camera.rotation.z
+            },
+            mouseOffsets
         };
     }
 

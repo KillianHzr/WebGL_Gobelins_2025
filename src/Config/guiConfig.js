@@ -144,7 +144,7 @@ const guiConfig = {
                 options: [256, 512, 1024, 2048, 4096]
             },
             bias: {
-                default: -0.001,
+                default: -0.01,
                 min: -0.01,
                 max: 0.01,
                 step: 0.0001
@@ -301,7 +301,7 @@ const guiConfig = {
                 max: 150,
                 step: 1,
                 name: "FOV",
-                default: 61.9
+                default: 30
             },
             near: {
                 min: 0.01,
@@ -315,7 +315,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 25
+                default: 100
             }
         },
         // Nouvelle section pour les paramètres de rendu de la caméra
@@ -503,7 +503,7 @@ const guiConfig = {
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 100
+                    default: 75
                 }
             }
         }

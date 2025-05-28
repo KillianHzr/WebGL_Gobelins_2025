@@ -53,6 +53,9 @@ const CameraSwitcher = () => {
     // Éviter les rendus en boucle et les changements multiples
     const isChangingMode = useRef(false);
 
+    // NOUVEAU: Timer pour émettre l'événement de stabilité après un délai
+    const stabilityTimerRef = useRef(null);
+
     // Find and store all forest-related objects
     const findAndStoreForestObjects = () => {
         if (!scene) return;
@@ -132,7 +135,17 @@ const CameraSwitcher = () => {
         target.updateProjectionMatrix();
     };
 
-    // Handle camera teleport events
+    // NOUVEAU: Fonction pour émettre l'événement de changement de mode de caméra
+    const emitCameraModeChange = (mode) => {
+        console.log(`CameraSwitcher: Emitting camera mode change to ${mode}`);
+        EventBus.trigger('camera-mode-changed', { mode, timestamp: Date.now() });
+
+        // Nettoyer le timer précédent s'il existe
+        if (stabilityTimerRef.current) {
+            clearTimeout(stabilityTimerRef.current);
+        }
+    };
+
     // Handle camera teleport events
     const handleCameraTeleport = (data) => {
         // Check if we have a free camera and appropriate data
@@ -164,6 +177,13 @@ const CameraSwitcher = () => {
             camera.updateProjectionMatrix();
 
             console.log("Free camera teleported successfully");
+
+            // NOUVEAU: Émettre un événement de téléportation
+            EventBus.trigger('camera-teleported', {
+                position: data.position,
+                target: data.target,
+                timestamp: Date.now()
+            });
         } else {
             console.warn("Free camera reference not available for teleportation");
         }
@@ -267,7 +287,6 @@ const CameraSwitcher = () => {
             gl.domElement.style.cursor = 'auto';
 
             clearAllKeys();
-            isDragging.current = false;
             setListenersInitialized(false);
         };
     };
@@ -300,12 +319,22 @@ const CameraSwitcher = () => {
         const teleportUnsubscribe = EventBus.on('camera-teleported', teleportHandler);
         const cameraModeUnsubscribe = EventBus.on('camera-mode-changed', cameraModeHandler);
 
+        // NOUVEAU: Émettre un événement initial de mode de caméra après un délai
+        setTimeout(() => {
+            emitCameraModeChange(cameraMode);
+        }, 100);
+
         return () => {
             // Clean up event listeners
             if (cleanup) cleanup();
             forestReadyUnsubscribe();
             teleportUnsubscribe();
             cameraModeUnsubscribe();
+
+            // NOUVEAU: Nettoyer le timer de stabilité
+            if (stabilityTimerRef.current) {
+                clearTimeout(stabilityTimerRef.current);
+            }
         };
     }, []);
 
@@ -327,6 +356,9 @@ const CameraSwitcher = () => {
         console.log(`CameraSwitcher: Camera mode is now ${cameraMode}`);
         lastKnownMode.current = cameraMode;
 
+        // NOUVEAU: Émettre l'événement de changement de mode
+        emitCameraModeChange(cameraMode);
+
         if (cameraMode === 'Free Camera') {
             // Switch to the free camera
             console.log('Switching to free camera mode');
@@ -340,14 +372,11 @@ const CameraSwitcher = () => {
                 x: euler.x, y: euler.y
             };
 
-            // No need to change cursor style
-
             // Track that we've made the switch
             hasInitiatedFirstSwitch.current = true;
 
             // Make the free camera the active camera in Three.js
             set({camera: freeCameraRef.current});
-
 
             // Disable scroll in ScrollControls
             const interaction = useStore.getState().interaction;
@@ -372,8 +401,6 @@ const CameraSwitcher = () => {
             // Switch back to TheatreJS camera
             console.log('Switching to TheatreJS camera mode');
 
-            // No need to reset cursor
-
             // Set the original camera back as active
             set({camera: theatreCameraRef.current});
 
@@ -383,7 +410,6 @@ const CameraSwitcher = () => {
                 interaction.setAllowScroll(true);
                 console.log("Re-enabling scroll for Theatre.js");
             }
-
 
             // Force visibility of all forest objects
             if (hasInitiatedFirstSwitch.current) {

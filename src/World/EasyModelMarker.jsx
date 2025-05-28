@@ -14,9 +14,9 @@ import {Object3D} from "three";
 const DEBUG_EASY_MARKER = false;
 
 // Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_EASY_MARKER) console.log(`[EasyModelMarker] ${message}`, ...args);
-};
+// const debugLog = (message, ...args) => {
+//     if (DEBUG_EASY_MARKER) console.log(`[EasyModelMarker] ${message}`, ...args);
+// };
 
 // Pool d'objets pour limiter les allocations
 const objectPool = {
@@ -37,7 +37,7 @@ const objectPool = {
 
 /**
  * Composant simple pour ajouter un marqueur à n'importe quel modèle 3D
- * Version refactorisée pour optimiser les performances
+ * Version refactorisée pour optimiser les performances et corriger l'application des textures
  */
 const EasyModelMarker = React.memo(function EasyModelMarker({
                                                                 // Props du modèle
@@ -102,7 +102,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Charger le modèle GLTF si un chemin est fourni, avec mise en cache
     const gltf = modelPath ? useGLTF(modelPath) : null;
 
-// Ajouter un useEffect pour gérer et logger les erreurs si nécessaire
+    // Ajouter un useEffect pour gérer et logger les erreurs si nécessaire
     useEffect(() => {
         if (modelPath && !gltf && DEBUG_EASY_MARKER) {
             console.warn(`Issue loading model from ${modelPath}`);
@@ -112,63 +112,48 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Utiliser le composant de debug pour l'effet de glow
     const {effectSettings, updateEffectRef} = GlowEffectDebug({objectRef: modelRef});
 
-    // Gestion des textures de manière optimisée
-    useEffect(() => {
-        // Vérifier si l'objet a un modèle 3D et si nous devons appliquer des textures
-        if (!modelRef.current || !gltf || !useTextures || !textureModelId || !isComponentMounted.current) return;
+    // NOUVEAU: Créer le modèle avec textures appliquées de manière synchrone
+    const processedModel = useMemo(() => {
+        if (!gltf || !gltf.scene) return null;
 
-        // Variable pour suivre si l'application des textures est en cours
-        let isApplyingTextures = true;
+        try {
+            // Cloner le modèle une seule fois
+            const clonedModel = gltf.scene.clone();
 
-        // Appliquer les textures au modèle
-        const applyTextures = async () => {
-            try {
-                await textureManager.applyTexturesToModel(textureModelId, modelRef.current);
-                // Vérifier si le composant est toujours monté avant de continuer
-                if (isComponentMounted.current && isApplyingTextures) {
-                    debugLog(`Textures appliquées à ${markerId} (${textureModelId})`);
-                }
-            } catch (error) {
-                if (isComponentMounted.current && isApplyingTextures) {
-                    console.error(`Erreur lors de l'application des textures:`, error);
-                }
+            // Appliquer les textures immédiatement si nécessaire
+            if (useTextures && textureModelId && textureManager) {
+                console.log(`🎨 Application des textures pour objet interactif: ${textureModelId}`);
+
+                // Application synchrone des textures sur le modèle cloné
+                textureManager.applyTexturesToModel(textureModelId, clonedModel, {
+                    preserveSpecialMaterials: true,
+                    optimizeGeometry: true
+                }).catch(error => {
+                    console.warn(`Erreur lors de l'application des textures pour ${textureModelId}:`, error);
+                });
             }
-        };
 
-        applyTextures();
+            // Configurer les propriétés d'ombre et autres
+            clonedModel.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
 
-        // Nettoyage - marquer comme non monté pour éviter les mises à jour sur un composant démonté
-        return () => {
-            isApplyingTextures = false;
-        };
-    }, [gltf, textureModelId, useTextures, markerId]);
+                    if (child.material) {
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
 
-    // Personnaliser les paramètres d'effet - optimisé pour éviter les recalculs inutiles
-    useEffect(() => {
-        if (!updateEffectRef || !updateEffectRef.current) return;
-
-        const effectRef = updateEffectRef.current;
-
-
-        if (effectRef.thickness !== outlineThickness) {
-            effectRef.thickness = outlineThickness;
+            return clonedModel;
+        } catch (error) {
+            console.error(`Erreur lors du traitement du modèle ${modelPath}:`, error);
+            return null;
         }
+    }, [gltf, textureModelId, useTextures, modelPath]);
 
-        if (effectRef.intensity !== outlineIntensity) {
-            effectRef.intensity = outlineIntensity;
-        }
-
-        // Désactiver complètement la pulsation si outlinePulse est false
-        const targetPulseSpeed = outlinePulse ? outlinePulseSpeed : 0;
-        if (effectRef.pulseSpeed !== targetPulseSpeed) {
-            effectRef.pulseSpeed = targetPulseSpeed;
-        }
-
-        // Force une mise à jour immédiate pour arrêter tout mouvement existant
-        if (!outlinePulse && effectRef.pulseRef) {
-            effectRef.pulseRef.current = {value: 0, direction: 0};
-        }
-    }, [outlineThickness, outlineIntensity, outlinePulseSpeed, outlinePulse, updateEffectRef]);
+    // SUPPRIMÉ: L'ancien useEffect pour l'application des textures
+    // car maintenant les textures sont appliquées dans useMemo ci-dessus
 
     // Surveiller l'état d'interaction de manière optimisée
     useEffect(() => {
@@ -183,7 +168,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         if (isCurrentInteractionTarget) {
-            debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
+            // debugLog(`${markerId} est en attente d'interaction: ${interaction.currentStep}`);
         }
     }, [interaction?.waitingForInteraction, interaction?.currentStep, requiredStep, markerId, isWaitingForInteraction]);
 
@@ -193,11 +178,12 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             setIsInteractionCompleted(false);
         }
     }, [interaction?.currentStep, isInteractionCompleted]);
+
     useEffect(() => {
         const handleInteractionProgress = (data) => {
             // Si cette progression concerne notre objet
             if (data.markerId === markerId && data.requiredStep === requiredStep) {
-                console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
+                // console.log(`[EasyModelMarker] Progression d'interaction pour ${markerId}`, data);
 
                 // Marquer que nous sommes dans une séquence d'interactions
                 setIsInInteractionSequence(true);
@@ -209,7 +195,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
         const handleSequenceComplete = (data) => {
             if (data.step === requiredStep) {
-                console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
+                // console.log(`[EasyModelMarker] Séquence d'interaction terminée pour ${markerId}`);
                 setIsInInteractionSequence(false);
             }
         };
@@ -223,11 +209,10 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             completeCleanup();
         };
     }, [markerId, requiredStep]);
-    // Gérer l'interaction avec le marqueur - optimisé avec useCallback
-    // Correction dans la fonction handleMarkerInteraction du fichier EasyModelMarker.jsx
 
+    // Gérer l'interaction avec le marqueur - optimisé avec useCallback
     const handleMarkerInteraction = useCallback((eventData = {}) => {
-        debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
+        // debugLog(`Interaction avec le marqueur ${markerId}:`, eventData);
 
         // Jouer un son si activé
         if (playSound && audioManager) {
@@ -248,14 +233,12 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             // Compléter l'interaction
             if (interaction.completeInteraction) {
                 interaction.completeInteraction();
-                debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
+                // debugLog(`Interaction ${markerId} complétée via ${eventData.type || markerType}`);
             }
 
             // Gérer les interfaces spécifiques si nécessaire
             if (interfaceToShow) {
-                // Important : Obtenir l'état actuel du store directement
-                // au lieu d'utiliser une référence potentiellement obsolète
-                debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
+                // debugLog(`Tentative d'affichage de l'interface: ${interfaceToShow}`);
 
                 // Obtenir une référence fraîche au store
                 const store = useStore.getState();
@@ -263,7 +246,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 // Afficher l'interface correspondante basée sur le type
                 switch (interfaceToShow) {
                     case 'scanner':
-                        debugLog(`Affichage de l'interface scanner`);
+                        // debugLog(`Affichage de l'interface scanner`);
                         if (store.interaction && typeof store.interaction.setShowScannerInterface === 'function') {
                             store.interaction.setShowScannerInterface(true);
                         } else {
@@ -271,7 +254,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         }
                         break;
                     case 'capture':
-                        debugLog(`Affichage de l'interface capture`);
+                        // debugLog(`Affichage de l'interface capture`);
                         if (store.interaction && typeof store.interaction.setShowCaptureInterface === 'function') {
                             store.interaction.setShowCaptureInterface(true);
                         } else {
@@ -279,11 +262,19 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                         }
                         break;
                     case 'blackScreen':
-                        debugLog(`Affichage de l'interface blackScreen`);
+                        // debugLog(`Affichage de l'interface blackScreen`);
                         if (store.interaction && typeof store.interaction.setShowBlackscreenInterface === 'function') {
                             store.interaction.setShowBlackscreenInterface(true);
                         } else {
                             console.error("L'interface blackScreen n'est pas disponible dans le store");
+                        }
+                        break;
+                    case 'image':
+                        console.log(`Préparation de l'affichage de l'interface image`);
+                        if (store.interaction && typeof store.interaction.setShowImageInterface === 'function') {
+                            store.interaction.setShowImageInterface(true);
+                        } else {
+                            console.error("L'interface image n'est pas disponible dans le store");
                         }
                         break;
                     default:
@@ -301,7 +292,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             // Si une animation post-interaction est définie, la déclencher
             if (postInteractionAnimation) {
                 try {
-                    debugLog(`Déclenchement de l'animation post-interaction: ${postInteractionAnimation.name}`);
+                    // debugLog(`Déclenchement de l'animation post-interaction: ${postInteractionAnimation.name}`);
                     EventBus.trigger(MARKER_EVENTS.INTERACTION_ANIMATION, {
                         id: markerId,
                         animationName: postInteractionAnimation.name,
@@ -325,7 +316,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 id: markerId,
                 type: markerType,
                 requiredStep: requiredStep,
-                interfaceToShow: interfaceToShow // Ajouter l'interface à afficher dans l'événement
+                interfaceToShow: interfaceToShow
             });
         } catch (error) {
             console.error(`Error triggering interaction complete event for ${markerId}:`, error);
@@ -342,12 +333,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         requiredStep
     ]);
 
-
     // Gérer le survol de l'objet
-    // Dans EnhancedObjectMarker.jsx, modifions la fonction handlePointerEnter dans le composant EasyModelMarker
-
     const handlePointerEnter = useCallback(() => {
-        console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
+        // console.log('[EnhancedObjectMarker] Pointer enter via callback', markerId, markerText);
 
         // Récupérer les interactions complétées du store
         const completedInteractions = useStore.getState().interaction.completedInteractions || {};
@@ -358,80 +346,62 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
             const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
 
             if (objectConfig && Array.isArray(objectConfig.interaction) && objectConfig.interaction.length > 1) {
-                // Trouver l'index de l'interaction actuelle
+                // Code de vérification des prérequis...
                 const currentInteractionIndex = objectConfig.interaction.findIndex(
                     interaction => interaction.requiredStep === requiredStep
                 );
 
-                // Si ce n'est pas la première interaction (index > 0), vérifier les prérequis
                 if (currentInteractionIndex > 0) {
-                    // Obtenir l'interaction précédente
                     const previousInteraction = objectConfig.interaction[currentInteractionIndex - 1];
-
-                    // Vérifier si l'interaction précédente a été complétée
                     const previousStepCompleted = Object.keys(completedInteractions).some(key =>
                         key.includes(previousInteraction.requiredStep) || key === previousInteraction.requiredStep
                     );
 
-                    // Si l'interaction précédente n'a pas été complétée, ignorer le survol
                     if (!previousStepCompleted) {
-                        console.log(`Survol de ${markerId} ignoré car l'étape précédente ${previousInteraction.requiredStep} n'a pas encore été complétée`);
-                        return; // Ne pas mettre à jour l'état de hovering
+                        return;
                     }
                 }
             }
 
-            // Cas spécifique pour AnimalPaws (maintenu pour compatibilité)
+            // Cas spécifiques pour les objets séquentiels
             if (markerId.includes('AnimalPaws') || markerId.includes('fifthStop')) {
-                // Vérifier si MultipleLeaf a été complété
                 const multipleLeafCompleted = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirdStop') ||
-                    key.includes('MultipleLeaf')
+                    key.includes('thirdStop') || key.includes('MultipleLeaf')
                 );
 
                 if (!multipleLeafCompleted) {
-                    console.log('Survol de AnimalPaws ignoré car MultipleLeaf n\'a pas encore été complété');
-                    return; // Ne pas mettre à jour l'état de hovering
+                    return;
                 }
             }
-            // Dans la fonction handlePointerEnter
-// Après le bloc pour AnimalPaws
+
+            // Autres cas spécifiques pour les rochers...
             if (markerId.includes('JumpRock2') || markerId.includes('twelfthStop')) {
-                // Vérifier si JumpRock1 a été complété
                 const rock1Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('eleventhStop') ||
-                    key.includes('JumpRock1')
+                    key.includes('eleventhStop') || key.includes('JumpRock1')
                 );
 
                 if (!rock1Completed) {
-                    console.log('Survol de JumpRock2 ignoré car JumpRock1 n\'a pas encore été complété');
-                    return; // Ne pas mettre à jour l'état de hovering
+                    return;
                 }
             }
 
             if (markerId.includes('JumpRock3') || markerId.includes('thirteenthStop')) {
-                // Vérifier si JumpRock2 a été complété
                 const rock2Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('twelfthStop') ||
-                    key.includes('JumpRock2')
+                    key.includes('twelfthStop') || key.includes('JumpRock2')
                 );
 
                 if (!rock2Completed) {
-                    console.log('Survol de JumpRock3 ignoré car JumpRock2 n\'a pas encore été complété');
-                    return; // Ne pas mettre à jour l'état de hovering
+                    return;
                 }
             }
 
             if (markerId.includes('JumpRock4') || markerId.includes('fourteenthStop')) {
-                // Vérifier si JumpRock3 a été complété
                 const rock3Completed = Object.keys(completedInteractions).some(key =>
-                    key.includes('thirteenthStop') ||
-                    key.includes('JumpRock3')
+                    key.includes('thirteenthStop') || key.includes('JumpRock3')
                 );
 
                 if (!rock3Completed) {
-                    console.log('Survol de JumpRock4 ignoré car JumpRock3 n\'a pas encore été complété');
-                    return; // Ne pas mettre à jour l'état de hovering
+                    return;
                 }
             }
         }
@@ -439,7 +409,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         setHovered(true);
 
         // Émettre un événement personnalisé pour le survol du marker
-        // Ceci sera utilisé par le NarrationTriggers pour déclencher les narrations
         EventBus.trigger('marker:pointer:enter', {
             id: markerId,
             type: 'hover',
@@ -449,24 +418,18 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Fonction pour déterminer si le contour doit être affiché
     const shouldShowOutline = useCallback(() => {
-        // Ne pas afficher le contour si showOutline est false
         if (!showOutline) {
             return false;
         }
 
-        // Si un requiredStep est spécifié, vérifier si nous sommes à cette étape
         if (requiredStep) {
             const isCorrectStep = interaction?.currentStep === requiredStep &&
                 interaction?.waitingForInteraction;
 
-            // Si nous sommes à l'étape correcte et en attente d'interaction
             if (isWaitingForInteraction || (isCorrectStep && !isInteractionCompleted)) {
-                // NOUVEAU: Émettre un événement seulement lors du premier affichage du contour
-                // pour éviter de déclencher plusieurs fois la narration
                 if (!outlineVisibleRef.current) {
                     outlineVisibleRef.current = true;
 
-                    // Émission d'un événement à la première apparition du contour
                     EventBus.trigger('outline:appeared', {
                         markerId: markerId,
                         requiredStep: requiredStep,
@@ -474,21 +437,24 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     });
                 }
                 return true;
-            }
-            // Sinon, n'afficher le contour que si alwaysVisible est true ou si l'élément est survolé
-            else {
-                // Réinitialiser le flag si le contour disparaît
-                if (outlineVisibleRef.current && !alwaysVisible && !hovered) {
+            } else {
+                if (outlineVisibleRef.current && !alwaysVisible && !isWaitingForInteraction) {
                     outlineVisibleRef.current = false;
                 }
                 return alwaysVisible;
             }
         } else {
-            // Comportement par défaut pour les objets sans requiredStep
-            return isWaitingForInteraction || alwaysVisible || hovered;
+            const shouldShow = isWaitingForInteraction || alwaysVisible || hovered;
+
+            if (shouldShow && !outlineVisibleRef.current) {
+                outlineVisibleRef.current = true;
+            } else if (!shouldShow && outlineVisibleRef.current) {
+                outlineVisibleRef.current = false;
+            }
+
+            return shouldShow;
         }
     }, [
-        isMarkerHovered,
         showOutline,
         requiredStep,
         interaction?.currentStep,
@@ -503,9 +469,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
     // Nouveau useEffect pour suivre les changements dans l'état d'attente d'interaction
     useEffect(() => {
         if (isWaitingForInteraction && requiredStep) {
-            // Utiliser un léger délai pour laisser le temps à l'interface de s'initialiser
             const timer = setTimeout(() => {
-                // Émettre l'événement d'interaction détectée automatiquement
                 EventBus.trigger('interaction:detected', {
                     markerId: markerId,
                     requiredStep: requiredStep,
@@ -520,18 +484,14 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Handlers pour le survol du marqueur optimisés avec useCallback
     const handleMarkerPointerEnter = useCallback((e) => {
-        debugLog(`Marker ${markerId} hover enter`);
         setIsMarkerHovered(true);
-        // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {
             e.stopPropagation();
         }
     }, [markerId]);
 
     const handleMarkerPointerLeave = useCallback((e) => {
-        debugLog(`Marker ${markerId} hover leave`);
         setIsMarkerHovered(false);
-        // S'assurer que la visibilité du marqueur est correctement gérée
         if (e && e.stopPropagation) {
             e.stopPropagation();
         }
@@ -539,14 +499,11 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Nettoyer les ressources lors du démontage
     useEffect(() => {
-        // Marquer le composant comme monté
         isComponentMounted.current = true;
 
         return () => {
-            // Marquer le composant comme démonté
             isComponentMounted.current = false;
 
-            // Nettoyer toutes les fonctions enregistrées
             cleanupFunctions.current.forEach(cleanup => {
                 try {
                     if (typeof cleanup === 'function') {
@@ -557,7 +514,6 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 }
             });
 
-            // Vider la liste
             cleanupFunctions.current = [];
         };
     }, []);
@@ -601,29 +557,31 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
 
     // Optimiser le rendu conditionnel de l'effet de contour
     const renderOutlineEffect = useMemo(() => {
-        if (active) return null;
+        const showOutlineNow = shouldShowOutline();
+
+        if (!showOutlineNow) return null;
 
         return (
             <OutlineEffect
                 objectRef={modelRef}
-                active={shouldShowOutline()}
-                color={effectSettings.color}
-                thickness={effectSettings.thickness}
-                intensity={effectSettings.intensity}
-                pulseSpeed={outlinePulse ? effectSettings.pulseSpeed : 0}
-                ref={updateEffectRef}
+                active={true}
+                color="#ffffff"
+                thickness={0.01}
+                intensity={1.3}
+                technique="geometry"
+                debug={false}
             />
         );
-    }, [active, shouldShowOutline, effectSettings, outlinePulse, updateEffectRef]);
+    }, [shouldShowOutline]);
 
     const shouldModelBeVisible = useMemo(() => {
-        // Si c'est une interaction de type DISABLE, le modèle ne doit pas être visible
         if (markerType === INTERACTION_TYPES.DISABLE) {
             return false;
         }
         return true;
     }, [markerType]);
-    // Optimiser le rendu conditionnel du modèle par défaut
+
+    // MODIFIÉ: Rendu du modèle par défaut utilisant le modèle pré-traité
     const renderDefaultModel = useMemo(() => {
         if (!shouldModelBeVisible) {
             return null;
@@ -645,16 +603,31 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     <meshStandardMaterial color={color}/>
                 </mesh>
             );
-        } else if (modelPath && gltf && gltf.scene) {
-            // Vérifier explicitement que gltf.scene existe avant de l'utiliser
+        } else if (modelPath && processedModel) {
+            // Utiliser le modèle pré-traité avec textures déjà appliquées
+            return (
+                <primitive
+                    ref={modelRef}
+                    object={processedModel}
+                    position={position}
+                    rotation={rotation}
+                    scale={scale}
+                    onPointerOver={() => setHovered(true)}
+                    onPointerOut={() => setHovered(false)}
+                    castShadow
+                    {...modelProps}
+                    {...nodeProps}
+                />
+            );
+        } else if (modelPath && gltf) {
+            // Fallback si le modèle pré-traité n'est pas disponible
             try {
-                // Utiliser une copie de la scène pour éviter des problèmes de partage
-                const clonedScene = gltf.scene.clone();
+                const fallbackModel = gltf.scene.clone();
 
                 return (
                     <primitive
                         ref={modelRef}
-                        object={clonedScene}
+                        object={fallbackModel}
                         position={position}
                         rotation={rotation}
                         scale={scale}
@@ -666,9 +639,8 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                     />
                 );
             } catch (error) {
-                // En cas d'erreur, afficher une boxGeometry comme fallback silencieux
                 if (DEBUG_EASY_MARKER) {
-                    console.warn(`Error cloning GLTF scene: ${error.message}`);
+                    console.warn(`Error with fallback model: ${error.message}`);
                 }
                 return (
                     <mesh
@@ -687,7 +659,7 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 );
             }
         } else if (modelPath) {
-            // Si modelPath est fourni mais gltf n'est pas encore chargé, afficher un placeholder
+            // Placeholder en attendant le chargement
             return (
                 <mesh
                     ref={modelRef}
@@ -706,20 +678,21 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
         }
 
         return null;
-    }, [shouldModelBeVisible, useBox, modelPath, gltf, position, rotation, scale, modelProps, nodeProps]);
+    }, [shouldModelBeVisible, useBox, modelPath, processedModel, gltf, position, rotation, scale, modelProps, nodeProps]);
+
     return (
         <ModelMarker {...markerProps}>
             {/* Si children est fourni, utiliser les enfants personnalisés */}
             {children ? (
-                <>
+                <group>
                     {renderChildren}
                     {renderOutlineEffect}
-                </>
+                </group>
             ) : (
-                <>
+                <group>
                     {renderDefaultModel}
                     {renderOutlineEffect}
-                </>
+                </group>
             )}
         </ModelMarker>
     );

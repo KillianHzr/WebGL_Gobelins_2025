@@ -5,12 +5,8 @@ import * as THREE from 'three';
 import {textureManager} from '../Config/TextureManager'; // Importer textureManager
 
 // Activer ou désactiver les logs pour le débogage
-const DEBUG_MATERIALS = true;
+const DEBUG_MATERIALS = false;
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (DEBUG_MATERIALS) console.log(`[MaterialControls] ${message}`, ...args);
-};
 
 export default function MaterialControls() {
     const {scene, gl} = useThree();
@@ -21,6 +17,11 @@ export default function MaterialControls() {
     const originalMeshStates = useRef({});  // Pour stocker l'état original des meshes
     const [materialsReady, setMaterialsReady] = useState(false);
     const materialToModelMap = useRef(new Map()); // Pour stocker la relation entre matériaux et modèles
+
+    // Refs pour le nettoyage
+    const timersRef = useRef(new Set());
+    const controllersRef = useRef(new Set());
+    const isCleaningUp = useRef(false);
 
     // Options pour les propriétés avec valeurs discrètes
     const sideOptions = {
@@ -63,6 +64,76 @@ export default function MaterialControls() {
         'IncrementWrap': THREE.IncrementWrapStencilOp,
         'DecrementWrap': THREE.DecrementWrapStencilOp,
         'Invert': THREE.InvertStencilOp
+    };
+
+    // Fonction de nettoyage centralisée
+    const cleanup = () => {
+        if (isCleaningUp.current) return;
+        isCleaningUp.current = true;
+
+        try {
+            // Nettoyer tous les timers
+            timersRef.current.forEach(timer => {
+                clearTimeout(timer);
+                clearInterval(timer);
+            });
+            timersRef.current.clear();
+
+            // Nettoyer les contrôleurs GUI
+            controllersRef.current.forEach(controller => {
+                try {
+                    if (controller && controller.destroy) {
+                        controller.destroy();
+                    }
+                } catch (e) {
+                    console.warn("Error destroying controller:", e);
+                }
+            });
+            controllersRef.current.clear();
+
+            // Nettoyer les dossiers GUI
+            if (gui) {
+                Object.values(foldersRef.current).forEach(folder => {
+                    try {
+                        if (folder && folder.destroy) {
+                            folder.destroy();
+                        } else if (gui.removeFolder) {
+                            gui.removeFolder(folder);
+                        }
+                    } catch (e) {
+                        console.warn("Error removing folder:", e);
+                    }
+                });
+            }
+            foldersRef.current = {};
+
+            // Nettoyer les Maps et refs
+            materialToModelMap.current.clear();
+            originalMaterialStates.current = {};
+            originalMeshStates.current = {};
+
+            initialized.current = false;
+        } catch (error) {
+            console.warn("Error during cleanup:", error);
+        } finally {
+            isCleaningUp.current = false;
+        }
+    };
+
+    // Fonction utilitaire pour gérer les timers
+    const setManagedTimeout = (callback, delay) => {
+        const timer = setTimeout(() => {
+            timersRef.current.delete(timer);
+            callback();
+        }, delay);
+        timersRef.current.add(timer);
+        return timer;
+    };
+
+    const setManagedInterval = (callback, delay) => {
+        const timer = setInterval(callback, delay);
+        timersRef.current.add(timer);
+        return timer;
     };
 
     // Fonction utilitaire pour extraire le model ID à partir du nom de l'objet de manière plus robuste
@@ -308,7 +379,7 @@ export default function MaterialControls() {
             });
         });
 
-        debugLog(`Collected ${materials.size} unique materials and ${meshes.size} meshes from scene`);
+        // debugLog(`Collected ${materials.size} unique materials and ${meshes.size} meshes from scene`);
         return {
             materials: Array.from(materials.values()),
             meshes
@@ -428,7 +499,7 @@ export default function MaterialControls() {
             .map(uuid => meshesMap.get(uuid))
             .filter(mesh => mesh && mesh.material);
 
-        debugLog(`Propagating properties to ${childMeshes.length} children of ${material._objectName}`);
+        // debugLog(`Propagating properties to ${childMeshes.length} children of ${material._objectName}`);
 
         childMeshes.forEach(childMesh => {
             const childMaterial = childMesh.material;
@@ -463,7 +534,7 @@ export default function MaterialControls() {
             const tmProps = textureManager.getMaterialProperties(modelId);
             if (!tmProps) return;
 
-            debugLog(`Applying TextureManager properties to ${modelId}:`, tmProps);
+            // debugLog(`Applying TextureManager properties to ${modelId}:`, tmProps);
 
             // Appliquer les propriétés au matériau
             if (tmProps.roughness !== undefined && material.roughness !== undefined)
@@ -518,18 +589,21 @@ export default function MaterialControls() {
         });
     };
 
-    // Observer les changements dans le mode debug
+    // Observer les changements dans le mode debug - Optimisé pour éviter les re-renders
     useEffect(() => {
-        if (debug?.active && materialsReady) {
+        if (debug?.active && materialsReady && !isCleaningUp.current) {
             // Appliquer les propriétés du TextureManager chaque fois que le debug est activé
             applyTextureManagerPropertiesToAllMaterials();
         }
     }, [debug?.active, materialsReady]);
 
-    // Hook pour vérifier la disponibilité des matériaux
+    // Hook pour vérifier la disponibilité des matériaux - Optimisé
     useEffect(() => {
-        const checkMaterialsReadyInterval = setInterval(() => {
-            if (isSceneReady()) {
+        if (materialsReady || isCleaningUp.current) return;
+
+        const checkMaterialsReadyInterval = setManagedInterval(() => {
+            if (isSceneReady() && !isCleaningUp.current) {
+                timersRef.current.delete(checkMaterialsReadyInterval);
                 clearInterval(checkMaterialsReadyInterval);
                 setMaterialsReady(true);
 
@@ -540,10 +614,13 @@ export default function MaterialControls() {
             }
         }, 500); // Vérifier toutes les 500ms
 
-        return () => clearInterval(checkMaterialsReadyInterval);
-    }, [scene, debug]);
+        return () => {
+            timersRef.current.delete(checkMaterialsReadyInterval);
+            clearInterval(checkMaterialsReadyInterval);
+        };
+    }, [scene, debug?.active]);
 
-    // Initialisation des contrôles GUI pour les matériaux
+    // Initialisation des contrôles GUI pour les matériaux - Optimisé
     useEffect(() => {
         // Vérifier si le debug est activé et l'interface GUI disponible
         // Et si les matériaux sont prêts
@@ -552,7 +629,8 @@ export default function MaterialControls() {
             !debug?.showGui ||
             !gui ||
             typeof gui.addFolder !== 'function' ||
-            initialized.current
+            initialized.current ||
+            isCleaningUp.current
         ) {
             return;
         }
@@ -560,8 +638,10 @@ export default function MaterialControls() {
         // Appliquer les propriétés du TextureManager à tous les matériaux dès que le debug est activé
         applyTextureManagerPropertiesToAllMaterials();
 
-        // Utiliser un timeout supplémentaire pour s'assurer que tout est chargé
-        const initTimer = setTimeout(() => {
+        // Utiliser un timeout avec gestion de nettoyage
+        const initTimer = setManagedTimeout(() => {
+            if (isCleaningUp.current) return;
+
             try {
                 console.log("Setting up individual material controls with TextureManager integration");
 
@@ -609,17 +689,24 @@ export default function MaterialControls() {
                     };
 
                     // LOD global
-                    texManagerFolder.add(texManagerControls, 'setGlobalLOD', ['high', 'medium', 'low'])
+                    const lodController = texManagerFolder.add(texManagerControls, 'setGlobalLOD', ['high', 'medium', 'low'])
                         .name('Global LOD Level')
                         .onChange(value => {
-                            textureManager.setGlobalLOD(value);
-                            textureManager.refreshMaterialsWithCurrentLOD();
+                            if (!isCleaningUp.current) {
+                                textureManager.setGlobalLOD(value);
+                                textureManager.refreshMaterialsWithCurrentLOD();
+                            }
                         });
+                    controllersRef.current.add(lodController);
 
                     // Boutons utilitaires
-                    texManagerFolder.add(texManagerControls, 'logMaterialProperties').name('Log Material Properties');
-                    texManagerFolder.add(texManagerControls, 'logTextureStats').name('Log Texture Stats');
-                    texManagerFolder.add(texManagerControls, 'analyzePerfAndSuggestOptimizations').name('Analyze & Optimize');
+                    const logPropsController = texManagerFolder.add(texManagerControls, 'logMaterialProperties').name('Log Material Properties');
+                    const logStatsController = texManagerFolder.add(texManagerControls, 'logTextureStats').name('Log Texture Stats');
+                    const analyzeController = texManagerFolder.add(texManagerControls, 'analyzePerfAndSuggestOptimizations').name('Analyze & Optimize');
+
+                    controllersRef.current.add(logPropsController);
+                    controllersRef.current.add(logStatsController);
+                    controllersRef.current.add(analyzeController);
                 }
 
                 texManagerFolder.close();
@@ -638,6 +725,7 @@ export default function MaterialControls() {
 
                     // Actions globales
                     applyToAllMaterials: () => {
+                        if (isCleaningUp.current) return;
                         allMaterials.forEach(material => {
                             if (material.wireframe !== undefined) material.wireframe = globalMaterialControls.wireframe;
                             if (material.flatShading !== undefined) material.flatShading = globalMaterialControls.flatShading;
@@ -651,7 +739,7 @@ export default function MaterialControls() {
 
                             // Mise à jour dans TextureManager
                             const modelId = materialToModelMap.current.get(material.uuid);
-                            if (modelId && textureManager) {
+                            if (modelId && textureManager && !isCleaningUp.current) {
                                 textureManager.updateMaterialProperties(modelId, {
                                     roughness: globalMaterialControls.roughness,
                                     metalness: globalMaterialControls.metalness,
@@ -662,30 +750,34 @@ export default function MaterialControls() {
                     },
 
                     resetAllMaterials: () => {
+                        if (isCleaningUp.current) return;
                         allMaterials.forEach(material => {
                             resetMaterial(material);
                         });
                     }
                 };
 
-                // Ajouter les contrôles globaux
-                globalSettingsFolder.add(globalMaterialControls, 'wireframe').name('Global Wireframe');
-                globalSettingsFolder.add(globalMaterialControls, 'flatShading').name('Global Flat Shading');
-                globalSettingsFolder.add(globalMaterialControls, 'transparent').name('Global Transparency');
-                globalSettingsFolder.add(globalMaterialControls, 'opacity', 0, 1, 0.01).name('Global Opacity');
-                globalSettingsFolder.add(globalMaterialControls, 'side', sideOptions).name('Global Side');
-                globalSettingsFolder.add(globalMaterialControls, 'envMapIntensity', 0, 5, 0.1).name('Global EnvMap Intensity');
-                globalSettingsFolder.add(globalMaterialControls, 'roughness', 0, 1, 0.01).name('Global Roughness');
-                globalSettingsFolder.add(globalMaterialControls, 'metalness', 0, 1, 0.01).name('Global Metalness');
+                // Ajouter les contrôles globaux avec nettoyage
+                const globalControllers = [
+                    globalSettingsFolder.add(globalMaterialControls, 'wireframe').name('Global Wireframe'),
+                    globalSettingsFolder.add(globalMaterialControls, 'flatShading').name('Global Flat Shading'),
+                    globalSettingsFolder.add(globalMaterialControls, 'transparent').name('Global Transparency'),
+                    globalSettingsFolder.add(globalMaterialControls, 'opacity', 0, 1, 0.01).name('Global Opacity'),
+                    globalSettingsFolder.add(globalMaterialControls, 'side', sideOptions).name('Global Side'),
+                    globalSettingsFolder.add(globalMaterialControls, 'envMapIntensity', 0, 5, 0.1).name('Global EnvMap Intensity'),
+                    globalSettingsFolder.add(globalMaterialControls, 'roughness', 0, 1, 0.01).name('Global Roughness'),
+                    globalSettingsFolder.add(globalMaterialControls, 'metalness', 0, 1, 0.01).name('Global Metalness'),
+                    globalSettingsFolder.add(globalMaterialControls, 'applyToAllMaterials').name('Apply To All Materials'),
+                    globalSettingsFolder.add(globalMaterialControls, 'resetAllMaterials').name('Reset All Materials')
+                ];
 
-                // Boutons d'action
-                globalSettingsFolder.add(globalMaterialControls, 'applyToAllMaterials').name('Apply To All Materials');
-                globalSettingsFolder.add(globalMaterialControls, 'resetAllMaterials').name('Reset All Materials');
-
+                globalControllers.forEach(controller => controllersRef.current.add(controller));
                 globalSettingsFolder.close();
 
                 // Créer un sous-dossier pour chaque matériau unique
                 allMaterials.forEach((material) => {
+                    if (isCleaningUp.current) return;
+
                     // Utiliser le nom de l'objet pour le dossier
                     const folderName = material._objectName || 'Unknown Material';
                     if (folderName !== "Unknown Material" && folderName !== "Unknown") {
@@ -700,7 +792,7 @@ export default function MaterialControls() {
                         if (textureManager && modelId) {
                             try {
                                 textureManagerProps = textureManager.getMaterialProperties(modelId) || {};
-                                debugLog(`Found TextureManager properties for ${modelId}:`, textureManagerProps);
+                                // debugLog(`Found TextureManager properties for ${modelId}:`, textureManagerProps);
                             } catch (error) {
                                 console.warn(`Error getting properties from TextureManager for ${modelId}:`, error);
                             }
@@ -801,13 +893,14 @@ export default function MaterialControls() {
 
                             // Reset button action
                             reset: () => {
+                                if (isCleaningUp.current) return;
                                 resetMaterial(material);
                                 material._meshRefs?.forEach(meshUuid => resetMeshShadowProperties(meshUuid, meshesMap));
 
                                 // Update GUI controllers
                                 for (const key in materialControls) {
-                                    const controller = materialFolder.__controllers.find(c => c.property === key);
-                                    if (controller) controller.updateDisplay();
+                                    const controller = materialFolder.__controllers?.find(c => c.property === key);
+                                    if (controller && controller.updateDisplay) controller.updateDisplay();
                                 }
 
                                 // Force re-render
@@ -830,557 +923,643 @@ export default function MaterialControls() {
                         // ---- BASIC PROPERTIES ----
                         // Couleur de base si disponible
                         if (material.color) {
-                            basicFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
-                                try {
-                                    material.color.set(value);
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating color for ${material._objectName}:`, error);
+                            const colorController = basicFolder.addColor(materialControls, 'color').name('Color').onChange(value => {
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.color.set(value);
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating color for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                            controllersRef.current.add(colorController);
                         }
 
                         // Wireframe, transparency, side
-                        basicFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
-                            try {
-                                material.wireframe = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                        const wireframeController = basicFolder.add(materialControls, 'wireframe').name('Wireframe').onChange(value => {
+                            if (!isCleaningUp.current) {
+                                try {
+                                    material.wireframe = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating wireframe for ${material._objectName}:`, error);
+                                }
                             }
                         });
+                        controllersRef.current.add(wireframeController);
 
-                        basicFolder.add(materialControls, 'transparent').name('Transparent').onChange(value => {
-                            try {
-                                material.transparent = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating transparency for ${material._objectName}:`, error);
+                        const transparentController = basicFolder.add(materialControls, 'transparent').name('Transparent').onChange(value => {
+                            if (!isCleaningUp.current) {
+                                try {
+                                    material.transparent = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating transparency for ${material._objectName}:`, error);
+                                }
                             }
                         });
+                        controllersRef.current.add(transparentController);
 
-                        basicFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
-                            try {
-                                material.opacity = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                        const opacityController = basicFolder.add(materialControls, 'opacity', 0, 1, 0.01).name('Opacity').onChange(value => {
+                            if (!isCleaningUp.current) {
+                                try {
+                                    material.opacity = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating opacity for ${material._objectName}:`, error);
+                                }
                             }
                         });
+                        controllersRef.current.add(opacityController);
 
-                        basicFolder.add(materialControls, 'side', sideOptions).name('Side').onChange(value => {
-                            try {
-                                material.side = parseInt(value);
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating side for ${material._objectName}:`, error);
+                        const sideController = basicFolder.add(materialControls, 'side', sideOptions).name('Side').onChange(value => {
+                            if (!isCleaningUp.current) {
+                                try {
+                                    material.side = parseInt(value);
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating side for ${material._objectName}:`, error);
+                                }
                             }
                         });
+                        controllersRef.current.add(sideController);
 
-                        basicFolder.add(materialControls, 'flatShading').name('Flat Shading').onChange(value => {
-                            try {
-                                material.flatShading = value;
-                                material.needsUpdate = true;
-                            } catch (error) {
-                                console.warn(`Error updating flatShading for ${material._objectName}:`, error);
+                        const flatShadingController = basicFolder.add(materialControls, 'flatShading').name('Flat Shading').onChange(value => {
+                            if (!isCleaningUp.current) {
+                                try {
+                                    material.flatShading = value;
+                                    material.needsUpdate = true;
+                                } catch (error) {
+                                    console.warn(`Error updating flatShading for ${material._objectName}:`, error);
+                                }
                             }
                         });
+                        controllersRef.current.add(flatShadingController);
 
                         // ---- PBR PROPERTIES ----
                         // Roughness et metalness pour les materials PBR
                         if (material.roughness !== undefined) {
-                            pbrFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
-                                try {
-                                    material.roughness = value;
-                                    material.needsUpdate = true;
+                            const roughnessController = pbrFolder.add(materialControls, 'roughness', 0, 1, 0.01).name('Roughness').onChange(value => {
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.roughness = value;
+                                        material.needsUpdate = true;
 
-                                    // Mettre à jour dans TextureManager
-                                    if (modelId && textureManager) {
-                                        textureManager.updateMaterialProperty(modelId, 'roughness', value);
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'roughness', value);
 
-                                        // Propager aux enfants si demandé
-                                        if (materialControls.propagateToChildren) {
-                                            propagatePropertiesToChildren(material, { roughness: value }, meshesMap);
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, { roughness: value }, meshesMap);
+                                            }
                                         }
+                                    } catch (error) {
+                                        console.warn(`Error updating roughness for ${material._objectName}:`, error);
                                     }
-                                } catch (error) {
-                                    console.warn(`Error updating roughness for ${material._objectName}:`, error);
                                 }
                             });
+                            controllersRef.current.add(roughnessController);
                         }
 
                         if (material.metalness !== undefined) {
-                            pbrFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
-                                try {
-                                    material.metalness = value;
-                                    material.needsUpdate = true;
+                            const metalnessController = pbrFolder.add(materialControls, 'metalness', 0, 1, 0.01).name('Metalness').onChange(value => {
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.metalness = value;
+                                        material.needsUpdate = true;
 
-                                    // Mettre à jour dans TextureManager
-                                    if (modelId && textureManager) {
-                                        textureManager.updateMaterialProperty(modelId, 'metalness', value);
+                                        // Mettre à jour dans TextureManager
+                                        if (modelId && textureManager) {
+                                            textureManager.updateMaterialProperty(modelId, 'metalness', value);
 
-                                        // Propager aux enfants si demandé
-                                        if (materialControls.propagateToChildren) {
-                                            propagatePropertiesToChildren(material, { metalness: value }, meshesMap);
+                                            // Propager aux enfants si demandé
+                                            if (materialControls.propagateToChildren) {
+                                                propagatePropertiesToChildren(material, { metalness: value }, meshesMap);
+                                            }
                                         }
+                                    } catch (error) {
+                                        console.warn(`Error updating metalness for ${material._objectName}:`, error);
                                     }
-                                } catch (error) {
-                                    console.warn(`Error updating metalness for ${material._objectName}:`, error);
                                 }
                             });
+                            controllersRef.current.add(metalnessController);
                         }
 
                         // Environment mapping
                         if (material.envMapIntensity !== undefined) {
-                            pbrFolder.add(materialControls, 'envMapIntensity', 0, 5, 0.05)
+                            const envMapController = pbrFolder.add(materialControls, 'envMapIntensity', 0, 5, 0.05)
                                 .name('EnvMap Intensity')
                                 .onChange(value => {
-                                    try {
-                                        material.envMapIntensity = value;
-                                        material.needsUpdate = true;
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.envMapIntensity = value;
+                                            material.needsUpdate = true;
 
-                                        // Mettre à jour dans TextureManager
-                                        if (modelId && textureManager) {
-                                            textureManager.updateMaterialProperty(modelId, 'envMapIntensity', value);
+                                            // Mettre à jour dans TextureManager
+                                            if (modelId && textureManager) {
+                                                textureManager.updateMaterialProperty(modelId, 'envMapIntensity', value);
 
-                                            // Propager aux enfants si demandé
-                                            if (materialControls.propagateToChildren) {
-                                                propagatePropertiesToChildren(material, { envMapIntensity: value }, meshesMap);
+                                                // Propager aux enfants si demandé
+                                                if (materialControls.propagateToChildren) {
+                                                    propagatePropertiesToChildren(material, { envMapIntensity: value }, meshesMap);
+                                                }
                                             }
-                                        }
 
-                                        debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
-                                    } catch (error) {
-                                        console.warn(`Error updating envMapIntensity for ${material._objectName}:`, error);
+                                            // debugLog(`Updated envMapIntensity for ${material._objectName} to ${value}`);
+                                        } catch (error) {
+                                            console.warn(`Error updating envMapIntensity for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(envMapController);
                         }
 
                         // Ambient occlusion mapping
                         if (material.aoMapIntensity !== undefined) {
-                            pbrFolder.add(materialControls, 'aoMapIntensity', 0, 5, 0.05)
+                            const aoController = pbrFolder.add(materialControls, 'aoMapIntensity', 0, 5, 0.05)
                                 .name('AO Intensity')
                                 .onChange(value => {
-                                    try {
-                                        material.aoMapIntensity = value;
-                                        material.needsUpdate = true;
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.aoMapIntensity = value;
+                                            material.needsUpdate = true;
 
-                                        // Mettre à jour dans TextureManager
-                                        if (modelId && textureManager) {
-                                            textureManager.updateMaterialProperty(modelId, 'aoIntensity', value);
+                                            // Mettre à jour dans TextureManager
+                                            if (modelId && textureManager) {
+                                                textureManager.updateMaterialProperty(modelId, 'aoIntensity', value);
 
-                                            // Propager aux enfants si demandé
-                                            if (materialControls.propagateToChildren) {
-                                                propagatePropertiesToChildren(material, { aoMapIntensity: value }, meshesMap);
+                                                // Propager aux enfants si demandé
+                                                if (materialControls.propagateToChildren) {
+                                                    propagatePropertiesToChildren(material, { aoMapIntensity: value }, meshesMap);
+                                                }
                                             }
+                                        } catch (error) {
+                                            console.warn(`Error updating aoMapIntensity for ${material._objectName}:`, error);
                                         }
-                                    } catch (error) {
-                                        console.warn(`Error updating aoMapIntensity for ${material._objectName}:`, error);
                                     }
                                 });
+                            controllersRef.current.add(aoController);
                         }
 
                         // Emissive properties
                         if (material.emissive) {
-                            pbrFolder.addColor(materialControls, 'emissive')
+                            const emissiveController = pbrFolder.addColor(materialControls, 'emissive')
                                 .name('Emissive Color')
                                 .onChange(value => {
-                                    try {
-                                        material.emissive.set(value);
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating emissive for ${material._objectName}:`, error);
-                                    }
-                                });
-
-                            if (material.emissiveIntensity !== undefined) {
-                                pbrFolder.add(materialControls, 'emissiveIntensity', 0, 5, 0.05)
-                                    .name('Emissive Intensity')
-                                    .onChange(value => {
+                                    if (!isCleaningUp.current) {
                                         try {
-                                            material.emissiveIntensity = value;
+                                            material.emissive.set(value);
                                             material.needsUpdate = true;
                                         } catch (error) {
-                                            console.warn(`Error updating emissiveIntensity for ${material._objectName}:`, error);
+                                            console.warn(`Error updating emissive for ${material._objectName}:`, error);
+                                        }
+                                    }
+                                });
+                            controllersRef.current.add(emissiveController);
+
+                            if (material.emissiveIntensity !== undefined) {
+                                const emissiveIntensityController = pbrFolder.add(materialControls, 'emissiveIntensity', 0, 5, 0.05)
+                                    .name('Emissive Intensity')
+                                    .onChange(value => {
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                material.emissiveIntensity = value;
+                                                material.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating emissiveIntensity for ${material._objectName}:`, error);
+                                            }
                                         }
                                     });
+                                controllersRef.current.add(emissiveIntensityController);
                             }
                         }
 
-                        // Normal mapping scale
-                        // if (material.normalScale) {
-                        //     pbrFolder.add(materialControls, 'normalScale', 0, 5, 0.05)
-                        //         .name('Normal Scale')
-                        //         .onChange(value => {
-                        //             try {
-                        //                 if (material.normalScale) {
-                        //                     material.normalScale.x = value;
-                        //                     material.normalScale.y = value;
-                        //                 } else {
-                        //                     material.normalScale = new THREE.Vector2(value, value);
-                        //                 }
-                        //                 material.needsUpdate = true;
-                        //
-                        //                 // Mettre à jour dans TextureManager
-                        //                 if (modelId && textureManager) {
-                        //                     textureManager.updateMaterialProperty(modelId, 'normalScale', value);
-                        //
-                        //                     // Propager aux enfants si demandé
-                        //                     if (materialControls.propagateToChildren) {
-                        //                         propagatePropertiesToChildren(material, {
-                        //                             normalScale: { x: value, y: value }
-                        //                         }, meshesMap);
-                        //                     }
-                        //                 }
-                        //             } catch (error) {
-                        //                 console.warn(`Error updating normalScale for ${material._objectName}:`, error);
-                        //             }
-                        //         });
-                        // }
-
                         // Displacement mapping
                         if (material.displacementScale !== undefined) {
-                            pbrFolder.add(materialControls, 'displacementScale', 0, 5, 0.05)
+                            const displacementScaleController = pbrFolder.add(materialControls, 'displacementScale', 0, 5, 0.05)
                                 .name('Displ. Scale')
                                 .onChange(value => {
-                                    try {
-                                        material.displacementScale = value;
-                                        material.needsUpdate = true;
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.displacementScale = value;
+                                            material.needsUpdate = true;
 
-                                        // Mettre à jour dans TextureManager
-                                        if (modelId && textureManager) {
-                                            textureManager.updateMaterialProperty(modelId, 'displacementScale', value);
+                                            // Mettre à jour dans TextureManager
+                                            if (modelId && textureManager) {
+                                                textureManager.updateMaterialProperty(modelId, 'displacementScale', value);
 
-                                            // Propager aux enfants si demandé
-                                            if (materialControls.propagateToChildren) {
-                                                propagatePropertiesToChildren(material, { displacementScale: value }, meshesMap);
+                                                // Propager aux enfants si demandé
+                                                if (materialControls.propagateToChildren) {
+                                                    propagatePropertiesToChildren(material, { displacementScale: value }, meshesMap);
+                                                }
                                             }
+                                        } catch (error) {
+                                            console.warn(`Error updating displacementScale for ${material._objectName}:`, error);
                                         }
-                                    } catch (error) {
-                                        console.warn(`Error updating displacementScale for ${material._objectName}:`, error);
                                     }
                                 });
+                            controllersRef.current.add(displacementScaleController);
                         }
 
                         if (material.displacementBias !== undefined) {
-                            pbrFolder.add(materialControls, 'displacementBias', -1, 1, 0.01)
+                            const displacementBiasController = pbrFolder.add(materialControls, 'displacementBias', -1, 1, 0.01)
                                 .name('Displ. Bias')
                                 .onChange(value => {
-                                    try {
-                                        material.displacementBias = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating displacementBias for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.displacementBias = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating displacementBias for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(displacementBiasController);
                         }
 
                         // Bump scaling
                         if (material.bumpScale !== undefined) {
-                            pbrFolder.add(materialControls, 'bumpScale', 0, 5, 0.05)
+                            const bumpScaleController = pbrFolder.add(materialControls, 'bumpScale', 0, 5, 0.05)
                                 .name('Bump Scale')
                                 .onChange(value => {
-                                    try {
-                                        material.bumpScale = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating bumpScale for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.bumpScale = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating bumpScale for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(bumpScaleController);
                         }
 
                         // MeshPhongMaterial properties
                         if (material.shininess !== undefined) {
-                            pbrFolder.add(materialControls, 'shininess', 0, 100, 1)
+                            const shininessController = pbrFolder.add(materialControls, 'shininess', 0, 100, 1)
                                 .name('Shininess')
                                 .onChange(value => {
-                                    try {
-                                        material.shininess = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating shininess for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.shininess = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating shininess for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(shininessController);
                         }
 
                         if (material.specular) {
-                            pbrFolder.addColor(materialControls, 'specular')
+                            const specularController = pbrFolder.addColor(materialControls, 'specular')
                                 .name('Specular Color')
                                 .onChange(value => {
-                                    try {
-                                        material.specular.set(value);
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating specular for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.specular.set(value);
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating specular for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(specularController);
                         }
 
                         // ---- ADVANCED PROPERTIES ----
                         // Depth and blending settings
-                        advancedFolder.add(materialControls, 'depthWrite')
+                        const depthWriteController = advancedFolder.add(materialControls, 'depthWrite')
                             .name('Depth Write')
                             .onChange(value => {
-                                try {
-                                    material.depthWrite = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating depthWrite for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.depthWrite = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating depthWrite for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(depthWriteController);
 
-                        advancedFolder.add(materialControls, 'depthTest')
+                        const depthTestController = advancedFolder.add(materialControls, 'depthTest')
                             .name('Depth Test')
                             .onChange(value => {
-                                try {
-                                    material.depthTest = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating depthTest for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.depthTest = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating depthTest for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(depthTestController);
 
-                        advancedFolder.add(materialControls, 'alphaTest', 0, 1, 0.01)
+                        const alphaTestController = advancedFolder.add(materialControls, 'alphaTest', 0, 1, 0.01)
                             .name('Alpha Test')
                             .onChange(value => {
-                                try {
-                                    material.alphaTest = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating alphaTest for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.alphaTest = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating alphaTest for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(alphaTestController);
 
-                        advancedFolder.add(materialControls, 'blending', blendingOptions)
+                        const blendingController = advancedFolder.add(materialControls, 'blending', blendingOptions)
                             .name('Blending Mode')
                             .onChange(value => {
-                                try {
-                                    material.blending = parseInt(value);
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating blending for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.blending = parseInt(value);
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating blending for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(blendingController);
 
                         // Render settings
-                        advancedFolder.add(materialControls, 'vertexColors')
+                        const vertexColorsController = advancedFolder.add(materialControls, 'vertexColors')
                             .name('Vertex Colors')
                             .onChange(value => {
-                                try {
-                                    material.vertexColors = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating vertexColors for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.vertexColors = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating vertexColors for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(vertexColorsController);
 
-                        advancedFolder.add(materialControls, 'toneMapped')
+                        const toneMappedController = advancedFolder.add(materialControls, 'toneMapped')
                             .name('Tone Mapped')
                             .onChange(value => {
-                                try {
-                                    material.toneMapped = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating toneMapped for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.toneMapped = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating toneMapped for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(toneMappedController);
 
-                        advancedFolder.add(materialControls, 'dithering')
+                        const ditheringController = advancedFolder.add(materialControls, 'dithering')
                             .name('Dithering')
                             .onChange(value => {
-                                try {
-                                    material.dithering = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating dithering for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.dithering = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating dithering for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(ditheringController);
 
-                        advancedFolder.add(materialControls, 'fog')
+                        const fogController = advancedFolder.add(materialControls, 'fog')
                             .name('Affected by Fog')
                             .onChange(value => {
-                                try {
-                                    material.fog = value;
-                                    material.needsUpdate = true;
-                                } catch (error) {
-                                    console.warn(`Error updating fog for ${material._objectName}:`, error);
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        material.fog = value;
+                                        material.needsUpdate = true;
+                                    } catch (error) {
+                                        console.warn(`Error updating fog for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                        controllersRef.current.add(fogController);
 
                         // ---- SPECIAL EFFECTS FOLDER ----
                         // MeshPhysicalMaterial - Clearcoat
                         if (material.clearcoat !== undefined) {
-                            specialFolder.add(materialControls, 'clearcoat', 0, 1, 0.01)
+                            const clearcoatController = specialFolder.add(materialControls, 'clearcoat', 0, 1, 0.01)
                                 .name('Clearcoat')
                                 .onChange(value => {
-                                    try {
-                                        material.clearcoat = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating clearcoat for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.clearcoat = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating clearcoat for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(clearcoatController);
 
-                            specialFolder.add(materialControls, 'clearcoatRoughness', 0, 1, 0.01)
+                            const clearcoatRoughnessController = specialFolder.add(materialControls, 'clearcoatRoughness', 0, 1, 0.01)
                                 .name('Clearcoat Roughness')
                                 .onChange(value => {
-                                    try {
-                                        material.clearcoatRoughness = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating clearcoatRoughness for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.clearcoatRoughness = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating clearcoatRoughness for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(clearcoatRoughnessController);
                         }
 
                         // MeshPhysicalMaterial - Transmission (glass-like)
                         if (material.transmission !== undefined) {
-                            specialFolder.add(materialControls, 'transmission', 0, 1, 0.01)
+                            const transmissionController = specialFolder.add(materialControls, 'transmission', 0, 1, 0.01)
                                 .name('Transmission')
                                 .onChange(value => {
-                                    try {
-                                        material.transmission = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating transmission for ${material._objectName}:`, error);
-                                    }
-                                });
-
-                            specialFolder.add(materialControls, 'ior', 1, 2.33, 0.01)
-                                .name('IOR')
-                                .onChange(value => {
-                                    try {
-                                        material.ior = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating ior for ${material._objectName}:`, error);
-                                    }
-                                });
-
-                            specialFolder.add(materialControls, 'thickness', 0, 5, 0.01)
-                                .name('Thickness')
-                                .onChange(value => {
-                                    try {
-                                        material.thickness = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating thickness for ${material._objectName}:`, error);
-                                    }
-                                });
-
-                            if (material.attenuationDistance !== undefined) {
-                                specialFolder.add(materialControls, 'attenuationDistance', 0, 1000, 1)
-                                    .name('Attenuation Dist.')
-                                    .onChange(value => {
+                                    if (!isCleaningUp.current) {
                                         try {
-                                            material.attenuationDistance = value;
+                                            material.transmission = value;
                                             material.needsUpdate = true;
                                         } catch (error) {
-                                            console.warn(`Error updating attenuationDistance for ${material._objectName}:`, error);
+                                            console.warn(`Error updating transmission for ${material._objectName}:`, error);
+                                        }
+                                    }
+                                });
+                            controllersRef.current.add(transmissionController);
+
+                            const iorController = specialFolder.add(materialControls, 'ior', 1, 2.33, 0.01)
+                                .name('IOR')
+                                .onChange(value => {
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.ior = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating ior for ${material._objectName}:`, error);
+                                        }
+                                    }
+                                });
+                            controllersRef.current.add(iorController);
+
+                            const thicknessController = specialFolder.add(materialControls, 'thickness', 0, 5, 0.01)
+                                .name('Thickness')
+                                .onChange(value => {
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.thickness = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating thickness for ${material._objectName}:`, error);
+                                        }
+                                    }
+                                });
+                            controllersRef.current.add(thicknessController);
+
+                            if (material.attenuationDistance !== undefined) {
+                                const attenuationDistanceController = specialFolder.add(materialControls, 'attenuationDistance', 0, 1000, 1)
+                                    .name('Attenuation Dist.')
+                                    .onChange(value => {
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                material.attenuationDistance = value;
+                                                material.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating attenuationDistance for ${material._objectName}:`, error);
+                                            }
                                         }
                                     });
+                                controllersRef.current.add(attenuationDistanceController);
                             }
 
                             if (material.attenuationColor) {
-                                specialFolder.addColor(materialControls, 'attenuationColor')
+                                const attenuationColorController = specialFolder.addColor(materialControls, 'attenuationColor')
                                     .name('Attenuation Color')
                                     .onChange(value => {
-                                        try {
-                                            material.attenuationColor.set(value);
-                                            material.needsUpdate = true;
-                                        } catch (error) {
-                                            console.warn(`Error updating attenuationColor for ${material._objectName}:`, error);
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                material.attenuationColor.set(value);
+                                                material.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating attenuationColor for ${material._objectName}:`, error);
+                                            }
                                         }
                                     });
+                                controllersRef.current.add(attenuationColorController);
                             }
                         }
 
                         // MeshPhysicalMaterial - Sheen (fabric-like)
                         if (material.sheen !== undefined) {
-                            specialFolder.add(materialControls, 'sheen', 0, 1, 0.01)
+                            const sheenController = specialFolder.add(materialControls, 'sheen', 0, 1, 0.01)
                                 .name('Sheen')
                                 .onChange(value => {
-                                    try {
-                                        material.sheen = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating sheen for ${material._objectName}:`, error);
-                                    }
-                                });
-
-                            if (material.sheenColor) {
-                                specialFolder.addColor(materialControls, 'sheenColor')
-                                    .name('Sheen Color')
-                                    .onChange(value => {
+                                    if (!isCleaningUp.current) {
                                         try {
-                                            material.sheenColor.set(value);
+                                            material.sheen = value;
                                             material.needsUpdate = true;
                                         } catch (error) {
-                                            console.warn(`Error updating sheenColor for ${material._objectName}:`, error);
+                                            console.warn(`Error updating sheen for ${material._objectName}:`, error);
                                         }
-                                    });
-                            }
-
-                            specialFolder.add(materialControls, 'sheenRoughness', 0, 1, 0.01)
-                                .name('Sheen Roughness')
-                                .onChange(value => {
-                                    try {
-                                        material.sheenRoughness = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating sheenRoughness for ${material._objectName}:`, error);
                                     }
                                 });
+                            controllersRef.current.add(sheenController);
+
+                            if (material.sheenColor) {
+                                const sheenColorController = specialFolder.addColor(materialControls, 'sheenColor')
+                                    .name('Sheen Color')
+                                    .onChange(value => {
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                material.sheenColor.set(value);
+                                                material.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating sheenColor for ${material._objectName}:`, error);
+                                            }
+                                        }
+                                    });
+                                controllersRef.current.add(sheenColorController);
+                            }
+
+                            const sheenRoughnessController = specialFolder.add(materialControls, 'sheenRoughness', 0, 1, 0.01)
+                                .name('Sheen Roughness')
+                                .onChange(value => {
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.sheenRoughness = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating sheenRoughness for ${material._objectName}:`, error);
+                                        }
+                                    }
+                                });
+                            controllersRef.current.add(sheenRoughnessController);
                         }
 
                         // MeshPhysicalMaterial - Anisotropy (brushed metal)
                         if (material.anisotropy !== undefined) {
-                            specialFolder.add(materialControls, 'anisotropy', 0, 1, 0.01)
+                            const anisotropyController = specialFolder.add(materialControls, 'anisotropy', 0, 1, 0.01)
                                 .name('Anisotropy')
                                 .onChange(value => {
-                                    try {
-                                        material.anisotropy = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating anisotropy for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.anisotropy = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating anisotropy for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(anisotropyController);
 
-                            specialFolder.add(materialControls, 'anisotropyRotation', 0, Math.PI * 2, 0.01)
+                            const anisotropyRotationController = specialFolder.add(materialControls, 'anisotropyRotation', 0, Math.PI * 2, 0.01)
                                 .name('Anisotropy Rotation')
                                 .onChange(value => {
-                                    try {
-                                        material.anisotropyRotation = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating anisotropyRotation for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.anisotropyRotation = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating anisotropyRotation for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(anisotropyRotationController);
                         }
 
                         // MeshPhysicalMaterial - Iridescence (butterfly wings, soap bubbles)
                         if (material.iridescence !== undefined) {
-                            specialFolder.add(materialControls, 'iridescence', 0, 1, 0.01)
+                            const iridescenceController = specialFolder.add(materialControls, 'iridescence', 0, 1, 0.01)
                                 .name('Iridescence')
                                 .onChange(value => {
-                                    try {
-                                        material.iridescence = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating iridescence for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.iridescence = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating iridescence for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(iridescenceController);
 
-                            specialFolder.add(materialControls, 'iridescenceIOR', 1, 2.33, 0.01)
+                            const iridescenceIORController = specialFolder.add(materialControls, 'iridescenceIOR', 1, 2.33, 0.01)
                                 .name('Iridescence IOR')
                                 .onChange(value => {
-                                    try {
-                                        material.iridescenceIOR = value;
-                                        material.needsUpdate = true;
-                                    } catch (error) {
-                                        console.warn(`Error updating iridescenceIOR for ${material._objectName}:`, error);
+                                    if (!isCleaningUp.current) {
+                                        try {
+                                            material.iridescenceIOR = value;
+                                            material.needsUpdate = true;
+                                        } catch (error) {
+                                            console.warn(`Error updating iridescenceIOR for ${material._objectName}:`, error);
+                                        }
                                     }
                                 });
+                            controllersRef.current.add(iridescenceIORController);
                         }
 
                         // ---- TEXTURE MAPPING ----
@@ -1430,98 +1609,119 @@ export default function MaterialControls() {
                                 };
 
                                 // Enable/disable texture
-                                textureFolder.add(textureControls, 'enabled')
+                                const enabledController = textureFolder.add(textureControls, 'enabled')
                                     .name('Enabled')
                                     .onChange(value => {
-                                        try {
-                                            if (!value) {
-                                                // Store current texture to re-enable later
-                                                material._tempTextures = material._tempTextures || {};
-                                                material._tempTextures[name] = material[name];
-                                                material[name] = null;
-                                            } else if (material._tempTextures && material._tempTextures[name]) {
-                                                // Restore saved texture
-                                                material[name] = material._tempTextures[name];
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                if (!value) {
+                                                    // Store current texture to re-enable later
+                                                    material._tempTextures = material._tempTextures || {};
+                                                    material._tempTextures[name] = material[name];
+                                                    material[name] = null;
+                                                } else if (material._tempTextures && material._tempTextures[name]) {
+                                                    // Restore saved texture
+                                                    material[name] = material._tempTextures[name];
+                                                }
+                                                material.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error toggling ${name} for ${material._objectName}:`, error);
                                             }
-                                            material.needsUpdate = true;
-                                        } catch (error) {
-                                            console.warn(`Error toggling ${name} for ${material._objectName}:`, error);
                                         }
                                     });
+                                controllersRef.current.add(enabledController);
 
                                 // Texture repeat controls
                                 if (texture.repeat) {
-                                    textureFolder.add(textureControls, 'repeatX', 0.1, 10, 0.1)
+                                    const repeatXController = textureFolder.add(textureControls, 'repeatX', 0.1, 10, 0.1)
                                         .name('Repeat X')
                                         .onChange(value => {
-                                            try {
-                                                texture.repeat.x = value;
-                                                texture.needsUpdate = true;
-                                            } catch (error) {
-                                                console.warn(`Error updating ${name} repeatX for ${material._objectName}:`, error);
+                                            if (!isCleaningUp.current) {
+                                                try {
+                                                    texture.repeat.x = value;
+                                                    texture.needsUpdate = true;
+                                                } catch (error) {
+                                                    console.warn(`Error updating ${name} repeatX for ${material._objectName}:`, error);
+                                                }
                                             }
                                         });
+                                    controllersRef.current.add(repeatXController);
 
-                                    textureFolder.add(textureControls, 'repeatY', 0.1, 10, 0.1)
+                                    const repeatYController = textureFolder.add(textureControls, 'repeatY', 0.1, 10, 0.1)
                                         .name('Repeat Y')
                                         .onChange(value => {
-                                            try {
-                                                texture.repeat.y = value;
-                                                texture.needsUpdate = true;
-                                            } catch (error) {
-                                                console.warn(`Error updating ${name} repeatY for ${material._objectName}:`, error);
+                                            if (!isCleaningUp.current) {
+                                                try {
+                                                    texture.repeat.y = value;
+                                                    texture.needsUpdate = true;
+                                                } catch (error) {
+                                                    console.warn(`Error updating ${name} repeatY for ${material._objectName}:`, error);
+                                                }
                                             }
                                         });
+                                    controllersRef.current.add(repeatYController);
                                 }
 
                                 // Texture offset controls
                                 if (texture.offset) {
-                                    textureFolder.add(textureControls, 'offsetX', -1, 1, 0.01)
+                                    const offsetXController = textureFolder.add(textureControls, 'offsetX', -1, 1, 0.01)
                                         .name('Offset X')
                                         .onChange(value => {
-                                            try {
-                                                texture.offset.x = value;
-                                                texture.needsUpdate = true;
-                                            } catch (error) {
-                                                console.warn(`Error updating ${name} offsetX for ${material._objectName}:`, error);
+                                            if (!isCleaningUp.current) {
+                                                try {
+                                                    texture.offset.x = value;
+                                                    texture.needsUpdate = true;
+                                                } catch (error) {
+                                                    console.warn(`Error updating ${name} offsetX for ${material._objectName}:`, error);
+                                                }
                                             }
                                         });
+                                    controllersRef.current.add(offsetXController);
 
-                                    textureFolder.add(textureControls, 'offsetY', -1, 1, 0.01)
+                                    const offsetYController = textureFolder.add(textureControls, 'offsetY', -1, 1, 0.01)
                                         .name('Offset Y')
                                         .onChange(value => {
-                                            try {
-                                                texture.offset.y = value;
-                                                texture.needsUpdate = true;
-                                            } catch (error) {
-                                                console.warn(`Error updating ${name} offsetY for ${material._objectName}:`, error);
+                                            if (!isCleaningUp.current) {
+                                                try {
+                                                    texture.offset.y = value;
+                                                    texture.needsUpdate = true;
+                                                } catch (error) {
+                                                    console.warn(`Error updating ${name} offsetY for ${material._objectName}:`, error);
+                                                }
                                             }
                                         });
+                                    controllersRef.current.add(offsetYController);
                                 }
 
                                 // Texture rotation
-                                textureFolder.add(textureControls, 'rotation', 0, Math.PI * 2, 0.01)
+                                const rotationController = textureFolder.add(textureControls, 'rotation', 0, Math.PI * 2, 0.01)
                                     .name('Rotation')
                                     .onChange(value => {
-                                        try {
-                                            texture.rotation = value;
-                                            texture.needsUpdate = true;
-                                        } catch (error) {
-                                            console.warn(`Error updating ${name} rotation for ${material._objectName}:`, error);
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                texture.rotation = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} rotation for ${material._objectName}:`, error);
+                                            }
                                         }
                                     });
+                                controllersRef.current.add(rotationController);
 
                                 // Texture flip Y
-                                textureFolder.add(textureControls, 'flipY')
+                                const flipYController = textureFolder.add(textureControls, 'flipY')
                                     .name('Flip Y')
                                     .onChange(value => {
-                                        try {
-                                            texture.flipY = value;
-                                            texture.needsUpdate = true;
-                                        } catch (error) {
-                                            console.warn(`Error updating ${name} flipY for ${material._objectName}:`, error);
+                                        if (!isCleaningUp.current) {
+                                            try {
+                                                texture.flipY = value;
+                                                texture.needsUpdate = true;
+                                            } catch (error) {
+                                                console.warn(`Error updating ${name} flipY for ${material._objectName}:`, error);
+                                            }
                                         }
                                     });
+                                controllersRef.current.add(flipYController);
 
                                 textureFolder.close(); // Fermer le dossier de texture par défaut
                             }
@@ -1532,36 +1732,42 @@ export default function MaterialControls() {
                         if (material._meshRefs && material._meshRefs.length > 0) {
                             const shadowFolder = materialFolder.addFolder('Shadow Properties');
 
-                            shadowFolder.add(materialControls, 'castShadow').name('Cast Shadow').onChange(value => {
-                                try {
-                                    // Appliquer à tous les meshes associés à ce matériau
-                                    material._meshRefs.forEach(meshUuid => {
-                                        const mesh = meshesMap.get(meshUuid);
-                                        if (mesh) {
-                                            mesh.castShadow = value;
-                                        }
-                                    });
-                                } catch (error) {
-                                    console.warn(`Error updating cast shadow for ${material._objectName}:`, error);
-                                }
-                            });
-
-                            shadowFolder.add(materialControls, 'receiveShadow').name('Receive Shadow').onChange(value => {
-                                try {
-                                    // Appliquer à tous les meshes associés à ce matériau
-                                    material._meshRefs.forEach(meshUuid => {
-                                        const mesh = meshesMap.get(meshUuid);
-                                        if (mesh) {
-                                            mesh.receiveShadow = value;
-                                            if (mesh.material) {
-                                                mesh.material.needsUpdate = true;
+                            const castShadowController = shadowFolder.add(materialControls, 'castShadow').name('Cast Shadow').onChange(value => {
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        // Appliquer à tous les meshes associés à ce matériau
+                                        material._meshRefs.forEach(meshUuid => {
+                                            const mesh = meshesMap.get(meshUuid);
+                                            if (mesh) {
+                                                mesh.castShadow = value;
                                             }
-                                        }
-                                    });
-                                } catch (error) {
-                                    console.warn(`Error updating receive shadow for ${material._objectName}:`, error);
+                                        });
+                                    } catch (error) {
+                                        console.warn(`Error updating cast shadow for ${material._objectName}:`, error);
+                                    }
                                 }
                             });
+                            controllersRef.current.add(castShadowController);
+
+                            const receiveShadowController = shadowFolder.add(materialControls, 'receiveShadow').name('Receive Shadow').onChange(value => {
+                                if (!isCleaningUp.current) {
+                                    try {
+                                        // Appliquer à tous les meshes associés à ce matériau
+                                        material._meshRefs.forEach(meshUuid => {
+                                            const mesh = meshesMap.get(meshUuid);
+                                            if (mesh) {
+                                                mesh.receiveShadow = value;
+                                                if (mesh.material) {
+                                                    mesh.material.needsUpdate = true;
+                                                }
+                                            }
+                                        });
+                                    } catch (error) {
+                                        console.warn(`Error updating receive shadow for ${material._objectName}:`, error);
+                                    }
+                                }
+                            });
+                            controllersRef.current.add(receiveShadowController);
 
                             shadowFolder.close(); // Fermer le dossier d'ombres par défaut
                         }
@@ -1569,12 +1775,16 @@ export default function MaterialControls() {
                         // ---- TEXTURE MANAGER FOLDER ----
                         if (modelId) {
                             // Afficher les propriétés TextureManager
-                            tmFolder.add({ id: modelId }, 'id').name('Model ID').disable();
-                            tmFolder.add(materialControls, 'propagateToChildren').name('Propagate to Children');
+                            const modelIdController = tmFolder.add({ id: modelId }, 'id').name('Model ID').disable();
+                            const propagateController = tmFolder.add(materialControls, 'propagateToChildren').name('Propagate to Children');
+
+                            controllersRef.current.add(modelIdController);
+                            controllersRef.current.add(propagateController);
 
                             // Bouton pour enregistrer dans TextureManager
                             const tmActions = {
                                 saveToTextureManager: () => {
+                                    if (isCleaningUp.current) return;
                                     if (modelId && textureManager) {
                                         const properties = {
                                             roughness: material.roughness,
@@ -1586,7 +1796,7 @@ export default function MaterialControls() {
                                         };
 
                                         textureManager.setMaterialProperties(modelId, properties);
-                                        debugLog(`Saved properties to TextureManager for ${modelId}:`, properties);
+                                        // debugLog(`Saved properties to TextureManager for ${modelId}:`, properties);
 
                                         // Propager aux enfants si demandé
                                         if (materialControls.propagateToChildren) {
@@ -1595,9 +1805,10 @@ export default function MaterialControls() {
                                     }
                                 },
                                 resetInTextureManager: () => {
+                                    if (isCleaningUp.current) return;
                                     if (modelId && textureManager) {
                                         textureManager.resetMaterialProperties(modelId);
-                                        debugLog(`Reset properties in TextureManager for ${modelId}`);
+                                        // debugLog(`Reset properties in TextureManager for ${modelId}`);
 
                                         // Mettre à jour l'interface
                                         const defaultProps = textureManager.defaultMaterialProperties;
@@ -1625,8 +1836,8 @@ export default function MaterialControls() {
 
                                         // Rafraîchir tous les contrôleurs
                                         for (const key in materialControls) {
-                                            const controller = materialFolder.__controllers.find(c => c.property === key);
-                                            if (controller) controller.updateDisplay();
+                                            const controller = materialFolder.__controllers?.find(c => c.property === key);
+                                            if (controller && controller.updateDisplay) controller.updateDisplay();
                                         }
 
                                         // Propager aux enfants si demandé
@@ -1638,14 +1849,18 @@ export default function MaterialControls() {
                             };
 
                             // Ajouter les boutons d'action
-                            tmFolder.add(tmActions, 'saveToTextureManager').name('Save to TextureManager');
-                            tmFolder.add(tmActions, 'resetInTextureManager').name('Reset in TextureManager');
+                            const saveController = tmFolder.add(tmActions, 'saveToTextureManager').name('Save to TextureManager');
+                            const resetController = tmFolder.add(tmActions, 'resetInTextureManager').name('Reset in TextureManager');
+
+                            controllersRef.current.add(saveController);
+                            controllersRef.current.add(resetController);
                         }
 
                         tmFolder.close();
 
                         // Ajouter un bouton de réinitialisation
-                        materialFolder.add(materialControls, 'reset').name('Reset Material');
+                        const resetController = materialFolder.add(materialControls, 'reset').name('Reset Material');
+                        controllersRef.current.add(resetController);
 
                         // Fermer tous les sous-dossiers par défaut
                         basicFolder.close();
@@ -1667,27 +1882,16 @@ export default function MaterialControls() {
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 10000); // Augmenté à 10 secondes pour plus de fiabilité
+        }, 1000); // Réduit le délai à 1 seconde pour améliorer la réactivité
 
-        // Nettoyage
-        return () => {
-            clearTimeout(initTimer);
-            if (gui) {
-                try {
-                    // Supprimer tous les dossiers de matériaux
-                    Object.values(foldersRef.current).forEach(folder => {
-                        try {
-                            gui.removeFolder(folder);
-                        } catch (e) {
-                            console.warn("Error removing material folder:", e);
-                        }
-                    });
-                } catch (e) {
-                    console.warn("Error during cleanup:", e);
-                }
-            }
-        };
-    }, [materialsReady, debug, gui, scene, gl]);
+        // Nettoyage à la fin du useEffect
+        return cleanup;
+    }, [materialsReady, debug?.active, debug?.showGui, gui, scene, gl]);
+
+    // Cleanup principal au démontage du composant
+    useEffect(() => {
+        return cleanup;
+    }, []);
 
     return null; // Ce composant ne rend rien
 }

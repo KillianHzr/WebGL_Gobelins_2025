@@ -39,12 +39,6 @@ export const useDragGesture = ({
         dragStartTimestamp: 0
     });
 
-    // Fonction de débogage
-    const debugLog = (message, data = {}) => {
-        if (debug) {
-            console.log(`[useDragGesture] ${message}`, data);
-        }
-    };
 
     // Vérifier si le clic initial est sur l'objet
     const isClickOnObject = (event) => {
@@ -71,7 +65,7 @@ export const useDragGesture = ({
 
         // Distance minimale
         if (distance < minDistance) {
-            debugLog('Drag distance too short', {distance, minDistance});
+            // debugLog('Drag distance too short', {distance, minDistance});
             return false;
         }
 
@@ -113,7 +107,7 @@ export const useDragGesture = ({
             state.currentY = event.clientY;
             state.dragStartTimestamp = Date.now();
 
-            debugLog('Mouse down', {
+            // debugLog('Mouse down', {
                 x: state.startX,
                 y: state.startY
             });
@@ -142,7 +136,7 @@ export const useDragGesture = ({
 
             if (distance >= minDistance && !isDragging) {
                 setIsDragging(true);
-                debugLog('Drag started', {
+                // debugLog('Drag started', {
                     deltaX,
                     deltaY,
                     distance
@@ -181,7 +175,7 @@ export const useDragGesture = ({
             state.isMouseDown = false;
             setIsDragging(false);
 
-            debugLog('Mouse up', dragData);
+            // debugLog('Mouse up', dragData);
 
             // Si le drag est réussi, déclencher l'événement de succès
             if (isSuccessfulDrag) {
@@ -204,7 +198,7 @@ export const useDragGesture = ({
             state.isMouseDown = false;
             setIsDragging(false);
 
-            debugLog('Mouse leave - drag canceled');
+            // debugLog('Mouse leave - drag canceled');
 
             // Appeler le callback de fin de drag avec annulation
             if (onDragEnd && typeof onDragEnd === 'function') {

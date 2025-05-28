@@ -12,7 +12,6 @@ export default function WaterPlane() {
     const FLOW_SPEED = 0.3;
 
     // Taille de base du shader (en unités Three.js)
-    // Cette taille sert de référence pour la répétition du pattern
     const BASE_SHADER_SIZE = new THREE.Vector2(2, 2);
 
     // Obtenir le placement depuis sceneObjectManager
@@ -42,13 +41,12 @@ export default function WaterPlane() {
     // Charger le modèle WaterPlane
     const { scene: waterModel } = useGLTF('/models/forest/river/River.glb');
 
-    // Créer le shader d'eau amélioré qui combine le style original avec le suivi des courbes
+    // Créer le shader d'eau avec éclairage Three.js intégré
     const waterShader = useMemo(() => {
         // Charger les textures
         const textureLoader = new THREE.TextureLoader();
         const noise = textureLoader.load("https://i.imgur.com/gPz7iPX.jpg");
         const dudv = textureLoader.load("https://i.imgur.com/hOIsXiZ.png");
-        // Cette texture sera à remplacer par votre vraie flow map
         const flowMap = textureLoader.load("https://i.imgur.com/hOIsXiZ.png");
 
         noise.wrapS = noise.wrapT = THREE.RepeatWrapping;
@@ -57,31 +55,66 @@ export default function WaterPlane() {
         dudv.wrapS = dudv.wrapT = THREE.RepeatWrapping;
         flowMap.wrapS = flowMap.wrapT = THREE.RepeatWrapping;
 
-        return new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                tNoise: { value: noise },
-                tDudv: { value: dudv },
-                tFlow: { value: flowMap },
-                useUVFlow: { value: 0.0 }, // 0.0 = mode original, 1.0 = utiliser les UV
-                baseSize: { value: BASE_SHADER_SIZE },
-                meshSize: { value: meshSize },
-                topDarkColor: { value: new THREE.Color(0xB2CBEB) }, // Bleu plus clair et plus lumineux
-                bottomDarkColor: { value: new THREE.Color(0xB2CBEB) },
-                topLightColor: { value: new THREE.Color(0x3F7DCE) }, // Bleu moyen moins profond
-                bottomLightColor: { value: new THREE.Color(0x3F7DCE) }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                varying vec3 vPosition;
+        // Utiliser MeshStandardMaterial comme base et modifier avec onBeforeCompile
+        const material = new THREE.MeshStandardMaterial({
+            transparent: true,
+            roughness: 0.1,
+            metalness: 0.0,
+            color: new THREE.Color(0x3F7DCE),
+        });
+
+        // Ajouter nos uniforms personnalisés
+        material.userData = {
+            time: { value: 0 },
+            tNoise: { value: noise },
+            tDudv: { value: dudv },
+            tFlow: { value: flowMap },
+            useUVFlow: { value: 0.0 },
+            baseSize: { value: BASE_SHADER_SIZE },
+            meshSize: { value: meshSize },
+            topDarkColor: { value: new THREE.Color(0xB2CBEB) },
+            bottomDarkColor: { value: new THREE.Color(0xB2CBEB) },
+            topLightColor: { value: new THREE.Color(0x3F7DCE) },
+            bottomLightColor: { value: new THREE.Color(0x3F7DCE) }
+        };
+
+        // Modifier le shader via onBeforeCompile pour conserver l'éclairage Three.js
+        material.onBeforeCompile = (shader) => {
+            // Ajouter nos uniforms au shader
+            shader.uniforms.time = material.userData.time;
+            shader.uniforms.tNoise = material.userData.tNoise;
+            shader.uniforms.tDudv = material.userData.tDudv;
+            shader.uniforms.tFlow = material.userData.tFlow;
+            shader.uniforms.useUVFlow = material.userData.useUVFlow;
+            shader.uniforms.baseSize = material.userData.baseSize;
+            shader.uniforms.meshSize = material.userData.meshSize;
+            shader.uniforms.topDarkColor = material.userData.topDarkColor;
+            shader.uniforms.bottomDarkColor = material.userData.bottomDarkColor;
+            shader.uniforms.topLightColor = material.userData.topLightColor;
+            shader.uniforms.bottomLightColor = material.userData.bottomLightColor;
+
+            // Ajouter les déclarations d'uniforms dans le vertex shader
+            shader.vertexShader = `
+                uniform float time;
+                uniform vec2 baseSize;
+                uniform vec2 meshSize;
+                varying vec2 vWaterUv;
+                varying vec3 vWaterPosition;
                 
-                void main() {
-                    vUv = uv;
-                    vPosition = position;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
+                ${shader.vertexShader}
+            `.replace(
+                '#include <begin_vertex>',
+                `
+                #include <begin_vertex>
+                
+                // Calculer les UV pour l'eau
+                vWaterUv = uv;
+                vWaterPosition = position;
+                `
+            );
+
+            // Modifier le fragment shader pour notre effet d'eau
+            shader.fragmentShader = `
                 uniform float time;
                 uniform sampler2D tNoise;
                 uniform sampler2D tDudv;
@@ -94,138 +127,124 @@ export default function WaterPlane() {
                 uniform vec3 topLightColor;
                 uniform vec3 bottomLightColor;
                 
-                varying vec2 vUv;
-                varying vec3 vPosition;
+                varying vec2 vWaterUv;
+                varying vec3 vWaterPosition;
                 
-                const float strength = 0.03; // Augmenté pour plus de mouvement
+                const float strength = 0.03;
                 const float FLOW_SPEED = 0.3;
                 
-                // Fonction auxiliaire pour arrondir (création du banding)
                 float customRound(float a) {
                     return floor(a + 0.5);
                 }
                 
                 vec2 getFlowDirection(vec2 uv) {
-                    // Lire la direction du flow à partir de la texture de flow
-                    // Normaliser de [0,1] à [-1,1]
                     vec2 flow = texture2D(tFlow, uv).rg * 2.0 - 1.0;
-                    // Si aucune texture de flow n'est appliquée correctement, utiliser une direction par défaut
                     if (length(flow) < 0.1) {
-                        return vec2(0.0, 1.0); // Direction par défaut descendante
+                        return vec2(0.0, 1.0);
                     }
                     return flow;
                 }
                 
-                void main() {
-                    // Taille fixe du pattern (comme dans le shader original)
-                    // Augmentation de l'échelle pour des détails plus fins
-                    float patternScale = 3.0; // Valeur augmentée de 1.0 à 3.0 pour des détails plus fins
+                vec3 getWaterColor() {
+                    float patternScale = 3.0;
                     
-                    // Coordonnées UV répétées sans étirement (comme dans le shader original)
                     vec2 fixedScaleUV = vec2(
-                        vUv.x * (meshSize.x / baseSize.x),
-                        vUv.y * (meshSize.y / baseSize.y)
+                        vWaterUv.x * (meshSize.x / baseSize.x),
+                        vWaterUv.y * (meshSize.y / baseSize.y)
                     ) * patternScale;
                     
-                    // Animation de déplacement
                     float flowSpeed = 0.2;
                     float flowOffset = time * flowSpeed;
                     
-                    // Direction du flux (selon le mode)
                     vec2 flowDirection;
                     if (useUVFlow > 0.5) {
-                        // Utiliser les UVs pour orienter le flux
-                        flowDirection = getFlowDirection(vUv);
-                        // Ajuster l'offset selon la direction du flux
+                        flowDirection = getFlowDirection(vWaterUv);
                         flowOffset *= length(flowDirection);
                     } else {
-                        // Direction par défaut pour le mode original
                         flowDirection = vec2(0.0, 1.0);
                     }
                     
-                    // Création de plusieurs couches avec des fréquences différentes (comme dans le shader original)
-                    
-                    // Première couche - pattern principal avec animation verticale
-                    // Inversion du sens du courant en utilisant + flowOffset au lieu de - flowOffset
+                    // Première couche
                     vec2 dudvUV1 = vec2(fixedScaleUV.x, fixedScaleUV.y + flowOffset);
-                    // Appliquer la direction du flux si activé
                     if (useUVFlow > 0.5) {
-                        dudvUV1 -= flowDirection * flowOffset * 0.2; // Signe inversé ici aussi
+                        dudvUV1 -= flowDirection * flowOffset * 0.2;
                     }
                     vec2 displacement1 = texture2D(tDudv, dudvUV1).rg;
                     displacement1 = ((displacement1 * 2.0) - 1.0) * strength;
                     
-                    // Deuxième couche - pattern secondaire décalé (comme dans le shader original)
-                    // Inversion du sens du courant ici aussi
+                    // Deuxième couche
                     vec2 dudvUV2 = vec2(fixedScaleUV.x * 1.4 + 0.23, fixedScaleUV.y * 0.8 + flowOffset * 1.3);
-                    // Appliquer la direction du flux si activé
                     if (useUVFlow > 0.5) {
-                        dudvUV2 -= flowDirection * flowOffset * 0.3; // Signe inversé ici aussi
+                        dudvUV2 -= flowDirection * flowOffset * 0.3;
                     }
                     vec2 displacement2 = texture2D(tDudv, dudvUV2).rg;
                     displacement2 = ((displacement2 * 2.0) - 1.0) * strength * 0.7;
                     
-                    // Mélange des deux couches de déplacement
                     vec2 displacement = displacement1 + displacement2;
                     
-                    // Pattern de bruit animé pour l'effet de mouvement de l'eau (comme dans le shader original)
-                    // Inversion du sens du courant ici aussi et augmentation des détails
+                    // Pattern de bruit
                     vec2 noiseUV = vec2(
-                        fixedScaleUV.x * 1.5 + displacement.x, // Multiplié par 1.5 pour plus de détails
-                        (fixedScaleUV.y / 3.0) + flowOffset + displacement.y // Divisé par 3.0 au lieu de 5.0
+                        fixedScaleUV.x * 1.5 + displacement.x,
+                        (fixedScaleUV.y / 3.0) + flowOffset + displacement.y
                     );
                     
-                    // Appliquer légèrement la direction du flux si activé
                     if (useUVFlow > 0.5) {
-                        noiseUV -= flowDirection * sin(flowOffset * 2.0) * 0.05; // Signe inversé
+                        noiseUV -= flowDirection * sin(flowOffset * 2.0) * 0.05;
                     }
                     
                     float noise = texture2D(tNoise, noiseUV).r;
+                    noise = customRound(noise * 8.0) / 8.0;
                     
-                    // Banding plus subtil avec plus de niveaux pour un effet d'eau plus naturel
-                    noise = customRound(noise * 8.0) / 8.0; // 8 niveaux au lieu de 5
-                    
-                    // Mélange de couleurs basé sur la position Y avec un effet plus fluide
-                    vec3 color = mix(
-                        mix(bottomDarkColor, topDarkColor, vUv.y), 
-                        mix(bottomLightColor, topLightColor, vUv.y), 
-                        noise * 0.8 + 0.2 // Adoucit le contraste entre les deux couleurs
+                    // Mélange de couleurs
+                    vec3 waterColor = mix(
+                        mix(bottomDarkColor, topDarkColor, vWaterUv.y), 
+                        mix(bottomLightColor, topLightColor, vWaterUv.y), 
+                        noise * 0.8 + 0.2
                     );
                     
-                    gl_FragColor = vec4(color, 1);
+                    return waterColor;
                 }
-            `,
-            transparent: true
-        });
+                
+                ${shader.fragmentShader}
+            `.replace(
+                '#include <color_fragment>',
+                `
+                #include <color_fragment>
+                
+                // Appliquer notre couleur d'eau
+                vec3 waterColor = getWaterColor();
+                diffuseColor.rgb = waterColor;
+                `
+            );
+        };
+
+        return material;
     }, [meshSize]);
 
     // Appliquer le shader au modèle lorsqu'il est chargé
     useEffect(() => {
-        // S'assurer que le modèle est chargé
         if (waterModel && waterShader) {
-            // Cloner le modèle pour éviter de modifier l'original
             const clonedModel = waterModel.clone();
 
-            // Appliquer le shader à tous les meshes du modèle
             let meshCount = 0;
             clonedModel.traverse((node) => {
                 if (node.isMesh) {
                     meshCount++;
                     node.material = waterShader;
                     node.material.needsUpdate = true;
+
+                    // Configurer les propriétés pour les ombres et l'éclairage
+                    node.castShadow = false;
+                    node.receiveShadow = true;
                 }
             });
 
             console.log(`Applied water shader to ${meshCount} meshes in WaterPlane model`);
 
-            // Remplacer le contenu du modelRef par le modèle cloné
             if (modelRef.current) {
-                // Vider le groupe actuel
                 while (modelRef.current.children.length > 0) {
                     modelRef.current.remove(modelRef.current.children[0]);
                 }
-
-                // Ajouter le modèle cloné
                 modelRef.current.add(clonedModel);
             }
         }
@@ -233,11 +252,10 @@ export default function WaterPlane() {
 
     // Animer le shader
     useAnimationFrame(() => {
-        if (waterShader) {
-            waterShader.uniforms.time.value = clock.current.getElapsedTime() * FLOW_SPEED;
+        if (waterShader && waterShader.userData) {
+            waterShader.userData.time.value = clock.current.getElapsedTime() * FLOW_SPEED;
         }
-    }, 'animation'); // Catégorie 'animation'
-
+    }, 'animation');
 
     return (
         <group

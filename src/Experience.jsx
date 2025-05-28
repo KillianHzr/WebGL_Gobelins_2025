@@ -25,12 +25,6 @@ import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
 import {useAnimationFrame} from "./Utils/AnimationManager.js";
 
-// Helper pour les logs conditionnels
-const debugLog = (message, ...args) => {
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`[Experience] ${message}`, ...args);
-    }
-};
 
 export default function Experience() {
     const { loaded, debug, setCamera, setCameraInitialZoom } = useStore()
@@ -85,20 +79,20 @@ export default function Experience() {
             if (savedPerformanceMode === 'true') {
                 lowPerformanceModeRef.current = true;
                 applyLowPerformanceSettings();
-                debugLog('Mode basse performance chargé depuis localStorage');
+                // debugLog('Mode basse performance chargé depuis localStorage');
             }
         } catch (e) {
             console.warn("Erreur lors du chargement des préférences de performance", e);
         }
 
-        debugLog('Renderer initialized with settings:', initialSettingsRef.current);
+        // debugLog('Renderer initialized with settings:', initialSettingsRef.current);
     }, [gl]);
 
     // Fonction pour appliquer les paramètres de basse performance
     const applyLowPerformanceSettings = () => {
         if (!gl || !initialSettingsRef.current) return;
 
-        debugLog('Application des paramètres basse performance');
+        // debugLog('Application des paramètres basse performance');
 
         // 1. Réduire la résolution
         // gl.setPixelRatio(1);
@@ -123,7 +117,7 @@ export default function Experience() {
     const restoreHighPerformanceSettings = () => {
         if (!gl || !initialSettingsRef.current) return;
 
-        debugLog('Restauration des paramètres haute performance');
+        // debugLog('Restauration des paramètres haute performance');
 
         // 1. Restaurer la résolution
         gl.setPixelRatio(initialSettingsRef.current.pixelRatio);
@@ -185,7 +179,7 @@ export default function Experience() {
         // Utiliser un objet pour stocker les gestionnaires
         const handlers = {
             markerClick: (data) => {
-                debugLog('Marqueur cliqué:', data);
+                // debugLog('Marqueur cliqué:', data);
             },
 
             interactionRequired: (data) => {
@@ -202,7 +196,7 @@ export default function Experience() {
             },
 
             markerHover: (data) => {
-                debugLog('Marqueur survolé:', data);
+                // debugLog('Marqueur survolé:', data);
             }
         };
 
@@ -252,12 +246,12 @@ export default function Experience() {
     useEffect(() => {
         if (process.env.NODE_ENV !== 'development' || !scene || !debug) return;
 
-        console.log("🔍 Attente du chargement complet de la scène...");
+        // console.log("🔍 Attente du chargement complet de la scène...");
 
         const analyzeTimer = setTimeout(() => {
             if (scene.children.length > 0) {
-                console.log("🔍 Analyse de la scène en cours...");
-                analyzeScene(scene);
+                // console.log("🔍 Analyse de la scène en cours...");
+                // analyzeScene(scene);
             }
         }, 5000);
 
@@ -281,7 +275,7 @@ export default function Experience() {
             <Camera/>
             <Controls/>
             <Lights/>
-            <MaterialControls/>
+            {debug && <MaterialControls/>}
             <PostProcessing/>
 
             <RayCaster>
@@ -302,7 +296,7 @@ export default function Experience() {
 function analyzeScene(scene) {
     if (!scene) return;
 
-    console.log("=== ANALYSE DE LA SCÈNE THREE.JS ===");
+    // console.log("=== ANALYSE DE LA SCÈNE THREE.JS ===");
 
     // Collections pour les statistiques
     const geometries = new Map();
@@ -384,9 +378,9 @@ function analyzeScene(scene) {
     }
 
     // Statistiques de base
-    console.log(`Nombre total d'objets dans la scène: ${objectCount}`);
-    console.log(`Nombre de géométries uniques: ${geometries.size}`);
-    console.log(`Nombre de matériaux uniques: ${materials.size}`);
+    // console.log(`Nombre total d'objets dans la scène: ${objectCount}`);
+    // console.log(`Nombre de géométries uniques: ${geometries.size}`);
+    // console.log(`Nombre de matériaux uniques: ${materials.size}`);
 
     // Calculer les statistiques avancées
     let totalVertices = 0;
@@ -401,8 +395,8 @@ function analyzeScene(scene) {
         }
     });
 
-    console.log(`Total des vertices: ${totalVertices}`);
-    console.log(`Total des faces: ${totalFaces}`);
+    // console.log(`Total des vertices: ${totalVertices}`);
+    // console.log(`Total des faces: ${totalFaces}`);
 
     // Afficher les géométries les plus lourdes
     const geometryArray = Array.from(geometries.values());
@@ -411,9 +405,9 @@ function analyzeScene(scene) {
         .sort((a, b) => b.vertexCount - a.vertexCount)
         .slice(0, 10);
 
-    console.log("\n=== GÉOMÉTRIES LES PLUS LOURDES ===");
+    // console.log("\n=== GÉOMÉTRIES LES PLUS LOURDES ===");
     heavyGeometries.forEach((geo, index) => {
-        console.log(`${index + 1}. ${geo.objectName}: ${geo.vertexCount} vertices, ${geo.faceCount} faces`);
+        // console.log(`${index + 1}. ${geo.objectName}: ${geo.vertexCount} vertices, ${geo.faceCount} faces`);
     });
 
     return {
