@@ -16,7 +16,7 @@ const NarrationTriggers = () => {
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
         'MultipleLeaf': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
-        'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
+        'JumpRock4': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
         'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
         'Vison': 'Scene08_DecouverteDuVisonMort',
