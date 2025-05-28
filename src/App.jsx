@@ -14,7 +14,8 @@ import MainLayout from './Utils/MainLayout'
 import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 import RandomSoundDebugger from './Utils/RandomSoundDebugger';
-import CustomCursor from './Utils/CustomCursor'; // Add this import
+import CustomCursor from './Utils/CustomCursor';
+import ScrollIndicator from './Utils/ScrollIndicator.jsx';
 
 export default function App() {
     const { loaded, setLoaded, endingLandingVisible, debug } = useStore()
@@ -513,6 +514,7 @@ export default function App() {
                     <CaptureInterface />
                     <ScannerInterface />
                     <ImageInterface />
+                    <ScrollIndicator />
                 </>
             )}
 
