@@ -735,7 +735,7 @@ class TextureManager {
         });
 
         this.addTextureMapping('RockWater', 'rock', null, {
-            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.5, castShadow: true, receivedShadow: true,
+            roughness: 1.0, metalness: 0.1, envMapIntensity: 0.25, castShadow: true, receivedShadow: true,
         });
 
 
@@ -781,6 +781,9 @@ class TextureManager {
 
 
         this.addTextureMapping('DirectionPanel', 'primary', null, {
+            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color: "#898080", normalScale: new Vector2(1.0, 1.0), castShadow: true, receivedShadow: true,
+        });
+        this.addTextureMapping('DirectionPanelBoard', 'primary', null, {
             roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color: "#3b1e02", castShadow: true, receivedShadow: true,
         });
         this.addTextureMapping('AnimalPaws', 'primary', null, {
@@ -788,6 +791,9 @@ class TextureManager {
         });
         this.addTextureMapping('MultipleLeaf', 'primary', null, {
             roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color:"#cec0c0", castShadow: true, receivedShadow: true,
+        });
+        this.addTextureMapping('VisonDead', 'primary', null, {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color:"#ababab",
         });
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
