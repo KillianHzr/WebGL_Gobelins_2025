@@ -163,20 +163,23 @@ export default function CaptureInterface() {
 
         setIsVisible(false);
         setIsFlashing(true);
-        toggleSceneGroups();
+
 
         setTimeout(() => {
             // Reste de la fonction inchangé
             setIsButtonPressed(false);
             setIsFlashing(false);
 
-            window.doJumpToChapter(0.8)
-            if (interaction?.setShowCaptureInterface) {
-                interaction.setShowCaptureInterface(false);
-            }
-
-            if (interaction?.completeInteraction) {
-                interaction.completeInteraction();
+            // window.doJumpToChapter(0.8)
+            // if (interaction?.setShowCaptureInterface) {
+            //     interaction.setShowCaptureInterface(false);
+            // }
+            //
+            // if (interaction?.completeInteraction) {
+            //     interaction.completeInteraction();
+            // }
+            if (interaction?.setShowBlackscreenInterface) {
+                interaction.setShowBlackscreenInterface(true);
             }
         }, 8000);
     };

@@ -14,6 +14,7 @@ export default function BlackscreenInterface() {
     // Surveiller les changements d'état pour savoir quand afficher l'interface
     useEffect(() => {
         if (interaction?.showBlackscreenInterface) {
+            console.log("Blackscreen interface triggered - showing black screen");
             setIsVisible(true);
 
             // Jouer un son si nécessaire
@@ -21,11 +22,11 @@ export default function BlackscreenInterface() {
                 audioManager.playSound('blackscreen');
             }
 
-            // Créer un timer pour valider automatiquement l'interaction après 2000ms
+            // Créer un timer pour l'écran noir puis déclencher l'ending
             const timer = setTimeout(() => {
-                console.log("Blackscreen interaction completed automatically after 2000ms");
+                console.log("Blackscreen completed, triggering ending landing");
 
-                // Cacher l'interface
+                // Cacher l'interface écran noir
                 setIsVisible(false);
 
                 // Désactiver l'affichage dans le store
@@ -38,12 +39,14 @@ export default function BlackscreenInterface() {
                     interaction.completeInteraction();
                 }
 
-                // Déclencher l'écran de fin (ending landing) puisque c'est la fin de l'expérience
+                // Déclencher l'écran de fin (ending landing)
                 if (triggerEnding) {
                     console.log("Triggering ending landing from BlackscreenInterface");
                     triggerEnding();
+                } else {
+                    console.error("triggerEnding function not available in store");
                 }
-            }, 500);
+            }, 2000); // Écran noir pendant 2 secondes
 
             // Nettoyage du timer si le composant est démonté avant la fin du délai
             return () => clearTimeout(timer);
