@@ -45,7 +45,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.1;
+const MAX_SCROLL_SPEED = 0.02;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.005;
 const BASE_SENSITIVITY = 0.05;
@@ -271,7 +271,7 @@ function CameraController({children}) {
                 });
 
                 const VISON_TRIGGER = 0.01;
-                const SCREEN_TRIGGER = 0.025;
+                const SCREEN_TRIGGER = 0.025; //VisonRun
 
                 if (normalizedPosition >= VISON_TRIGGER && !visonTriggeredRef.current) {
                     console.log("🦡 Déclenchement animation Vison à la position:", normalizedPosition);
@@ -565,6 +565,49 @@ function CameraController({children}) {
         }
         return targetObject;
     };
+
+
+    useEffect(() => {
+        const handleFlashlightFlickerCompletelyFinished = (data) => {
+            console.log('🎬 Fin complète du clignottement de la flashlight détectée, basculement vers screenGroup');
+            console.log('🔦 Données du clignottement:', data);
+
+            // Basculer de endGroup vers screenGroup UNIQUEMENT si les conditions sont bonnes
+            if (endGroupVisible && !screenGroupVisible) {
+                // Mettre à jour le store
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                    console.log('✅ EndGroup caché (fin de clignottement)');
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                    console.log('✅ ScreenGroup affiché (fin de clignottement)');
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+
+                console.log('🎬 Switch synchronisé avec fin de clignottement: endGroup→CACHÉ, screenGroup→VISIBLE');
+            } else {
+                console.log('🎬 Switch déjà effectué ou états inattendus:', {
+                    endGroupVisible,
+                    screenGroupVisible
+                });
+            }
+        };
+
+        // S'abonner à l'événement de fin complète du clignottement
+        const flashlightFlickerSubscription = EventBus.on('flashlight-flicker-completely-finished', handleFlashlightFlickerCompletelyFinished);
+
+        return () => {
+            flashlightFlickerSubscription();
+        };
+    }, [endGroupVisible, screenGroupVisible, setEndGroupVisible, setScreenGroupVisible]);
 
     // Récupérer les points d'interaction
     useEffect(() => {
@@ -1233,39 +1276,39 @@ function CameraController({children}) {
         }
 
         // Faire le switch seulement quand on atteint la fin du scroll pour la première fois
-        if (isNowAtEnd && !hasTriggeredEndSwitch) {
-            console.log('🎬 Fin du scroll détectée, basculement vers screenGroup');
-
-            // Basculer de endGroup vers screenGroup
-            if (endGroupVisible && !screenGroupVisible) {
-                // Mettre à jour le store
-                setEndGroupVisible(false);
-                setScreenGroupVisible(true);
-
-                // Mettre à jour directement les références DOM
-                if (window.endGroupRef && window.endGroupRef.current) {
-                    window.endGroupRef.current.visible = false;
-                    console.log('✅ EndGroup caché');
-                }
-                if (window.screenGroupRef && window.screenGroupRef.current) {
-                    window.screenGroupRef.current.visible = true;
-                    console.log('✅ ScreenGroup affiché');
-                }
-
-                // Émettre les événements
-                EventBus.trigger('end-group-visibility-changed', false);
-                EventBus.trigger('screen-group-visibility-changed', true);
-
-                console.log('🎬 Switch terminé: endGroup→CACHÉ, screenGroup→VISIBLE');
-            }
-
-            setHasTriggeredEndSwitch(true);
-
-            // Réinitialiser le déclencheur après un délai
-            setTimeout(() => {
-                setHasTriggeredEndSwitch(false);
-            }, 3000);
-        }
+        // if (isNowAtEnd && !hasTriggeredEndSwitch) {
+        //     console.log('🎬 Fin du scroll détectée, basculement vers screenGroup');
+        //
+        //     // Basculer de endGroup vers screenGroup
+        //     if (endGroupVisible && !screenGroupVisible) {
+        //         // Mettre à jour le store
+        //         setEndGroupVisible(false);
+        //         setScreenGroupVisible(true);
+        //
+        //         // Mettre à jour directement les références DOM
+        //         if (window.endGroupRef && window.endGroupRef.current) {
+        //             window.endGroupRef.current.visible = false;
+        //             console.log('✅ EndGroup caché');
+        //         }
+        //         if (window.screenGroupRef && window.screenGroupRef.current) {
+        //             window.screenGroupRef.current.visible = true;
+        //             console.log('✅ ScreenGroup affiché');
+        //         }
+        //
+        //         // Émettre les événements
+        //         EventBus.trigger('end-group-visibility-changed', false);
+        //         EventBus.trigger('screen-group-visibility-changed', true);
+        //
+        //         console.log('🎬 Switch terminé: endGroup→CACHÉ, screenGroup→VISIBLE');
+        //     }
+        //
+        //     setHasTriggeredEndSwitch(true);
+        //
+        //     // Réinitialiser le déclencheur après un délai
+        //     setTimeout(() => {
+        //         setHasTriggeredEndSwitch(false);
+        //     }, 3000);
+        // }
 
     }, 'camera');
 

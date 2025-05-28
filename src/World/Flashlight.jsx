@@ -78,7 +78,7 @@ export default function Flashlight() {
     const [advancedParams, setAdvancedParams] = useState({
         angle: 0.271,
         penumbra: 1,
-        distance: 30,
+        distance: 50,
         decay: 1.1
     });
 
@@ -109,6 +109,7 @@ export default function Flashlight() {
         const smoothValue = THREE.MathUtils.lerp(patternValue, nextValue, t * 0.4);
 
         // Vérifier si on a terminé une répétition complète
+        // Vérifier si on a terminé une répétition complète
         const currentCycle = Math.floor(timeSinceStart * patternSpeed / pattern.length);
         if (currentCycle > flicker.currentRepeat) {
             flicker.currentRepeat = currentCycle;
@@ -127,10 +128,20 @@ export default function Flashlight() {
             if (flicker.currentRepeat >= flicker.repeatCount) {
                 flicker.isActive = false;
                 console.log('Flashlight: Clignottement terminé après toutes les répétitions');
+
+                // NOUVEAU: Émettre l'événement de fin complète du clignottement
+                EventBus.trigger('flashlight-flicker-completely-finished', {
+                    patternIndex: flicker.patternIndex,
+                    totalRepeats: flicker.repeatCount,
+                    time: time,
+                    finalIntensity: baseIntensity
+                });
+
+                console.log('🔦 Flashlight: Événement de fin complète de clignottement émis');
+
                 return baseIntensity;
             }
         }
-
         // Ajouter un léger bruit pour le naturel, mais moins que avant
         let finalValue = smoothValue;
         if (flicker.irregularity > 0) {
@@ -468,7 +479,7 @@ export default function Flashlight() {
 
                 // Activer le clignottement avec un pattern binaire (pattern 0) pour 3 répétitions
                 flickerRef.current.enabled = true;
-                triggerFlicker(0, 0, 3); // 3 répétitions, pattern arrêt brutal + remontée
+                triggerFlicker(0, 0, 1); // 3 répétitions, pattern arrêt brutal + remontée
 
                 console.log(`Flashlight: Clignottement automatique déclenché à ${(position * 100).toFixed(1)}%`);
             }

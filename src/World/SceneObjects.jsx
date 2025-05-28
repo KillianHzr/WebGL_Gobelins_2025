@@ -558,8 +558,7 @@ export const StaticObject = React.memo(function StaticObject({
             // Exposer une fonction générique pour démarrer n'importe quelle animation
             const startAnimation = (objectKey, animationName, options = {}) => {
                 // Vérifier si c'est pour cet objet spécifique
-                const isTargetObject =
-                    objectKey === textureModelId;
+                const isTargetObject = objectKey === textureModelId;
 
                 if (!isTargetObject) {
                     // Ce n'est pas notre objet, ignorer
@@ -614,11 +613,137 @@ export const StaticObject = React.memo(function StaticObject({
                 const shouldClamp = options.clamp !== undefined ? options.clamp :
                     (animationDefaults.defaultClamp !== undefined ? animationDefaults.defaultClamp : false);
 
-                // Appliquer la configuration
+                // IMPORTANT: S'assurer que l'objet peut être transformé par l'animation
+                // En donnant le contrôle complet à l'AnimationMixer
+                if (objectRef.current) {
+                    // Permettre à Three.js de contrôler complètement les transformations
+                    objectRef.current.matrixAutoUpdate = true;
+
+                    // S'assurer que tous les enfants peuvent aussi être animés
+                    objectRef.current.traverse((child) => {
+                        if (child.isMesh || child.isObject3D) {
+                            child.matrixAutoUpdate = true;
+                        }
+                    });
+
+                    console.log(`🎯 Objet ${objectKey} configuré pour animation complète (position, rotation, scale)`);
+                }
+
+                // Appliquer la configuration d'animation
                 action.setLoop(shouldLoop ? LoopRepeat : LoopOnce, shouldLoop ? Infinity : 1);
                 action.timeScale = timeScale;
                 action.clampWhenFinished = shouldClamp;
 
+                // CRITIQUE: S'assurer que tous les tracks de l'animation sont activés
+                // (position, rotation, scale, morphTargets, etc.)
+                if (action._clip && action._clip.tracks) {
+                    console.log(`🎵 Animation tracks détectés:`, action._clip.tracks.map(track => ({
+                        name: track.name,
+                        type: track.constructor.name,
+                        times: track.times?.length || 0,
+                        values: track.values?.length || 0
+                    })));
+
+                    // NOUVEAU: Validation et optimisation des tracks
+                    let hasPositionTrack = false;
+                    let hasRotationTrack = false;
+                    let hasMorphTargets = false;
+
+                    action._clip.tracks.forEach(track => {
+                        if (track.name.includes('.position')) {
+                            hasPositionTrack = true;
+                            console.log(`✅ Track de position activé: ${track.name} (${track.times.length} keyframes)`);
+
+                            // OPTIMISATION: Vérifier si l'animation a vraiment du mouvement
+                            if (track.values && track.values.length >= 6) {
+                                const startPos = [track.values[0], track.values[1], track.values[2]];
+                                const endPos = [
+                                    track.values[track.values.length - 3],
+                                    track.values[track.values.length - 2],
+                                    track.values[track.values.length - 1]
+                                ];
+                                const distance = Math.sqrt(
+                                    Math.pow(endPos[0] - startPos[0], 2) +
+                                    Math.pow(endPos[1] - startPos[1], 2) +
+                                    Math.pow(endPos[2] - startPos[2], 2)
+                                );
+                                console.log(`📏 Distance de déplacement total: ${distance.toFixed(2)} unités`);
+                                console.log(`📍 Position début: [${startPos.map(v => v.toFixed(2)).join(', ')}]`);
+                                console.log(`📍 Position fin: [${endPos.map(v => v.toFixed(2)).join(', ')}]`);
+                            }
+                        }
+                        else if (track.name.includes('.rotation') || track.name.includes('.quaternion')) {
+                            hasRotationTrack = true;
+                            console.log(`✅ Track de rotation activé: ${track.name} (${track.times.length} keyframes)`);
+                        }
+                        else if (track.name.includes('.scale')) {
+                            console.log(`✅ Track de scale activé: ${track.name}`);
+                        }
+                        else if (track.name.includes('morphTargetInfluences')) {
+                            hasMorphTargets = true;
+                            console.log(`✅ Track de morphing activé: ${track.name} (${track.values.length} influences)`);
+                        }
+                        else {
+                            console.log(`ℹ️ Autre track: ${track.name}`);
+                        }
+                    });
+
+                    // VALIDATION: S'assurer qu'on a les tracks nécessaires
+                    if (!hasPositionTrack && !hasRotationTrack) {
+                        console.warn(`⚠️ Animation "${animationName}" sans déplacement ni rotation détecté`);
+                    } else {
+                        console.log(`🎬 Animation complète détectée:`, {
+                            deplacement: hasPositionTrack,
+                            rotation: hasRotationTrack,
+                            morphing: hasMorphTargets,
+                            totalTracks: action._clip.tracks.length
+                        });
+                    }
+
+                    // PERFORMANCE: Optimiser le mixer si beaucoup de tracks
+                    if (action._clip.tracks.length > 5) {
+                        console.log(`⚡ Animation complexe détectée (${action._clip.tracks.length} tracks), optimisation mixer`);
+
+                        // Augmenter la fréquence de mise à jour pour les animations complexes
+                        if (mixer) {
+                            mixer.timeScale = timeScale; // S'assurer que le mixer utilise le bon timeScale
+                        }
+                    }
+                }
+
+// NOUVEAU: Callback pour suivre le progrès de l'animation
+                if (mixer && !shouldLoop) {
+                    const progressCallback = () => {
+                        if (action && action.isRunning()) {
+                            const progress = action.time / action.getClip().duration;
+
+                            // Log du progrès à certains seuils
+                            if (progress >= 0.25 && !action._quarter) {
+                                action._quarter = true;
+                                console.log(`🎬 Animation ${animationName} - 25% complétée`);
+                            }
+                            if (progress >= 0.5 && !action._half) {
+                                action._half = true;
+                                console.log(`🎬 Animation ${animationName} - 50% complétée`);
+                            }
+                            if (progress >= 0.75 && !action._threeQuarter) {
+                                action._threeQuarter = true;
+                                console.log(`🎬 Animation ${animationName} - 75% complétée`);
+                            }
+                        }
+                    };
+
+                    // Vérifier le progrès à chaque frame (seulement si pas en boucle)
+                    const progressInterval = setInterval(() => {
+                        if (!action || !action.isRunning()) {
+                            clearInterval(progressInterval);
+                            return;
+                        }
+                        progressCallback();
+                    }, 100); // Vérifier toutes les 100ms
+                }
+
+                // Démarrer l'animation Three.js (avec tous les déplacements intégrés)
                 action.play();
 
                 console.log(`✅ Animation ${animationName} démarrée sur ${objectKey}:`, {
@@ -627,7 +752,8 @@ export const StaticObject = React.memo(function StaticObject({
                     timeScale: timeScale,
                     clamp: shouldClamp,
                     hasDefaults: Object.keys(animationDefaults).length > 0,
-                    source: 'dynamique'
+                    tracksCount: action._clip?.tracks?.length || 0,
+                    source: 'GLB_intégré'
                 });
 
                 // Mettre à jour l'état avec les valeurs effectives
@@ -640,9 +766,30 @@ export const StaticObject = React.memo(function StaticObject({
                 };
 
                 currentAnimationRef.current = action;
+
+                // OPTIONNEL: Callback quand l'animation se termine (si pas en boucle)
+                if (!shouldLoop && options.onComplete) {
+                    // Nettoyer d'abord tout écouteur existant
+                    if (animationRef.current) {
+                        mixer.removeEventListener('finished', animationRef.current);
+                    }
+
+                    // Créer le callback pour cette animation spécifique
+                    const finishCallback = (e) => {
+                        if (e.action === action) {
+                            console.log(`🏁 Animation GLB "${animationName}" avec déplacements terminée`);
+                            options.onComplete(animationName);
+                            // Nettoyer l'écouteur après utilisation
+                            mixer.removeEventListener('finished', finishCallback);
+                        }
+                    };
+
+                    // Ajouter l'écouteur
+                    mixer.addEventListener('finished', finishCallback);
+                }
+
                 return true;
             };
-
             // MODIFIÉ: Exposer ou étendre la fonction globale existante
             if (!window.startAnimation) {
                 // Première exposition
