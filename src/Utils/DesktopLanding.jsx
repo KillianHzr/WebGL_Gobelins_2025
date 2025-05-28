@@ -18,6 +18,11 @@ const DesktopLanding = ({ onEnterExperience, enabled = false }) => {
     return (
         <div className={`desktop-landing ${fadeOut ? 'fade-out' : ''}`}>
             <div className="desktop-landing-content">
+                <p className="desktop-landing-logos">
+                    <img src="/images/Gobelins_Logo_full.png" alt="Project logo" />
+                    <img src="/images/Logo-LQDN.png" alt="Project logo" />
+                </p>
+
                 <div className="desktop-landing-project-logo">
                     <img src="/images/LeLayon_Logo.svg" alt="Project logo" />
                 </div>

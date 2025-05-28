@@ -119,11 +119,11 @@
   width: 100%;
   height: 100%;
   background-color: v.color(background);
-  background-image: url('/images/Flow_Background.png');
+  background-image: url('/images/Landing_Background.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  z-index: 70;
+  z-index: 8001;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -135,6 +135,7 @@
 
   &.fade-out {
     opacity: 0;
+    pointer-events: none;
   }
 
   &:after {
@@ -174,8 +175,8 @@
 
   &-project-logo {
     width: 100%;
-    max-width: 420px;
-    margin-bottom: 55px;
+    max-width: 496px;
+    margin-bottom: 64px;
 
     img {
       width: 100%;
@@ -227,6 +228,25 @@
     margin-top: auto;
     position: absolute;
     bottom: 20px;
+  }
+
+  &-logos {
+    font-family: "Articulat CF", sans-serif;
+    font-size: 15px;
+    font-weight: 200;
+    font-style: oblique;
+    line-height: normal;
+    color: #F9FEFF;
+    border-radius: 100px;
+    text-align: center;
+    margin-top: auto;
+    position: absolute;
+    top: 20px;
+
+    img {
+      height: 48px;
+      margin: 0 10px;
+    }
   }
 }
 
