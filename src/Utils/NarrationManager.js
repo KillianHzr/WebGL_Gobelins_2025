@@ -43,7 +43,7 @@ class NarrationManager {
             transform: translateX(-50%);
             color: #F9FFFB;
             font-size: 16px;
-            font-family: Roboto, sans-serif;
+            font-family: "Articulat CF";
             font-weight: 700;
             font-style: italic;
             text-align: center;
