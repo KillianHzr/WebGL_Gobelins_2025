@@ -65,9 +65,6 @@ export const ModelMarker = React.memo(function ModelMarker({
             (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
                 (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
-            // Condition modifiée : montrer le marqueur quand le stop est activé (même sans hover)
-            (interaction?.waitingForInteraction && interaction.currentStep === requiredStep) ||
-
             // Condition standard pour les autres types (basée sur le hover)
             ((isHovered || isMarkerHovered) &&
                 showMarkerOnHover &&

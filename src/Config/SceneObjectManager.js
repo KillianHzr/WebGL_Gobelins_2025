@@ -211,7 +211,7 @@ class SceneObjectManager {
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.18402, 0.18402, 0.18402],
                 interactive: true,
-                useTextures: false,
+                useTextures: true,
                 interaction: [{
                     type: INTERACTION_TYPES.CLICK,
                     text: "Clique",
