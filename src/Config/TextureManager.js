@@ -43,10 +43,7 @@ class TextureManager {
         this.materialPool = {};
 
         // Liste des noms d'objets qui recevront une texture d'émission
-        this.emissiveObjectNames = [
-            'ScreenEmission',
-            'ScreenOldEmission'
-        ];
+        this.emissiveObjectNames = ['ScreenEmission', 'ScreenOldEmission'];
 
         // Configuration par défaut pour les émissions
         this.emissiveConfig = {
@@ -208,9 +205,7 @@ class TextureManager {
                 const objectId = node.userData.objectId;
 
                 // Vérifier si l'objet doit être émissif
-                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
-                    objectId.includes(name) || node.name.includes(name)
-                );
+                const shouldBeEmissive = this.emissiveObjectNames.some(name => objectId.includes(name) || node.name.includes(name));
 
                 if (shouldBeEmissive && node.material) {
                     const applied = this._safelySetEmissive(node.material, {
@@ -228,9 +223,7 @@ class TextureManager {
             }
             // Logique existante pour les Mesh normaux
             else if (node.isMesh) {
-                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
-                    node.name.includes(name) || (node.parent && node.parent.name.includes(name))
-                );
+                const shouldBeEmissive = this.emissiveObjectNames.some(name => node.name.includes(name) || (node.parent && node.parent.name.includes(name)));
 
                 if (shouldBeEmissive && node.material) {
                     const materials = Array.isArray(node.material) ? node.material : [node.material];
@@ -527,9 +520,7 @@ class TextureManager {
         });
 
         this.addPlantTexture('TreeRoof', 'forest/tree', {
-            roughness: 1.0, metalness: 0.0,
-            envMapIntensity: 0.4,
-            // castShadow: false,
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.4, // castShadow: false,
             color: '#1d6d35', useTextures: {
                 // baseColor: false,
             }
@@ -541,7 +532,8 @@ class TextureManager {
 
         // Branches
         this.addPlantTexture('BranchTree', 'forest/branch', {
-            roughness: 0.7, metalness: 0.0,
+            roughness: 0.7,
+            metalness: 0.0,
             castShadow: true,
             receivedShadow: true,
             color: '#37c876',
@@ -553,16 +545,12 @@ class TextureManager {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
             color: '#0cdb14', useTextures: {
                 // baseColor: false,
-            },
-            castShadow: true,
-            receivedShadow: true,
+            }, castShadow: true, receivedShadow: true,
         });
 
         this.addPlantTexture('BranchFig', 'forest/branch', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#65c153', useTextures: {
+            castShadow: true, receivedShadow: true, color: '#65c153', useTextures: {
                 // baseColor: false,
             }
         });
@@ -662,37 +650,27 @@ class TextureManager {
         // Plantes
         this.addPlantTexture('PlantPuccinellia', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#2fc147',
+            castShadow: true, receivedShadow: true, color: '#2fc147',
         });
 
         this.addPlantTexture('PlantReed', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#dfe09f',
+            castShadow: true, receivedShadow: true, color: '#dfe09f',
         });
 
         this.addPlantTexture('PlantMiscanthus', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#8b9c92',
+            castShadow: true, receivedShadow: true, color: '#8b9c92',
         });
 
         this.addPlantTexture('PlantClematis', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#6edd8a',
+            castShadow: true, receivedShadow: true, color: '#6edd8a',
         });
 
         this.addPlantTexture('Grass', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#1f7a53',
+            castShadow: true, receivedShadow: true, color: '#1f7a53',
         });
 
         // Plantes - Groupe END
@@ -715,9 +693,7 @@ class TextureManager {
         // Fleurs
         this.addPlantTexture('FlowerBell', 'forest/flower', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#b5a5bb',
+            castShadow: true, receivedShadow: true, color: '#b5a5bb',
         });
 
         this.addPlantTexture('FlowerClover', 'forest/flower', {
@@ -747,16 +723,12 @@ class TextureManager {
         // Champignons
         this.addPlantTexture('MushroomSolo', 'forest/mushroom', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#9c8e70',
+            castShadow: true, receivedShadow: true, color: '#9c8e70',
         });
 
         this.addPlantTexture('MushroomDuo', 'forest/mushroom', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#bc9494',
+            castShadow: true, receivedShadow: true, color: '#bc9494',
         });
 
         // Champignons - Groupe END
@@ -780,9 +752,7 @@ class TextureManager {
         // Pine Cones
         this.addPlantTexture('PineCone', 'forest/plant', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true,
-            receivedShadow: true,
-            color: '#919191',
+            castShadow: true, receivedShadow: true, color: '#919191',
         });
 
         // Pine Cones - Groupe END
@@ -811,9 +781,12 @@ class TextureManager {
         });
 
         this.addTextureMapping('RockWater', 'rock', 'BigRock', {
-            roughness: 1.0, metalness: 0.1, envMapIntensity: 0.25,
+            roughness: 1.0,
+            metalness: 0.1,
+            envMapIntensity: 0.25,
             normalScale: new Vector2(0.1, 0.1),
-            castShadow: true, receivedShadow: true,
+            castShadow: true,
+            receivedShadow: true,
         });
 
 
@@ -837,7 +810,9 @@ class TextureManager {
             receivedShadow: true,
         });
         this.addTextureMapping('Screen', 'digital/screen', 'ScreenOld', {
-            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.00,
+            roughness: 1.0,
+            metalness: 0.0,
+            envMapIntensity: 0.00,
             color: '#000000',
             normalScale: new Vector2(0.0, 0.0),
             castShadow: true,
@@ -1471,10 +1446,7 @@ class TextureManager {
             .then(textures => {
                 if (textures) {
                     this._applyTexturesToMaterial(material, textures, {
-                        ...optionsWithLOD,
-                        ...materialProperties,
-                        modelId: modelId,
-                        isEmissive: shouldBeEmissive
+                        ...optionsWithLOD, ...materialProperties, modelId: modelId, isEmissive: shouldBeEmissive
                     });
 
                     if (options.useGroupMaterial && group && !this.materialPool[groupKey]) {
@@ -1717,9 +1689,7 @@ class TextureManager {
     _shouldObjectBeEmissive(modelId) {
         if (!modelId) return false;
 
-        return this.emissiveObjectNames.some(name =>
-            modelId.includes(name) || name.includes(modelId)
-        );
+        return this.emissiveObjectNames.some(name => modelId.includes(name) || name.includes(modelId));
     }
 
     /**
