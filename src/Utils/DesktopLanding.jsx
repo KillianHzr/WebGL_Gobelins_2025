@@ -18,6 +18,11 @@ const DesktopLanding = ({ onEnterExperience, enabled = false }) => {
     return (
         <div className={`desktop-landing ${fadeOut ? 'fade-out' : ''}`}>
             <div className="desktop-landing-content">
+                <p className="desktop-landing-logos">
+                    <img src="/images/Gobelins_Logo_full.png" alt="Project logo" />
+                    <img src="/images/Logo-LQDN.png" alt="Project logo" />
+                </p>
+
                 <div className="desktop-landing-project-logo">
                     <img src="/images/LeLayon_Logo.svg" alt="Project logo" />
                 </div>
@@ -31,7 +36,7 @@ const DesktopLanding = ({ onEnterExperience, enabled = false }) => {
                 </button>
 
                 <p className="desktop-landing-message">
-                    Projet Gobelins pour La Quadrature du Net
+                    Pour une immersion complète, utilise un casque.
                 </p>
             </div>
         </div>

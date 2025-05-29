@@ -7,6 +7,10 @@ const CustomCursor = () => {
     const [isVisible, setIsVisible] = useState(false);
     const endingLandingVisible = useStore(state => state.endingLandingVisible);
 
+    // Références pour le système de sécurité hover
+    const mousePositionRef = useRef({ x: 0, y: 0 });
+    const isHoveringRef = useRef(false);
+
     // Set up cursor following behavior with GSAP
     useEffect(() => {
         // Hide default cursor
@@ -42,6 +46,9 @@ const CustomCursor = () => {
         const onMouseMove = (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
+
+            // Mettre à jour la position de référence pour la sécurité
+            mousePositionRef.current = { x: e.clientX, y: e.clientY };
 
             // Show cursor once we have position data
             if (!isVisible) {
@@ -106,17 +113,21 @@ const CustomCursor = () => {
                 [role="button"],
                 .camera-viewport-zoom-indicator,
                 .camera-viewport-zoom-plus,
-                .camera-viewport-zoom-minus
+                .camera-viewport-zoom-minus,
+                .image-interface-hold-button
             `);
+
             const onInteractiveEnter = () => {
                 if (cursorRef.current) {
                     cursorRef.current.classList.add('cursor-interactive');
+                    isHoveringRef.current = true;
                 }
             };
 
             const onInteractiveLeave = () => {
                 if (cursorRef.current) {
                     cursorRef.current.classList.remove('cursor-interactive');
+                    isHoveringRef.current = false;
                 }
             };
 
@@ -143,6 +154,56 @@ const CustomCursor = () => {
         return () => {
             cleanup();
             observer.disconnect();
+        };
+    }, []);
+
+    // Système de sécurité hover - vérifie toutes les 2s si on survole toujours un élément interactif
+    useEffect(() => {
+        const checkHoverState = () => {
+            if (!isHoveringRef.current || !cursorRef.current) return;
+
+            const { x, y } = mousePositionRef.current;
+
+            // Obtenir l'élément sous le cursor
+            const elementUnderCursor = document.elementFromPoint(x, y);
+
+            if (!elementUnderCursor) {
+                // Aucun élément trouvé, nettoyer l'état hover
+                cursorRef.current.classList.remove('cursor-interactive');
+                isHoveringRef.current = false;
+                return;
+            }
+
+            // Vérifier si l'élément ou un de ses parents correspond aux sélecteurs interactifs
+            const interactiveSelectors = [
+                'a', 'button', '[role="button"]',
+                '.camera-viewport-zoom-indicator',
+                '.camera-viewport-zoom-plus',
+                '.camera-viewport-zoom-minus',
+                '.image-interface-hold-button'
+            ];
+
+            const isStillInteractive = interactiveSelectors.some(selector => {
+                try {
+                    return elementUnderCursor.matches(selector) ||
+                        elementUnderCursor.closest(selector);
+                } catch (e) {
+                    return false;
+                }
+            });
+
+            // Si l'élément n'est plus interactif, nettoyer l'état
+            if (!isStillInteractive) {
+                cursorRef.current.classList.remove('cursor-interactive');
+                isHoveringRef.current = false;
+            }
+        };
+
+        // Vérifier toutes les 2 secondes
+        const securityInterval = setInterval(checkHoverState, 2000);
+
+        return () => {
+            clearInterval(securityInterval);
         };
     }, []);
 

@@ -70,10 +70,10 @@
     align-items: center;
     color: #F9FEFF;
     text-align: center;
-    font-family: 'Albert Sans', serif;
+    font-family: 'Articulat CF', serif;
     font-size: 12px;
     font-style: normal;
-    font-weight: 600;
+    font-weight: 700;
     line-height: normal;
     transition: text-shadow 0.3s ease;
 }
@@ -137,9 +137,9 @@
     background-color: rgba(v.color(black), 0.7);
     color: #F9FEFF;
     border-radius: 5px;
-    font-family: 'Albert Sans', sans-serif;
+    font-family: 'Articulat CF', sans-serif;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     z-index: map.get(v.$z-index, notification);
     animation: fadeIn 0.3s ease-in;
 }

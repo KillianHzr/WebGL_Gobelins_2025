@@ -1442,25 +1442,6 @@ function CameraController({children}) {
             document.body.appendChild(progressBar);
             console.log('UI: Barre de progression créée');
         }
-
-        // Indicateur de debug simple (uniquement en mode non-debug)
-        if (!debug?.active && !document.getElementById('scroll-debug-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'scroll-debug-indicator';
-            indicator.style.position = 'fixed';
-            indicator.style.bottom = '20px';
-            indicator.style.right = '20px';
-            indicator.style.padding = '8px 12px';
-            indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-            indicator.style.color = '#00ff00';
-            indicator.style.fontFamily = 'sans-serif';
-            indicator.style.fontSize = '14px';
-            indicator.style.borderRadius = '4px';
-            indicator.style.zIndex = '100';
-            indicator.style.transition = 'color 0.3s ease';
-            indicator.textContent = 'Scroll actif';
-            document.body.appendChild(indicator);
-        }
     };
 
     // NOUVEAU : Créer UI pour le debug en mode développeur
