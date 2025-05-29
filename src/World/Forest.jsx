@@ -526,7 +526,21 @@ export default function Forest() {
         isLoadingRef.current = true;
         processNextBatch();
     };
+    const applyEmissionToLoadedForest = () => {
+        if (!forestRef.current) return;
 
+        console.log("Applying emission to loaded forest objects...");
+
+        // Configurer l'émission spécifiquement pour les écrans
+        textureManager.configureScreenEmission(); // Cyan avec intensité 2.5
+
+        // Appliquer l'émission sur tous les objets de la scène
+        const modifiedCount = textureManager.forceEmissiveOnScreenInstances(forestRef.current);
+
+        console.log(`Emission applied to ${modifiedCount} screen objects`);
+
+        return modifiedCount;
+    };
     // Process a batch of chunks
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
@@ -537,6 +551,11 @@ export default function Forest() {
             // Marquer le chargement comme terminé
             window.forestLoadingComplete = true;
             console.log('Forest loading complete! CameraSwitcher can now safely interact with forest objects.');
+
+            // NOUVELLE ÉTAPE: Appliquer l'émission après le chargement complet
+            setTimeout(() => {
+                applyEmissionToLoadedForest();
+            }, 1000); // Délai pour s'assurer que tout est rendu
 
             // Trigger event when everything is loaded
             EventBus.trigger('forest-ready');
@@ -656,15 +675,38 @@ export default function Forest() {
             return [];
         }
 
+        // MODIFICATION: Vérifier si cet objet doit être émissif
+        const shouldBeEmissive = textureManager._shouldObjectBeEmissive(objectId);
+
+        // Créer le matériau avec les options d'émission si nécessaire
+        const materialOptions = {
+            aoIntensity: 0.0,
+            alphaTest: 1.0
+        };
+
+        if (shouldBeEmissive) {
+            materialOptions.isEmissive = true;
+            materialOptions.emissiveColor = textureManager.emissiveConfig.color;
+            materialOptions.emissiveIntensity = textureManager.emissiveConfig.intensity;
+            console.log(`Creating emissive material for ${objectId}`);
+        }
+
         // OPTIMIZATION: Use global material cache for strict reuse
-        const material = GeometryCache.getMaterial(objectId, {
-            aoIntensity: 0.0, alphaTest: 1.0
-        });
+        const material = GeometryCache.getMaterial(objectId, materialOptions);
 
         if (!material) {
             console.warn(`Failed to create material for ${objectId}`);
             return [];
         }
+        if (shouldBeEmissive) {
+            textureManager._safelySetEmissive(material, {
+                color: textureManager.emissiveConfig.color,
+                intensity: textureManager.emissiveConfig.intensity,
+                useTexture: textureManager.emissiveConfig.useTexture,
+                emissiveMap: material.map // Utiliser la texture de base comme émission
+            });
+        }
+
 
         // Create LOD instances
         const instances = [];
@@ -703,6 +745,15 @@ export default function Forest() {
             // OPTIMIZATION: Use existing material reference
             // Create instanced mesh with efficient parameters
             const instancedMesh = new THREE.InstancedMesh(levelGeometry, material, positions.length);
+
+
+            if (shouldBeEmissive) {
+                instancedMesh.userData.isEmissive = true;
+                instancedMesh.userData.emissiveConfig = {
+                    color: textureManager.emissiveConfig.color,
+                    intensity: textureManager.emissiveConfig.intensity
+                };
+            }
 
             // OPTIMIZATION: Set renderOrder by distance to reduce overdraw
             instancedMesh.renderOrder = -minDistance;
@@ -759,6 +810,19 @@ export default function Forest() {
         return hash;
     };
 
+    const updateScreenEmission = (intensity = 2.5, color = 0x00ffff) => {
+        if (!forestRef.current) return;
+
+        // Mettre à jour la configuration
+        textureManager.configureScreenEmission(intensity, color);
+
+        // Réappliquer sur tous les objets
+        const modifiedCount = textureManager.forceEmissiveOnScreenInstances(forestRef.current);
+
+        console.log(`Screen emission updated: ${modifiedCount} objects modified`);
+
+        return modifiedCount;
+    };
     const getChunkCustomThreshold = (chunkId, chunkX, chunkZ) => {
         const hash = getChunkHash(chunkId, chunkX, chunkZ);
         // Generate variation between -SWITCH_RANGE/2 and +SWITCH_RANGE/2

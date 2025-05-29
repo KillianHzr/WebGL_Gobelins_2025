@@ -411,7 +411,7 @@ class TemplateManager {
             'ScreenOldEmission': {
                 id: 'ScreenOldEmission',
                 path: '/models/digital/screen/ScreenOldEmission.glb',
-                priority: 21,
+                priority: 23,
                 useTextures: true,
                 group: 'screen'
             },

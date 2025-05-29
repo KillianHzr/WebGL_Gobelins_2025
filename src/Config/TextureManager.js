@@ -44,7 +44,9 @@ class TextureManager {
 
         // Liste des noms d'objets qui recevront une texture d'émission
         this.emissiveObjectNames = [
-            'ScreenEmission'
+            'ScreenEmission',
+            'ScreenEmissive',
+            'ScreenOldEmission'
         ];
 
         // Configuration par défaut pour les émissions
@@ -183,6 +185,78 @@ class TextureManager {
         this.initializeTextures();
     }
 
+    configureScreenEmission() {
+        this.setEmissiveConfig({
+            color: this.emissiveConfig.color,
+            intensity: this.emissiveConfig.intensity,
+            useTexture: true,
+            emissiveMap: null,
+            forceOverride: true
+        });
+
+        return this;
+    }
+
+    forceEmissiveOnScreenInstances(scene) {
+        if (!scene) return 0;
+
+        console.log("Application forcée d'émission sur les instances d'écrans...");
+        let modifiedCount = 0;
+
+        scene.traverse((node) => {
+            // Vérifier si c'est un InstancedMesh avec des écrans émissifs
+            if (node.isInstancedMesh && node.userData && node.userData.objectId) {
+                const objectId = node.userData.objectId;
+
+                // Vérifier si l'objet doit être émissif
+                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
+                    objectId.includes(name) || node.name.includes(name)
+                );
+
+                if (shouldBeEmissive && node.material) {
+                    const applied = this._safelySetEmissive(node.material, {
+                        color: this.emissiveConfig.color,
+                        intensity: this.emissiveConfig.intensity,
+                        useTexture: this.emissiveConfig.useTexture,
+                        emissiveMap: this.emissiveConfig.emissiveMap
+                    });
+
+                    if (applied) {
+                        modifiedCount++;
+                        console.log(`Émission appliquée à l'InstancedMesh "${node.name}" (${objectId}) avec ${node.count} instances`);
+                    }
+                }
+            }
+            // Logique existante pour les Mesh normaux
+            else if (node.isMesh) {
+                const shouldBeEmissive = this.emissiveObjectNames.some(name =>
+                    node.name.includes(name) || (node.parent && node.parent.name.includes(name))
+                );
+
+                if (shouldBeEmissive && node.material) {
+                    const materials = Array.isArray(node.material) ? node.material : [node.material];
+
+                    for (let i = 0; i < materials.length; i++) {
+                        const mat = materials[i];
+                        const applied = this._safelySetEmissive(mat, {
+                            color: this.emissiveConfig.color,
+                            intensity: this.emissiveConfig.intensity,
+                            useTexture: this.emissiveConfig.useTexture,
+                            emissiveMap: this.emissiveConfig.emissiveMap
+                        });
+
+                        if (applied) {
+                            modifiedCount++;
+                            console.log(`Émission appliquée à "${node.name}" (matériau: ${mat.type})`);
+                        }
+                    }
+                }
+            }
+        });
+
+        console.log(`Force émissive sur écrans: ${modifiedCount} matériaux modifiés`);
+        return modifiedCount;
+    }
     /**
      * Méthode pour définir l'activation/désactivation des textures
      * @param {string} modelId - ID du modèle
@@ -1358,11 +1432,22 @@ class TextureManager {
         // Appliquer immédiatement les propriétés configurées
         this._applyMaterialProperties(material, materialProperties);
 
+        const shouldBeEmissive = this._shouldObjectBeEmissive(modelId);
+
+        if (shouldBeEmissive) {
+            options.isEmissive = true;
+            options.emissiveColor = options.emissiveColor || this.emissiveConfig.color;
+            options.emissiveIntensity = options.emissiveIntensity || this.emissiveConfig.intensity;
+        }
+
         this.preloadTexturesForModel(modelId)
             .then(textures => {
                 if (textures) {
                     this._applyTexturesToMaterial(material, textures, {
-                        ...optionsWithLOD, ...materialProperties, modelId: modelId
+                        ...optionsWithLOD,
+                        ...materialProperties,
+                        modelId: modelId,
+                        isEmissive: shouldBeEmissive
                     });
 
                     if (options.useGroupMaterial && group && !this.materialPool[groupKey]) {
@@ -1566,16 +1651,29 @@ class TextureManager {
                 console.log(`Environment map désactivée pour ${options.modelId}`);
             }
 
-            if (options.isEmissive || options.emissive) {
+            if (options.isEmissive || options.emissive || this._shouldObjectBeEmissive(options.modelId)) {
+                const emissiveIntensity = options.emissiveIntensity || this.emissiveConfig.intensity;
+                const emissiveColor = options.emissiveColor || this.emissiveConfig.color;
+
+                // Pour les écrans, utiliser la texture de base comme émission si disponible
+                let emissiveMap = null;
+                if (this.emissiveConfig.useTexture && material.map) {
+                    emissiveMap = material.map;
+                } else if (options.emissiveMap) {
+                    emissiveMap = options.emissiveMap;
+                } else if (this.emissiveConfig.emissiveMap) {
+                    emissiveMap = this.emissiveConfig.emissiveMap;
+                }
+
                 const applied = this._safelySetEmissive(material, {
-                    color: options.emissiveColor || this.emissiveConfig.color,
-                    intensity: options.emissiveIntensity || this.emissiveConfig.intensity,
+                    color: emissiveColor,
+                    intensity: emissiveIntensity,
                     useTexture: this.emissiveConfig.useTexture,
-                    emissiveMap: options.emissiveMap || this.emissiveConfig.emissiveMap
+                    emissiveMap: emissiveMap
                 });
 
                 if (applied) {
-                    console.log(`Émission appliquée au matériau avec intensité ${options.emissiveIntensity || this.emissiveConfig.intensity}`);
+                    console.log(`Émission appliquée au matériau ${options.modelId} avec intensité ${emissiveIntensity}`);
                 }
             }
 
@@ -1588,6 +1686,14 @@ class TextureManager {
         }
     }
 
+
+    _shouldObjectBeEmissive(modelId) {
+        if (!modelId) return false;
+
+        return this.emissiveObjectNames.some(name =>
+            modelId.includes(name) || name.includes(modelId)
+        );
+    }
     /**
      * Applique un matériau à tous les Mesh d'un objet avec propriétés complètes
      */
