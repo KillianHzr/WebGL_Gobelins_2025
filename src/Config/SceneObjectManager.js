@@ -92,20 +92,20 @@ class SceneObjectManager {
             // // },
             //
             //
-            // /**
-            //  * SCÈNE 01 - POINT DE DÉPART
-            //  * Introduction narrative avec Célia (narratrice)
-            //  * Déclencheur: Fin de la cinématique d'introduction
-            //  * Type: Événement automatique basé sur la timeline
-            //  */
-            // 'Ground': {
-            //     id: 'Ground',
-            //     path: '/models/Ground.glb',
-            //     scale: [1, 1, 1],
-            //     interactive: false,
-            //     useTextures: true,
-            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
-            // },
+            /**
+             * SCÈNE 01 - POINT DE DÉPART
+             * Introduction narrative avec Célia (narratrice)
+             * Déclencheur: Fin de la cinématique d'introduction
+             * Type: Événement automatique basé sur la timeline
+             */
+            'Ground': {
+                id: 'Ground',
+                path: '/models/Ground.glb',
+                scale: [1, 1, 1],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            },
             'Camera': {
                 id: 'Camera',
                 path: '/models/Camera.glb',
@@ -178,19 +178,14 @@ class SceneObjectManager {
              * Effet: Animation de saut par-dessus l'obstacle
              */
             'TrunkLargeInteractive': {
-                id: 'TrunkLarge',
+                id: 'TrunkLargeInteractive',
                 path: '/models/forest/tree/TrunkLarge.glb',
                 scale: [0.05763, 0.05763, 0.05763],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Tire",
-                    offset: -0.5,
-                    axis: "y",
-                    interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
-                    chapterDistance: 1.85,
-                    requiredStep: 'firstStop'
+                    type: INTERACTION_TYPES.DRAG_UP, text: "Tire", offset: -0.5, axis: "y", interfaceToShow: "none", //TODO: faire un énumérateur pour les interfaces
+                    chapterDistance: 1.85, requiredStep: 'firstStop'
                 }],
                 defaultPlacement: {
                     position: [5.42042, 0.4972, -10.60032],
@@ -198,6 +193,29 @@ class SceneObjectManager {
                     scale: [0.05763, 0.05763, 0.05763],
                 }
             },
+
+            'VisonRun': {
+                id: 'VisonRun',
+                path: '/models/primary/VisonRun2.glb',
+                scale: [10, 10, 10],
+                interactive: false,
+                useTextures: true,
+                animations: {
+                    // Animation principale du vison
+                    'animation_0': {
+                        autoplay: false, // Contrôle manuel
+                        defaultLoop: false,
+                        defaultClamp: true,
+                        defaultTimeScale: 1.66
+                    },
+                },
+                defaultPlacements: [{
+                    position: [5.02042, 0.7472, -10.60032], // position: [-34.943, 0, 45.149],
+                    rotation: [3.14 / 2, 3.14 / 2 * 3  + 0.066, 3.14 / 2], // scale: [5, 5, 5],
+                    scale: [5, 5, 5], animationId: 'VisonRun'
+                }]
+            },
+
 
             /**
              * SCÈNE 04 - RECHERCHE DES INDICES
@@ -223,26 +241,18 @@ class SceneObjectManager {
                     requiredStep: 'thirdStop'
                 }],
                 defaultPlacement: {
-                    position: [0.41938, -0.07564, -30.79174],
-                    rotation: [0, 0, 0],
-                    scale: [1, 1, 1],
+                    position: [0.41938, -0.07564, -30.79174], rotation: [0, 0, 0], scale: [1, 1, 1],
                 }
-            },
-            'AnimalPaws': {
+            }, 'AnimalPaws': {
                 id: 'AnimalPaws',
                 path: '/models/primary/AnimalPaws.glb',
                 scale: [0.18402, 0.18402, 0.18402],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    type: INTERACTION_TYPES.CLICK, text: "Clique",
 
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "scanner",
-                    chapterDistance: 0.33,
-                    requiredStep: 'fifthStop'
+                    offset: 0.5, axis: "y", interfaceToShow: "scanner", chapterDistance: 0.33, requiredStep: 'fifthStop'
                 }],
                 defaultPlacement: {
                     position: [0.42958, -0.07796, -30.79699],
@@ -264,14 +274,9 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Tire",
+                    type: INTERACTION_TYPES.DRAG_UP, text: "Tire",
 
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 1.66,
-                    requiredStep: 'eleventhStop'
+                    offset: 0.5, axis: "y", interfaceToShow: "none", chapterDistance: 1.66, requiredStep: 'eleventhStop'
                 }],
                 defaultPlacement: {
                     position: [-18.9548, -0.44604, -53.6215],
@@ -288,14 +293,9 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.DRAG_UP,
-                    text: "Tire",
+                    type: INTERACTION_TYPES.DRAG_UP, text: "Tire",
 
-                    offset: 0.5,
-                    axis: "y",
-                    interfaceToShow: "none",
-                    chapterDistance: 0.9,
-                    requiredStep: 'twelfthStop'
+                    offset: 0.5, axis: "y", interfaceToShow: "none", chapterDistance: 0.9, requiredStep: 'twelfthStop'
                 }],
                 defaultPlacement: {
                     position: [-16.5692, -0.44358, -54.4309],
@@ -352,8 +352,7 @@ class SceneObjectManager {
                     scale: [0.86286, 0.86286, 0.86286],
                     outlinePulse: false
                 }
-            },
-            /**
+            }, /**
              * SCÈNE 06 - OBSTACLE DE LA BRANCHE
              * Apprentissage du mouvement vertical inverse
              * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
@@ -375,10 +374,8 @@ class SceneObjectManager {
                     requiredStep: 'fourthStop'
                 }],
                 defaultPlacement: {
-                    position: [-38.33459, 0.51133, -112.1474],
-                    // position: [-33.943, 0.51133, 45.149],
-                    rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
-                    scale: [0.27658, 0.27658, 0.27658],
+                    position: [-38.33459, 0.51133, -112.1474], // position: [-33.943, 0.51133, 45.149],
+                    rotation: [179.6387 - 45, -48.41434 - 45, -23.12458], scale: [0.27658, 0.27658, 0.27658],
                 }
             },
 
@@ -394,7 +391,7 @@ class SceneObjectManager {
                         autoplay: false, // Contrôle manuel
                         defaultLoop: true,
                         defaultClamp: true,
-                        defaultTimeScale: 2.0
+                        defaultTimeScale: 1.5
                     },
                 },
                 defaultPlacements: [{
@@ -413,21 +410,19 @@ class SceneObjectManager {
                 interactive: false,
                 useTextures: true,
                 defaultPlacements: [{
-                    position: [-41.86723, 0.06409, -115.2628],
-                    // position: [-33.943, 0.51133, 45.149],
+                    position: [-41.86723, 0.06409, -115.2628], // position: [-33.943, 0.51133, 45.149],
 
-                    rotation: [-3.14159, -52.79977, -3.14159],
-                    scale: [0.1671, 0.1671, 0.1671],
+                    rotation: [-3.14159, -52.79977, -3.14159], scale: [0.1671, 0.1671, 0.1671],
                 }]
-            },
-            'TreeStump': {
-                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    position: [-40.33271, 0.06409, -113.93519],
-                    // position: [-34.943, 0.51133, 45.149],
+            }, 'TreeStump': {
+                id: 'TreeStump',
+                path: '/models/forest/tree/TreeStump.glb',
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-40.33271, 0.06409, -113.93519], // position: [-34.943, 0.51133, 45.149],
 
-                    rotation: [-3.14159, 40.80581, -3.14159],
-                    scale: [0.09007, 0.09007, 0.09007],
+                    rotation: [-3.14159, 40.80581, -3.14159], scale: [0.09007, 0.09007, 0.09007],
                 }]
             },
 
@@ -454,91 +449,43 @@ class SceneObjectManager {
                     requiredStep: 'seventeenStop'
                 }],
                 defaultPlacement: {
-                    position: [-14.93628, -0.75, -135.53311],
-                    rotation: [0, -89.39436, 0],
-                    scale: [0.1, 0.1, 0.1],
+                    position: [-14.93628, -0.75, -135.53311], rotation: [0, -89.39436, 0], scale: [0.1, 0.1, 0.1],
                 }
             },
 
             'DataCenter': {
-                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
+                id: 'DataCenter',
+                path: '/models/digital/DataCenter.glb',
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
                     position: [40.48621, -0.04933, -137.81503],
                     rotation: [0, -3.14 / 2, 0],
                     scale: [3.58521, 3.5852, 3.58521],
                 }]
             },
-            // 'VisonRun': {
-            //     id: 'VisonRun',
-            //     path: '/models/primary/VisonRun2.glb',
-            //     scale: [5, 5, 5],
-            //     interactive: false,
-            //     useTextures: true,
-            //     animations: {
-            //         // Animation principale du vison
-            //         'animation_0': {
-            //             autoplay: false, // Contrôle manuel
-            //             defaultLoop: true,
-            //             defaultClamp: true,
-            //             defaultTimeScale: 2.0
-            //         },
-            //     },
-            //     defaultPlacements: [{
-            //         // position: [-34.943, 0, 45.149],
-            //         position: [5.42042, 0.8972, -10.60032],
-            //         rotation: [45, -3.14/2 , 0],
-            //         scale: [5, 5, 5],
-            //         animationId: 'VisonRun'
-            //     }]
-            // },
-            'VisonRun': {
-                id: 'VisonRun',
-                path: '/models/primary/VisonRun2.glb',
-                scale: [10, 10, 10],
-                interactive: false,
+            'VisonDead': {
+                id: 'VisonDead',
+                path: '/models/primary/AnimalVisonDead.glb',
+                scale: [1.05783, 1.05783, 1.05783],
+                interactive: true,
                 useTextures: true,
-                animations: {
-                    // Animation principale du vison
-                    'animation_0': {
-                        autoplay: false, // Contrôle manuel
-                        defaultLoop: true,
-                        defaultClamp: true,
-                        defaultTimeScale: 2.0
-                    },
-                },
-                defaultPlacements: [{
-                    position: [5.02042, 0.7372, -10.60032],
-                    // position: [-34.943, 0, 45.149],
-                    rotation: [0, -3.14/2, 3.14 / 12],
-                    // scale: [5, 5, 5],
-                    scale: [5, 5, 5],
-                    animationId: 'VisonRun'
-                }]
+                interaction: [{
+                    type: INTERACTION_TYPES.CLICK,
+                    text: "Clique",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "capture",
+                    chapterDistance: 3.4,
+                    requiredStep: 'sixthStop'
+                }],
+                defaultPlacement: {
+                    position: [7.281, -0.07878, -135.01186],
+                    // position: [-33.943, 0.51133, 45.149],
+                    rotation: [-3.14159, -6.18583, -3.14159],
+                    scale: [1.05783, 1.05783, 1.05783],
+                }
             },
-            // // //
-            // // //
-            // 'VisonDead': {
-            //     id: 'VisonDead',
-            //     path: '/models/primary/AnimalVisonDead.glb',
-            //     scale: [1.05783, 1.05783, 1.05783],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CLICK,
-            //         text: "Clique",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "capture",
-            //         chapterDistance: 3.4,
-            //         requiredStep: 'sixthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [7.281, -0.07878, -135.01186],
-            //         // position: [-33.943, 0.51133, 45.149],
-            //         rotation: [-3.14159, -6.18583, -3.14159],
-            //         scale: [1.05783, 1.05783, 1.05783],
-            //     }
-            // },
 
 
             /**
@@ -727,8 +674,7 @@ class SceneObjectManager {
 
         placements.forEach((placement, placementIdx) => {
             console.log(`🔄 Traitement placement ${placementIdx}:`, {
-                objectKey: placement.objectKey,
-                hasAnimationId: !!placement.animationId
+                objectKey: placement.objectKey, hasAnimationId: !!placement.animationId
             });
 
             const objectConfig = this.getObjectFromCatalog(placement.objectKey);
@@ -806,18 +752,14 @@ class SceneObjectManager {
             if (placement.animation) {
                 const animationUpdate = {
                     animation: {
-                        ...placement.animation,
-                        play: false
+                        ...placement.animation, play: false
                     }
                 };
 
                 this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
 
                 EventBus.trigger('animation-control-update', {
-                    identifier: identifier,
-                    objectKey: placement.objectKey,
-                    action: 'stop',
-                    placement: placement
+                    identifier: identifier, objectKey: placement.objectKey, action: 'stop', placement: placement
                 });
             }
         });
@@ -838,18 +780,14 @@ class SceneObjectManager {
             if (placement.animation && placement.animation.name) {
                 const animationUpdate = {
                     animation: {
-                        ...placement.animation,
-                        play: true
+                        ...placement.animation, play: true
                     }
                 };
 
                 this.updatePlacement(placement.markerId || this._getPlacementIndex(placement), animationUpdate);
 
                 EventBus.trigger('animation-control-update', {
-                    identifier: identifier,
-                    objectKey: placement.objectKey,
-                    action: 'resume',
-                    placement: placement
+                    identifier: identifier, objectKey: placement.objectKey, action: 'resume', placement: placement
                 });
             }
         });
@@ -865,8 +803,7 @@ class SceneObjectManager {
             if (placement.animation) {
                 const animationUpdate = {
                     animation: {
-                        ...placement.animation,
-                        ...params
+                        ...placement.animation, ...params
                     }
                 };
 
@@ -939,8 +876,7 @@ class SceneObjectManager {
         }
 
         return Object.keys(objectConfig.animations).map(animName => ({
-            name: animName,
-            config: objectConfig.animations[animName]
+            name: animName, config: objectConfig.animations[animName]
         }));
     }
 
@@ -962,14 +898,11 @@ class SceneObjectManager {
 
         // Si un requiredStep est spécifié dans le placement, chercher l'interaction correspondante
         if (placement && placement.requiredStep) {
-            const matchingInteraction = objectConfig.interaction.find(interaction =>
-                interaction.requiredStep === placement.requiredStep
-            );
+            const matchingInteraction = objectConfig.interaction.find(interaction => interaction.requiredStep === placement.requiredStep);
 
             if (matchingInteraction) {
                 // Ajouter des logs pour le débogage
-                console.log(`Interaction trouvée pour ${placement.objectKey} (${placement.requiredStep}):`,
-                    matchingInteraction);
+                console.log(`Interaction trouvée pour ${placement.objectKey} (${placement.requiredStep}):`, matchingInteraction);
                 return matchingInteraction;
             } else {
                 console.warn(`Aucune interaction trouvée pour ${placement.objectKey} avec requiredStep=${placement.requiredStep}`);
@@ -1007,15 +940,13 @@ class SceneObjectManager {
                                 interfaces[key] = [];
                             }
                             interfaces[key].push({
-                                step: interaction.requiredStep,
-                                interface: interaction.interfaceToShow
+                                step: interaction.requiredStep, interface: interaction.interfaceToShow
                             });
                         }
                     });
                 } else if (config.interaction && config.interaction.interfaceToShow) {
                     interfaces[key] = [{
-                        step: config.interaction.requiredStep,
-                        interface: config.interaction.interfaceToShow
+                        step: config.interaction.requiredStep, interface: config.interaction.interfaceToShow
                     }];
                 }
             }
@@ -1041,11 +972,7 @@ class SceneObjectManager {
             console.log('Position actuelle de MultipleLeaf:', currentPosition);
 
             // Calculer la nouvelle position (décalage de 2.0 sur X et Z)
-            const newPosition = [
-                currentPosition[0] + 0.5,
-                currentPosition[1] + 0.1,
-                currentPosition[2] - 0.02
-            ];
+            const newPosition = [currentPosition[0] + 0.5, currentPosition[1] + 0.1, currentPosition[2] - 0.02];
 
             console.log(`Déplacement de MultipleLeaf de [${currentPosition}] à [${newPosition}]`);
 
@@ -1056,11 +983,7 @@ class SceneObjectManager {
                 console.log('Mise à jour par markerId:', identifier);
             } else {
                 // Si markerId n'est pas disponible, utiliser l'index de placement dans le tableau
-                const index = this.placements.findIndex(p =>
-                    p.objectKey === 'MultipleLeaf' &&
-                    p.position[0] === currentPosition[0] &&
-                    p.position[2] === currentPosition[2]
-                );
+                const index = this.placements.findIndex(p => p.objectKey === 'MultipleLeaf' && p.position[0] === currentPosition[0] && p.position[2] === currentPosition[2]);
 
                 if (index !== -1) {
                     identifier = index;
@@ -1086,9 +1009,7 @@ class SceneObjectManager {
 
             // Émettre un événement pour informer les autres composants
             EventBus.trigger('object-position-updated', {
-                objectKey: 'MultipleLeaf',
-                oldPosition: currentPosition,
-                newPosition: newPosition
+                objectKey: 'MultipleLeaf', oldPosition: currentPosition, newPosition: newPosition
             });
         } else {
             console.warn('Objet MultipleLeaf non trouvé lors de la complétion de thirdStop');
@@ -1282,8 +1203,7 @@ class SceneObjectManager {
             console.log('Événement INTERACTION_COMPLETE reçu:', data);
 
             // Vérifier directement si c'est l'étape thirdStop, indépendamment du placement
-            if (data.requiredStep === 'thirdStop' ||
-                (data.id && data.id.includes('thirdStop'))) {
+            if (data.requiredStep === 'thirdStop' || (data.id && data.id.includes('thirdStop'))) {
                 console.log('Détection directe de thirdStop dans INTERACTION_COMPLETE');
                 this.handleThirdStopCompletion();
             }

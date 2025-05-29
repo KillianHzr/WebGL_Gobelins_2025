@@ -463,13 +463,33 @@ class TextureManager {
         });
 
         this.addTextureMapping('TrunkLarge', 'forest/tree', null, {
-            roughness: 0.78, metalness: 0.71, envMapIntensity: 0.08, color: '#47370b', useTextures: {
+            normalScale: new Vector2(1.0, 1.0),
+            roughness: 0.78,
+            metalness: 0.71,
+            envMapIntensity: 0.08,
+            color: '#47370b',
+            useTextures: {
+                baseColor: false,
+            }
+        });
+        this.addTextureMapping('TrunkLargeInteractive', 'forest/tree', 'TrunkLarge', {
+            roughness: 0.78,
+            metalness: 0.71,
+            envMapIntensity: 0.2,
+            color: '#47370b',
+            normalScale: new Vector2(1.0, 1.0),
+            useTextures: {
                 baseColor: false,
             }
         });
 
         this.addTextureMapping('TrunkThin', 'forest/tree', 'TrunkThin', {
-            roughness: 0.81, metalness: 0.7, envMapIntensity: 0.08, color: '#5F4611', useTextures: {
+            roughness: 0.81,
+            metalness: 0.7,
+            envMapIntensity: 0.08,
+            color: '#5F4611',
+            normalScale: new Vector2(1.0, 1.0),
+            useTextures: {
                 baseColor: false,
             }
         });
@@ -778,13 +798,14 @@ class TextureManager {
         // Rochers
         this.addTextureMapping('BigRock', 'rock', null, {
             roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7,
+            normalScale: new Vector2(1.0, 1.0),
         });
 
         this.addTextureMapping('RockWater', 'rock', 'BigRock', {
             roughness: 1.0,
             metalness: 0.1,
             envMapIntensity: 0.25,
-            normalScale: new Vector2(0.1, 0.1),
+            normalScale: new Vector2(0.05, 0.05),
             castShadow: true,
             receivedShadow: true,
         });
@@ -796,6 +817,7 @@ class TextureManager {
             envMapIntensity: 0.0,
             color: '#d1d1d1',
             castShadow: false,
+            normalScale: new Vector2(1.0, 1.0),
             receivedShadow: true,
         });
 
@@ -814,7 +836,7 @@ class TextureManager {
             metalness: 0.0,
             envMapIntensity: 0.00,
             color: '#000000',
-            normalScale: new Vector2(0.0, 0.0),
+            normalScale: new Vector2(0.05, 0.05),
             castShadow: true,
             receivedShadow: true,
         });
@@ -876,7 +898,7 @@ class TextureManager {
         this.addTextureMapping('Vison', 'primary', null, {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
         });
-        this.addTextureMapping('VisonRun', 'primary', null, {
+        this.addTextureMapping('VisonRun', 'primary', 'Vison', {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
         });
         // Définition des groupes de matériaux pour la fusion
