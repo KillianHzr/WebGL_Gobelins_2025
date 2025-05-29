@@ -5,6 +5,7 @@
 import {INTERACTION_TYPES} from '../Utils/EnhancedObjectMarker';
 import {EventBus, MARKER_EVENTS} from '../Utils/EventEmitter';
 import {textureManager} from './TextureManager';
+import {Vector2} from "three";
 
 class SceneObjectManager {
     constructor() {
@@ -564,7 +565,9 @@ class SceneObjectManager {
 
         // Initialiser les placements par défaut
         this._initializeDefaultPlacements();
-
+        setTimeout(() => {
+            this.configureGroundObject();
+        }, 1000);
         // Exposer l'API globale pour contrôle externe des animations
         window.animationControls = {
             play: (identifier, animationName, options = {}) => {
@@ -742,7 +745,90 @@ class SceneObjectManager {
         console.log(`🎬 FIN playAnimation - succès: ${placements.length > 0}`);
         return placements.length > 0;
     }
+    configureGroundObject() {
+        console.log("🌍 Configuration spéciale du sol...");
 
+        // Appliquer la configuration de texture avancée
+        if (textureManager && typeof textureManager.configureGroundTexture === 'function') {
+            textureManager.configureGroundTexture(500, 500, {
+                roughness: 1.0,
+                metalness: 0.0,
+                envMapIntensity: 0.2,
+                aoIntensity: 1.2,
+                normalScale: new Vector2(1.0, 1.0)
+            });
+
+            console.log("✅ Configuration sol appliquée avec textures détaillées");
+        }
+
+        // Forcer l'application des textures sur les objets Ground existants
+        this.applyGroundTexturesForAll();
+    }
+    applyGroundTexturesForAll() {
+        const groundPlacements = this.getPlacements({objectKey: 'Ground'});
+
+        groundPlacements.forEach((placement, index) => {
+            console.log(`🌍 Application textures sol ${index + 1}/${groundPlacements.length}`);
+
+
+            // Mettre à jour le placement avec les nouvelles propriétés
+            this.updatePlacement(index, {
+                useTextures: true,
+                textureConfig: {
+                    repeat: [500, 500],
+                    quality: 'high',
+                    anisotropy: 32
+                }
+            });
+        });
+
+        // Émettre un événement pour forcer la mise à jour
+        EventBus.trigger('ground-textures-updated', {
+            count: groundPlacements.length
+        });
+    }
+
+    setGroundTextureRepeat(repeatX, repeatY) {
+        if (!textureManager) {
+            console.warn("TextureManager non disponible");
+            return false;
+        }
+
+        console.log(`🌍 Modification répétition texture sol: ${repeatX}x${repeatY}`);
+
+        // Appliquer la nouvelle configuration
+        textureManager.configureGroundTexture(repeatX, repeatY);
+
+        // Forcer la mise à jour des matériaux existants
+        this.applyGroundTexturesForAll();
+
+        return true;
+    }
+
+// Méthode pour optimiser les performances du sol
+    optimizeGroundRendering() {
+        const groundPlacements = this.getPlacements({objectKey: 'Ground'});
+
+        groundPlacements.forEach((placement, index) => {
+            // Configuration optimisée pour les performances
+            this.updatePlacement(index, {
+                // Optimisations de rendu
+                frustumCulled: false, // Le sol est toujours visible
+                castShadow: false,    // Le sol ne projette pas d'ombre
+                receiveShadow: true,  // Mais reçoit les ombres
+
+                // Optimisations de texture
+                textureConfig: {
+                    minFilter: 'LinearMipmapLinear',
+                    magFilter: 'Linear',
+                    anisotropy: 8, // Réduire si performance nécessaire
+                    generateMipmaps: true
+                }
+            });
+        });
+
+        console.log(`🌍 Optimisation rendu appliquée à ${groundPlacements.length} objets sol`);
+    }
 
     // Méthode pour arrêter une animation
     stopAnimation(identifier) {

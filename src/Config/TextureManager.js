@@ -812,13 +812,46 @@ class TextureManager {
 
 
         this.addTextureMapping('Ground', 'ground', null, {
-            roughness: 1.0,
-            metalness: 0.0,
-            envMapIntensity: 0.0,
-            color: '#d1d1d1',
+            // Propriétés PBR optimisées pour un sol
+            roughness: 1.0,        // Sol assez rugueux
+            metalness: 0.0,        // Sol non métallique
+            envMapIntensity: 0.2,  // Léger reflet environnemental
+
+            // Couleur de base légèrement grisée
+            color: '#a49d9d',
+
+            // Propriétés d'ombre - le sol reçoit mais ne projette pas
             castShadow: false,
-            normalScale: new Vector2(1.0, 1.0),
-            receivedShadow: true,
+            receiveShadow: true,
+
+            // Scale de la normale pour plus de détails
+            normalScale: new Vector2(1.5, 1.5),
+
+            // Intensité de l'occlusion ambiante
+            aoIntensity: 1.0,
+
+            // Configuration des textures activées
+            useTextures: {
+                baseColor: true,        // Texture de couleur de base
+                normal: true,           // Carte normale pour les détails
+                normalOpenGL: true,     // Alternative normale OpenGL
+                roughness: true,        // Carte de rugosité
+                metalness: true,        // Carte de métallicité
+                ao: true,              // Occlusion ambiante
+                height: true,          // Carte de hauteur
+                alpha: false,          // Pas d'alpha pour le sol
+                opacity: false,        // Pas d'opacité pour le sol
+                emissiveMap: false,    // Pas d'émission pour le sol
+                displacementMap: false, // Pas de déplacement (peut être coûteux)
+                bumpMap: false,        // Utiliser normal au lieu de bump
+                lightMap: false,       // Pas de lightmap
+                envMap: true,          // Carte d'environnement
+                clearcoatMap: false,   // Pas de vernis
+                transmissionMap: false, // Pas de transmission
+                sheenColorMap: false,  // Pas de brillance
+                specularMap: true,     // Carte spéculaire si disponible
+                matcap: false          // Pas de MatCap
+            }
         });
 
 
@@ -923,6 +956,107 @@ class TextureManager {
                 this.modelGroupMap[model] = group;
             });
         });
+    }
+    configureGroundTexture(repeatX = 10, repeatY = 10, options = {}) {
+        const groundConfig = {
+            // Répétition de texture pour couvrir une grande surface
+            textureRepeat: {
+                baseColor: [repeatX, repeatY],
+                normal: [repeatX, repeatY],
+                roughness: [repeatX, repeatY],
+                metalness: [repeatX, repeatY],
+                ao: [repeatX, repeatY]
+            },
+
+            // Filtrage amélioré pour éviter l'aliasing à distance
+            textureFilter: 'anisotropic',
+            anisotropy: 16,
+
+            // Propriétés spécifiques au sol
+            ...options
+        };
+
+        // Appliquer la configuration spéciale au sol
+        this.setMaterialProperties('Ground', {
+            // Améliorer le rendu à distance
+            roughness: options.roughness || 0.8,
+            metalness: options.metalness || 0.0,
+            envMapIntensity: options.envMapIntensity || 0.2,
+
+            // Optimisations pour les grandes surfaces
+            flatShading: false,  // Ombrage lisse
+            side: DoubleSide,   // Double face si nécessaire
+
+            // Configuration pour les ombres
+            shadowSide: FrontSide,
+
+            // Améliorer la qualité visuelle
+            aoIntensity: options.aoIntensity || 1.0,
+            normalScale: options.normalScale || new Vector2(1.5, 1.5)
+        });
+
+        return groundConfig;
+    }
+
+    _applyGroundTextureRepeat(material, repeatX = 10, repeatY = 10) {
+        if (!material) return;
+
+        // Liste des textures à répéter
+        const texturesToRepeat = [
+            'map',           // baseColor
+            'normalMap',     // normal
+            'roughnessMap',  // roughness
+            'metalnessMap',  // metalness
+            'aoMap',         // ambient occlusion
+            'displacementMap' // height/displacement
+        ];
+
+        texturesToRepeat.forEach(textureProperty => {
+            if (material[textureProperty]) {
+                material[textureProperty].wrapS = RepeatWrapping;
+                material[textureProperty].wrapT = RepeatWrapping;
+                material[textureProperty].repeat.set(repeatX, repeatY);
+                material[textureProperty].needsUpdate = true;
+
+                console.log(`Répétition appliquée à ${textureProperty}: ${repeatX}x${repeatY}`);
+            }
+        });
+
+        // Améliorer le filtrage pour éviter l'aliasing
+        texturesToRepeat.forEach(textureProperty => {
+            if (material[textureProperty]) {
+                material[textureProperty].anisotropy = 16;
+                material[textureProperty].minFilter = LinearMipmapLinearFilter;
+                material[textureProperty].magFilter = LinearFilter;
+            }
+        });
+
+        material.needsUpdate = true;
+    }
+
+    _applyTexturesToGroundMaterial(material, textures, options = {}) {
+        // Appliquer d'abord les textures normalement
+        this._applyTexturesToMaterial(material, textures, options);
+
+        // Puis appliquer les optimisations spéfiques au sol
+        if (options.modelId === 'Ground') {
+            // Répétition de texture (par défaut 10x10)
+            const repeatX = options.repeatX || 10;
+            const repeatY = options.repeatY || 10;
+            this._applyGroundTextureRepeat(material, repeatX, repeatY);
+
+            // Optimisations spéciales pour le sol
+            if (material.roughnessMap && material.metalnessMap) {
+                // Utiliser des valeurs de base plus basses quand les cartes sont présentes
+                material.roughness = 0.5;
+                material.metalness = 0.0;
+            }
+
+            // Améliorer les ombres reçues
+            material.shadowSide = FrontSide;
+
+            console.log(`Sol configuré avec textures détaillées et répétition ${repeatX}x${repeatY}`);
+        }
     }
 
     /**
