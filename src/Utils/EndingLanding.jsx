@@ -23,7 +23,7 @@ const EndingLanding = ({ onLearnMore }) => {
             id: 'Scene99_Message1',
             texts: [
                 ' La forêt <strong>ravagée</strong>. La rivière <strong>asséchée</strong>. Le vison… <strong>mort</strong>.',
-                'Tu pensais simplement poser des questions à <strong>Célia</strong>Célia. Mais chaque réponse à tes requêtes… <strong>avait un prix</strong>.',
+                'Tu pensais simplement poser des questions à <strong>Célia</strong>. Mais chaque réponse à tes requêtes… <strong>avait un prix</strong>.',
             ]
         },
         {

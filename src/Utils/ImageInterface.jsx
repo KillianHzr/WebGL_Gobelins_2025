@@ -108,7 +108,7 @@ export default function ImageInterface() {
             fallbackTimeoutRef = setTimeout(() => {
                 console.log('ImageInterface: Fallback timeout reached, showing button anyway');
                 setShowButton(true);
-            }, 400); // 15 secondes de délai maximum
+            }, 45000);
         }
 
         return () => {

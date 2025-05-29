@@ -471,7 +471,7 @@ export default function App() {
     // Handle the "learn more" button click in ending landing
     const handleLearnMore = () => {
         // Open the Gobelins website in a new tab
-        window.open('https://www.gobelins.fr/', '_blank');
+        window.open('https://www.laquadrature.net/donner/', '_blank');
     };
 
     // Show MainLayout when loading is complete (on landing page)

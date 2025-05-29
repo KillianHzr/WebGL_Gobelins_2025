@@ -348,6 +348,7 @@ class NarrationManager {
             { id: 'Scene06_PassageEn-DessousDeLaBranche', label: 'Passage en-dessous de la branche (Scène 6)' },
             { id: 'Scene07_RemplissageDeLaGourde', label: 'Remplissage de la gourde (Scène 7)' },
             { id: 'Scene08_DecouverteDuVisonMort', label: 'Découverte du vison mort (Scène 8)' },
+            { id: 'Scene08_DecouverteDuVisonMort_Success', label: 'Succès - Découverte du vison mort (Scène 8)'},
             { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' },
             { id: 'SceneGenerique', label: 'Générique de fin' },
             { id: 'Scene99_Message1', label: 'Message 1 (Conclusion)' },
