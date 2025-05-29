@@ -90,51 +90,46 @@ const NarrationTriggers = () => {
                     }
                 }
 
-                // CORRECTION: Améliorer la logique pour les rocks
-                if (objectKey === 'JumpRock2') {
-                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-                    console.log('Vérification JumpRock2 - Interactions complétées:', completedInteractions);
-
-                    const rock1Completed = Object.keys(completedInteractions).some(key =>
-                        key.includes('eleventhStop') || key.includes('JumpRock1')
-                    );
-                    if (!rock1Completed) {
-                        console.log('JumpRock2 interaction ignorée car JumpRock1 n\'a pas encore été complété');
-                        return;
-                    }
+                if (objectKey === 'JumpRock4') {
+                    console.log('🪨 JumpRock4 - Premier rock de la séquence, pas de prérequis');
                 }
 
                 if (objectKey === 'JumpRock3') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-                    console.log('Vérification JumpRock3 - Interactions complétées:', completedInteractions);
+                    console.log('🪨 Vérification JumpRock3 - Interactions complétées:', completedInteractions);
+
+                    const rock4Completed = Object.keys(completedInteractions).some(key =>
+                        key.includes('fourteenthStop') || key.includes('JumpRock4')
+                    );
+                    if (!rock4Completed) {
+                        console.log('🪨 JumpRock3 interaction ignorée car JumpRock4 n\'a pas encore été complété');
+                        return;
+                    }
+                }
+
+                if (objectKey === 'JumpRock2') {
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    console.log('🪨 Vérification JumpRock2 - Interactions complétées:', completedInteractions);
+
+                    const rock3Completed = Object.keys(completedInteractions).some(key =>
+                        key.includes('thirteenthStop') || key.includes('JumpRock3')
+                    );
+                    if (!rock3Completed) {
+                        console.log('🪨 JumpRock2 interaction ignorée car JumpRock3 n\'a pas encore été complété');
+                        return;
+                    }
+                }
+
+                if (objectKey === 'JumpRock1') {
+                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    console.log('🪨 Vérification JumpRock1 - Interactions complétées:', completedInteractions);
 
                     const rock2Completed = Object.keys(completedInteractions).some(key =>
                         key.includes('twelfthStop') || key.includes('JumpRock2')
                     );
                     if (!rock2Completed) {
-                        console.log('JumpRock3 interaction ignorée car JumpRock2 n\'a pas encore été complété');
+                        console.log('🪨 JumpRock1 interaction ignorée car JumpRock2 n\'a pas encore été complété');
                         return;
-                    }
-                }
-
-                if (objectKey === 'JumpRock4') {
-                    const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-                    console.log('🪨 Vérification JumpRock4 - Interactions complétées:', completedInteractions);
-                    console.log('🪨 Clés dans completedInteractions:', Object.keys(completedInteractions));
-
-                    const rock3Completed = Object.keys(completedInteractions).some(key => {
-                        const matches = key.includes('thirteenthStop') || key.includes('JumpRock3');
-                        console.log(`🪨 Clé "${key}" matches: ${matches}`);
-                        return matches;
-                    });
-
-                    console.log('🪨 JumpRock3 complété:', rock3Completed);
-
-                    if (!rock3Completed) {
-                        console.log('🪨 JumpRock4 interaction ignorée car JumpRock3 n\'a pas encore été complété');
-                        return;
-                    } else {
-                        console.log('🪨 JumpRock4 - Prérequis OK, procédure normale');
                     }
                 }
 
