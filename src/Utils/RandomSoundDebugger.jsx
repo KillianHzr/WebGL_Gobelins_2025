@@ -4,10 +4,12 @@ import useStore from '../Store/useStore';
 /**
  * Composant de débogage pour visualiser l'état des sons aléatoires
  * S'affiche uniquement en mode debug
+ * Version avec support des phases nature/digital
  */
 const RandomSoundDebugger = () => {
     const { debug } = useStore();
     const [soundsState, setSoundsState] = useState({});
+    const [phaseInfo, setPhaseInfo] = useState({});
     const [visible, setVisible] = useState(false);
     const [systemActive, setSystemActive] = useState(false);
     const [collapsed, setCollapsed] = useState(false);
@@ -38,40 +40,34 @@ const RandomSoundDebugger = () => {
             // Si le panel est réduit, on ne fait pas de calculs inutiles
             if (collapsed) return;
 
+            const debugState = randomAmbientSounds.getDebugState();
+
+            // Séparer les infos de phase des sons
+            const { _phaseInfo, ...soundsOnly } = debugState;
+            setPhaseInfo(_phaseInfo || {});
+
             const newState = {};
 
             // Pour chaque son configuré
-            Object.keys(randomAmbientSounds.config).forEach(soundId => {
-                const config = randomAmbientSounds.config[soundId];
-                const howl = randomAmbientSounds.howls[soundId];
+            Object.keys(soundsOnly).forEach(soundId => {
+                const sound = soundsOnly[soundId];
+                const config = sound.config;
 
                 // Vérifier si le son est en cours de lecture
-                let isPlaying = false;
-                let currentVolume = 'N/A';
-
-                // Gérer les sons avec multiples variants
-                if (Array.isArray(howl)) {
-                    isPlaying = howl.some(h => h.playing());
-                    const playingHowl = howl.find(h => h.playing());
-                    currentVolume = playingHowl ? playingHowl.volume().toFixed(2) : 'N/A';
-                } else if (howl) {
-                    isPlaying = howl.playing();
-                    currentVolume = isPlaying ? howl.volume().toFixed(2) : 'N/A';
-                }
+                let isPlaying = sound.isPlaying;
+                let currentVolume = isPlaying ? sound.currentVolume.toFixed(2) : 'N/A';
 
                 // Obtenir le temps de lecture restant si le son est en cours
                 let playbackInfo = null;
-                if (isPlaying) {
-                    // Obtenir les infos de lecture depuis le système
-                    const remainingMs = randomAmbientSounds.getPlaybackRemainingTime(soundId) || 0;
-                    const progress = randomAmbientSounds.getPlaybackProgress(soundId) || 0;
-                    const totalDuration = randomAmbientSounds.soundDurations[soundId] || 0;
+                if (isPlaying && sound.playbackRemaining !== null && sound.playbackProgress !== null) {
+                    const remainingMs = sound.playbackRemaining;
+                    const progress = 100 - sound.playbackProgress; // Inversion pour que la barre diminue
 
                     playbackInfo = {
                         remainingMs,
-                        progress: 100 - progress, // Inversion pour que la barre diminue
+                        progress,
                         remainingText: `${(remainingMs / 1000).toFixed(1)}s`,
-                        totalDuration
+                        totalDuration: sound.duration
                     };
                 }
 
@@ -79,11 +75,13 @@ const RandomSoundDebugger = () => {
                 let nextPlayIn = 'N/A';
                 let remainingMs = 0;
 
-                if (!isPlaying && randomAmbientSounds.nextPlayTimes && randomAmbientSounds.nextPlayTimes[soundId]) {
-                    remainingMs = Math.max(0, randomAmbientSounds.nextPlayTimes[soundId] - Date.now());
+                if (!isPlaying && sound.remainingTime !== null) {
+                    remainingMs = sound.remainingTime;
                     nextPlayIn = remainingMs > 0 ? `${(remainingMs / 1000).toFixed(1)}s` : 'Imminent';
                 } else if (!randomAmbientSounds.active) {
                     nextPlayIn = 'Inactif';
+                } else if (!sound.isActiveInCurrentPhase) {
+                    nextPlayIn = 'Phase inactive';
                 }
 
                 // Stocker l'état du son
@@ -93,6 +91,8 @@ const RandomSoundDebugger = () => {
                     remainingMs,
                     playbackInfo,
                     currentVolume,
+                    soundType: sound.soundType,
+                    isActiveInCurrentPhase: sound.isActiveInCurrentPhase,
                     config: {
                         minInterval: config.minInterval,
                         maxInterval: config.maxInterval,
@@ -233,7 +233,9 @@ const RandomSoundDebugger = () => {
         if (!window.audioManager?.randomAmbientSounds?.howls?.[soundId]) return;
 
         const sound = window.audioManager.randomAmbientSounds;
-        const config = sound.config[soundId];
+        const config = soundsState[soundId]?.config;
+        if (!config) return;
+
         const howl = sound.howls[soundId];
         const volume = (config.minVolume + config.maxVolume) / 2;
 
@@ -244,11 +246,7 @@ const RandomSoundDebugger = () => {
             selectedHowl.volume(volume);
             selectedHowl.play();
 
-            // Log pour le débogage
-            if (config.paths) {
-                const pathInfo = config.paths[variantIndex];
-                console.log(`Manual play: ${soundId} variant ${variantIndex} (${pathInfo.path}) (probability: ${(pathInfo.probability * 100).toFixed(1)}%)`);
-            }
+            console.log(`Manual play: ${soundId} variant ${variantIndex}`);
         } else {
             // Son classique
             howl.volume(volume);
@@ -257,6 +255,18 @@ const RandomSoundDebugger = () => {
         }
     };
 
+    // Forcer la transition de phase
+    const forcePhaseTransition = (phase) => {
+        if (!window.audioManager?.randomAmbientSounds) return;
+
+        window.audioManager.randomAmbientSounds.forcePhaseTransition(phase);
+        console.log(`Force transition to ${phase} phase`);
+    };
+
+    // Séparer les sons par type
+    const natureSounds = Object.keys(soundsState).filter(soundId => soundsState[soundId].soundType === 'nature');
+    const digitalSounds = Object.keys(soundsState).filter(soundId => soundsState[soundId].soundType === 'digital');
+
     // Ne rien afficher si le débogueur n'est pas visible
     if (!visible) return null;
 
@@ -264,20 +274,50 @@ const RandomSoundDebugger = () => {
         <div className={`random-sound-debugger ${collapsed ? 'collapsed' : ''} ${editMode ? 'edit-mode' : ''}`}>
             <div className="sound-debugger-header">
                 <div className="header-main">
-                    <h3>Sons aléatoires</h3>
+                    <div className="title-section">
+                        <h3>Sons aléatoires</h3>
+                        {/* Affichage de la phase actuelle */}
+                        <div className="phase-info">
+                            <span className={`phase-indicator ${phaseInfo.currentPhase || 'nature'}`}>
+                                {phaseInfo.currentPhase === 'digital' ? '🔌 Digital' : '🌿 Nature'}
+                            </span>
+                            {phaseInfo.phaseTransitionProgress !== undefined && (
+                                <span className="progress-text">
+                                    {(phaseInfo.phaseTransitionProgress * 100).toFixed(1)}%
+                                </span>
+                            )}
+                        </div>
+                    </div>
                     <div className={`system-status ${systemActive ? 'active' : 'inactive'}`}>
                         {systemActive ? 'Actif' : 'Inactif'}
                     </div>
                 </div>
                 <div className="controls">
                     {!collapsed && (
-                        <button
-                            className={`edit-btn ${editMode ? 'active' : ''}`}
-                            onClick={toggleEditMode}
-                            title={editMode ? "Quitter le mode édition" : "Modifier les paramètres"}
-                        >
-                            ✎
-                        </button>
+                        <>
+                            {/* Boutons de transition de phase */}
+                            <button
+                                className={`phase-btn ${phaseInfo.currentPhase === 'nature' ? 'active' : ''}`}
+                                onClick={() => forcePhaseTransition('nature')}
+                                title="Forcer la phase nature"
+                            >
+                                🌿
+                            </button>
+                            <button
+                                className={`phase-btn ${phaseInfo.currentPhase === 'digital' ? 'active' : ''}`}
+                                onClick={() => forcePhaseTransition('digital')}
+                                title="Forcer la phase digital"
+                            >
+                                🔌
+                            </button>
+                            <button
+                                className={`edit-btn ${editMode ? 'active' : ''}`}
+                                onClick={toggleEditMode}
+                                title={editMode ? "Quitter le mode édition" : "Modifier les paramètres"}
+                            >
+                                ✎
+                            </button>
+                        </>
                     )}
                     <button
                         className="collapse-btn"
@@ -305,142 +345,291 @@ const RandomSoundDebugger = () => {
                         </div>
                     )}
 
-                    <div className="sound-list">
-                        {Object.keys(soundsState).map(soundId => {
-                            const sound = soundsState[soundId];
-                            const editValue = editValues[soundId] || sound.config;
+                    {/* Affichage des sons nature */}
+                    {natureSounds.length > 0 && (
+                        <div className="sound-category">
+                            <h4 className="category-title nature">
+                                🌿 Sons Nature ({natureSounds.length})
+                            </h4>
+                            <div className="sound-list">
+                                {natureSounds.map(soundId => {
+                                    const sound = soundsState[soundId];
+                                    const editValue = editValues[soundId] || sound.config;
 
-                            // Calculer la barre de progression
-                            let progressPercent = 0;
-                            let progressLabel = '';
+                                    // Calculer la barre de progression
+                                    let progressPercent = 0;
+                                    let progressLabel = '';
 
-                            if (sound.isPlaying && sound.playbackInfo) {
-                                // Quand le son joue, afficher le temps restant de lecture
-                                progressPercent = sound.playbackInfo.progress;
-                                progressLabel = sound.playbackInfo.remainingText;
-                            } else if (sound.remainingMs > 0) {
-                                // Quand le son est en attente, afficher le temps avant la prochaine lecture
-                                // Estimer un total à partir de l'intervalle moyen
-                                const totalTime = (sound.config.minInterval + sound.config.maxInterval) * 500; // Moyenne en ms
-                                const elapsed = totalTime - sound.remainingMs;
-                                progressPercent = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
-                                progressLabel = sound.nextPlayIn;
-                            }
+                                    if (sound.isPlaying && sound.playbackInfo) {
+                                        progressPercent = sound.playbackInfo.progress;
+                                        progressLabel = sound.playbackInfo.remainingText;
+                                    } else if (sound.remainingMs > 0) {
+                                        const totalTime = (sound.config.minInterval + sound.config.maxInterval) * 500;
+                                        const elapsed = totalTime - sound.remainingMs;
+                                        progressPercent = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
+                                        progressLabel = sound.nextPlayIn;
+                                    }
 
-                            return (
-                                <div key={soundId} className={`sound-item ${sound.isPlaying ? 'playing' : ''}`}>
-                                    <div className="sound-header">
-                                        <span className="sound-name">
-                                            {soundId}
-                                            {sound.config.hasVariants && <span className="variant-indicator" title="Son avec variants multiples">🎲</span>}
-                                        </span>
-                                        <div className="sound-actions">
-                                            <button
-                                                className="play-btn"
-                                                onClick={() => playSoundManually(soundId)}
-                                                title="Jouer ce son manuellement"
-                                            >
-                                                ▶
-                                            </button>
-                                            <span className={`sound-status ${sound.isPlaying ? 'active' : ''}`}>
-                                                {sound.isPlaying ? '▶ Lecture' : '■ Arrêté'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="progress-container">
-                                        <div className="progress-bar-container">
-                                            <div
-                                                className={`progress-bar ${sound.isPlaying ? 'playing' : ''}`}
-                                                style={{width: `${progressPercent}%`}}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="sound-details">
-                                        <div className="sound-timing">
-                                            <span className="sound-label">
-                                                {sound.isPlaying ? 'Reste:' : 'Prochain:'}
-                                            </span>
-                                            <span className="sound-value">
-                                                {sound.isPlaying
-                                                    ? (sound.playbackInfo ? sound.playbackInfo.remainingText : 'N/A')
-                                                    : sound.nextPlayIn}
-                                            </span>
-                                        </div>
-                                        <div className="sound-volume">
-                                            <span className="sound-label">Volume :</span>
-                                            <span className="sound-value">{sound.currentVolume}</span>
-                                        </div>
-
-                                        {!editMode ? (
-                                            <div className="sound-config">
-                                                <div className="sound-intervals">
-                                                    <span className="sound-label">Interval :</span>
-                                                    <span className="sound-value">
-                                                        {sound.config.minInterval}s - {sound.config.maxInterval}s
+                                    return (
+                                        <div key={soundId} className={`sound-item ${sound.isPlaying ? 'playing' : ''} ${!sound.isActiveInCurrentPhase ? 'inactive-phase' : ''}`}>
+                                            {/* Contenu identique au composant original mais avec les nouvelles classes */}
+                                            <div className="sound-header">
+                                                <span className="sound-name">
+                                                    {soundId}
+                                                    {sound.config.hasVariants && <span className="variant-indicator" title="Son avec variants multiples">🎲</span>}
+                                                </span>
+                                                <div className="sound-actions">
+                                                    <button
+                                                        className="play-btn"
+                                                        onClick={() => playSoundManually(soundId)}
+                                                        title="Jouer ce son manuellement"
+                                                    >
+                                                        ▶
+                                                    </button>
+                                                    <span className={`sound-status ${sound.isPlaying ? 'active' : ''}`}>
+                                                        {sound.isPlaying ? '▶ Lecture' : '■ Arrêté'}
                                                     </span>
                                                 </div>
-                                                <div className="sound-volumes">
+                                            </div>
+
+                                            <div className="progress-container">
+                                                <div className="progress-bar-container">
+                                                    <div
+                                                        className={`progress-bar ${sound.isPlaying ? 'playing' : ''}`}
+                                                        style={{width: `${progressPercent}%`}}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="sound-details">
+                                                <div className="sound-timing">
+                                                    <span className="sound-label">
+                                                        {sound.isPlaying ? 'Reste:' : 'Prochain:'}
+                                                    </span>
+                                                    <span className="sound-value">
+                                                        {sound.isPlaying
+                                                            ? (sound.playbackInfo ? sound.playbackInfo.remainingText : 'N/A')
+                                                            : sound.nextPlayIn}
+                                                    </span>
+                                                </div>
+                                                <div className="sound-volume">
                                                     <span className="sound-label">Volume :</span>
-                                                    <span className="sound-value">
-                                                        {sound.config.minVolume.toFixed(2)} - {sound.config.maxVolume.toFixed(2)}
+                                                    <span className="sound-value">{sound.currentVolume}</span>
+                                                </div>
+
+                                                {!editMode ? (
+                                                    <div className="sound-config">
+                                                        <div className="sound-intervals">
+                                                            <span className="sound-label">Interval :</span>
+                                                            <span className="sound-value">
+                                                                {sound.config.minInterval}s - {sound.config.maxInterval}s
+                                                            </span>
+                                                        </div>
+                                                        <div className="sound-volumes">
+                                                            <span className="sound-label">Volume :</span>
+                                                            <span className="sound-value">
+                                                                {sound.config.minVolume.toFixed(2)} - {sound.config.maxVolume.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="sound-config edit">
+                                                        <div className="edit-row">
+                                                            <label>Interval min (s):</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max="120"
+                                                                step="1"
+                                                                value={editValue.minInterval}
+                                                                onChange={(e) => handleEditChange(soundId, 'minInterval', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Interval max (s):</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max="120"
+                                                                step="1"
+                                                                value={editValue.maxInterval}
+                                                                onChange={(e) => handleEditChange(soundId, 'maxInterval', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Volume min:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.05"
+                                                                value={editValue.minVolume}
+                                                                onChange={(e) => handleEditChange(soundId, 'minVolume', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Volume max:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.05"
+                                                                value={editValue.maxVolume}
+                                                                onChange={(e) => handleEditChange(soundId, 'maxVolume', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Affichage des sons digitaux */}
+                    {digitalSounds.length > 0 && (
+                        <div className="sound-category">
+                            <h4 className="category-title digital">
+                                🔌 Sons Digitaux ({digitalSounds.length})
+                            </h4>
+                            <div className="sound-list">
+                                {digitalSounds.map(soundId => {
+                                    const sound = soundsState[soundId];
+                                    const editValue = editValues[soundId] || sound.config;
+
+                                    // Calculer la barre de progression (même logique que pour les sons nature)
+                                    let progressPercent = 0;
+                                    let progressLabel = '';
+
+                                    if (sound.isPlaying && sound.playbackInfo) {
+                                        progressPercent = sound.playbackInfo.progress;
+                                        progressLabel = sound.playbackInfo.remainingText;
+                                    } else if (sound.remainingMs > 0) {
+                                        const totalTime = (sound.config.minInterval + sound.config.maxInterval) * 500;
+                                        const elapsed = totalTime - sound.remainingMs;
+                                        progressPercent = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
+                                        progressLabel = sound.nextPlayIn;
+                                    }
+
+                                    return (
+                                        <div key={soundId} className={`sound-item digital ${sound.isPlaying ? 'playing' : ''} ${!sound.isActiveInCurrentPhase ? 'inactive-phase' : ''}`}>
+                                            {/* Même contenu que les sons nature */}
+                                            <div className="sound-header">
+                                                <span className="sound-name">
+                                                    {soundId}
+                                                    {sound.config.hasVariants && <span className="variant-indicator" title="Son avec variants multiples">🎲</span>}
+                                                </span>
+                                                <div className="sound-actions">
+                                                    <button
+                                                        className="play-btn"
+                                                        onClick={() => playSoundManually(soundId)}
+                                                        title="Jouer ce son manuellement"
+                                                    >
+                                                        ▶
+                                                    </button>
+                                                    <span className={`sound-status ${sound.isPlaying ? 'active' : ''}`}>
+                                                        {sound.isPlaying ? '▶ Lecture' : '■ Arrêté'}
                                                     </span>
                                                 </div>
                                             </div>
-                                        ) : (
-                                            <div className="sound-config edit">
-                                                <div className="edit-row">
-                                                    <label>Interval min (s):</label>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="120"
-                                                        step="1"
-                                                        value={editValue.minInterval}
-                                                        onChange={(e) => handleEditChange(soundId, 'minInterval', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="edit-row">
-                                                    <label>Interval max (s):</label>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="120"
-                                                        step="1"
-                                                        value={editValue.maxInterval}
-                                                        onChange={(e) => handleEditChange(soundId, 'maxInterval', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="edit-row">
-                                                    <label>Volume min:</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="1"
-                                                        step="0.05"
-                                                        value={editValue.minVolume}
-                                                        onChange={(e) => handleEditChange(soundId, 'minVolume', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="edit-row">
-                                                    <label>Volume max:</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="1"
-                                                        step="0.05"
-                                                        value={editValue.maxVolume}
-                                                        onChange={(e) => handleEditChange(soundId, 'maxVolume', e.target.value)}
+
+                                            <div className="progress-container">
+                                                <div className="progress-bar-container">
+                                                    <div
+                                                        className={`progress-bar ${sound.isPlaying ? 'playing' : ''}`}
+                                                        style={{width: `${progressPercent}%`}}
                                                     />
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+
+                                            <div className="sound-details">
+                                                <div className="sound-timing">
+                                                    <span className="sound-label">
+                                                        {sound.isPlaying ? 'Reste:' : 'Prochain:'}
+                                                    </span>
+                                                    <span className="sound-value">
+                                                        {sound.isPlaying
+                                                            ? (sound.playbackInfo ? sound.playbackInfo.remainingText : 'N/A')
+                                                            : sound.nextPlayIn}
+                                                    </span>
+                                                </div>
+                                                <div className="sound-volume">
+                                                    <span className="sound-label">Volume :</span>
+                                                    <span className="sound-value">{sound.currentVolume}</span>
+                                                </div>
+
+                                                {!editMode ? (
+                                                    <div className="sound-config">
+                                                        <div className="sound-intervals">
+                                                            <span className="sound-label">Interval :</span>
+                                                            <span className="sound-value">
+                                                                {sound.config.minInterval}s - {sound.config.maxInterval}s
+                                                            </span>
+                                                        </div>
+                                                        <div className="sound-volumes">
+                                                            <span className="sound-label">Volume :</span>
+                                                            <span className="sound-value">
+                                                                {sound.config.minVolume.toFixed(2)} - {sound.config.maxVolume.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="sound-config edit">
+                                                        <div className="edit-row">
+                                                            <label>Interval min (s):</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max="120"
+                                                                step="1"
+                                                                value={editValue.minInterval}
+                                                                onChange={(e) => handleEditChange(soundId, 'minInterval', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Interval max (s):</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                max="120"
+                                                                step="1"
+                                                                value={editValue.maxInterval}
+                                                                onChange={(e) => handleEditChange(soundId, 'maxInterval', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Volume min:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.05"
+                                                                value={editValue.minVolume}
+                                                                onChange={(e) => handleEditChange(soundId, 'minVolume', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div className="edit-row">
+                                                            <label>Volume max:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.05"
+                                                                value={editValue.maxVolume}
+                                                                onChange={(e) => handleEditChange(soundId, 'maxVolume', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -458,12 +647,13 @@ const RandomSoundDebugger = () => {
                     font-size: 12px;
                     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
                     transition: all 0.3s ease;
+                    max-width: 600px;
                 }
-                
+
                 .random-sound-debugger.collapsed {
                     width: auto;
                 }
-                
+
                 .random-sound-debugger.edit-mode {
                     border: 1px solid #4CAF50;
                 }
@@ -474,7 +664,7 @@ const RandomSoundDebugger = () => {
                     align-items: center;
                     padding-bottom: 5px;
                 }
-                
+
                 .header-main {
                     display: flex;
                     flex-grow: 1;
@@ -482,18 +672,52 @@ const RandomSoundDebugger = () => {
                     align-items: center;
                     margin-right: 10px;
                 }
-                
+
+                .title-section {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                }
+
+                .phase-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                }
+
+                .phase-indicator {
+                    font-size: 10px;
+                    padding: 1px 4px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                }
+
+                .phase-indicator.nature {
+                    background-color: #2d5a2d;
+                    color: #90ee90;
+                }
+
+                .phase-indicator.digital {
+                    background-color: #2d4a5a;
+                    color: #87ceeb;
+                }
+
+                .progress-text {
+                    font-size: 9px;
+                    color: #ccc;
+                }
+
                 .controls {
                     display: flex;
                     gap: 5px;
                 }
-                
+
                 .collapsed .sound-debugger-header {
                     border-bottom: none;
                     margin-bottom: 0;
                     padding-bottom: 0;
                 }
-                
+
                 .sound-debugger-header:not(.collapsed) {
                     border-bottom: 1px solid #4CAF50;
                     margin-bottom: 8px;
@@ -516,8 +740,8 @@ const RandomSoundDebugger = () => {
                     background-color: #4CAF50;
                     color: white;
                 }
-                
-                .collapse-btn, .edit-btn, .play-btn {
+
+                .collapse-btn, .edit-btn, .play-btn, .phase-btn {
                     background: none;
                     border: none;
                     color: #4CAF50;
@@ -532,22 +756,22 @@ const RandomSoundDebugger = () => {
                     border-radius: 3px;
                     transition: background 0.2s;
                 }
-                
-                .collapse-btn:hover, .edit-btn:hover, .play-btn:hover {
+
+                .collapse-btn:hover, .edit-btn:hover, .play-btn:hover, .phase-btn:hover {
                     background: rgba(255, 255, 255, 0.1);
                 }
-                
-                .edit-btn.active {
+
+                .edit-btn.active, .phase-btn.active {
                     background-color: #4CAF50;
                     color: white;
                 }
-                
+
                 .edit-controls {
                     margin-bottom: 10px;
                     display: flex;
                     justify-content: center;
                 }
-                
+
                 .apply-btn {
                     background: #4CAF50;
                     border: none;
@@ -558,11 +782,11 @@ const RandomSoundDebugger = () => {
                     cursor: pointer;
                     transition: background 0.2s;
                 }
-                
+
                 .apply-btn:hover {
                     background: #3d8b40;
                 }
-                
+
                 .edit-status {
                     text-align: center;
                     margin-bottom: 8px;
@@ -570,12 +794,12 @@ const RandomSoundDebugger = () => {
                     border-radius: 3px;
                     font-size: 11px;
                 }
-                
+
                 .edit-status.success {
                     background-color: rgba(76, 175, 80, 0.3);
                     color: #8effb9;
                 }
-                
+
                 .edit-status.error {
                     background-color: rgba(244, 67, 54, 0.3);
                     color: #ff8e8e;
@@ -584,12 +808,36 @@ const RandomSoundDebugger = () => {
                 .sound-list-container {
                     display: flex;
                     flex-direction: column;
+                    gap: 10px;
                 }
-                
+
+                .sound-category {
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 4px;
+                    padding: 8px;
+                }
+
+                .category-title {
+                    margin: 0 0 8px 0;
+                    font-size: 13px;
+                    font-weight: bold;
+                    padding-bottom: 4px;
+                    border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+                }
+
+                .category-title.nature {
+                    color: #90ee90;
+                }
+
+                .category-title.digital {
+                    color: #87ceeb;
+                }
+
                 .sound-list {
                     display: flex;
                     flex-direction: row;
                     gap: 8px;
+                    flex-wrap: wrap;
                 }
 
                 .sound-item {
@@ -598,6 +846,7 @@ const RandomSoundDebugger = () => {
                     padding: 6px;
                     border-left: 3px solid #555;
                     position: relative;
+                    min-width: 180px;
                 }
 
                 .sound-item.playing {
@@ -605,12 +854,26 @@ const RandomSoundDebugger = () => {
                     background-color: rgba(40, 60, 40, 0.7);
                 }
 
+                .sound-item.digital {
+                    border-left-color: #87ceeb;
+                }
+
+                .sound-item.digital.playing {
+                    border-left-color: #4169e1;
+                    background-color: rgba(40, 50, 70, 0.7);
+                }
+
+                .sound-item.inactive-phase {
+                    opacity: 0.5;
+                    border-left-color: #666;
+                }
+
                 .sound-header {
                     display: flex;
                     justify-content: space-between;
                     margin-bottom: 3px;
                 }
-                
+
                 .sound-actions {
                     display: flex;
                     align-items: center;
@@ -695,24 +958,24 @@ const RandomSoundDebugger = () => {
                     padding-top: 3px;
                     border-top: 1px dashed rgba(255, 255, 255, 0.1);
                 }
-                
+
                 .sound-config.edit {
                     padding-top: 5px;
                 }
-                
+
                 .edit-row {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     margin-bottom: 3px;
                 }
-                
+
                 .edit-row label {
                     color: #888;
                     font-size: 11px;
                     margin-right: 5px;
                 }
-                
+
                 .edit-row input {
                     background-color: rgba(255, 255, 255, 0.1);
                     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -723,7 +986,7 @@ const RandomSoundDebugger = () => {
                     width: 50px;
                     text-align: right;
                 }
-                
+
                 .edit-row input:focus {
                     outline: none;
                     border-color: #4CAF50;

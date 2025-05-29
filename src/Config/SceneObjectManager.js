@@ -359,28 +359,28 @@ class SceneObjectManager {
             //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
             //  * Effet: Animation de passage sous la branche
             //  */
-            // 'ThinTrunkInteractive': {
-            //     id: 'TrunkThin',
-            //     path: '/models/forest/tree/ThinTrunk.gltf',
-            //     scale: [0.27658, 0.27658, 0.27658],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_DOWN,
-            //         text: "Tire",
-            //         offset: -0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 1.75,
-            //         requiredStep: 'fourthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-38.33459, 0.51133, -112.1474],
-            //         // position: [-33.943, 0.51133, 45.149],
-            //         rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
-            //         scale: [0.27658, 0.27658, 0.27658],
-            //     }
-            // },
+            'ThinTrunkInteractive': {
+                id: 'TrunkThin',
+                path: '/models/forest/tree/ThinTrunk.gltf',
+                scale: [0.27658, 0.27658, 0.27658],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_DOWN,
+                    text: "Tire",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 1.75,
+                    requiredStep: 'fourthStop'
+                }],
+                defaultPlacement: {
+                    position: [-38.33459, 0.51133, -112.1474],
+                    // position: [-33.943, 0.51133, 45.149],
+                    rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
+                    scale: [0.27658, 0.27658, 0.27658],
+                }
+            },
             // 'BigRock': {
             //     id: 'BigRock',
             //     path: '/models/rock/BigRock.glb',
