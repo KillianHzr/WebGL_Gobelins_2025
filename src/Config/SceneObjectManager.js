@@ -39,65 +39,65 @@ class SceneObjectManager {
         // avec leur configuration et placement par défaut
         this.objectCatalog = {
 
-            // 'DataCenter': {
-            //     id: 'DataCenter', path: '/models/digital/DataCenter.glb',
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         // position: [66.95818, -0.50182, -123.19365],
-            //         position: [-35.943, 0.0, 44.149],
-            //         rotation: [-3.14159, -54.12542, -3.14159],
-            //         // scale: [1.79768, 1.79768, 1.79768],
-            //         scale: [0.59768, 0.59768, 0.59768],
-            //     }]
-            // },
-            'TVScreen': {
-                id: 'ScreenOldEmission', path: '/models/digital/screen/ScreenOldEmission.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    // position: [-39.93887, 0.3095, 84.51408],
-                    position: [-33.943, 0.51133, 45.149],
-
-                    rotation: [0, 0, 0],
-                    scale: [0.1, 0.1, 0.1],
-                }]
-            },
-            'ModernScreen': {
-                id: 'Screen',
-                path: '/models/digital/screen/screentest.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    // position: [-39.47393, 0.728, 83.68371],
-                    position: [-34.943, 0.51133, 45.149],
-                    rotation: [0,  -3.14 / 2, 0],
-                    scale: [0.1, 0.1, 0.1],
-                }]
-            },
-            'ModernScreenEmission': {
-                id: 'ScreenEmission',
-                path: '/models/digital/screen/ScreenEmission.glb',
-                interactive: false, useTextures: true, defaultPlacements: [{
-                    // position: [-39.47393, 0.728, 83.68371],
-                    position: [-34.943, 0.51133, 45.149],
-                    rotation: [0,  -3.14 / 2, 0],
-                    scale: [0.1, 0.1, 0.1],
-                }]
-            },
-            // 'Server': {
-            //     id: 'Server',
-            //     path: '/models/digital/Server.glb',
+            // // 'DataCenter': {
+            // //     id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+            // //     interactive: false, useTextures: true, defaultPlacements: [{
+            // //         // position: [66.95818, -0.50182, -123.19365],
+            // //         position: [-35.943, 0.0, 44.149],
+            // //         rotation: [-3.14159, -54.12542, -3.14159],
+            // //         // scale: [1.79768, 1.79768, 1.79768],
+            // //         scale: [0.59768, 0.59768, 0.59768],
+            // //     }]
+            // // },
+            // // 'TVScreen': {
+            // //     id: 'ScreenOldEmission', path: '/models/digital/screen/ScreenOldEmission.glb', // scale: [0.108, 0.07866, 0.108],
+            // //     interactive: false, useTextures: true, defaultPlacements: [{
+            // //         // position: [-39.93887, 0.3095, 84.51408],
+            // //         position: [-33.943, 0.51133, 45.149],
+            // //
+            // //         rotation: [0, 0, 0],
+            // //         scale: [0.1, 0.1, 0.1],
+            // //     }]
+            // // },
+            // // 'ModernScreen': {
+            // //     id: 'Screen',
+            // //     path: '/models/digital/screen/screentest.glb',
+            // //     interactive: false, useTextures: true, defaultPlacements: [{
+            // //         // position: [-39.47393, 0.728, 83.68371],
+            // //         position: [-34.943, 0.51133, 45.149],
+            // //         rotation: [0,  -3.14 / 2, 0],
+            // //         scale: [0.1, 0.1, 0.1],
+            // //     }]
+            // // },
+            // // 'ModernScreenEmission': {
+            // //     id: 'ScreenEmission',
+            // //     path: '/models/digital/screen/ScreenEmission.glb',
+            // //     interactive: false, useTextures: true, defaultPlacements: [{
+            // //         // position: [-39.47393, 0.728, 83.68371],
+            // //         position: [-34.943, 0.51133, 45.149],
+            // //         rotation: [0,  -3.14 / 2, 0],
+            // //         scale: [0.1, 0.1, 0.1],
+            // //     }]
+            // // },
+            // // 'Server': {
+            // //     id: 'Server',
+            // //     path: '/models/digital/Server.glb',
+            // //
+            // //     interactive: false, useTextures: true, defaultPlacements: [{
+            // //         // position: [-39.47393, 0.728, 83.68371],
+            // //         position: [-32.943, 0.51133, 45.149],
+            // //         rotation: [0, 0, 0],
+            // //         scale: [0.5, 0.5, 0.5],
+            // //     }]
+            // // },
             //
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         // position: [-39.47393, 0.728, 83.68371],
-            //         position: [-32.943, 0.51133, 45.149],
-            //         rotation: [0, 0, 0],
-            //         scale: [0.5, 0.5, 0.5],
-            //     }]
-            // },
-
-
-            /**
-             * SCÈNE 01 - POINT DE DÉPART
-             * Introduction narrative avec Célia (narratrice)
-             * Déclencheur: Fin de la cinématique d'introduction
-             * Type: Événement automatique basé sur la timeline
-             */
+            //
+            // /**
+            //  * SCÈNE 01 - POINT DE DÉPART
+            //  * Introduction narrative avec Célia (narratrice)
+            //  * Déclencheur: Fin de la cinématique d'introduction
+            //  * Type: Événement automatique basé sur la timeline
+            //  */
             'Ground': {
                 id: 'Ground',
                 path: '/models/Ground.glb',
@@ -106,14 +106,14 @@ class SceneObjectManager {
                 useTextures: true,
                 defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
             },
-            'Camera': {
-                id: 'Camera',
-                path: '/models/Camera.glb',
-                scale: [1, 1, 1],
-                interactive: false,
-                useTextures: false,
-                defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
-            },
+            // 'Camera': {
+            //     id: 'Camera',
+            //     path: '/models/Camera.glb',
+            //     scale: [1, 1, 1],
+            //     interactive: false,
+            //     useTextures: false,
+            //     defaultPlacements: [{position: [0, 0, 0], rotation: [0, 0, 0]},]
+            // },
             //
             // /**
             //  * SCÈNE 02 - PANNEAU D'INFORMATION
@@ -216,7 +216,7 @@ class SceneObjectManager {
             //     interaction: [{
             //         type: INTERACTION_TYPES.DRAG_RIGHT,
             //         text: "Tire",
-            //         offset: 0.5,
+            //         offset: -0.5,
             //         axis: "y",
             //         interfaceToShow: "none",
             //         chapterDistance: 0.5,
@@ -250,199 +250,199 @@ class SceneObjectManager {
             //         scale: [0.18402, 0.18402, 0.18402],
             //     }
             // },
-            //
-            // /**
-            //  * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
-            //  * Puzzle spatial avec progression séquentielle
-            //  * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
-            //  * Effet: Animation de saut sur chaque pierre pour traverser la rivière
-            //  */
-            // 'JumpRock1': {
-            //     id: 'RockWater',
-            //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.87951, 0.87951, 0.87951],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_UP,
-            //         text: "Tire",
-            //
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 1.66,
-            //         requiredStep: 'eleventhStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-18.9548, -0.44604, -53.6215],
-            //         rotation: [0, -47.69659, 0],
-            //         scale: [0.87951, 0.87951, 0.87951],
-            //         outlinePulse: false
-            //     }
-            // },
-            //
-            // 'JumpRock2': {
-            //     id: 'RockWater',
-            //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.86286, 0.86286, 0.86286],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_UP,
-            //         text: "Tire",
-            //
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.9,
-            //         requiredStep: 'twelfthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-16.5692, -0.44358, -54.4309],
-            //         rotation: [0, -36.97567, 0],
-            //         scale: [0.86286, 0.86286, 0.86286],
-            //         outlinePulse: false
-            //     }
-            // },
-            //
-            // 'JumpRock3': {
-            //     id: 'RockWater',
-            //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.87951, 0.87951, 0.87951],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_UP,
-            //         text: "Tire",
-            //
-            //         offset: 0.6,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.75,
-            //         requiredStep: 'thirteenthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-15.0924, -0.44604, -52.4855],
-            //         rotation: [0, 0, 0],
-            //         scale: [0.87951, 0.87951, 0.87951],
-            //         outlinePulse: false
-            //     }
-            // },
-            //
-            //
-            // 'JumpRock4': {
-            //     id: 'RockWater',
-            //     path: '/models/rock/RockWater.glb',
-            //     scale: [0.86286, 0.86286, 0.86286],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_UP,
-            //         text: "Tire",
-            //
-            //         offset: 0.33,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 1.1,
-            //         requiredStep: 'fourteenthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-13.076, -0.44358, -53.9481],
-            //         rotation: [0, 0, 0],
-            //         scale: [0.86286, 0.86286, 0.86286],
-            //         outlinePulse: false
-            //     }
-            // },
-            // /**
-            //  * SCÈNE 06 - OBSTACLE DE LA BRANCHE
-            //  * Apprentissage du mouvement vertical inverse
-            //  * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
-            //  * Effet: Animation de passage sous la branche
-            //  */
-            // 'ThinTrunkInteractive': {
-            //     id: 'TrunkThin',
-            //     path: '/models/forest/tree/ThinTrunk.gltf',
-            //     scale: [0.27658, 0.27658, 0.27658],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DRAG_DOWN,
-            //         text: "Tire",
-            //         offset: -0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 1.75,
-            //         requiredStep: 'fourthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-38.33459, 0.51133, -112.1474],
-            //         // position: [-33.943, 0.51133, 45.149],
-            //         rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
-            //         scale: [0.27658, 0.27658, 0.27658],
-            //     }
-            // },
-            // 'BigRock': {
-            //     id: 'BigRock',
-            //     path: '/models/rock/BigRock.glb',
-            //     scale: [0.12371, 0.12371, 0.12371],
-            //     interactive: false,
-            //     useTextures: true,
-            //     defaultPlacements: [{
-            //         position: [-41.86723, 0.06409, -115.2628],
-            //         // position: [-33.943, 0.51133, 45.149],
-            //
-            //         rotation: [-3.14159, -52.79977, -3.14159],
-            //         scale: [0.1671, 0.1671, 0.1671],
-            //     }]
-            // },
-            // 'TreeStump': {
-            //     id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [-40.33271, 0.06409, -113.93519],
-            //         // position: [-34.943, 0.51133, 45.149],
-            //
-            //         rotation: [-3.14159, 40.80581, -3.14159],
-            //         scale: [0.09007, 0.09007, 0.09007],
-            //     }]
-            // },
-            //
-            // /**
-            //  * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
-            //  * Révélation principale et message environnemental
-            //  * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
-            //  *  - Explication du problème de pénurie d'eau
-            //  */
-            //
-            // 'RiverCheckpoint': {
-            //     id: 'Screen',
-            //     path: '/models/digital/screen/Screen.glb',
-            //     scale: [0.1, 0.1, 0.1],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.DISABLE,
-            //         text: "Maintiens",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 1.75,
-            //         requiredStep: 'seventeenStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [-14.93628, -0.75, -135.53311],
-            //         rotation: [0, -89.39436, 0],
-            //         scale: [0.1, 0.1, 0.1],
-            //     }
-            // },
-            //
-            // 'DataCenter': {
-            //     id: 'DataCenter', path: '/models/digital/DataCenter.glb',
-            //     interactive: false, useTextures: true, defaultPlacements: [{
-            //         position: [40.48621, -0.04933, -137.81503],
-            //         rotation: [0, -3.14 / 2, 0],
-            //         scale: [3.58521, 3.5852, 3.58521],
-            //     }]
-            // },
+
+            /**
+             * SCÈNE 05 - TRAVERSÉE DE LA RIVIÈRE
+             * Puzzle spatial avec progression séquentielle
+             * Déclencheur: 4 CLICKS SUCCESSIFS sur chaque pierre "Saute sur la pierre"
+             * Effet: Animation de saut sur chaque pierre pour traverser la rivière
+             */
+            'JumpRock1': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater.glb',
+                scale: [0.87951, 0.87951, 0.87951],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 1.66,
+                    requiredStep: 'eleventhStop'
+                }],
+                defaultPlacement: {
+                    position: [-18.9548, -0.44604, -53.6215],
+                    rotation: [0, -47.69659, 0],
+                    scale: [0.87951, 0.87951, 0.87951],
+                    outlinePulse: false
+                }
+            },
+
+            'JumpRock2': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater.glb',
+                scale: [0.86286, 0.86286, 0.86286],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.9,
+                    requiredStep: 'twelfthStop'
+                }],
+                defaultPlacement: {
+                    position: [-16.5692, -0.44358, -54.4309],
+                    rotation: [0, -36.97567, 0],
+                    scale: [0.86286, 0.86286, 0.86286],
+                    outlinePulse: false
+                }
+            },
+
+            'JumpRock3': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater.glb',
+                scale: [0.87951, 0.87951, 0.87951],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
+                    offset: 0.6,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 0.75,
+                    requiredStep: 'thirteenthStop'
+                }],
+                defaultPlacement: {
+                    position: [-15.0924, -0.44604, -52.4855],
+                    rotation: [0, 0, 0],
+                    scale: [0.87951, 0.87951, 0.87951],
+                    outlinePulse: false
+                }
+            },
+
+
+            'JumpRock4': {
+                id: 'RockWater',
+                path: '/models/rock/RockWater.glb',
+                scale: [0.86286, 0.86286, 0.86286],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_UP,
+                    text: "Tire",
+
+                    offset: 0.33,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 1.1,
+                    requiredStep: 'fourteenthStop'
+                }],
+                defaultPlacement: {
+                    position: [-13.076, -0.44358, -53.9481],
+                    rotation: [0, 0, 0],
+                    scale: [0.86286, 0.86286, 0.86286],
+                    outlinePulse: false
+                }
+            },
+            /**
+             * SCÈNE 06 - OBSTACLE DE LA BRANCHE
+             * Apprentissage du mouvement vertical inverse
+             * Déclencheur: DRAG HAUT-BAS "Passe en-dessous"
+             * Effet: Animation de passage sous la branche
+             */
+            'ThinTrunkInteractive': {
+                id: 'TrunkThin',
+                path: '/models/forest/tree/ThinTrunk.gltf',
+                scale: [0.27658, 0.27658, 0.27658],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DRAG_DOWN,
+                    text: "Tire",
+                    offset: -0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 1.75,
+                    requiredStep: 'fourthStop'
+                }],
+                defaultPlacement: {
+                    position: [-38.33459, 0.51133, -112.1474],
+                    // position: [-33.943, 0.51133, 45.149],
+                    rotation: [179.6387 - 45, -48.41434 - 45, -23.12458],
+                    scale: [0.27658, 0.27658, 0.27658],
+                }
+            },
+            'BigRock': {
+                id: 'BigRock',
+                path: '/models/rock/BigRock.glb',
+                scale: [0.12371, 0.12371, 0.12371],
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-41.86723, 0.06409, -115.2628],
+                    // position: [-33.943, 0.51133, 45.149],
+
+                    rotation: [-3.14159, -52.79977, -3.14159],
+                    scale: [0.1671, 0.1671, 0.1671],
+                }]
+            },
+            'TreeStump': {
+                id: 'TreeStump', path: '/models/forest/tree/TreeStump.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [-40.33271, 0.06409, -113.93519],
+                    // position: [-34.943, 0.51133, 45.149],
+
+                    rotation: [-3.14159, 40.80581, -3.14159],
+                    scale: [0.09007, 0.09007, 0.09007],
+                }]
+            },
+
+            /**
+             * SCÈNE 07 & 08 - DÉCOUVERTE DU VISON
+             * Révélation principale et message environnemental
+             * Scène 07: HOVER sur l'action désactivée "Remplis ta gourde"
+             *  - Explication du problème de pénurie d'eau
+             */
+
+            'RiverCheckpoint': {
+                id: 'Screen',
+                path: '/models/digital/screen/Screen.glb',
+                scale: [0.1, 0.1, 0.1],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.DISABLE,
+                    text: "Maintiens",
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "none",
+                    chapterDistance: 1.75,
+                    requiredStep: 'seventeenStop'
+                }],
+                defaultPlacement: {
+                    position: [-14.93628, -0.75, -135.53311],
+                    rotation: [0, -89.39436, 0],
+                    scale: [0.1, 0.1, 0.1],
+                }
+            },
+
+            'DataCenter': {
+                id: 'DataCenter', path: '/models/digital/DataCenter.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    position: [40.48621, -0.04933, -137.81503],
+                    rotation: [0, -3.14 / 2, 0],
+                    scale: [3.58521, 3.5852, 3.58521],
+                }]
+            },
             // // 'Vison': {
             // //     id: 'Vison',
             // //     path: '/models/primary/VisonRun2.glb',

@@ -293,12 +293,12 @@ const ScenarioSystem = () => {
 
             case 'Scene04_RechercheDesIndices_part3':
                 // Après les résultats du scan, passer à l'étape suivante
-                store.interaction.setCurrentStep('eleventhStop');
+                store.interaction.setCurrentStep('fourteenthStop');
                 break;
 
             case 'Scene05_SautAu-DessusDeLaRiviere':
                 // Après l'explication de la rivière, activer la première pierre
-                store.interaction.setCurrentStep('twelfthStop');
+                store.interaction.setCurrentStep('eleventhStop');
                 break;
 
             case 'Scene06_PassageEn-DessousDeLaBranche':

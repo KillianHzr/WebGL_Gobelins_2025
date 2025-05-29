@@ -810,8 +810,10 @@ class TextureManager {
             roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7,
         });
 
-        this.addTextureMapping('RockWater', 'rock', null, {
-            roughness: 1.0, metalness: 0.1, envMapIntensity: 0.25, castShadow: true, receivedShadow: true,
+        this.addTextureMapping('RockWater', 'rock', 'BigRock', {
+            roughness: 1.0, metalness: 0.1, envMapIntensity: 0.25,
+            normalScale: new Vector2(0.1, 0.1),
+            castShadow: true, receivedShadow: true,
         });
 
 
