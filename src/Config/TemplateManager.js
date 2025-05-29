@@ -4,10 +4,10 @@ class TemplateManager {
     constructor() {
         // Templates disponibles avec leurs informations
         this.templates = {
-            // ===================================
-            // REGULAR GROUP - Main forest elements
-            // ===================================
-
+            // // ===================================
+            // // REGULAR GROUP - Main forest elements
+            // // ===================================
+            //
             // Trees
             'Retopo_TRONC001': {
                 id: 'TreeNaked',
@@ -369,49 +369,49 @@ class TemplateManager {
                 useTextures: false,
                 group: 'screen'
             },
-            'Retopo_TRONC001_2': {
-                id: 'TreeNakedScreen',
-                path: '/models/forest/tree/TreeNaked.gltf',
-                priority: 5,
+            // 'Retopo_TRONC001_2': {
+            //     id: 'TreeNakedScreen',
+            //     path: '/models/forest/tree/TreeNaked.gltf',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+            // 'Retopo_GROS_TRONC001_1': {
+            //     id: 'TrunkLargeScreen',
+            //     path: '/models/forest/tree/TrunkLarge.gltf',
+            //     priority: 5,
+            //     useTextures: true,
+            //     group: 'screen'
+            // },
+
+            'GN_Instance_12351': {
+                id: 'Screen',
+                path: '/models/digital/screen/screentest.glb',
+                priority: 22,
                 useTextures: true,
                 group: 'screen'
             },
-            'Retopo_GROS_TRONC001_1': {
-                id: 'TrunkLargeScreen',
-                path: '/models/forest/tree/TrunkLarge.gltf',
-                priority: 5,
-                useTextures: true,
+            // Screens
+            'Cube001_1': {
+                id: 'ScreenOldEmission',
+                path: '/models/digital/screen/ScreenOldEmission.glb',
+                priority: 21,
+                useTextures: false,
                 group: 'screen'
             },
 
-            // 'GN_Instance_12351': {
-            //     id: 'Screen',
-            //     path: '/models/digital/screen/Screen.glb',
+            // 'Screen001_14': {
+            //     id: 'ScreenEmission',
+            //     path: '/models/digital/screen/ScreenEmission.glb',
             //     priority: 22,
             //     useTextures: false,
             //     group: 'screen'
             // },
             // // Screens
-            // 'mesh002_1': {
-            //     id: 'ScreenOld',
-            //     path: '/models/digital/screen/ScreenOld.glb',
-            //     priority: 21,
-            //     useTextures: false,
-            //     group: 'screen'
-            // },
-            //
-            // 'ScreenEmission': {
-            //     id: 'ScreenEmission',
-            //     path: '/models/digital/screen/ScreenEmission.glb',
-            //     priority: 22,
-            //     useTextures: true,
-            //     group: 'screen'
-            // },
-            // Screens
-            'ScreenOldEmission': {
-                id: 'ScreenOldEmission',
-                path: '/models/digital/screen/ScreenOldEmission.glb',
-                priority: 23,
+            'mesh002_1': {
+                id: 'ScreenOld',
+                path: '/models/digital/screen/ScreenOld.glb',
+                priority: 21,
                 useTextures: true,
                 group: 'screen'
             },

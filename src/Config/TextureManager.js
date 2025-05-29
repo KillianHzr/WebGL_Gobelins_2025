@@ -45,7 +45,6 @@ class TextureManager {
         // Liste des noms d'objets qui recevront une texture d'émission
         this.emissiveObjectNames = [
             'ScreenEmission',
-            'ScreenEmissive',
             'ScreenOldEmission'
         ];
 
@@ -257,6 +256,7 @@ class TextureManager {
         console.log(`Force émissive sur écrans: ${modifiedCount} matériaux modifiés`);
         return modifiedCount;
     }
+
     /**
      * Méthode pour définir l'activation/désactivation des textures
      * @param {string} modelId - ID du modèle
@@ -834,14 +834,18 @@ class TextureManager {
             castShadow: true,
             receivedShadow: true,
         });
-        this.addTextureMapping('Screen', 'digital/screen', null, {
-            roughness: 1.0, metalness: 1.0, envMapIntensity: 0.05, castShadow: true, receivedShadow: true,
+        this.addTextureMapping('Screen', 'digital/screen', 'ScreenOld', {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.00,
+            color: '#000000',
+            normalScale: new Vector2(0.0, 0.0),
+            castShadow: true,
+            receivedShadow: true,
         });
         this.addTextureMapping('ScreenOld', 'digital/screen', null, {
             roughness: 1.0,
             metalness: 1.0,
-            envMapIntensity: 0.08,
-            color: '#545454',
+            envMapIntensity: 0.00,
+            color: '#343434',
             normalScale: new Vector2(1.5, 1.5),
             castShadow: true,
             receivedShadow: true,
@@ -857,19 +861,40 @@ class TextureManager {
 
 
         this.addTextureMapping('DirectionPanel', 'primary', null, {
-            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color: "#898080", normalScale: new Vector2(1.0, 1.0), castShadow: true, receivedShadow: true,
+            roughness: 0.8,
+            metalness: 0.1,
+            envMapIntensity: 0.05,
+            color: "#898080",
+            normalScale: new Vector2(1.0, 1.0),
+            castShadow: true,
+            receivedShadow: true,
         });
         this.addTextureMapping('DirectionPanelBoard', 'primary', null, {
-            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color: "#3b1e02", castShadow: true, receivedShadow: true,
+            roughness: 0.8,
+            metalness: 0.1,
+            envMapIntensity: 0.05,
+            color: "#3b1e02",
+            castShadow: true,
+            receivedShadow: true,
         });
         this.addTextureMapping('AnimalPaws', 'primary', null, {
-            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color:"#e1d0d0", castShadow: true, receivedShadow: true,
+            roughness: 0.8,
+            metalness: 0.1,
+            envMapIntensity: 0.05,
+            color: "#e1d0d0",
+            castShadow: true,
+            receivedShadow: true,
         });
         this.addTextureMapping('MultipleLeaf', 'primary', null, {
-            roughness: 0.8, metalness: 0.1, envMapIntensity: 0.05, color:"#cec0c0", castShadow: true, receivedShadow: true,
+            roughness: 0.8,
+            metalness: 0.1,
+            envMapIntensity: 0.05,
+            color: "#cec0c0",
+            castShadow: true,
+            receivedShadow: true,
         });
         this.addTextureMapping('VisonDead', 'primary', null, {
-            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color:"#ababab",
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
         });
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
@@ -1694,6 +1719,7 @@ class TextureManager {
             modelId.includes(name) || name.includes(modelId)
         );
     }
+
     /**
      * Applique un matériau à tous les Mesh d'un objet avec propriétés complètes
      */

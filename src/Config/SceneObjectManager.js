@@ -51,7 +51,7 @@ class SceneObjectManager {
             // },
             'TVScreen': {
                 id: 'ScreenOldEmission', path: '/models/digital/screen/ScreenOldEmission.glb', // scale: [0.108, 0.07866, 0.108],
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.93887, 0.3095, 84.51408],
                     position: [-33.943, 0.51133, 45.149],
 
@@ -60,9 +60,19 @@ class SceneObjectManager {
                 }]
             },
             'ModernScreen': {
+                id: 'Screen',
+                path: '/models/digital/screen/screentest.glb',
+                interactive: false, useTextures: true, defaultPlacements: [{
+                    // position: [-39.47393, 0.728, 83.68371],
+                    position: [-34.943, 0.51133, 45.149],
+                    rotation: [0,  -3.14 / 2, 0],
+                    scale: [0.1, 0.1, 0.1],
+                }]
+            },
+            'ModernScreenEmission': {
                 id: 'ScreenEmission',
                 path: '/models/digital/screen/ScreenEmission.glb',
-                interactive: false, useTextures: false, defaultPlacements: [{
+                interactive: false, useTextures: true, defaultPlacements: [{
                     // position: [-39.47393, 0.728, 83.68371],
                     position: [-34.943, 0.51133, 45.149],
                     rotation: [0,  -3.14 / 2, 0],

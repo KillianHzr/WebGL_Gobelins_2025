@@ -527,15 +527,15 @@ function extractAndSaveGeoNodesPositions(mapModel) {
     Object.keys(treePositions).forEach(treeType => {
         if (modelPositions[treeType]) {
             treePositions[treeType] = modelPositions[treeType].map(instance => ({
-                x: instance.position.x + (Math.random() < 0.5 ? 1 : -1) * ( Math.random() * 0.5),
-                y: 6.5 + Math.random() * 1.5,
-                z: instance.position.z + (Math.random() < 0.5 ? 1 : -1) * (Math.random() * 0.5),
+                x: instance.position.x,
+                y: instance.position.y,
+                z: instance.position.z,
                 rotationX: instance.rotation.x,
                 rotationY: instance.rotation.y,
                 rotationZ: instance.rotation.z,
-                scaleX: 2.3 + Math.random() * 0.4,
-                scaleY: 2.3 + Math.random() * 0.4,
-                scaleZ: 2.3 + Math.random() * 0.4
+                scaleX: instance.scale.x,
+                scaleY: instance.scale.y,
+                scaleZ: instance.scale.z
             }));
         }
     });
