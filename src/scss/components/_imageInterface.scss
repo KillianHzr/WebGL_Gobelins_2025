@@ -32,7 +32,7 @@
     border-radius: 8px;
     overflow: hidden;
     opacity: 0;
-    animation: fadeInDelay 2.5s forwards;
+    animation: fadeInDelay 0.5s forwards;
 
     img {
       max-width: 100%;
@@ -54,12 +54,35 @@
     aspect-ratio: 1;
     border-radius: 999px;
     border: 1.5px solid #F9FEFF;
-    pointer-events: none;
+    pointer-events: auto;
     transform: translate(-50%, -50%);
     z-index: 10;
     opacity: 0;
     animation: fadeInDelay 2.5s forwards;
     backdrop-filter: blur(2px);
+    cursor: pointer;
+
+    // Version par défaut (qui suit le curseur) - conservée pour compatibilité
+    &:not(.image-interface-hold-button-fixed) {
+      pointer-events: none;
+    }
+
+    // Nouvelle version fixe en bas de l'écran
+    &-fixed {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: auto;
+      cursor: pointer;
+      opacity: 1; // Pas d'animation de délai pour le bouton fixe
+      animation: none;
+
+      // Animation d'apparition spécifique pour le bouton fixe
+      &.show {
+        animation: buttonFadeIn 0.5s ease-out forwards;
+      }
+    }
 
     &-inner {
       position: absolute;
@@ -87,10 +110,10 @@
         align-items: center;
         color: #F9FEFF;
         text-align: center;
-        font-family: 'Albert Sans', serif;
+        font-family: 'Articulat CF', serif;
         font-size: 12px;
         font-style: normal;
-        font-weight: 600;
+        font-weight: 700;
         line-height: normal;
       }
 
@@ -158,5 +181,17 @@
   }
   100% {
     opacity: 0.75;
+  }
+}
+
+// Animation spécifique pour l'apparition du bouton fixe
+@keyframes buttonFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }

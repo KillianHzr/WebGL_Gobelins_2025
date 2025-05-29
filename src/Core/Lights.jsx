@@ -2,8 +2,9 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useThree} from '@react-three/fiber';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import * as THREE from "three";
-import {EventBus} from "../Utils/EventEmitter.jsx";
+import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
+import * as THREE from 'three';
+import {EventBus} from "../Utils/EventEmitter.jsx"; // Ajout de l'import
 
 // Configuration centralisée des lumières
 export const LightConfig = {
@@ -95,10 +96,10 @@ export default function Lights() {
 
     // Référence aux paramètres d'éclairage actuels
     const lightSettingsRef = useRef({
-        day: {...LightConfig.modes.day},
-        transition1: {...LightConfig.modes.transition1},
-        transition2: {...LightConfig.modes.transition2},
-        night: {...LightConfig.modes.night},
+        day: LightConfig.modes.day,
+        transition1: LightConfig.modes.transition1,
+        transition2: LightConfig.modes.transition2,
+        night: LightConfig.modes.night,
         current: {
             position: LightConfig.modes.day.mainLight.position,
             intensity: LightConfig.modes.day.mainLight.intensity,
@@ -112,208 +113,6 @@ export default function Lights() {
         shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
-    // État pour les lumières secondaires configurables via le debugger
-    const [secondaryLights, setSecondaryLights] = useState({
-        moonLight: {
-            enabled: true,
-            intensity: 2000,
-            color: "#8eabff",
-            position: [20, 40, 10]
-        },
-        secondaryLight: {
-            enabled: true,
-            intensity: 500,
-            color: "#4287f5",
-            position: [-30, 5, -20]
-        }
-    });
-
-    // Écouter les événements provenant du debugger pour mettre à jour les configurations
-    useEffect(() => {
-        // Drapeau pour éviter les mises à jour en cascade
-        let isProcessingUpdate = false;
-
-        const handleLightConfigUpdate = (config) => {
-            // Éviter les mises à jour en cascade
-            if (isProcessingUpdate) return;
-            isProcessingUpdate = true;
-
-            // Mettre à jour la référence aux paramètres d'éclairage
-            let modeChanged = false;
-
-            if (config.forcedNightMode !== undefined) {
-                // Si le mode est explicitement défini, le traiter en priorité
-                if (forcedNightMode !== config.forcedNightMode) {
-                    setForcedNightMode(config.forcedNightMode);
-                    modeChanged = true;
-                }
-            }
-
-            if (config.day) {
-                lightSettingsRef.current.day = config.day;
-            }
-
-            if (config.night) {
-                lightSettingsRef.current.night = config.night;
-            }
-
-            if (config.transition1) lightSettingsRef.current.transition1 = config.transition1;
-            if (config.transition2) lightSettingsRef.current.transition2 = config.transition2;
-            if (config.transitionThresholds) lightSettingsRef.current.transitionThresholds = config.transitionThresholds;
-
-            // Si le mode a changé, mettre à jour en fonction du nouveau mode
-            if (!modeChanged) {
-                if (forcedNightMode) {
-                    // En mode nuit forcé, mettre à jour directement avec les valeurs de nuit
-                    const nightConfig = lightSettingsRef.current.night;
-                    lightSettingsRef.current.current = {
-                        position: nightConfig.mainLight.position,
-                        intensity: nightConfig.mainLight.intensity,
-                        color: nightConfig.mainLight.color,
-                        ambientIntensity: nightConfig.ambientIntensity,
-                        ambientColor: nightConfig.ambientColor
-                    };
-
-                    // Mettre à jour l'état d'affichage actif
-                    setActiveMode('Night (Forced)');
-                    setActiveValues({
-                        positionX: nightConfig.mainLight.position[0],
-                        positionY: nightConfig.mainLight.position[1],
-                        positionZ: nightConfig.mainLight.position[2],
-                        intensity: nightConfig.mainLight.intensity,
-                        color: nightConfig.mainLight.color
-                    });
-                } else {
-                    // Forcer une mise à jour basée sur la position actuelle
-                    updateLightingBasedOnPosition(normalizedPosition);
-                }
-            }
-
-            // Marquer que les lumières doivent être mises à jour
-            lightSettingsRef.current.needsUpdate = true;
-
-            // Réinitialiser le drapeau après un court délai
-            setTimeout(() => {
-                isProcessingUpdate = false;
-            }, 50);
-        };
-
-        // Nouveaux gestionnaires pour les mises à jour d'ambiance spécifiques au mode
-        const handleDayAmbientUpdate = (data) => {
-            // Éviter les mises à jour en cascade
-            if (isProcessingUpdate) return;
-            isProcessingUpdate = true;
-
-            // Mettre à jour uniquement les paramètres d'ambiance du jour
-            const updatedDay = {...lightSettingsRef.current.day};
-            if (data.ambientIntensity !== undefined) {
-                updatedDay.ambientIntensity = data.ambientIntensity;
-            }
-            if (data.ambientColor !== undefined) {
-                updatedDay.ambientColor = data.ambientColor;
-            }
-            lightSettingsRef.current.day = updatedDay;
-
-            // Si nous sommes en mode jour ou si on force le mode jour, appliquer directement les changements
-            if (!forcedNightMode || data.forceDay) {
-                if (data.forceDay && forcedNightMode) {
-                    setForcedNightMode(false);
-                }
-
-                if (data.ambientIntensity !== undefined) {
-                    lightSettingsRef.current.current.ambientIntensity = data.ambientIntensity;
-                }
-                if (data.ambientColor !== undefined) {
-                    lightSettingsRef.current.current.ambientColor = data.ambientColor;
-                }
-                lightSettingsRef.current.needsUpdate = true;
-                // Forcer une mise à jour du composant
-                setActiveMode(prev => prev === 'Day' ? 'Day (Updated)' : 'Day');
-            }
-
-            // Réinitialiser le drapeau après un court délai
-            setTimeout(() => {
-                isProcessingUpdate = false;
-            }, 50);
-        };
-
-        const handleNightAmbientUpdate = (data) => {
-            // Éviter les mises à jour en cascade
-            if (isProcessingUpdate) return;
-            isProcessingUpdate = true;
-
-            // Mettre à jour uniquement les paramètres d'ambiance de la nuit
-            const updatedNight = {...lightSettingsRef.current.night};
-            if (data.ambientIntensity !== undefined) {
-                updatedNight.ambientIntensity = data.ambientIntensity;
-            }
-            if (data.ambientColor !== undefined) {
-                updatedNight.ambientColor = data.ambientColor;
-            }
-            lightSettingsRef.current.night = updatedNight;
-
-            // Si nous sommes en mode nuit ou si on force le mode nuit, appliquer directement les changements
-            if (forcedNightMode || data.forceNight) {
-                if (data.forceNight && !forcedNightMode) {
-                    setForcedNightMode(true);
-                }
-
-                if (data.ambientIntensity !== undefined) {
-                    lightSettingsRef.current.current.ambientIntensity = data.ambientIntensity;
-                }
-                if (data.ambientColor !== undefined) {
-                    lightSettingsRef.current.current.ambientColor = data.ambientColor;
-                }
-                lightSettingsRef.current.needsUpdate = true;
-                // Forcer une mise à jour du composant
-                setActiveMode(prev => prev === 'Night (Forced)' ? 'Night (Updated)' : 'Night (Forced)');
-            }
-
-            // Réinitialiser le drapeau après un court délai
-            setTimeout(() => {
-                isProcessingUpdate = false;
-            }, 50);
-        };
-
-        const handleForcedNightMode = (data) => {
-            setForcedNightMode(data.enabled);
-        };
-
-        // Gestion des lumières secondaires
-        const handleSecondaryLightUpdate = (data) => {
-            if (data.type === 'moon') {
-                setSecondaryLights(prev => ({
-                    ...prev,
-                    moonLight: {
-                        ...prev.moonLight,
-                        ...data.settings
-                    }
-                }));
-            } else if (data.type === 'secondary') {
-                setSecondaryLights(prev => ({
-                    ...prev,
-                    secondaryLight: {
-                        ...prev.secondaryLight,
-                        ...data.settings
-                    }
-                }));
-            }
-        };
-
-        // S'abonner aux événements
-        const subscriptions = [
-            EventBus.on('light-config-update', handleLightConfigUpdate),
-            EventBus.on('day-ambient-update', handleDayAmbientUpdate),
-            EventBus.on('night-ambient-update', handleNightAmbientUpdate),
-            EventBus.on('forced-night-mode', handleForcedNightMode),
-            EventBus.on('secondary-light-update', handleSecondaryLightUpdate)
-        ];
-
-        // Nettoyage
-        return () => {
-            subscriptions.forEach(unsubscribe => unsubscribe());
-        };
-    }, [normalizedPosition, forcedNightMode]);
 
     // Écouter l'événement de position normalisée de la timeline
     useEffect(() => {
@@ -334,7 +133,7 @@ export default function Lights() {
     useEffect(() => {
         if (forcedNightMode) {
             // Appliquer directement les valeurs du mode nuit
-            const nightConfig = lightSettingsRef.current.night;
+            const nightConfig = LightConfig.modes.night;
             lightSettingsRef.current.current = {
                 position: nightConfig.mainLight.position,
                 intensity: nightConfig.mainLight.intensity,
@@ -359,24 +158,17 @@ export default function Lights() {
 
         // Forcer une mise à jour des lumières
         lightSettingsRef.current.needsUpdate = true;
-
-        // Émission d'un événement pour mettre à jour le débugger
-        EventBus.trigger('light-external-config-update', {
-            forcedNightMode,
-            normalizedPosition
-        });
     }, [forcedNightMode]);
 
     // Fonction pour calculer le facteur de transition en fonction de la position normalisée
     // Cette fonction utilise une courbe plus naturelle avec plusieurs étapes
     const calculateTransitionFactor = (position) => {
-        // Utiliser les seuils de transition qui peuvent être mis à jour via le debugger
         const {
             startDayToTransition1,
             startTransition1ToTransition2,
             startTransition2ToNight,
             completeNight
-        } = lightSettingsRef.current.transitionThresholds || LightConfig.transitionThresholds;
+        } = LightConfig.transitionThresholds;
 
         if (position < startDayToTransition1) {
             // Jour complet (0)
@@ -435,32 +227,32 @@ export default function Lights() {
 
         if (factor <= 0) {
             // Jour complet
-            startMode = lightSettingsRef.current.day;
-            endMode = lightSettingsRef.current.day;
+            startMode = LightConfig.modes.day;
+            endMode = LightConfig.modes.day;
             localFactor = 0;
             setActiveMode('Day');
         } else if (factor < 0.33) {
             // Jour -> Transition1
-            startMode = lightSettingsRef.current.day;
-            endMode = lightSettingsRef.current.transition1;
+            startMode = LightConfig.modes.day;
+            endMode = LightConfig.modes.transition1;
             localFactor = factor / 0.33;
             setActiveMode('Day → Sunset');
         } else if (factor < 0.66) {
             // Transition1 -> Transition2
-            startMode = lightSettingsRef.current.transition1;
-            endMode = lightSettingsRef.current.transition2;
+            startMode = LightConfig.modes.transition1;
+            endMode = LightConfig.modes.transition2;
             localFactor = (factor - 0.33) / 0.33;
             setActiveMode('Sunset → Dusk');
         } else if (factor < 1) {
             // Transition2 -> Nuit
-            startMode = lightSettingsRef.current.transition2;
-            endMode = lightSettingsRef.current.night;
+            startMode = LightConfig.modes.transition2;
+            endMode = LightConfig.modes.night;
             localFactor = (factor - 0.66) / 0.34;
             setActiveMode('Dusk → Night');
         } else {
             // Nuit complète
-            startMode = lightSettingsRef.current.night;
-            endMode = lightSettingsRef.current.night;
+            startMode = LightConfig.modes.night;
+            endMode = LightConfig.modes.night;
             localFactor = 1;
             setActiveMode('Night');
         }
@@ -580,65 +372,263 @@ export default function Lights() {
         };
     }, []);
 
+    // Ajouter cet useEffect dans Lights.jsx pour écouter les événements GUI
+
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        console.log('Lights listening for GUI events');
+
+        const subscriptions = [
+            // Mode d'éclairage
+            EventBus.on('lights-mode-changed', (data) => {
+                console.log('Lights mode changed:', data.mode);
+                if (data.mode === 'auto') {
+                    setForcedNightMode(false);
+                    // Reprendre le mode automatique basé sur la position
+                    updateLightingBasedOnPosition(normalizedPosition);
+                } else if (data.mode === 'night') {
+                    setForcedNightMode(true);
+                } else if (data.mode === 'day') {
+                    setForcedNightMode(false);
+                    // Forcer le mode jour
+                    const dayConfig = LightConfig.modes.day;
+                    lightSettingsRef.current.current = {
+                        position: dayConfig.mainLight.position,
+                        intensity: dayConfig.mainLight.intensity,
+                        color: dayConfig.mainLight.color,
+                        ambientIntensity: dayConfig.ambientIntensity,
+                        ambientColor: dayConfig.ambientColor
+                    };
+                    setActiveMode('Day (Forced)');
+                    lightSettingsRef.current.needsUpdate = true;
+                }
+            }),
+
+            EventBus.on('lights-night-mode-forced', (data) => {
+                console.log('Night mode forced:', data.forced);
+                setForcedNightMode(data.forced);
+            }),
+
+            // Lumière principale - visibilité
+            EventBus.on('lights-main-visibility-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.visible = data.visible;
+                }
+            }),
+
+            // Lumière principale - position
+            EventBus.on('lights-main-position-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.position.set(...data.position);
+                    // Mettre à jour les paramètres de référence
+                    lightSettingsRef.current.current.position = data.position;
+                }
+            }),
+
+            // Lumière principale - intensité
+            EventBus.on('lights-main-intensity-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.intensity = data.intensity;
+                    lightSettingsRef.current.current.intensity = data.intensity;
+                    // Mettre à jour l'affichage
+                    setActiveValues(prev => ({ ...prev, intensity: data.intensity }));
+                }
+            }),
+
+            // Lumière principale - couleur
+            EventBus.on('lights-main-color-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.color.set(data.color);
+                    lightSettingsRef.current.current.color = data.color;
+                    // Mettre à jour l'affichage
+                    setActiveValues(prev => ({ ...prev, color: data.color }));
+                }
+            }),
+
+            // Lumière principale - ombres
+            EventBus.on('lights-main-shadow-changed', (data) => {
+                if (directionalLightRef.current) {
+                    directionalLightRef.current.castShadow = data.castShadow;
+                }
+            }),
+
+            // Lumière ambiante - visibilité
+            EventBus.on('lights-ambient-visibility-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.visible = data.visible;
+                }
+            }),
+
+            // Lumière ambiante - intensité
+            EventBus.on('lights-ambient-intensity-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.intensity = data.intensity;
+                    lightSettingsRef.current.current.ambientIntensity = data.intensity;
+                }
+            }),
+
+            // Lumière ambiante - couleur
+            EventBus.on('lights-ambient-color-changed', (data) => {
+                if (ambientLightRef.current) {
+                    ambientLightRef.current.color.set(data.color);
+                    lightSettingsRef.current.current.ambientColor = data.color;
+                }
+            }),
+
+            // Seuils de transition
+            EventBus.on('lights-threshold-changed', (data) => {
+                console.log('Threshold changed:', data.threshold, data.value);
+                LightConfig.transitionThresholds[data.threshold] = data.value;
+                // Recalculer l'éclairage avec les nouveaux seuils
+                updateLightingBasedOnPosition(normalizedPosition);
+            }),
+
+            // Paramètres d'ombre
+            EventBus.on('lights-shadow-mapsize-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.mapSize.width = data.mapSize;
+                    directionalLightRef.current.shadow.mapSize.height = data.mapSize;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowMapSize = data.mapSize;
+            }),
+
+            EventBus.on('lights-shadow-bias-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.bias = data.bias;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowBias = data.bias;
+            }),
+
+            EventBus.on('lights-shadow-normal-bias-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.normalBias = data.normalBias;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+                lightSettingsRef.current.shadowNormalBias = data.normalBias;
+            }),
+
+            EventBus.on('lights-shadow-radius-changed', (data) => {
+                if (directionalLightRef.current && directionalLightRef.current.shadow) {
+                    directionalLightRef.current.shadow.radius = data.radius;
+                    directionalLightRef.current.shadow.needsUpdate = true;
+                }
+            }),
+
+            // Presets
+            EventBus.on('lights-preset-applied', (data) => {
+                console.log('Applying preset:', data.preset);
+
+                if (data.preset === 'day') {
+                    const dayConfig = LightConfig.modes.day;
+                    lightSettingsRef.current.current = {
+                        position: dayConfig.mainLight.position,
+                        intensity: dayConfig.mainLight.intensity,
+                        color: dayConfig.mainLight.color,
+                        ambientIntensity: dayConfig.ambientIntensity,
+                        ambientColor: dayConfig.ambientColor
+                    };
+                    setActiveMode('Day (Preset)');
+                    setForcedNightMode(false);
+                } else if (data.preset === 'night') {
+                    const nightConfig = LightConfig.modes.night;
+                    lightSettingsRef.current.current = {
+                        position: nightConfig.mainLight.position,
+                        intensity: nightConfig.mainLight.intensity,
+                        color: nightConfig.mainLight.color,
+                        ambientIntensity: nightConfig.ambientIntensity,
+                        ambientColor: nightConfig.ambientColor
+                    };
+                    setActiveMode('Night (Preset)');
+                    setForcedNightMode(true);
+                }
+
+                lightSettingsRef.current.needsUpdate = true;
+            })
+        ];
+
+        return () => {
+            subscriptions.forEach(unsub => {
+                if (typeof unsub === 'function') {
+                    unsub();
+                }
+            });
+        };
+    }, [debug, normalizedPosition, updateLightingBasedOnPosition]);
+
+// Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        // Envoyer les valeurs actuelles au GUI toutes les 100ms
+        const interval = setInterval(() => {
+            EventBus.trigger('lights-values-updated', {
+                currentMode: activeMode,
+                normalizedPosition: normalizedPosition,
+                transitionFactor: transitionFactor,
+                mainLightIntensity: smoothedLightRef.current.intensity,
+                ambientIntensity: smoothedLightRef.current.ambientIntensity,
+                mainLightColor: smoothedLightRef.current.color,
+                ambientColor: smoothedLightRef.current.ambientColor,
+                position: smoothedLightRef.current.position
+            });
+        }, 100);
+
+        return () => clearInterval(interval);
+    }, [debug, activeMode, normalizedPosition, transitionFactor]);
+
+// Ajouter des logs de diagnostic
+    useEffect(() => {
+        if (!debug?.active) return;
+
+        console.log('=== LIGHTS DEBUG DIAGNOSTICS ===');
+        console.log('Current mode:', activeMode);
+        console.log('Normalized position:', normalizedPosition);
+        console.log('Transition factor:', transitionFactor);
+        console.log('Forced night mode:', forcedNightMode);
+        console.log('Active values:', activeValues);
+        console.log('Light settings:', lightSettingsRef.current);
+    }, [debug, activeMode, normalizedPosition, transitionFactor, forcedNightMode, activeValues]);
+
     return (
         <>
-            {/* MODE JOUR - Visible uniquement quand nous ne sommes pas en mode nuit */}
-            {!forcedNightMode && (
+            {/* Lumière ambiante */}
+            <ambientLight
+                ref={ambientLightRef}
+                intensity={smoothedLightRef.current.ambientIntensity}
+                color={smoothedLightRef.current.ambientColor}
+            />
+            {/* Lumière principale (point light) */}
+            <pointLight
+                ref={directionalLightRef}
+                position={smoothedLightRef.current.position}
+                intensity={smoothedLightRef.current.intensity}
+                color={smoothedLightRef.current.color}
+                castShadow
+                shadow-mapSize-width={2048}
+                shadow-mapSize-height={2048}
+                shadow-bias={-0.0005}
+            />
+
+            {/* Ajout de lumières secondaires pour enrichir l'ambiance */}
+            {transitionFactor > 0.5 && (
                 <>
-                    {/* Lumière ambiante jour - valeurs exactes */}
-                    <ambientLight
-                        ref={ambientLightRef}
-                        intensity={lightSettingsRef.current.current.ambientIntensity}
-                        color={lightSettingsRef.current.current.ambientColor}
-                    />
-                    {/* Lumière principale jour */}
+                    {/* Lumière lunaire bleue */}
                     <pointLight
-                        ref={directionalLightRef}
-                        position={smoothedLightRef.current.position}
-                        intensity={smoothedLightRef.current.intensity}
-                        color={smoothedLightRef.current.color}
-                        castShadow
-                        shadow-mapSize-width={2048}
-                        shadow-mapSize-height={2048}
-                        shadow-bias={-0.0005}
-                    />
-                </>
-            )}
-
-            {/* MODE NUIT - Visible uniquement en mode nuit */}
-            {forcedNightMode && (
-                <>
-                    {/* Lumière ambiante nuit - valeurs exactes */}
-                    <ambientLight
-                        intensity={lightSettingsRef.current.current.ambientIntensity}
-                        color={lightSettingsRef.current.current.ambientColor}
-                    />
-                    {/* Lumière principale nuit */}
-                    <pointLight
-                        position={lightSettingsRef.current.current.position}
-                        intensity={lightSettingsRef.current.current.intensity}
-                        color={lightSettingsRef.current.current.color}
-                        castShadow
-                        shadow-mapSize-width={2048}
-                        shadow-mapSize-height={2048}
-                        shadow-bias={-0.0005}
+                        position={[20, 40, 10]}
+                        intensity={2000 * Math.max(0, transitionFactor - 0.5) * 2}
+                        color="#8eabff"
+                        distance={100}
                     />
 
-                    {/* Lumières secondaires spécifiques au mode nuit */}
-                    {secondaryLights.moonLight.enabled && (
+                    {/* Lumières secondaires pour les effets nocturnes */}
+                    {transitionFactor > 0.8 && (
                         <pointLight
-                            position={secondaryLights.moonLight.position}
-                            intensity={secondaryLights.moonLight.intensity}
-                            color={secondaryLights.moonLight.color}
-                            distance={100}
-                        />
-                    )}
-
-                    {secondaryLights.secondaryLight.enabled && (
-                        <pointLight
-                            position={secondaryLights.secondaryLight.position}
-                            intensity={secondaryLights.secondaryLight.intensity}
-                            color={secondaryLights.secondaryLight.color}
+                            position={[-30, 5, -20]}
+                            intensity={500}
+                            color="#4287f5"
                             distance={40}
                         />
                     )}

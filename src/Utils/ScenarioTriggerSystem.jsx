@@ -59,15 +59,15 @@ const SCENARIO_CONFIG = {
 
     // Scène 05 - Saut au-dessus de la rivière
     'Scene05_SautAu-DessusDeLaRiviere': {
-        markerId: 'JumpRock1',
-        objectKey: 'JumpRock1',
+        markerId: 'JumpRock4',
+        objectKey: 'JumpRock4',
         triggerType: 'interaction:detected',
         narrationId: 'Scene05_SautAu-DessusDeLaRiviere',
         // Séquence de sauts successifs
         nextInteractions: [
+            { markerId: 'JumpRock1', requiredStep: 'eleventhStop' },
             { markerId: 'JumpRock2', requiredStep: 'twelfthStop' },
-            { markerId: 'JumpRock3', requiredStep: 'thirteenthStop' },
-            { markerId: 'JumpRock4', requiredStep: 'fourteenthStop' }
+            { markerId: 'JumpRock4', requiredStep: 'thirteenthStop' }
         ],
         postInteractionAnimation: {
             name: 'river-jump',

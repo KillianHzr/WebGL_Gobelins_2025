@@ -68,10 +68,10 @@
                     align-items: center;
                     color: #F9FEFF;
                     text-align: center;
-                    font-family: 'Albert Sans', serif;
+                    font-family: 'Articulat CF', serif;
                     font-size: 12px;
                     font-style: normal;
-                    font-weight: 600;
+                    font-weight: 700;
                     line-height: normal;
                     transition: text-shadow 0.3s ease;
                 }
@@ -212,17 +212,37 @@
                 transform: translateX(-50%);
             }
 
-            // Nouvel indicateur de zoom
+            // Nouvel indicateur de zoom avec fond arrondi
             &-indicator {
                 position: absolute;
                 top: 50%; // Position initiale au centre
                 left: 50%;
-                width: 27px;
-                height: 2px;
-                background: white;
-                transform: translateX(-50%);
-                border-radius: 100px;
-                transition: top 0.2s ease;
+                width: 45px;
+                height: 20px;
+                transform: translate(-50%, -50%);
+                border-radius: 999px;
+                border: 1.5px solid #F9FEFF;
+                background: rgba(249, 254, 255, 0.50);
+                backdrop-filter: blur(2px);
+                transition: top 0.2s ease, box-shadow 0.3s ease, background 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 15;
+
+
+                &:hover, &.dragging {
+                    box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.50);
+                    background: rgba(249, 254, 255, 0.70);
+                }
+
+                &-bar {
+                    width: 30px;
+                    height: 8px;
+                    background: white;
+                    border-radius: 100px;
+                    pointer-events: none;
+                }
             }
 
             &-plus {

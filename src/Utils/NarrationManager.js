@@ -43,8 +43,8 @@ class NarrationManager {
             transform: translateX(-50%);
             color: #F9FFFB;
             font-size: 16px;
-            font-family: Roboto, sans-serif;
-            font-weight: 600;
+            font-family: "Articulat CF";
+            font-weight: 700;
             font-style: italic;
             text-align: center;
             z-index: 12000;
@@ -348,6 +348,7 @@ class NarrationManager {
             { id: 'Scene06_PassageEn-DessousDeLaBranche', label: 'Passage en-dessous de la branche (Scène 6)' },
             { id: 'Scene07_RemplissageDeLaGourde', label: 'Remplissage de la gourde (Scène 7)' },
             { id: 'Scene08_DecouverteDuVisonMort', label: 'Découverte du vison mort (Scène 8)' },
+            { id: 'Scene08_DecouverteDuVisonMort_Success', label: 'Succès - Découverte du vison mort (Scène 8)'},
             { id: 'Scene09_ClairiereDigitalisee', label: 'Clairière digitalisée (Scène 9)' },
             { id: 'SceneGenerique', label: 'Générique de fin' },
             { id: 'Scene99_Message1', label: 'Message 1 (Conclusion)' },

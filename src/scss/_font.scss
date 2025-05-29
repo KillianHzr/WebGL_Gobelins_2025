@@ -1,161 +1,159 @@
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-SemiBoldItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-SemiBoldItalic.woff') format('woff');
-    font-weight: 600;
-    font-style: italic;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-BoldItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-BoldItalic.woff') format('woff');
-    font-weight: bold;
-    font-style: italic;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Regular.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Regular.woff') format('woff');
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Normal.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-ThinItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-ThinItalic.woff') format('woff');
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Normal Oblique.ttf") format("truetype");
+    font-weight: normal;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Thin.ttf") format("truetype");
     font-weight: 100;
-    font-style: italic;
+    font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-MediumItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-MediumItalic.woff') format('woff');
-    font-weight: 500;
-    font-style: italic;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Thin Oblique.ttf") format("truetype");
+    font-weight: 100;
+    font-style: oblique;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-BlackItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-BlackItalic.woff') format('woff');
-    font-weight: 900;
-    font-style: italic;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Extra Light.ttf") format("truetype");
+    font-weight: 200;
+    font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Medium.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Medium.woff') format('woff');
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Extra Light Oblique.ttf") format("truetype");
+    font-weight: 200;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Light.ttf") format("truetype");
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Light Oblique.ttf") format("truetype");
+    font-weight: 300;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Light.ttf") format("truetype");
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Light Oblique.ttf") format("truetype");
+    font-weight: 300;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Regular.ttf") format("truetype");
     font-weight: 500;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Italic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Italic.woff') format('woff');
-    font-weight: normal;
-    font-style: italic;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Regular Oblique.ttf") format("truetype");
+    font-weight: 500;
+    font-style: oblique;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-SemiBold.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-SemiBold.woff') format('woff');
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Medium.ttf") format("truetype");
     font-weight: 600;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Bold.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Bold.woff') format('woff');
-    font-weight: bold;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Medium Oblique.ttf") format("truetype");
+    font-weight: 600;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Demi Bold.ttf") format("truetype");
+    font-weight: 700;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-ExtraBold.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-ExtraBold.woff') format('woff');
-    font-weight: bold;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Demi Bold Oblique.ttf") format("truetype");
+    font-weight: 700;
+    font-style: oblique;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Bold.ttf") format("truetype");
+    font-weight: 800;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-ExtraLightItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-ExtraLightItalic.woff') format('woff');
-    font-weight: 200;
-    font-style: italic;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Bold Oblique.ttf") format("truetype");
+    font-weight: 800;
+    font-style: oblique;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Black.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Black.woff') format('woff');
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Heavy.ttf") format("truetype");
     font-weight: 900;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Light.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Light.woff') format('woff');
-    font-weight: 300;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-ExtraLight.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-ExtraLight.woff') format('woff');
-    font-weight: 200;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-ExtraBoldItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-ExtraBoldItalic.woff') format('woff');
-    font-weight: bold;
-    font-style: italic;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-LightItalic.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-LightItalic.woff') format('woff');
-    font-weight: 300;
-    font-style: italic;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Albert Sans', serif;
-    src: url('/font/AlbertSans/AlbertSans-Thin.woff2') format('woff2'),
-    url('/font/AlbertSans/AlbertSans-Thin.woff') format('woff');
-    font-weight: 100;
-    font-style: normal;
+    font-family: "Articulat CF";
+    src: url("/font/ArticulatCF/Articulat CF Heavy Oblique.ttf") format("truetype");
+    font-weight: 900;
+    font-style: oblique;
     font-display: swap;
 }

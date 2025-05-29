@@ -65,9 +65,6 @@ export const ModelMarker = React.memo(function ModelMarker({
             (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
                 (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
-            // // Condition modifiée : montrer le marqueur quand le stop est activé (même sans hover)
-            // (interaction?.waitingForInteraction && interaction.currentStep === requiredStep && isHovered) ||
-
             // Condition standard pour les autres types (basée sur le hover)
             ((isHovered || isMarkerHovered) &&
                 showMarkerOnHover &&
@@ -1256,20 +1253,7 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                     className="marker-button disable center-screen"
                     position={[0, 0, 0.002]}
                     center
-                    // Utiliser fullscreen=true pour positionner relativement à l'écran entier
-                    fullscreen={true}
-                    // Enlever le comportement "distanceFactor" pour que la taille ne change pas avec la distance
-                    distanceFactor={10}
-                    // Assurer que le marqueur est au-dessus des autres éléments
                     zIndexRange={[9999, 10000]}
-                    // Style pour centrer dans l'écran
-                    style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        pointerEvents: 'auto'
-                    }}
                 >
                     <div
                         className={`marker-button-inner ${buttonHovered ? 'marker-button-inner-hovered' : ''}`}

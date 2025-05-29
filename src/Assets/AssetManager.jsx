@@ -104,7 +104,7 @@ const AssetManager = React.forwardRef((props, ref) => {
         // Vérification de base
         if (!itemsRef.current || !itemsRef.current[name]) {
             if (DEBUG_ASSET_MANAGER) {
-                console.warn(`Asset not found: ${name}`);
+                // console.warn(`Asset not found: ${name}`);
             }
             return null;
         }
@@ -400,7 +400,7 @@ const AssetManager = React.forwardRef((props, ref) => {
 
             // Callback d'erreur
             (url) => {
-                console.error(`AssetManager: Error loading asset from URL: ${url}`);
+                // console.error(`AssetManager: Error loading asset from URL: ${url}`);
             }
         );
     };
@@ -467,7 +467,7 @@ const AssetManager = React.forwardRef((props, ref) => {
                             };
                             loadComplete(asset, clonedModel);
                         } catch (error) {
-                            console.warn(`Error cloning GLTF model ${asset.name}:`, error);
+                            // console.warn(`Error cloning GLTF model ${asset.name}:`, error);
                             // Continuer avec le chargement normal
                         }
                     } else {
@@ -483,12 +483,12 @@ const AssetManager = React.forwardRef((props, ref) => {
 
             // Gérer les erreurs de manière plus robuste pour chaque type d'asset
             const handleLoadError = (error) => {
-                console.error(`AssetManager: Error loading ${asset.type} ${asset.name} from ${asset.path}:`, error);
+                // console.error(`AssetManager: Error loading ${asset.type} ${asset.name} from ${asset.path}:`, error);
 
                 // Tenter de récupérer un asset déjà chargé du même type comme fallback
                 const fallbackAsset = findFallbackAsset(asset.type);
                 if (fallbackAsset) {
-                    console.warn(`AssetManager: Using fallback for ${asset.name}`);
+                    // console.warn(`AssetManager: Using fallback for ${asset.name}`);
                     loadComplete(asset, fallbackAsset);
                 }
             };

@@ -170,7 +170,8 @@ export default function ScannerInterface() {
 
         if (interaction?.completeInteraction) {
             interaction.completeInteraction();
-            window.doJumpToChapter(0.01)
+            window.doJumpToChapter(1.2)
+
 
         }
     };
@@ -270,7 +271,7 @@ export default function ScannerInterface() {
                                 onTouchEnd={handleScanButtonUp}
                             >
                                 <div className="scanner-interface-scan-button-inner-text">
-                                    Scan
+                                    Maintiens
                                 </div>
                                 <div
                                     className="scanner-interface-scan-button-inner-progress"

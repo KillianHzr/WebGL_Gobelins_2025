@@ -6,21 +6,15 @@ import sceneObjectManager from '../Config/SceneObjectManager';
 import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
-import * as THREE from 'three';
-import {FrontSide, LoopOnce} from 'three';
-import {useAnimationFrame} from "../Utils/AnimationManager.js";
+import {FrontSide, LoopOnce, LoopRepeat} from 'three';
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = false;
 
-
-/**
- * Composant pour afficher un objet statique individuel avec textures
- * Version optimisée pour éviter les problèmes de performance
- */
 /**
  * Composant pour afficher un objet statique individuel avec textures
  * Version optimisée pour éviter les problèmes de performance et améliorer les ombres
+ * NOUVEAU: Avec support complet du contrôle d'animations externes
  */
 export const StaticObject = React.memo(function StaticObject({
                                                                  path,
@@ -38,13 +32,19 @@ export const StaticObject = React.memo(function StaticObject({
                                                                  animationLoop = true,
                                                                  animationClamp = false,
                                                                  animationTimeScale = 1.0,
-                                                                 onAnimationComplete = null
+                                                                 onAnimationComplete = null,
+                                                                 placementIndex = null, // NOUVEAU: pour identification
+                                                                 animationId = null     // NOUVEAU: pour identification
                                                              }) {
     const objectRef = useRef();
     const isComponentMounted = useRef(true);
     const animationRef = useRef(null);
     const currentAnimationRef = useRef(null);
     const isGroundObjectRef = useRef(false);
+
+    // État pour déclencher des re-renders lors de mises à jour d'animation externes
+    const [animationTrigger, setAnimationTrigger] = useState(0);
+    const [externalAnimationProps, setExternalAnimationProps] = useState(null);
 
     // Utiliser useMemo pour éviter de recharger le modèle à chaque re-render
     const {scene: modelScene, animations} = useGLTF(path);
@@ -68,10 +68,8 @@ export const StaticObject = React.memo(function StaticObject({
 
                     // Améliorer le matériau pour mieux recevoir les ombres
                     if (child.material) {
-                        child.material.roughness = 0.8; // Plus rugueux pour mieux montrer les ombres
-                        child.material.metalness = 0.2; // Légèrement métallique
-
-                        // S'assurer que le matériau est configuré pour les ombres
+                        child.material.roughness = 0.8;
+                        child.material.metalness = 0.2;
                         child.material.shadowSide = FrontSide;
                         child.material.needsUpdate = true;
                     }
@@ -80,14 +78,23 @@ export const StaticObject = React.memo(function StaticObject({
                     child.castShadow = castShadow;
                     child.receiveShadow = receiveShadow;
 
-                    // Améliorer les paramètres du matériau pour de meilleures ombres
                     if (child.material) {
-                        // Assurez-vous que tous les matériaux sont configurés pour les ombres
                         child.material.needsUpdate = true;
                     }
                 }
             }
         });
+        if (useTextures && textureModelId && textureManager) {
+            // console.log(`🎨 Application des textures pour ${textureModelId}`);
+
+            // Application asynchrone des textures
+            textureManager.applyTexturesToModel(textureModelId, clonedModel, {
+                preserveSpecialMaterials: true,
+                optimizeGeometry: true
+            }).catch(error => {
+                // console.warn(`Erreur lors de l'application des textures pour ${textureModelId}:`, error);
+            });
+        }
 
         return clonedModel;
     }, [modelScene, path, textureModelId, castShadow, receiveShadow]);
@@ -104,34 +111,223 @@ export const StaticObject = React.memo(function StaticObject({
         timeScale: animationTimeScale
     });
 
-    // Mettre à jour l'animation lorsque les props changent
+
     useEffect(() => {
-        if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) return;
+        console.log(`👂 StaticObject [${textureModelId}] - Configuration écouteur animation`);
+        console.log(`🏷️ Identifiants disponibles:`, {
+            textureModelId,
+            placementIndex,
+            animationId,
+            path: path.split('/').pop()
+        });
+
+        const handleAnimationControlUpdate = (data) => {
+            console.log(`📨 StaticObject [${textureModelId}] reçoit événement:`, {
+                eventIdentifier: data.identifier,
+                eventObjectKey: data.objectKey,
+                eventPlacementIndex: data.placementIndex,
+                myTextureModelId: textureModelId,
+                myPlacementIndex: placementIndex,
+                myAnimationId: animationId
+            });
+
+            // Test de correspondance détaillé
+            const matches = {
+                byTextureModelId: data.identifier === textureModelId || data.objectKey === textureModelId,
+                byPlacementIndex: placementIndex !== null && data.placementIndex === placementIndex,
+                byAnimationId: animationId && data.animationId === animationId,
+                byPlacement: data.placement && (
+                    data.placement.objectKey === textureModelId ||
+                    data.placement.animationId === animationId
+                )
+            };
+
+            console.log(`🔍 Tests de correspondance:`, matches);
+
+            const matchesIdentifier = Object.values(matches).some(match => match);
+
+            if (matchesIdentifier && data.placement && data.placement.animation) {
+                console.log(`✅ [${textureModelId}] Animation externe acceptée:`, data.placement.animation);
+
+                // Stocker les nouvelles propriétés d'animation
+                setExternalAnimationProps(data.placement.animation);
+
+                // Déclencher un re-render
+                setAnimationTrigger(prev => {
+                    console.log(`🔄 [${textureModelId}] Trigger animation: ${prev} -> ${prev + 1}`);
+                    return prev + 1;
+                });
+            } else {
+                console.log(`❌ [${textureModelId}] Événement ignoré - pas de correspondance ou pas de données animation`);
+            }
+        };
+
+        const cleanup = EventBus.on('animation-control-update', handleAnimationControlUpdate);
+        return cleanup;
+    }, [textureModelId, placementIndex, animationId, path]);
+    window.debugVisonAnimation = () => {
+        console.log("=== DEBUG ANIMATION VISON ===");
+
+        // Vérifier les placements
+        const visonPlacements = sceneObjectManager.getPlacements({objectKey: 'Vison'});
+        console.log("1. Placements Vison:", visonPlacements);
+
+        // Vérifier la configuration
+        const visonConfig = sceneObjectManager.getObjectFromCatalog('Vison');
+        console.log("2. Config Vison:", visonConfig);
+
+        // Tester l'identification
+        const foundPlacements = sceneObjectManager.findPlacementsByIdentifier('Vison');
+        console.log("3. Placements trouvés par identifier:", foundPlacements);
+
+        // Tester l'événement directement
+        console.log("4. Test événement direct...");
+        EventBus.trigger('animation-control-update', {
+            identifier: 'Vison',
+            objectKey: 'Vison',
+            action: 'play',
+            animationName: 'animation_0',
+            placement: {
+                objectKey: 'Vison',
+                animation: {
+                    play: true,
+                    name: 'animation_0',
+                    loop: true,
+                    timeScale: 1.0
+                }
+            },
+            placementIndex: 7
+        });
+
+        console.log("=== FIN DEBUG ===");
+    };
+
+    // console.log("🛠️ Debug tools installés - utilisez window.debugVisonAnimation() pour tester");
+
+    // MODIFIÉ: Écouteur pour les mises à jour d'animation externes avec meilleure identification
+    useEffect(() => {
+        const handleAnimationControlUpdate = (data) => {
+            console.log(`StaticObject reçoit événement animation:`, {
+                dataIdentifier: data.identifier,
+                dataObjectKey: data.objectKey,
+                dataPlacementIndex: data.placementIndex,
+                textureModelId,
+                placementIndex,
+                animationId,
+                path
+            });
+
+            // AMÉLIORÉ: Plusieurs méthodes d'identification
+            const matchesIdentifier =
+                // Par textureModelId
+                data.identifier === textureModelId ||
+                data.objectKey === textureModelId ||
+                // Par placementIndex (plus fiable pour objets statiques)
+                (placementIndex !== null && data.placementIndex === placementIndex) ||
+                // Par animationId
+                (animationId && data.animationId === animationId) ||
+                // Par placement
+                (data.placement && (
+                    data.placement.markerId === textureModelId ||
+                    data.placement.objectKey === textureModelId ||
+                    data.placement.animationId === animationId
+                ));
+
+            if (matchesIdentifier && data.placement && data.placement.animation) {
+                console.log(`✅ Animation externe acceptée pour ${textureModelId || path}:`, data.placement.animation);
+
+                // Stocker les nouvelles propriétés d'animation
+                setExternalAnimationProps(data.placement.animation);
+
+                // Déclencher un re-render
+                setAnimationTrigger(prev => prev + 1);
+            } else if (matchesIdentifier) {
+                console.log(`⚠️ Événement d'animation reçu mais pas de données d'animation pour ${textureModelId}`);
+            }
+        };
+
+        const cleanup = EventBus.on('animation-control-update', handleAnimationControlUpdate);
+
+        return cleanup;
+    }, [textureModelId, placementIndex, animationId, path]);
+
+    // Fonction pour déterminer les propriétés d'animation effectives
+    const getEffectiveAnimationProps = () => {
+        // Les propriétés externes ont la priorité sur les props du composant
+        if (externalAnimationProps) {
+            console.log(`🎬 Utilisation animation externe:`, externalAnimationProps);
+            return {
+                playAnimation: externalAnimationProps.play,
+                animationName: externalAnimationProps.name,
+                animationLoop: externalAnimationProps.loop,
+                animationClamp: externalAnimationProps.clamp,
+                animationTimeScale: externalAnimationProps.timeScale,
+                onAnimationComplete: externalAnimationProps.onComplete || onAnimationComplete
+            };
+        }
+
+        // Utiliser les props normales du composant
+        return {
+            playAnimation,
+            animationName,
+            animationLoop,
+            animationClamp,
+            animationTimeScale,
+            onAnimationComplete
+        };
+    };
+
+    // Mettre à jour l'animation lorsque les props changent ou lors de mises à jour externes
+    useEffect(() => {
+        if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) {
+            console.log(`❌ Animation impossible - Composants manquants:`, {
+                objectRef: !!objectRef.current,
+                mixer: !!mixer,
+                actions: !!actions,
+                actionsCount: actions ? Object.keys(actions).length : 0,
+                textureModelId
+            });
+            return;
+        }
+
+        // Obtenir les propriétés d'animation effectives
+        const effectiveProps = getEffectiveAnimationProps();
+
+        console.log(`🎯 Props d'animation effectives pour ${textureModelId}:`, effectiveProps);
 
         // Si aucune animation n'est spécifiée mais qu'il y en a disponibles, utiliser la première
-        if (Object.keys(actions).length > 0 && !animationName) {
+        if (Object.keys(actions).length > 0 && !effectiveProps.animationName && effectiveProps.playAnimation) {
             const firstAnimName = Object.keys(actions)[0];
+            console.log(`🎬 Démarrage animation par défaut: ${firstAnimName}`);
             const action = actions[firstAnimName];
             action.reset().play();
             currentAnimationRef.current = action;
+            animationState.current.isPlaying = true;
+            animationState.current.currentName = firstAnimName;
             return;
         }
+
         // Si l'animation doit être jouée
-        if (playAnimation && animationName) {
+        if (effectiveProps.playAnimation && effectiveProps.animationName) {
+            console.log(`🎬 Tentative de lecture animation "${effectiveProps.animationName}" sur ${textureModelId}`);
+
             // Si c'est une nouvelle animation ou si l'animation était arrêtée
-            if (animationName !== animationState.current.currentName || !animationState.current.isPlaying) {
+            if (effectiveProps.animationName !== animationState.current.currentName || !animationState.current.isPlaying) {
                 // Arrêter l'animation en cours si elle existe
                 if (currentAnimationRef.current) {
+                    console.log(`🛑 Arrêt animation précédente`);
                     currentAnimationRef.current.stop();
                 }
 
-                const action = actions[animationName];
+                const action = actions[effectiveProps.animationName];
                 if (action) {
+                    console.log(`✅ Action trouvée, configuration et démarrage...`);
+
                     // Configurer l'animation
                     action.reset();
-                    action.clampWhenFinished = animationClamp;
-                    action.timeScale = animationTimeScale;
-                    action.setLoop(animationLoop ? LoopRepeat : LoopOnce);
+                    action.clampWhenFinished = effectiveProps.animationClamp;
+                    action.timeScale = effectiveProps.animationTimeScale;
+                    action.setLoop(effectiveProps.animationLoop ? LoopRepeat : LoopOnce);
 
                     // Démarrer l'animation
                     action.play();
@@ -140,16 +336,16 @@ export const StaticObject = React.memo(function StaticObject({
                     currentAnimationRef.current = action;
                     animationState.current = {
                         isPlaying: true,
-                        currentName: animationName,
-                        loop: animationLoop,
-                        clamp: animationClamp,
-                        timeScale: animationTimeScale
+                        currentName: effectiveProps.animationName,
+                        loop: effectiveProps.animationLoop,
+                        clamp: effectiveProps.animationClamp,
+                        timeScale: effectiveProps.animationTimeScale
                     };
 
-                    // debugLog(`Animation "${animationName}" démarrée sur ${textureModelId || path}`);
+                    console.log(`🎉 Animation "${effectiveProps.animationName}" démarrée avec succès sur ${textureModelId || path}`);
 
                     // Gérer la fin d'animation si elle n'est pas en boucle
-                    if (!animationLoop && onAnimationComplete && mixer) {
+                    if (!effectiveProps.animationLoop && effectiveProps.onAnimationComplete && mixer) {
                         // Nettoyer d'abord tout écouteur existant
                         if (animationRef.current) {
                             mixer.removeEventListener('finished', animationRef.current);
@@ -158,9 +354,18 @@ export const StaticObject = React.memo(function StaticObject({
                         // Créer une nouvelle fonction de rappel pour cet événement spécifique
                         const finishCallback = (e) => {
                             if (isComponentMounted.current && e.action === action) {
-                                // debugLog(`Animation "${animationName}" terminée`);
+                                console.log(`🏁 Animation "${effectiveProps.animationName}" terminée`);
                                 animationState.current.isPlaying = false;
-                                onAnimationComplete(animationName);
+
+                                // Réinitialiser les propriétés d'animation externes si elles existent
+                                if (externalAnimationProps) {
+                                    setExternalAnimationProps(prev => ({
+                                        ...prev,
+                                        play: false
+                                    }));
+                                }
+
+                                effectiveProps.onAnimationComplete(effectiveProps.animationName);
                             }
                         };
 
@@ -171,134 +376,480 @@ export const StaticObject = React.memo(function StaticObject({
                         mixer.addEventListener('finished', finishCallback);
                     }
                 } else {
-                    console.warn(`Animation "${animationName}" non trouvée dans le modèle ${textureModelId || path}`);
+                    console.warn(`❌ Animation "${effectiveProps.animationName}" non trouvée dans le modèle ${textureModelId || path}. Animations disponibles:`, Object.keys(actions));
                 }
             } else if (currentAnimationRef.current) {
                 // Mettre à jour les paramètres de l'animation en cours si nécessaire
-                if (animationState.current.loop !== animationLoop) {
-                    currentAnimationRef.current.setLoop(animationLoop ? THREE.LoopRepeat : THREE.LoopOnce);
-                    animationState.current.loop = animationLoop;
+                if (animationState.current.loop !== effectiveProps.animationLoop) {
+                    currentAnimationRef.current.setLoop(effectiveProps.animationLoop ? LoopRepeat : LoopOnce);
+                    animationState.current.loop = effectiveProps.animationLoop;
                 }
 
-                if (animationState.current.timeScale !== animationTimeScale) {
-                    currentAnimationRef.current.timeScale = animationTimeScale;
-                    animationState.current.timeScale = animationTimeScale;
+                if (animationState.current.timeScale !== effectiveProps.animationTimeScale) {
+                    currentAnimationRef.current.timeScale = effectiveProps.animationTimeScale;
+                    animationState.current.timeScale = effectiveProps.animationTimeScale;
                 }
 
-                if (animationState.current.clamp !== animationClamp) {
-                    currentAnimationRef.current.clampWhenFinished = animationClamp;
-                    animationState.current.clamp = animationClamp;
+                if (animationState.current.clamp !== effectiveProps.animationClamp) {
+                    currentAnimationRef.current.clampWhenFinished = effectiveProps.animationClamp;
+                    animationState.current.clamp = effectiveProps.animationClamp;
                 }
             }
-        } else if (!playAnimation && animationState.current.isPlaying && currentAnimationRef.current) {
+        } else if (!effectiveProps.playAnimation && animationState.current.isPlaying && currentAnimationRef.current) {
             // Arrêter l'animation si playAnimation est passé à false
+            console.log(`🛑 Arrêt animation "${animationState.current.currentName}" sur ${textureModelId || path}`);
             currentAnimationRef.current.stop();
             animationState.current.isPlaying = false;
-            // debugLog(`Animation "${animationState.current.currentName}" arrêtée sur ${textureModelId || path}`);
         }
-    }, [playAnimation, animationName, animationLoop, animationClamp, animationTimeScale, actions, mixer, path, textureModelId, onAnimationComplete]);
-
-    // Mettre à jour le mixer d'animation à chaque frame si des animations sont en cours
-    useAnimationFrame((state, delta) => {
-        if (mixer && animationState.current.isPlaying) {
-            mixer.update(delta);
-        }
-    }, 'animation');
+    }, [
+        playAnimation, animationName, animationLoop, animationClamp, animationTimeScale,
+        actions, mixer, path, textureModelId, onAnimationComplete,
+        animationTrigger, externalAnimationProps // Dépendances pour les animations externes
+    ]);
 
     useEffect(() => {
-        if (animations && animations.length > 0 && DEBUG_SCENE_OBJECTS) {
-            if (playAnimation && animationName) {
+        if (textureModelId === 'Vison' || path.includes('Vison')) {
+            console.log(`🦡 Composant Vison prêt`);
+
+            // Exposer une fonction unifiée pour démarrer l'animation depuis l'extérieur
+            const startVisonAnimation = (objectKey, animationName, options = {}) => {
+                if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) {
+                    console.log(`❌ Objet ${objectKey} pas prêt pour animation`);
+                    return false;
+                }
+
+                console.log(`🎬 Démarrage animation ${animationName} pour ${objectKey}`);
+
+                // Récupérer la configuration de l'objet depuis le SceneObjectManager
+                const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+
+                if (!objectConfig) {
+                    console.warn(`❌ Configuration pour ${objectKey} non trouvée`);
+                    return false;
+                }
+
+                console.log(`📋 Animations disponibles dans la config:`,
+                    objectConfig.animations ? Object.keys(objectConfig.animations) : 'Aucune');
+                console.log(`📋 Actions disponibles:`, Object.keys(actions));
+
+                // Vérifier que l'action existe
                 if (!actions[animationName]) {
-                    console.warn(`Animation "${animationName}" introuvable. Animations disponibles:`,
-                        Object.keys(actions));
-                } else {
+                    console.warn(`❌ Action '${animationName}' non trouvée dans le modèle ${objectKey}`);
+                    console.log(`📋 Actions disponibles:`, Object.keys(actions));
+                    return false;
                 }
-            }
-        }
-    }, [animations, actions, path, playAnimation, animationName]);
 
-    // Appliquer les textures au modèle après le montage - avec optimisations
-    useEffect(() => {
-        if (!objectRef.current || !useTextures || !textureModelId || !textureManager) return;
+                // Récupérer les paramètres par défaut de l'animation depuis la config
+                const animationDefaults = objectConfig.animations?.[animationName] || {};
+                console.log(`📋 Config animation par défaut:`, animationDefaults);
 
-        let isApplyingTextures = true;
+                const action = actions[animationName];
 
-        const applyTextures = async () => {
-            try {
-                await textureManager.applyTexturesToModel(textureModelId, objectRef.current);
-
-
-                if (isComponentMounted.current && isApplyingTextures) {
-                    // debugLog(`Textures appliquées à ${textureModelId}`);
-                }
-            } catch (error) {
-                if (isComponentMounted.current && isApplyingTextures) {
-                    console.error(`Erreur lors de l'application des textures:`, error);
-                }
-            }
-        };
-
-        applyTextures();
-
-        // Nettoyage
-        return () => {
-            isApplyingTextures = false;
-        };
-    }, [textureModelId, useTextures]);
-
-
-    // Nettoyer lors du démontage
-    useEffect(() => {
-        isComponentMounted.current = true;
-
-        return () => {
-            isComponentMounted.current = false;
-
-            // Arrêter toutes les animations en cours
-            if (mixer) {
+                // Arrêter les autres animations
                 mixer.stopAllAction();
 
-                // Supprimer l'écouteur d'événement si présent
-                if (animationRef.current) {
-                    mixer.removeEventListener('finished', animationRef.current);
+                // Configurer l'animation avec les valeurs par défaut ou les options passées
+                action.reset();
+
+                // Configuration des paramètres avec hiérarchie : options > config > défaut système
+                const shouldLoop = options.loop !== undefined ? options.loop :
+                    (animationDefaults.defaultLoop !== undefined ? animationDefaults.defaultLoop : false);
+
+                const timeScale = options.timeScale !== undefined ? options.timeScale :
+                    (animationDefaults.defaultTimeScale !== undefined ? animationDefaults.defaultTimeScale : 1.0);
+
+                const shouldClamp = options.clamp !== undefined ? options.clamp :
+                    (animationDefaults.defaultClamp !== undefined ? animationDefaults.defaultClamp : false);
+
+                // Appliquer la configuration
+                action.setLoop(shouldLoop ? LoopRepeat : LoopOnce, shouldLoop ? Infinity : 1);
+                action.timeScale = timeScale;
+                action.clampWhenFinished = shouldClamp;
+
+                action.play();
+
+                console.log(`✅ Animation ${animationName} démarrée sur ${objectKey}:`, {
+                    animationName: animationName,
+                    loop: shouldLoop,
+                    timeScale: timeScale,
+                    clamp: shouldClamp,
+                    hasDefaults: Object.keys(animationDefaults).length > 0,
+                    source: 'dynamique'
+                });
+
+                // Mettre à jour l'état avec les valeurs effectives
+                animationState.current = {
+                    isPlaying: true,
+                    currentName: animationName,
+                    loop: shouldLoop,
+                    clamp: shouldClamp,
+                    timeScale: timeScale
+                };
+
+                currentAnimationRef.current = action;
+                return true;
+            };
+
+            // Exposer globalement
+            window.startVisonAnimation = startVisonAnimation;
+
+            // Écouter l'événement de déclenchement
+            const handleVisonTrigger = (data) => {
+                console.log(`🦡 Réception événement déclenchement Vison:`, data);
+                // Utiliser les nouveaux paramètres
+                const objectKey = data.objectKey || 'Vison';
+                const animationName = data.animationName || 'animation_0';
+                startVisonAnimation(objectKey, animationName, data.options || {});
+            };
+
+            const cleanup = EventBus.on('START_VISON_ANIMATION', handleVisonTrigger);
+
+            return () => {
+                cleanup();
+                // Nettoyer la fonction globale
+                if (window.startVisonAnimation === startVisonAnimation) {
+                    delete window.startVisonAnimation;
                 }
-            }
-        };
-    }, [mixer]);
-
-    // Éviter les re-rendus inutiles des attributs de primitive
-    const primitiveProps = useMemo(() => {
-        const props = {
-            position,
-            scale,
-            castShadow: isGroundObjectRef.current ? false : castShadow,
-            receiveShadow: isGroundObjectRef.current ? true : receiveShadow,
-            visible
-        };
-
-        // Utiliser quaternion si disponible, sinon utiliser rotation
-        if (quaternion) {
-            props.quaternion = quaternion;
-        } else {
-            props.rotation = rotation;
+            };
         }
+    }, [textureModelId, path, actions, mixer]);
 
-        return props;
-    }, [position, rotation, quaternion, scale, castShadow, receiveShadow, visible]);
+    const getAnimatedObjectsFromCatalog = () => {
+        const animatedObjects = [];
+        const catalog = sceneObjectManager.objectCatalog;
 
-    return (
+        Object.entries(catalog).forEach(([objectKey, config]) => {
+            if (config.animations && Object.keys(config.animations).length > 0) {
+                animatedObjects.push({
+                    objectKey: objectKey,
+                    id: config.id,
+                    path: config.path
+                });
+            }
+        });
+
+        console.log(`🎬 Objets avec animations détectés:`, animatedObjects);
+        return animatedObjects;
+    };
+
+// Fonction pour vérifier si un objet est animable
+    const isObjectAnimatable = (textureModelId, path) => {
+        const animatedObjects = getAnimatedObjectsFromCatalog();
+
+        return animatedObjects.some(obj =>
+            obj.id === textureModelId ||
+            obj.objectKey === textureModelId ||
+            path.includes(obj.objectKey) ||
+            path.includes(obj.id) ||
+            (textureModelId && (
+                textureModelId.includes(obj.objectKey) ||
+                textureModelId.includes(obj.id)
+            ))
+        );
+    };
+
+    useEffect(() => {
+        // NOUVEAU: Détection automatique des objets avec animations
+        const isAnimatableObject = isObjectAnimatable(textureModelId, path);
+
+        if (isAnimatableObject) {
+            console.log(`🎬 Composant ${textureModelId || path} prêt pour animations`);
+
+            // Exposer une fonction générique pour démarrer n'importe quelle animation
+            const startAnimation = (objectKey, animationName, options = {}) => {
+                // Vérifier si c'est pour cet objet spécifique
+                const isTargetObject = objectKey === textureModelId;
+
+                if (!isTargetObject) {
+                    // Ce n'est pas notre objet, ignorer
+                    return false;
+                }
+
+                if (!objectRef.current || !mixer || !actions || Object.keys(actions).length === 0) {
+                    console.log(`❌ Objet ${objectKey} pas prêt pour animation`);
+                    return false;
+                }
+
+                console.log(`🎬 Démarrage animation ${animationName} pour ${objectKey}`);
+
+                // Récupérer la configuration de l'objet depuis le SceneObjectManager
+                const objectConfig = sceneObjectManager.getObjectFromCatalog(objectKey);
+
+                if (!objectConfig) {
+                    console.warn(`❌ Configuration pour ${objectKey} non trouvée`);
+                    return false;
+                }
+
+                console.log(`📋 Animations disponibles dans la config:`,
+                    objectConfig.animations ? Object.keys(objectConfig.animations) : 'Aucune');
+                console.log(`📋 Actions disponibles:`, Object.keys(actions));
+
+                // Vérifier que l'action existe
+                if (!actions[animationName]) {
+                    console.warn(`❌ Action '${animationName}' non trouvée dans le modèle ${objectKey}`);
+                    console.log(`📋 Actions disponibles:`, Object.keys(actions));
+                    return false;
+                }
+
+                // Récupérer les paramètres par défaut de l'animation depuis la config
+                const animationDefaults = objectConfig.animations?.[animationName] || {};
+                console.log(`📋 Config animation par défaut:`, animationDefaults);
+
+                const action = actions[animationName];
+
+                // Arrêter les autres animations
+                mixer.stopAllAction();
+
+                // Configurer l'animation avec les valeurs par défaut ou les options passées
+                action.reset();
+
+                // Configuration des paramètres avec hiérarchie : options > config > défaut système
+                const shouldLoop = options.loop !== undefined ? options.loop :
+                    (animationDefaults.defaultLoop !== undefined ? animationDefaults.defaultLoop : false);
+
+                const timeScale = options.timeScale !== undefined ? options.timeScale :
+                    (animationDefaults.defaultTimeScale !== undefined ? animationDefaults.defaultTimeScale : 1.0);
+
+                const shouldClamp = options.clamp !== undefined ? options.clamp :
+                    (animationDefaults.defaultClamp !== undefined ? animationDefaults.defaultClamp : false);
+
+                // IMPORTANT: S'assurer que l'objet peut être transformé par l'animation
+                // En donnant le contrôle complet à l'AnimationMixer
+                if (objectRef.current) {
+                    // Permettre à Three.js de contrôler complètement les transformations
+                    objectRef.current.matrixAutoUpdate = true;
+
+                    // S'assurer que tous les enfants peuvent aussi être animés
+                    objectRef.current.traverse((child) => {
+                        if (child.isMesh || child.isObject3D) {
+                            child.matrixAutoUpdate = true;
+                        }
+                    });
+
+                    console.log(`🎯 Objet ${objectKey} configuré pour animation complète (position, rotation, scale)`);
+                }
+
+                // Appliquer la configuration d'animation
+                action.setLoop(shouldLoop ? LoopRepeat : LoopOnce, shouldLoop ? Infinity : 1);
+                action.timeScale = timeScale;
+                action.clampWhenFinished = shouldClamp;
+
+                // CRITIQUE: S'assurer que tous les tracks de l'animation sont activés
+                // (position, rotation, scale, morphTargets, etc.)
+                if (action._clip && action._clip.tracks) {
+                    console.log(`🎵 Animation tracks détectés:`, action._clip.tracks.map(track => ({
+                        name: track.name,
+                        type: track.constructor.name,
+                        times: track.times?.length || 0,
+                        values: track.values?.length || 0
+                    })));
+
+                    // NOUVEAU: Validation et optimisation des tracks
+                    let hasPositionTrack = false;
+                    let hasRotationTrack = false;
+                    let hasMorphTargets = false;
+
+                    action._clip.tracks.forEach(track => {
+                        if (track.name.includes('.position')) {
+                            hasPositionTrack = true;
+                            console.log(`✅ Track de position activé: ${track.name} (${track.times.length} keyframes)`);
+
+                            // OPTIMISATION: Vérifier si l'animation a vraiment du mouvement
+                            if (track.values && track.values.length >= 6) {
+                                const startPos = [track.values[0], track.values[1], track.values[2]];
+                                const endPos = [
+                                    track.values[track.values.length - 3],
+                                    track.values[track.values.length - 2],
+                                    track.values[track.values.length - 1]
+                                ];
+                                const distance = Math.sqrt(
+                                    Math.pow(endPos[0] - startPos[0], 2) +
+                                    Math.pow(endPos[1] - startPos[1], 2) +
+                                    Math.pow(endPos[2] - startPos[2], 2)
+                                );
+                                console.log(`📏 Distance de déplacement total: ${distance.toFixed(2)} unités`);
+                                console.log(`📍 Position début: [${startPos.map(v => v.toFixed(2)).join(', ')}]`);
+                                console.log(`📍 Position fin: [${endPos.map(v => v.toFixed(2)).join(', ')}]`);
+                            }
+                        }
+                        else if (track.name.includes('.rotation') || track.name.includes('.quaternion')) {
+                            hasRotationTrack = true;
+                            console.log(`✅ Track de rotation activé: ${track.name} (${track.times.length} keyframes)`);
+                        }
+                        else if (track.name.includes('.scale')) {
+                            console.log(`✅ Track de scale activé: ${track.name}`);
+                        }
+                        else if (track.name.includes('morphTargetInfluences')) {
+                            hasMorphTargets = true;
+                            console.log(`✅ Track de morphing activé: ${track.name} (${track.values.length} influences)`);
+                        }
+                        else {
+                            console.log(`ℹ️ Autre track: ${track.name}`);
+                        }
+                    });
+
+                    // VALIDATION: S'assurer qu'on a les tracks nécessaires
+                    if (!hasPositionTrack && !hasRotationTrack) {
+                        console.warn(`⚠️ Animation "${animationName}" sans déplacement ni rotation détecté`);
+                    } else {
+                        console.log(`🎬 Animation complète détectée:`, {
+                            deplacement: hasPositionTrack,
+                            rotation: hasRotationTrack,
+                            morphing: hasMorphTargets,
+                            totalTracks: action._clip.tracks.length
+                        });
+                    }
+
+                    // PERFORMANCE: Optimiser le mixer si beaucoup de tracks
+                    if (action._clip.tracks.length > 5) {
+                        console.log(`⚡ Animation complexe détectée (${action._clip.tracks.length} tracks), optimisation mixer`);
+
+                        // Augmenter la fréquence de mise à jour pour les animations complexes
+                        if (mixer) {
+                            mixer.timeScale = timeScale; // S'assurer que le mixer utilise le bon timeScale
+                        }
+                    }
+                }
+
+// NOUVEAU: Callback pour suivre le progrès de l'animation
+                if (mixer && !shouldLoop) {
+                    const progressCallback = () => {
+                        if (action && action.isRunning()) {
+                            const progress = action.time / action.getClip().duration;
+
+                            // Log du progrès à certains seuils
+                            if (progress >= 0.25 && !action._quarter) {
+                                action._quarter = true;
+                                console.log(`🎬 Animation ${animationName} - 25% complétée`);
+                            }
+                            if (progress >= 0.5 && !action._half) {
+                                action._half = true;
+                                console.log(`🎬 Animation ${animationName} - 50% complétée`);
+                            }
+                            if (progress >= 0.75 && !action._threeQuarter) {
+                                action._threeQuarter = true;
+                                console.log(`🎬 Animation ${animationName} - 75% complétée`);
+                            }
+                        }
+                    };
+
+                    // Vérifier le progrès à chaque frame (seulement si pas en boucle)
+                    const progressInterval = setInterval(() => {
+                        if (!action || !action.isRunning()) {
+                            clearInterval(progressInterval);
+                            return;
+                        }
+                        progressCallback();
+                    }, 100); // Vérifier toutes les 100ms
+                }
+
+                // Démarrer l'animation Three.js (avec tous les déplacements intégrés)
+                action.play();
+
+                console.log(`✅ Animation ${animationName} démarrée sur ${objectKey}:`, {
+                    animationName: animationName,
+                    loop: shouldLoop,
+                    timeScale: timeScale,
+                    clamp: shouldClamp,
+                    hasDefaults: Object.keys(animationDefaults).length > 0,
+                    tracksCount: action._clip?.tracks?.length || 0,
+                    source: 'GLB_intégré'
+                });
+
+                // Mettre à jour l'état avec les valeurs effectives
+                animationState.current = {
+                    isPlaying: true,
+                    currentName: animationName,
+                    loop: shouldLoop,
+                    clamp: shouldClamp,
+                    timeScale: timeScale
+                };
+
+                currentAnimationRef.current = action;
+
+                // OPTIONNEL: Callback quand l'animation se termine (si pas en boucle)
+                if (!shouldLoop && options.onComplete) {
+                    // Nettoyer d'abord tout écouteur existant
+                    if (animationRef.current) {
+                        mixer.removeEventListener('finished', animationRef.current);
+                    }
+
+                    // Créer le callback pour cette animation spécifique
+                    const finishCallback = (e) => {
+                        if (e.action === action) {
+                            console.log(`🏁 Animation GLB "${animationName}" avec déplacements terminée`);
+                            options.onComplete(animationName);
+                            // Nettoyer l'écouteur après utilisation
+                            mixer.removeEventListener('finished', finishCallback);
+                        }
+                    };
+
+                    // Ajouter l'écouteur
+                    mixer.addEventListener('finished', finishCallback);
+                }
+
+                return true;
+            };
+            // MODIFIÉ: Exposer ou étendre la fonction globale existante
+            if (!window.startAnimation) {
+                // Première exposition
+                window.startAnimation = startAnimation;
+            } else {
+                // Sauvegarder l'ancienne fonction
+                const previousStartAnimation = window.startAnimation;
+
+                // Créer une nouvelle fonction qui essaie les deux
+                window.startAnimation = (objectKey, animationName, options = {}) => {
+                    // Essayer avec cette instance d'abord
+                    const result = startAnimation(objectKey, animationName, options);
+                    if (result) {
+                        return result;
+                    }
+
+                    // Si ça n'a pas fonctionné, essayer avec l'ancienne fonction
+                    return previousStartAnimation(objectKey, animationName, options);
+                };
+            }
+
+            // Maintenir la compatibilité avec l'ancien nom pour Vison
+            if (textureModelId === 'Vison' || path.includes('Vison')) {
+                window.startVisonAnimation = startAnimation;
+            }
+
+            // Écouter l'événement de déclenchement
+            const handleAnimationTrigger = (data) => {
+                console.log(`🎬 Réception événement déclenchement animation:`, data);
+                const objectKey = data.objectKey || textureModelId;
+                const animationName = data.animationName || 'animation_0';
+                startAnimation(objectKey, animationName, data.options || {});
+            };
+
+            const cleanup = EventBus.on('START_ANIMATION', handleAnimationTrigger);
+
+            return () => {
+                cleanup();
+                // Note: Ne pas supprimer window.startAnimation car d'autres objets peuvent l'utiliser
+            };
+        }
+    }, [textureModelId, path, actions, mixer]);
+
+
+        return (
         <primitive
             ref={objectRef}
             object={model}
-            {...primitiveProps}
+            position={position}
+            rotation={rotation}
+            quaternion={quaternion}
+            scale={scale}
+            castShadow={isGroundObjectRef.current ? false : castShadow}
+            receiveShadow={isGroundObjectRef.current ? true : receiveShadow}
+            visible={visible}
         />
     );
 });
 
-/**
- * Composant pour afficher les objets statiques (non-interactifs) dans la scène
- * Version optimisée
- */
+
 /**
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
  * Version optimisée avec support des animations
@@ -334,6 +885,48 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         }
     }, [filter, updatePlacements, scene]);
 
+    // NOUVEAU: Écouter les mises à jour d'animation pour re-render
+    useEffect(() => {
+        const handleAnimationUpdate = (data) => {
+            // Re-récupérer les placements si une animation a été mise à jour
+            updatePlacements();
+        };
+
+        return EventBus.on('animation-control-update', handleAnimationUpdate);
+    }, [updatePlacements]);
+
+
+    useEffect(() => {
+        console.log(`👂 StaticObjects - Configuration écouteur animation pour ${placements.length} placements`);
+
+        // Debug: Lister tous les placements avec leurs identifiants
+        placements.forEach((placement, index) => {
+            if (placement.objectKey === 'Vison') {
+                console.log(`🦡 Placement Vison trouvé à l'index ${index}:`, {
+                    objectKey: placement.objectKey,
+                    animationId: placement.animationId,
+                    hasAnimation: !!placement.animation,
+                    animationActive: placement.animation?.play
+                });
+            }
+        });
+
+        const handleAnimationUpdate = (data) => {
+            console.log(`📨 StaticObjects reçoit événement animation:`, {
+                identifier: data.identifier,
+                objectKey: data.objectKey,
+                placementIndex: data.placementIndex,
+                action: data.action
+            });
+
+            // Re-récupérer les placements si une animation a été mise à jour
+            console.log(`🔄 StaticObjects - Mise à jour des placements suite à animation`);
+            updatePlacements();
+        };
+
+        const cleanup = EventBus.on('animation-control-update', handleAnimationUpdate);
+        return cleanup;
+    }, [updatePlacements, placements]); // Ajouter placements comme dépendance
 
     // Optimiser le rendu avec useMemo
     const staticObjects = useMemo(() => {
@@ -348,7 +941,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
 
             const key = `static-${placement.objectKey}-${index}`;
 
-            // Ajouter les informations d'animations si présentes
+            // MODIFIÉ: Ajouter les informations d'animations si présentes
             const animationProps = placement.animation ? {
                 playAnimation: placement.animation.play,
                 animationName: placement.animation.name,
@@ -356,6 +949,8 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                 animationClamp: placement.animation.clamp,
                 animationTimeScale: placement.animation.timeScale,
                 onAnimationComplete: (animName) => {
+                    console.log(`🏁 Animation ${animName} terminée pour ${placement.objectKey}`);
+
                     if (placement.animation.onComplete) {
                         placement.animation.onComplete(animName, index);
                     }
@@ -375,27 +970,36 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     }
                 }
             } : {};
-            if (placement.animation) {
-                console.log(`Animation pour ${placement.objectKey} :`,
-                    placement.animation ? {
-                        play: placement.animation.play,
-                        name: placement.animation.name
-                    } : 'Aucune animation');
 
+            // Debug log pour les objets avec animations
+            if (placement.animation) {
+                console.log(`🎬 Rendu objet statique ${placement.objectKey} avec animation:`, {
+                    objectKey: placement.objectKey,
+                    index,
+                    animationId: placement.animationId,
+                    animation: placement.animation ? {
+                        play: placement.animation.play,
+                        name: placement.animation.name,
+                        loop: placement.animation.loop
+                    } : 'Aucune animation'
+                });
             }
+
             return (
                 <StaticObject
                     key={key}
                     path={objectConfig.path}
                     position={placement.position}
                     rotation={placement.rotation}
-                    quaternion={placement.quaternion} // Nouveau paramètre ajouté
+                    quaternion={placement.quaternion}
                     scale={placement.scale}
                     castShadow={placement.castShadow !== undefined ? placement.castShadow : true}
                     receiveShadow={placement.receiveShadow !== undefined ? placement.receiveShadow : true}
                     visible={placement.visible}
                     textureModelId={textureModelId}
                     useTextures={useTextures}
+                    placementIndex={index} // NOUVEAU: Passer l'index pour identification
+                    animationId={placement.animationId} // NOUVEAU: Passer l'ID d'animation si disponible
                     {...animationProps}
                 />
             );
@@ -408,6 +1012,7 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         </group>
     );
 });
+
 /**
  * Composant pour gérer et afficher les objets interactifs dans la scène
  * Version optimisée
@@ -430,9 +1035,7 @@ export const InteractiveObjects = React.memo(function InteractiveObjects({filter
         updatePlacements();
     }, [updatePlacements]);
 
-
     useEffect(() => {
-
         // S'abonner à l'événement de complétion d'interaction
         const completeCleanup = EventBus.on('object:interaction:complete', (data) => {
             // Directement mettre à jour les placements
@@ -713,6 +1316,7 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
 
     return <StaticObject {...staticProps} />;
 });
+
 /**
  * Composant principal qui affiche tous les objets de scène
  * Utilise les deux sous-composants pour objets statiques et interactifs

@@ -154,10 +154,10 @@ export default function Camera() {
             if (cameraModel.animations && cameraModel.animations.length > 0) {
                 console.log('Animations trouvées:', cameraModel.animations);
 
-                // Chercher l'animation spécifique "Action.006"
+                // Chercher l'animation spécifique "Action.008"
                 const targetAnimation = cameraModel.animations.find(anim =>
-                    anim.name === 'Action.006' ||
-                    anim.name.toLowerCase().includes('Action.006')
+                    anim.name === 'Action.008' ||
+                    anim.name.toLowerCase().includes('Action.008')
                 );
 
                 if (targetAnimation) {
@@ -170,9 +170,9 @@ export default function Camera() {
                 } else {
                     console.log("Animations disponibles:", cameraModel.animations.map(a => a.name).join(', '));
 
-                    // Si Action.006 n'est pas trouvée, utiliser la première animation disponible
+                    // Si Action.008 n'est pas trouvée, utiliser la première animation disponible
                     if (cameraModel.animations.length > 0) {
-                        console.log(`Animation 'Action.006' non trouvée, utilisation de la première animation: ${cameraModel.animations[0].name}`);
+                        console.log(`Animation 'Action.008' non trouvée, utilisation de la première animation: ${cameraModel.animations[0].name}`);
                         EventBus.trigger('camera-animation-loaded', {
                             animation: cameraModel.animations[0],
                             allAnimations: cameraModel.animations

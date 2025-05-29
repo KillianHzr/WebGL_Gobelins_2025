@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import useStore from '../Store/useStore';
 import {audioManager} from './AudioManager';
-import {EventBus} from '../Utils/EventEmitter'; // Import EventBus
+import {EventBus} from './EventEmitter.jsx'; // Import EventBus
 
 export default function CaptureInterface() {
     const [isVisible, setIsVisible] = useState(false);
@@ -9,6 +9,9 @@ export default function CaptureInterface() {
     const [showNotification, setShowNotification] = useState(false);
     const [isButtonHovered, setIsButtonHovered] = useState(false);
     const [isButtonPressed, setIsButtonPressed] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const zoomBarRef = useRef(null);
 
     // Récupérer les états liés à la caméra depuis le store
     const camera = useStore(state => state.camera);
@@ -37,6 +40,40 @@ export default function CaptureInterface() {
             camera.updateProjectionMatrix();
         }
     }, [currentZoomLevel, camera, cameraInitialZoom]);
+
+    // Gérer le drag de l'indicateur de zoom
+    const handleZoomDragStart = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+
+        const handleMouseMove = (moveEvent) => {
+            if (!zoomBarRef.current) return;
+
+            const rect = zoomBarRef.current.getBoundingClientRect();
+            const y = moveEvent.clientY - rect.top;
+            const percentage = (y / rect.height) * 100;
+
+            const clampedPercentage = Math.max(0, Math.min(100, percentage));
+
+            const newZoomLevel = (50 - clampedPercentage) / 16.666667;
+            const clampedZoomLevel = Math.max(-3, Math.min(3, newZoomLevel));
+
+            const roundedZoomLevel = Math.round(clampedZoomLevel * 100) / 100;
+
+            if (Math.abs(roundedZoomLevel - currentZoomLevel) > 0.01) {
+                setCurrentZoomLevel(roundedZoomLevel);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
 
     // Gérer le clic sur le bouton de zoom +
     const handleZoomIn = () => {
@@ -126,20 +163,23 @@ export default function CaptureInterface() {
 
         setIsVisible(false);
         setIsFlashing(true);
-        toggleSceneGroups();
+
 
         setTimeout(() => {
             // Reste de la fonction inchangé
             setIsButtonPressed(false);
             setIsFlashing(false);
 
-            window.doJumpToChapter(0.8)
-            if (interaction?.setShowCaptureInterface) {
-                interaction.setShowCaptureInterface(false);
-            }
-
-            if (interaction?.completeInteraction) {
-                interaction.completeInteraction();
+            // window.doJumpToChapter(0.8)
+            // if (interaction?.setShowCaptureInterface) {
+            //     interaction.setShowCaptureInterface(false);
+            // }
+            //
+            // if (interaction?.completeInteraction) {
+            //     interaction.completeInteraction();
+            // }
+            if (interaction?.setShowBlackscreenInterface) {
+                interaction.setShowBlackscreenInterface(true);
             }
         }, 8000);
     };
@@ -147,7 +187,7 @@ export default function CaptureInterface() {
     if (!isVisible && !isFlashing && !showNotification) return null;
 
     // Calculer la position de l'indicateur de zoom
-    const zoomIndicatorPosition = 50 - (currentZoomLevel * 16.7);
+    const zoomIndicatorPosition = 50 - (currentZoomLevel * 16.666667);
 
     return (
         <>
@@ -162,12 +202,19 @@ export default function CaptureInterface() {
 
                         {/* Ajout du cercle de visée au centre */}
                         <div className="camera-viewport-target"></div>
-                        <div className="camera-viewport-zoom">
-                            {/* Nouvel indicateur de zoom */}
+                        <div className="camera-viewport-zoom" ref={zoomBarRef}>
+                            {/* Nouvel indicateur de zoom avec drag functionality */}
                             <div
-                                className="camera-viewport-zoom-indicator"
-                                style={{top: `${zoomIndicatorPosition}%`}}
-                            ></div>
+                                className={`camera-viewport-zoom-indicator ${isDragging ? 'dragging' : ''}`}
+                                style={{
+                                    top: `${zoomIndicatorPosition}%`,
+                                    cursor: isDragging ? 'grabbing' : 'grab'
+                                }}
+                                onMouseDown={handleZoomDragStart}
+                            >
+                                {/* Barre de zoom à l'intérieur */}
+                                <div className="camera-viewport-zoom-indicator-bar"></div>
+                            </div>
                             {/* Bouton de zoom + */}
                             <div
                                 className="camera-viewport-zoom-plus"

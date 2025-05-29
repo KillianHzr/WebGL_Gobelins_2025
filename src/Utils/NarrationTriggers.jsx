@@ -16,7 +16,7 @@ const NarrationTriggers = () => {
         'TrunkLargeInteractive': 'Scene03_SautAuDessusDeLArbre',
         'MultipleLeaf': 'Scene04_RechercheDesIndices_part1',
         'AnimalPaws': 'Scene04_RechercheDesIndices_part2',
-        'JumpRock1': 'Scene05_SautAu-DessusDeLaRiviere',
+        'JumpRock4': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
         'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
         'Vison': 'Scene08_DecouverteDuVisonMort',
@@ -90,9 +90,11 @@ const NarrationTriggers = () => {
                     }
                 }
 
-                // Similar checks for rock interactions
+                // CORRECTION: Améliorer la logique pour les rocks
                 if (objectKey === 'JumpRock2') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    console.log('Vérification JumpRock2 - Interactions complétées:', completedInteractions);
+
                     const rock1Completed = Object.keys(completedInteractions).some(key =>
                         key.includes('eleventhStop') || key.includes('JumpRock1')
                     );
@@ -104,6 +106,8 @@ const NarrationTriggers = () => {
 
                 if (objectKey === 'JumpRock3') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
+                    console.log('Vérification JumpRock3 - Interactions complétées:', completedInteractions);
+
                     const rock2Completed = Object.keys(completedInteractions).some(key =>
                         key.includes('twelfthStop') || key.includes('JumpRock2')
                     );
@@ -115,22 +119,32 @@ const NarrationTriggers = () => {
 
                 if (objectKey === 'JumpRock4') {
                     const completedInteractions = useStore.getState().interaction.completedInteractions || {};
-                    const rock3Completed = Object.keys(completedInteractions).some(key =>
-                        key.includes('thirteenthStop') || key.includes('JumpRock3')
-                    );
+                    console.log('🪨 Vérification JumpRock4 - Interactions complétées:', completedInteractions);
+                    console.log('🪨 Clés dans completedInteractions:', Object.keys(completedInteractions));
+
+                    const rock3Completed = Object.keys(completedInteractions).some(key => {
+                        const matches = key.includes('thirteenthStop') || key.includes('JumpRock3');
+                        console.log(`🪨 Clé "${key}" matches: ${matches}`);
+                        return matches;
+                    });
+
+                    console.log('🪨 JumpRock3 complété:', rock3Completed);
+
                     if (!rock3Completed) {
-                        console.log('JumpRock4 interaction ignorée car JumpRock3 n\'a pas encore été complété');
+                        console.log('🪨 JumpRock4 interaction ignorée car JumpRock3 n\'a pas encore été complété');
                         return;
+                    } else {
+                        console.log('🪨 JumpRock4 - Prérequis OK, procédure normale');
                     }
                 }
 
                 if (objectKey && objectNarrationMap[objectKey]) {
                     const narrationId = objectNarrationMap[objectKey];
 
-                    console.log(`Narration à jouer pour ${objectKey}: ${narrationId}`);
+                    console.log(`🎵 Narration à jouer pour ${objectKey}: ${narrationId}`);
                     playNarrationIfNotTriggered(narrationId);
                 } else {
-                    console.log(`Pas de narration trouvée pour l'objet identifié: ${objectKey || 'inconnu'}`);
+                    console.log(`❌ Pas de narration trouvée pour l'objet identifié: ${objectKey || 'inconnu'}`);
                 }
             } catch (error) {
                 console.error('Erreur lors du traitement de l\'événement d\'interaction:', error);
