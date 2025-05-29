@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import { narrationManager } from './NarrationManager';
 import { EventBus } from './EventEmitter';
+import FollowingEyes from './FollowingEyes'; // Import your new component
 
 /**
  * EndingLanding component
@@ -37,18 +38,18 @@ const EndingLanding = ({ onLearnMore }) => {
                 'Résultat : <strong>500 millions de litres d\'eau</strong>, assez pour remplir <strong>200 piscines olympiques</strong>.'
             ]
         },
-    {
-        id: 'Scene99_Message3',
+        {
+            id: 'Scene99_Message3',
             texts: [
                 'Cette fois, c\'était le <strong>vison d\'Europe</strong>. Demain, <strong>une autre espèce</strong>. Et un jour, <strong>ce sera nous</strong>.',
                 'La réalité est là. <strong>L\'intelligence Artificielle</strong> n\'est plus un fantasme. ',
             ]
-    },
-    {
-        id: 'Scene99_Message4',
+        },
+        {
+            id: 'Scene99_Message4',
             texts: []
-    }
-];
+        }
+    ];
 
     // Register GSAP plugins
     useEffect(() => {
@@ -349,9 +350,10 @@ const EndingLanding = ({ onLearnMore }) => {
                         Je veux en savoir plus !
                     </button>
                 </div>
-                <div className="ending-asset fourth-asset">
-                    <img src="/images/Assets_4.svg" alt="Call to action illustration" />
-                </div>
+                {/* Replace the static SVG with the following eyes component */}
+                <FollowingEyes className="ending-asset eye-1" />
+                <FollowingEyes className="ending-asset eye-2" />
+                <FollowingEyes className="ending-asset eye-3" variant="inverted" />
                 <div className="ending-credits">
                     <div className="ending-credits-names">
                         <span className="ending-credits-name">ANTOINE VENET</span>
