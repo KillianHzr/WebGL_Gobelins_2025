@@ -48,6 +48,18 @@ class RandomAmbientSounds {
                 minVolume: 0.1,
                 maxVolume: 0.3,
                 preload: true
+            },
+            vison_step: {
+                paths: [
+                    { path: '/audios/randoms/vison_step_1.mp3', probability: 0.38 },
+                    { path: '/audios/randoms/vison_step_2.mp3', probability: 0.38 },
+                    { path: '/audios/randoms/vison_sound.mp3', probability: 0.24 }
+                ],
+                minInterval: 60,
+                maxInterval: 75,
+                minVolume: 0.5,
+                maxVolume: 0.7,
+                preload: true
             }
         };
     }
@@ -72,42 +84,89 @@ class RandomAmbientSounds {
 
         console.log(`Loading random ambient sound: ${soundId}`);
 
-        this.howls[soundId] = new Howl({
-            src: [soundConfig.path],
-            loop: false,
-            volume: 0,  // Commencer à volume zéro
-            preload: soundConfig.preload,
-            onload: () => {
-                console.log(`Random ambient sound loaded: ${soundId}`);
+        // Vérifier si c'est un son avec multiples paths
+        if (soundConfig.paths && Array.isArray(soundConfig.paths)) {
+            // Charger tous les variants
+            this.howls[soundId] = [];
+            soundConfig.paths.forEach((pathConfig, index) => {
+                const howl = new Howl({
+                    src: [pathConfig.path],
+                    loop: false,
+                    volume: 0,  // Commencer à volume zéro
+                    preload: soundConfig.preload,
+                    onload: () => {
+                        console.log(`Random ambient sound variant loaded: ${soundId}_${index} (${pathConfig.path})`);
 
-                // Stocker la durée du son pour les calculs de progression
-                const duration = this.howls[soundId].duration();
-                this.soundDurations[soundId] = duration;
-                console.log(`Sound ${soundId} duration: ${duration.toFixed(2)}s`);
-            },
-            onloaderror: (id, error) => console.error(`Error loading random ambient sound ${soundId}:`, error),
-            onplay: () => {
-                // Enregistrer le début de la lecture
-                this.playingSounds[soundId] = {
-                    startTime: Date.now(),
-                    duration: this.soundDurations[soundId] * 1000 // en ms
-                };
-            },
-            onend: () => {
-                // Supprimer des sons en cours de lecture
-                delete this.playingSounds[soundId];
+                        // Stocker la durée du son pour les calculs de progression
+                        const duration = howl.duration();
+                        if (!this.soundDurations[soundId]) {
+                            this.soundDurations[soundId] = duration; // Utiliser la durée du premier variant
+                        }
+                        console.log(`Sound ${soundId}_${index} duration: ${duration.toFixed(2)}s`);
+                    },
+                    onloaderror: (id, error) => console.error(`Error loading random ambient sound ${soundId}_${index}:`, error),
+                    onplay: () => {
+                        // Enregistrer le début de la lecture
+                        this.playingSounds[soundId] = {
+                            startTime: Date.now(),
+                            duration: (this.soundDurations[soundId] || 0) * 1000 // en ms
+                        };
+                    },
+                    onend: () => {
+                        // Supprimer des sons en cours de lecture
+                        delete this.playingSounds[soundId];
 
-                // Lorsque le son se termine, programmer la prochaine lecture
-                // C'est ici qu'on calcule l'intervalle entre la fin de ce son et le début du prochain
-                if (this.active) {
-                    this.scheduleNextPlayback(soundId);
+                        // Lorsque le son se termine, programmer la prochaine lecture
+                        if (this.active) {
+                            this.scheduleNextPlayback(soundId);
+                        }
+                    },
+                    onstop: () => {
+                        // Supprimer des sons en cours de lecture si arrêté manuellement
+                        delete this.playingSounds[soundId];
+                    }
+                });
+
+                this.howls[soundId].push(howl);
+            });
+        } else {
+            // Format classique avec un seul path
+            this.howls[soundId] = new Howl({
+                src: [soundConfig.path],
+                loop: false,
+                volume: 0,  // Commencer à volume zéro
+                preload: soundConfig.preload,
+                onload: () => {
+                    console.log(`Random ambient sound loaded: ${soundId}`);
+
+                    // Stocker la durée du son pour les calculs de progression
+                    const duration = this.howls[soundId].duration();
+                    this.soundDurations[soundId] = duration;
+                    console.log(`Sound ${soundId} duration: ${duration.toFixed(2)}s`);
+                },
+                onloaderror: (id, error) => console.error(`Error loading random ambient sound ${soundId}:`, error),
+                onplay: () => {
+                    // Enregistrer le début de la lecture
+                    this.playingSounds[soundId] = {
+                        startTime: Date.now(),
+                        duration: this.soundDurations[soundId] * 1000 // en ms
+                    };
+                },
+                onend: () => {
+                    // Supprimer des sons en cours de lecture
+                    delete this.playingSounds[soundId];
+
+                    // Lorsque le son se termine, programmer la prochaine lecture
+                    if (this.active) {
+                        this.scheduleNextPlayback(soundId);
+                    }
+                },
+                onstop: () => {
+                    // Supprimer des sons en cours de lecture si arrêté manuellement
+                    delete this.playingSounds[soundId];
                 }
-            },
-            onstop: () => {
-                // Supprimer des sons en cours de lecture si arrêté manuellement
-                delete this.playingSounds[soundId];
-            }
-        });
+            });
+        }
     }
 
     // Démarrer le système
@@ -168,6 +227,27 @@ class RandomAmbientSounds {
             Math.random() * (soundConfig.maxInterval - soundConfig.minInterval)) * 1000;
     }
 
+    // Choisir aléatoirement un variant basé sur les probabilités
+    selectRandomVariant(soundId) {
+        const soundConfig = this.config[soundId];
+        if (!soundConfig.paths || !Array.isArray(soundConfig.paths)) {
+            return 0; // Index par défaut pour les sons classiques
+        }
+
+        const random = Math.random();
+        let cumulative = 0;
+
+        for (let i = 0; i < soundConfig.paths.length; i++) {
+            cumulative += soundConfig.paths[i].probability;
+            if (random <= cumulative) {
+                return i;
+            }
+        }
+
+        // Fallback au dernier variant si les probabilités sont mal configurées
+        return soundConfig.paths.length - 1;
+    }
+
     // Obtenir le temps restant avant la prochaine lecture (pour l'interface de débogage)
     getTimeRemaining(soundId) {
         if (!this.nextPlayTimes[soundId]) return null;
@@ -216,8 +296,13 @@ class RandomAmbientSounds {
 
         // Arrêter tous les sons en cours
         Object.keys(this.howls).forEach(soundId => {
-            if (this.howls[soundId]) {
-                this.howls[soundId].stop();
+            const howl = this.howls[soundId];
+            if (Array.isArray(howl)) {
+                // Sons avec multiples variants
+                howl.forEach(h => h.stop());
+            } else if (howl) {
+                // Son classique
+                howl.stop();
             }
         });
 
@@ -238,16 +323,26 @@ class RandomAmbientSounds {
         const volume = soundConfig.minVolume +
             Math.random() * (soundConfig.maxVolume - soundConfig.minVolume);
 
-        console.log(`Playing random ambient sound: ${soundId} (volume: ${volume.toFixed(2)})`);
-
         // Réinitialiser le temps de prochaine lecture puisque le son commence maintenant
         this.nextPlayTimes[soundId] = 0;
 
-        // Définir le volume et jouer le son
-        howl.volume(volume);
-        howl.play();
+        // Gérer les sons avec multiples variants
+        if (Array.isArray(howl)) {
+            const variantIndex = this.selectRandomVariant(soundId);
+            const selectedHowl = howl[variantIndex];
+            const pathInfo = soundConfig.paths[variantIndex];
 
-        // Note: La programmation du prochain son est gérée par l'événement onend
+            console.log(`Playing random ambient sound: ${soundId} variant ${variantIndex} (${pathInfo.path}) (volume: ${volume.toFixed(2)}) (probability: ${(pathInfo.probability * 100).toFixed(1)}%)`);
+
+            selectedHowl.volume(volume);
+            selectedHowl.play();
+        } else {
+            // Son classique
+            console.log(`Playing random ambient sound: ${soundId} (volume: ${volume.toFixed(2)})`);
+
+            howl.volume(volume);
+            howl.play();
+        }
     }
 
     // Mise à jour de la configuration d'un son
@@ -284,7 +379,18 @@ class RandomAmbientSounds {
         Object.keys(this.config).forEach(soundId => {
             const howl = this.howls[soundId];
             const config = this.config[soundId];
-            const isPlaying = howl ? howl.playing() : false;
+            let isPlaying = false;
+            let currentVolume = 0;
+
+            // Gérer les sons avec multiples variants
+            if (Array.isArray(howl)) {
+                isPlaying = howl.some(h => h.playing());
+                const playingHowl = howl.find(h => h.playing());
+                currentVolume = playingHowl ? playingHowl.volume() : 0;
+            } else if (howl) {
+                isPlaying = howl.playing();
+                currentVolume = howl.volume();
+            }
 
             state[soundId] = {
                 isPlaying,
@@ -292,7 +398,7 @@ class RandomAmbientSounds {
                 remainingTime: this.getTimeRemaining(soundId),
                 playbackProgress: isPlaying ? this.getPlaybackProgress(soundId) : null,
                 playbackRemaining: isPlaying ? this.getPlaybackRemainingTime(soundId) : null,
-                currentVolume: howl ? howl.volume() : 0,
+                currentVolume,
                 duration: this.soundDurations[soundId],
                 config: { ...config }
             };

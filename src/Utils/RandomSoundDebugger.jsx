@@ -46,7 +46,18 @@ const RandomSoundDebugger = () => {
                 const howl = randomAmbientSounds.howls[soundId];
 
                 // Vérifier si le son est en cours de lecture
-                const isPlaying = howl && howl.playing();
+                let isPlaying = false;
+                let currentVolume = 'N/A';
+
+                // Gérer les sons avec multiples variants
+                if (Array.isArray(howl)) {
+                    isPlaying = howl.some(h => h.playing());
+                    const playingHowl = howl.find(h => h.playing());
+                    currentVolume = playingHowl ? playingHowl.volume().toFixed(2) : 'N/A';
+                } else if (howl) {
+                    isPlaying = howl.playing();
+                    currentVolume = isPlaying ? howl.volume().toFixed(2) : 'N/A';
+                }
 
                 // Obtenir le temps de lecture restant si le son est en cours
                 let playbackInfo = null;
@@ -75,9 +86,6 @@ const RandomSoundDebugger = () => {
                     nextPlayIn = 'Inactif';
                 }
 
-                // Récupérer le volume actuel si le son joue
-                const currentVolume = isPlaying ? howl.volume().toFixed(2) : 'N/A';
-
                 // Stocker l'état du son
                 newState[soundId] = {
                     isPlaying,
@@ -89,7 +97,9 @@ const RandomSoundDebugger = () => {
                         minInterval: config.minInterval,
                         maxInterval: config.maxInterval,
                         minVolume: config.minVolume,
-                        maxVolume: config.maxVolume
+                        maxVolume: config.maxVolume,
+                        // Indiquer s'il s'agit d'un son avec variants multiples
+                        hasVariants: Array.isArray(config.paths)
                     }
                 };
             });
@@ -224,10 +234,27 @@ const RandomSoundDebugger = () => {
 
         const sound = window.audioManager.randomAmbientSounds;
         const config = sound.config[soundId];
+        const howl = sound.howls[soundId];
         const volume = (config.minVolume + config.maxVolume) / 2;
 
-        sound.howls[soundId].volume(volume);
-        sound.howls[soundId].play();
+        // Gérer les sons avec multiples variants
+        if (Array.isArray(howl)) {
+            const variantIndex = sound.selectRandomVariant(soundId);
+            const selectedHowl = howl[variantIndex];
+            selectedHowl.volume(volume);
+            selectedHowl.play();
+
+            // Log pour le débogage
+            if (config.paths) {
+                const pathInfo = config.paths[variantIndex];
+                console.log(`Manual play: ${soundId} variant ${variantIndex} (${pathInfo.path}) (probability: ${(pathInfo.probability * 100).toFixed(1)}%)`);
+            }
+        } else {
+            // Son classique
+            howl.volume(volume);
+            howl.play();
+            console.log(`Manual play: ${soundId}`);
+        }
     };
 
     // Ne rien afficher si le débogueur n'est pas visible
@@ -303,7 +330,10 @@ const RandomSoundDebugger = () => {
                             return (
                                 <div key={soundId} className={`sound-item ${sound.isPlaying ? 'playing' : ''}`}>
                                     <div className="sound-header">
-                                        <span className="sound-name">{soundId}</span>
+                                        <span className="sound-name">
+                                            {soundId}
+                                            {sound.config.hasVariants && <span className="variant-indicator" title="Son avec variants multiples">🎲</span>}
+                                        </span>
                                         <div className="sound-actions">
                                             <button
                                                 className="play-btn"
@@ -590,6 +620,14 @@ const RandomSoundDebugger = () => {
                 .sound-name {
                     font-weight: bold;
                     color: #BBB;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .variant-indicator {
+                    font-size: 10px;
+                    opacity: 0.7;
                 }
 
                 .sound-status {
