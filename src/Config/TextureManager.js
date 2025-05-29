@@ -818,17 +818,17 @@ class TextureManager {
             envMapIntensity: 0.2,  // Léger reflet environnemental
 
             // Couleur de base légèrement grisée
-            color: '#a49d9d',
+            color: '#867474',
 
             // Propriétés d'ombre - le sol reçoit mais ne projette pas
             castShadow: false,
             receiveShadow: true,
 
             // Scale de la normale pour plus de détails
-            normalScale: new Vector2(1.5, 1.5),
+            normalScale: new Vector2(1.0, 1.0),
 
             // Intensité de l'occlusion ambiante
-            aoIntensity: 1.0,
+            aoIntensity: 0.0,
 
             // Configuration des textures activées
             useTextures: {
@@ -957,7 +957,7 @@ class TextureManager {
             });
         });
     }
-    configureGroundTexture(repeatX = 10, repeatY = 10, options = {}) {
+    configureGroundTexture(repeatX = 100, repeatY = 100, options = {}) {
         const groundConfig = {
             // Répétition de texture pour couvrir une grande surface
             textureRepeat: {
@@ -979,20 +979,20 @@ class TextureManager {
         // Appliquer la configuration spéciale au sol
         this.setMaterialProperties('Ground', {
             // Améliorer le rendu à distance
-            roughness: options.roughness || 0.8,
-            metalness: options.metalness || 0.0,
-            envMapIntensity: options.envMapIntensity || 0.2,
+            roughness: 1.8,
+            metalness: 0.0,
+            envMapIntensity: 0.05,
 
             // Optimisations pour les grandes surfaces
-            flatShading: false,  // Ombrage lisse
-            side: DoubleSide,   // Double face si nécessaire
+            flatShading: true,  // Ombrage lisse
+            side: FrontSide,   // Double face si nécessaire
 
             // Configuration pour les ombres
             shadowSide: FrontSide,
 
             // Améliorer la qualité visuelle
-            aoIntensity: options.aoIntensity || 1.0,
-            normalScale: options.normalScale || new Vector2(1.5, 1.5)
+            aoIntensity: 0.05,
+            normalScale: new Vector2(0.1, 0.1)
         });
 
         return groundConfig;
