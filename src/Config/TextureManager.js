@@ -873,6 +873,12 @@ class TextureManager {
         this.addTextureMapping('VisonDead', 'primary', null, {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
         });
+        this.addTextureMapping('Vison', 'primary', null, {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
+        });
+        this.addTextureMapping('VisonRun', 'primary', null, {
+            roughness: 1.0, metalness: 0.0, envMapIntensity: 0.0, color: "#ababab",
+        });
         // Définition des groupes de matériaux pour la fusion
         this.defineMaterialGroups();
     }

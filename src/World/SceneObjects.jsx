@@ -634,8 +634,6 @@ export const StaticObject = React.memo(function StaticObject({
                 action.timeScale = timeScale;
                 action.clampWhenFinished = shouldClamp;
 
-                // CRITIQUE: S'assurer que tous les tracks de l'animation sont activés
-                // (position, rotation, scale, morphTargets, etc.)
                 if (action._clip && action._clip.tracks) {
                     console.log(`🎵 Animation tracks détectés:`, action._clip.tracks.map(track => ({
                         name: track.name,
@@ -646,7 +644,6 @@ export const StaticObject = React.memo(function StaticObject({
 
                     // NOUVEAU: Validation et optimisation des tracks
                     let hasPositionTrack = false;
-                    let hasRotationTrack = false;
                     let hasMorphTargets = false;
 
                     action._clip.tracks.forEach(track => {
@@ -672,10 +669,6 @@ export const StaticObject = React.memo(function StaticObject({
                                 console.log(`📍 Position fin: [${endPos.map(v => v.toFixed(2)).join(', ')}]`);
                             }
                         }
-                        else if (track.name.includes('.rotation') || track.name.includes('.quaternion')) {
-                            hasRotationTrack = true;
-                            console.log(`✅ Track de rotation activé: ${track.name} (${track.times.length} keyframes)`);
-                        }
                         else if (track.name.includes('.scale')) {
                             console.log(`✅ Track de scale activé: ${track.name}`);
                         }
@@ -689,12 +682,11 @@ export const StaticObject = React.memo(function StaticObject({
                     });
 
                     // VALIDATION: S'assurer qu'on a les tracks nécessaires
-                    if (!hasPositionTrack && !hasRotationTrack) {
+                    if (!hasPositionTrack) {
                         console.warn(`⚠️ Animation "${animationName}" sans déplacement ni rotation détecté`);
                     } else {
                         console.log(`🎬 Animation complète détectée:`, {
                             deplacement: hasPositionTrack,
-                            rotation: hasRotationTrack,
                             morphing: hasMorphTargets,
                             totalTracks: action._clip.tracks.length
                         });

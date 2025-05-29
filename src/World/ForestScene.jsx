@@ -61,7 +61,7 @@ INSTRUCTIONS DE CONTRÔLE:
         <>
             {/*{mapComponent}*/}
             {/*{(GuiConfig.visualization.showInstances.default) ? forestComponent : null}*/}
-            {forestComponent}
+            {/*{forestComponent}*/}
             {waterComponent}
         </>
     );

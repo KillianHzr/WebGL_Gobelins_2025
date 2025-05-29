@@ -45,7 +45,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.02;
+const MAX_SCROLL_SPEED = 0.2;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.005;
 const BASE_SENSITIVITY = 0.05;
@@ -270,8 +270,8 @@ function CameraController({children}) {
                     timelineLength: timelineLengthRef.current
                 });
 
-                const VISON_TRIGGER = 0.01;
-                const SCREEN_TRIGGER = 0.025; //VisonRun
+                const VISON_TRIGGER = 0.6;
+                const SCREEN_TRIGGER = 0.22; //VisonRun
 
                 if (normalizedPosition >= VISON_TRIGGER && !visonTriggeredRef.current) {
                     console.log("🦡 Déclenchement animation Vison à la position:", normalizedPosition);
