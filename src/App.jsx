@@ -342,6 +342,8 @@ export default function App() {
         };
 
         window.forceReloadCamera = forceReloadCamera;
+
+        window.useStore = useStore;
     }, []);
 
     const onAssetsReady = () => {
