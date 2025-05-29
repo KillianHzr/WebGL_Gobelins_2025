@@ -4,7 +4,7 @@ import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
 import {DirectionalLight, DirectionalLightHelper, CameraHelper} from "three";
 import * as THREE from 'three';
-import {EventBus} from "../Utils/EventEmitter.jsx"; // Ajout de l'import
+import {EventBus} from "../Utils/EventEmitter.jsx";
 
 // Configuration centralisée des lumières
 export const LightConfig = {
@@ -75,6 +75,10 @@ export default function Lights() {
     const shadowCameraHelperRef = useRef();
     const guiInitializedRef = useRef(false);
 
+    // États pour la synchronisation
+    const [cameraReady, setCameraReady] = useState(false);
+    const [lightsInitialized, setLightsInitialized] = useState(false);
+
     // État pour le mode nuit forcé (override)
     const [forcedNightMode, setForcedNightMode] = useState(false);
 
@@ -113,9 +117,68 @@ export default function Lights() {
         shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
-
-    // Écouter l'événement de position normalisée de la timeline
+    // Écouter l'initialisation de la caméra
     useEffect(() => {
+        console.log('💡 Lights: Setting up camera initialization listener');
+
+        const handleCameraInitialized = (data) => {
+            console.log('💡 Lights: Camera initialized, starting lights system');
+            setCameraReady(true);
+        };
+
+        // S'abonner à l'événement d'initialisation de la caméra
+        const cameraInitSubscription = EventBus.on('camera-initialized', handleCameraInitialized);
+
+        // Vérifier immédiatement si la caméra est déjà prête
+        const immediateCheck = setTimeout(() => {
+            if (!cameraReady) {
+                console.log('💡 Lights: Checking if camera is already ready...');
+                // Vérifier si l'état de la caméra dans le store indique qu'elle est prête
+                const store = useStore.getState();
+                if (store.cameraModel || camera) {
+                    console.log('💡 Lights: Camera seems ready from store, proceeding');
+                    setCameraReady(true);
+                }
+            }
+        }, 2000);
+
+        // Timeout de sécurité au cas où l'événement ne serait jamais déclenché
+        const safetyTimeout = setTimeout(() => {
+            if (!cameraReady) {
+                console.warn('💡 Lights: Camera initialization timeout, starting lights anyway');
+                setCameraReady(true);
+            }
+        }, 8000); // 8 secondes maximum
+
+        return () => {
+            cameraInitSubscription();
+            clearTimeout(safetyTimeout);
+            clearTimeout(immediateCheck);
+        };
+    }, [cameraReady]);
+
+    // Initialiser le système d'éclairage une fois que la caméra est prête
+    useEffect(() => {
+        if (!cameraReady || lightsInitialized) return;
+
+        console.log('💡 Initializing lights system...');
+
+        // Marquer comme initialisé
+        setLightsInitialized(true);
+
+        // Notifier que le système d'éclairage est prêt
+        EventBus.trigger('lights-initialized', {
+            ready: true,
+            currentMode: activeMode
+        });
+
+        console.log('💡 Lights system initialized and ready');
+    }, [cameraReady, lightsInitialized, activeMode]);
+
+    // Écouter l'événement de position normalisée de la timeline seulement si tout est initialisé
+    useEffect(() => {
+        if (!lightsInitialized) return;
+
         const handleTimelinePositionUpdate = (data) => {
             setNormalizedPosition(data.position);
         };
@@ -123,14 +186,18 @@ export default function Lights() {
         // S'abonner à l'événement
         const subscription = EventBus.on('timeline-position-normalized', handleTimelinePositionUpdate);
 
+        console.log('💡 Lights: Listening for timeline position updates');
+
         // Nettoyage
         return () => {
             subscription();
         };
-    }, []);
+    }, [lightsInitialized]);
 
     // Gérer le changement de mode nuit forcé
     useEffect(() => {
+        if (!lightsInitialized) return;
+
         if (forcedNightMode) {
             // Appliquer directement les valeurs du mode nuit
             const nightConfig = LightConfig.modes.night;
@@ -158,10 +225,9 @@ export default function Lights() {
 
         // Forcer une mise à jour des lumières
         lightSettingsRef.current.needsUpdate = true;
-    }, [forcedNightMode]);
+    }, [forcedNightMode, lightsInitialized]);
 
     // Fonction pour calculer le facteur de transition en fonction de la position normalisée
-    // Cette fonction utilise une courbe plus naturelle avec plusieurs étapes
     const calculateTransitionFactor = (position) => {
         const {
             startDayToTransition1,
@@ -171,19 +237,14 @@ export default function Lights() {
         } = LightConfig.transitionThresholds;
 
         if (position < startDayToTransition1) {
-            // Jour complet (0)
             return 0;
         } else if (position >= completeNight) {
-            // Nuit complète (1)
             return 1;
         } else if (position >= startTransition2ToNight) {
-            // Transition2 -> Nuit (0.66 -> 1.0)
             return 0.66 + 0.34 * (position - startTransition2ToNight) / (completeNight - startTransition2ToNight);
         } else if (position >= startTransition1ToTransition2) {
-            // Transition1 -> Transition2 (0.33 -> 0.66)
             return 0.33 + 0.33 * (position - startTransition1ToTransition2) / (startTransition2ToNight - startTransition1ToTransition2);
         } else {
-            // Jour -> Transition1 (0 -> 0.33)
             return 0.33 * (position - startDayToTransition1) / (startTransition1ToTransition2 - startDayToTransition1);
         }
     };
@@ -301,8 +362,9 @@ export default function Lights() {
 
     // Mettre à jour l'éclairage lorsque la position normalisée change
     useEffect(() => {
+        if (!lightsInitialized) return;
         updateLightingBasedOnPosition(normalizedPosition);
-    }, [normalizedPosition]);
+    }, [normalizedPosition, lightsInitialized]);
 
     // Lissage supplémentaire pour éviter les changements brusques
     const smoothedLightRef = useRef({
@@ -315,6 +377,8 @@ export default function Lights() {
 
     // Effet pour la mise à jour fluide des lumières avec animation
     useEffect(() => {
+        if (!lightsInitialized) return;
+
         let frameId;
         const smoothingFactor = 0.05; // Plus petit = transition plus lente
 
@@ -370,12 +434,11 @@ export default function Lights() {
         return () => {
             cancelAnimationFrame(frameId);
         };
-    }, []);
+    }, [lightsInitialized]);
 
     // Ajouter cet useEffect dans Lights.jsx pour écouter les événements GUI
-
     useEffect(() => {
-        if (!debug?.active) return;
+        if (!debug?.active || !lightsInitialized) return;
 
         console.log('Lights listening for GUI events');
 
@@ -556,11 +619,11 @@ export default function Lights() {
                 }
             });
         };
-    }, [debug, normalizedPosition, updateLightingBasedOnPosition]);
+    }, [debug, normalizedPosition, updateLightingBasedOnPosition, lightsInitialized]);
 
-// Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
+    // Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
     useEffect(() => {
-        if (!debug?.active) return;
+        if (!debug?.active || !lightsInitialized) return;
 
         // Envoyer les valeurs actuelles au GUI toutes les 100ms
         const interval = setInterval(() => {
@@ -577,11 +640,11 @@ export default function Lights() {
         }, 100);
 
         return () => clearInterval(interval);
-    }, [debug, activeMode, normalizedPosition, transitionFactor]);
+    }, [debug, activeMode, normalizedPosition, transitionFactor, lightsInitialized]);
 
-// Ajouter des logs de diagnostic
+    // Ajouter des logs de diagnostic
     useEffect(() => {
-        if (!debug?.active) return;
+        if (!debug?.active || !lightsInitialized) return;
 
         console.log('=== LIGHTS DEBUG DIAGNOSTICS ===');
         console.log('Current mode:', activeMode);
@@ -590,7 +653,12 @@ export default function Lights() {
         console.log('Forced night mode:', forcedNightMode);
         console.log('Active values:', activeValues);
         console.log('Light settings:', lightSettingsRef.current);
-    }, [debug, activeMode, normalizedPosition, transitionFactor, forcedNightMode, activeValues]);
+    }, [debug, activeMode, normalizedPosition, transitionFactor, forcedNightMode, activeValues, lightsInitialized]);
+
+    // Ne rendre les lumières que si le système est prêt
+    if (!lightsInitialized) {
+        return null;
+    }
 
     return (
         <>

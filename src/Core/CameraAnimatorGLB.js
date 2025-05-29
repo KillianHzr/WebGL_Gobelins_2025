@@ -34,7 +34,7 @@ export class CameraAnimatorGLB {
             enabled: true,
             mouseX: 0.5, // Position normalisée (0-1)
             mouseY: 0.5, // Position normalisée (0-1)
-            maxRotationX: Math.PI / 16  , // 22.5° vertical
+            maxRotationX: Math.PI / 16, // 22.5° vertical
             maxRotationY: Math.PI / 9, // 22.5° horizontal
             smoothing: 0.02, // Facteur de lissage
             currentOffsetX: 0, // Rotation actuelle X
@@ -47,6 +47,8 @@ export class CameraAnimatorGLB {
         // Initialiser les animations si disponibles
         this.initializeAnimation();
     }
+
+
 
     /**
      * Initialise le système de suivi de la souris
@@ -73,7 +75,6 @@ export class CameraAnimatorGLB {
         // Ajouter l'écouteur global
         if (typeof window !== 'undefined') {
             window.addEventListener('mousemove', handleMouseMove);
-
             // Stocker la référence pour le nettoyage
             this.mouseMoveHandler = handleMouseMove;
         }
