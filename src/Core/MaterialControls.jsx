@@ -1804,7 +1804,7 @@ export default function MaterialControls() {
             } catch (error) {
                 console.error("Error initializing material controls:", error);
             }
-        }, 1000); // Délai d'initialisation
+        }, 10000); // Délai d'initialisation
 
         // Nettoyage
         return () => {

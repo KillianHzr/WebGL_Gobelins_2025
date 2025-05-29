@@ -93,10 +93,6 @@ class TextureManager {
         // Valeurs par défaut COMPLÈTES pour les propriétés de matériaux
         // Incluant TOUTES les propriétés Basic et PBR configurables
         this.defaultMaterialProperties = {
-            roughness: 0.8,
-            metalness: 0.1,
-            envMapIntensity: 0.8,
-            aoIntensity: 0.5,
             // ===== BASIC PROPERTIES =====
             // Couleur de base
             color: '#ffffff',
@@ -118,7 +114,7 @@ class TextureManager {
             aoIntensity: 0.0,
 
             // Normal mapping
-            normalScale: 1.0,
+            normalScale: new Vector2(1.0, 1.0),
 
             // Displacement
             displacementScale: 0.0, displacementBias: 0.0,

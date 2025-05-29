@@ -13,7 +13,6 @@ import {
     Object3D,
     Vector2, AgXToneMapping, NeutralToneMapping
 } from 'three';
-import guiConfig from "../Config/guiConfig.js";
 import GuiConfig from "../Config/guiConfig.js";
 
 export default function PostProcessing() {
