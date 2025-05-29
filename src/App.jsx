@@ -14,7 +14,8 @@ import MainLayout from './Utils/MainLayout'
 import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 import RandomSoundDebugger from './Utils/RandomSoundDebugger';
-import CustomCursor from './Utils/CustomCursor'; // Add this import
+import CustomCursor from './Utils/CustomCursor';
+import ScrollIndicator from './Utils/ScrollIndicator.jsx';
 
 export default function App() {
     const { loaded, setLoaded, endingLandingVisible, debug } = useStore()
@@ -341,6 +342,8 @@ export default function App() {
         };
 
         window.forceReloadCamera = forceReloadCamera;
+
+        window.useStore = useStore;
     }, []);
 
     const onAssetsReady = () => {
@@ -468,7 +471,7 @@ export default function App() {
     // Handle the "learn more" button click in ending landing
     const handleLearnMore = () => {
         // Open the Gobelins website in a new tab
-        window.open('https://www.gobelins.fr/', '_blank');
+        window.open('https://www.laquadrature.net/donner/', '_blank');
     };
 
     // Show MainLayout when loading is complete (on landing page)
@@ -513,6 +516,7 @@ export default function App() {
                     <CaptureInterface />
                     <ScannerInterface />
                     <ImageInterface />
+                    <ScrollIndicator />
                 </>
             )}
 

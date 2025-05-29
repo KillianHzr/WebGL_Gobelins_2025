@@ -6,8 +6,8 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: #0C0C0C;
-  z-index: 7999;
+  background: #000B04;
+  z-index: 8001;
   opacity: 0;
   overflow-y: scroll;
   overflow-x: hidden;
@@ -43,44 +43,37 @@
   }
 }
 
-/* Block 1 - Project Introduction */
-.ending-project-message {
-  font-family: "Albert Sans";
-  font-size: 18px;
-  font-weight: 400;
-  font-style: italic;
-  line-height: normal;
-  color: #F9FEFF;
-  text-align: center;
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-}
-
-.ending-project-logo {
-  width: 100%;
-  max-width: 420px;
-
-  img {
-    width: 100%;
-    height: auto;
+/* Messages Block - Special styling for the new messages system */
+.ending-messages-block {
+  .ending-block-content {
+    position: relative;
   }
 }
 
-.ending-project-legend {
-  font-family: "Albert Sans";
-  line-height: 1.5;
-  color: #F9FEFF;
-  text-align: center;
+.ending-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 100%;
-  font-size: 24px;
-  font-weight: 600;
-  margin-top: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0; /* Start hidden */
+  pointer-events: none;
+
+  strong {
+    font-weight: 800;
+  }
+
+  &.active {
+    pointer-events: auto;
+  }
 }
 
-/* Text containers for blocks 2, 3, and 4 */
+/* Text containers for messages */
 .ending-text-container {
   display: flex;
   flex-direction: column;
@@ -88,10 +81,11 @@
   align-items: center;
   gap: 24px;
   z-index: 2;
+  position: relative;
 }
 
 .ending-text {
-  font-family: "Albert Sans";
+  font-family: "Articulat CF";
   font-size: 16px;
   font-style: italic;
   font-weight: 400;
@@ -104,7 +98,7 @@
   }
 }
 
-/* Assets for blocks 2, 3, and 4 */
+/* Assets for messages */
 .ending-asset {
   position: absolute;
   top: 50%;
@@ -127,25 +121,36 @@
 }
 
 .third-asset {
-  transform: translateY(-130%);
-  right: 40px !important;
+  transform: rotateY(180deg) !important;
+  left: 0 !important;
+  right: unset !important;
+  bottom: 0 !important;
+  top: unset !important;
+
+  img {
+    transform: unset !important;
+  }
 }
 
 .fourth-asset {
-  transform: translateY(60%);
+  transform: translateY(10%);
 }
 
 .ending-asset-right {
-  right: 0;
+  right: -40px;
 }
 
 .ending-asset-left {
   left: 0;
 }
 
-/* Block 5 - Call to Action */
+/* Call to Action Block */
 .ending-landing-school-logo {
-  width: 420px;
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
   height: auto;
   margin-bottom: 50px;
   animation: fadeIn 1s ease-in;
@@ -157,10 +162,10 @@
 }
 
 .ending-landing-cta {
-  font-family: "Albert Sans";
+  font-family: "Articulat CF";
   font-size: 16px;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
   line-height: normal;
   background: transparent;
   color: #F9FEFF;
@@ -181,7 +186,7 @@
   }
 }
 
-/* Block 6 - Credits */
+/* Credits Block */
 .ending-credits-container {
   display: flex;
   flex-direction: column;
@@ -204,6 +209,10 @@
 }
 
 .ending-credits {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -220,9 +229,9 @@
 }
 
 .ending-credits-name {
-  font-family: "Albert Sans";
+  font-family: "Articulat CF";
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   font-style: italic;
   color: #F9FEFF;
   text-align: center;
@@ -233,7 +242,7 @@
   line-height: 1;
 
   .line-2 & {
-    font-weight: 300;
+    font-weight: 200;
   }
 
   &:not(:last-child)::after {
@@ -242,7 +251,7 @@
     right: 0;
     top: 50%;
     transform: translateY(-50%);
-    height: 15px;
+    height: 23px;
     width: 1px;
     background-color: #F9FEFF;
   }
@@ -278,74 +287,53 @@
   }
 }
 
-/* Scroll indicator styles */
+/* Remove scroll indicators since we don't use them anymore in the messages block */
 .scroll-indicator {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9000;
-  text-align: center;
-  color: #F9FEFF;
-  font-family: "Albert Sans";
-  opacity: 1;
-  transition: opacity 0.3s ease;
+  display: none;
 }
 
-/* Custom animated arrow */
-.custom-arrow {
-  position: relative;
-  height: 36px;
-  width: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  /* Removed bounce animation from here */
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ending-text {
+    font-size: 14px;
+    gap: 20px;
+  }
+
+  .ending-landing-school-logo {
+    width: 300px;
+    margin-bottom: 40px;
+  }
+
+  .ending-asset {
+    img {
+      max-width: 80%;
+    }
+  }
+
+  .third-asset {
+    right: 20px !important;
+  }
 }
 
-/* Add bounce animation only when active (arrow state) */
-.custom-arrow.active {
-  animation: bounce 3s infinite;
-  animation-delay: 1s; /* Start bouncing 1s after transformation */
-}
+@media (max-width: 480px) {
+  .ending-text {
+    font-size: 13px;
+    gap: 16px;
+  }
 
-.arrow-line {
-  position: absolute;
-  height: 2px;
-  width: 20px;
-  background-color: #F9FEFF;
-  border-radius: 1px;
-  transition: transform 0.4s ease-out;
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
-}
+  .ending-text-container {
+    gap: 20px;
+    padding: 0 20px;
+  }
 
-.line-left, .line-right {
-  top: 50%;
-  left: 50%;
-  transform-origin: center;
-}
+  .ending-landing-school-logo {
+    width: 250px;
+    margin-bottom: 30px;
+  }
 
-/* Line state (during scrolling) */
-.line-left {
-  transform: translate(-50%, -50%) rotate(0deg) translateX(-6px);
-}
-
-.line-right {
-  transform: translate(-50%, -50%) rotate(0deg) translateX(6px);
-}
-
-/* Arrow state (when scrolling is allowed) */
-.custom-arrow.active .line-left {
-  transform: translate(-50%, -50%) rotate(45deg) translateX(-2px) translateY(8px);
-}
-
-.custom-arrow.active .line-right {
-  transform: translate(-50%, -50%) rotate(-45deg) translateX(2px) translateY(8px);
-}
-
-/* Keep bounce animation */
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
+  .ending-asset {
+    img {
+      max-width: 70%;
+    }
+  }
 }

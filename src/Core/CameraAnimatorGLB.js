@@ -56,6 +56,11 @@ export class CameraAnimatorGLB {
         const handleMouseMove = (event) => {
             if (!this.mouseLook.enabled) return;
 
+            // Vérifier si une interface est active et désactiver le mouse look
+            if (this.isAnyInterfaceActive()) {
+                return;
+            }
+
             // Normaliser les coordonnées de la souris (0-1)
             this.mouseLook.mouseX = event.clientX / window.innerWidth;
             this.mouseLook.mouseY = event.clientY / window.innerHeight;
@@ -75,11 +80,61 @@ export class CameraAnimatorGLB {
     }
 
     /**
+     * Vérifie si l'une des interfaces est actuellement active
+     */
+    isAnyInterfaceActive() {
+        // Vérifier si useStore est disponible globalement
+        if (typeof window !== 'undefined' && window.useStore) {
+            try {
+                const state = window.useStore.getState();
+                const interaction = state.interaction;
+
+                return (
+                    interaction?.showCaptureInterface ||
+                    interaction?.showScannerInterface ||
+                    interaction?.showImageInterface
+                );
+            } catch (error) {
+                // En cas d'erreur, ne pas bloquer le mouse look
+                return false;
+            }
+        }
+
+        // Fallback : essayer d'importer useStore dynamiquement
+        try {
+            // Si on ne peut pas accéder au store, ne pas bloquer le mouse look
+            return false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
      * Calcule les offsets de rotation basés sur la position de la souris
      */
     calculateMouseLookOffsets() {
         if (!this.mouseLook.enabled) {
             return { offsetX: 0, offsetY: 0 };
+        }
+
+        // Vérifier si une interface est active
+        if (this.isAnyInterfaceActive()) {
+            // Réduire progressivement les offsets pour une transition fluide
+            this.mouseLook.currentOffsetX *= 0.9;
+            this.mouseLook.currentOffsetY *= 0.9;
+
+            // Si les offsets sont très petits, les mettre à zéro
+            if (Math.abs(this.mouseLook.currentOffsetX) < 0.001) {
+                this.mouseLook.currentOffsetX = 0;
+            }
+            if (Math.abs(this.mouseLook.currentOffsetY) < 0.001) {
+                this.mouseLook.currentOffsetY = 0;
+            }
+
+            return {
+                offsetX: this.mouseLook.currentOffsetX,
+                offsetY: this.mouseLook.currentOffsetY
+            };
         }
 
         const targetOffsetY = -((this.mouseLook.mouseX - 0.5) * 2 * this.mouseLook.maxRotationY);
