@@ -16,9 +16,9 @@ class BonusSoundsManager {
         this.currentScrollProgress = 0; // 0-1
 
         // Configuration des timers
-        this.SCROLL_TIMEOUT = 3000; // 3 secondes
-        this.MIN_SOUND_INTERVAL = 10000; // 10 secondes minimum entre sons
-        this.MIN_TIME_AFTER_INTERACTION = 5000; // 5 secondes après interaction
+        this.SCROLL_TIMEOUT = 5000; // 5 secondes
+        this.MIN_SOUND_INTERVAL = 15000; // 15 secondes minimum entre sons
+        this.MIN_TIME_AFTER_INTERACTION = 7000; // 7 secondes après interaction
         this.NATURE_DIGITAL_THRESHOLD = 0.6; // 60% pour passer en digital
 
         // État des sons
