@@ -906,7 +906,7 @@ export default function Forest() {
 
         // 2. ENSUITE configurer l'émission avec des paramètres optimisés
         textureManager.setEmissiveConfig({
-            color: 0x00ffff,      // Cyan brillant
+            color: 0xffffff,      // Cyan brillant
             intensity: 2.5,       // Intensité élevée
             useTexture: true,     // Utiliser la texture comme base
             forceOverride: true   // Forcer l'écrasement

@@ -47,7 +47,7 @@ class TextureManager {
 
         // Configuration par défaut pour les émissions
         this.emissiveConfig = {
-            color: 0xffffff, intensity: 1.5, useTexture: true, emissiveMap: null, forceOverride: true
+            color: 0xffffff, intensity: 2.5, useTexture: false, emissiveMap: null, forceOverride: false
         };
 
         // Gestion des instances et statistiques
@@ -901,41 +901,85 @@ class TextureManager {
             receivedShadow: true,
         });
         this.addTextureMapping('Screen', 'digital/screen', 'Screen', {
-            roughness: 0.2,
-            metalness: 0.8,
-            envMapIntensity: 0.3,
+            // roughness: 0.2,
+            // metalness: 0.8,
+            // envMapIntensity: 0.3,
+            color: '#000000',
+            // normalScale: new Vector2(1.0, 1.0),
+            // castShadow: true,
+            // receiveShadow: true,
+            useTextures: {
+                baseColor: false,
+                normal: true,
+                roughness: true,
+                metalness: true,
+                ao: false,             // Pas d'occlusion ambiante
+                envMap: false,         // Utiliser la carte d'environnement
+                emissiveMap: false,   // Pas d'émission par défaut
+                height: false,        // Pas de carte de hauteur
+                alpha: false,         // Pas d'alpha
+                opacity: false,       // Pas d'opacité
+                displacementMap: false,// Pas de déplacement
+                bumpMap: false,       // Utiliser normal au lieu de bump
+                lightMap: false,      // Pas de lightmap
+                clearcoatMap: false,  // Pas de vernis
+                transmissionMap: false,// Pas de transmission
+                sheenColorMap: false, // Pas de brillance
+                specularMap: false,    // Carte spéculaire si disponible
+                matcap: false         // Pas de MatCap
+            }
+        });
+
+        // // Validation et préchargement immédiat des textures Screen
+        // this.validateScreenTexturePaths().then(isValid => {
+        //     if (isValid) {
+        //         console.log("Chemins de texture Screen validés, préchargement...");
+        //         return this.preloadTexturesForModel('Screen');
+        //     } else {
+        //         throw new Error("Chemins de texture Screen invalides");
+        //     }
+        // }).then(textures => {
+        //     if (textures) {
+        //         console.log('Textures Screen préchargées avec succès:', Object.keys(textures));
+        //
+        //         // Vérifier que les textures critiques sont présentes
+        //         const criticalTextures = ['baseColor', 'normal', 'normalOpenGL', 'roughness', 'metalness'];
+        //         const availableTextures = Object.keys(textures);
+        //         const missingTextures = criticalTextures.filter(key => !availableTextures.includes(key));
+        //
+        //         if (missingTextures.length > 0) {
+        //             console.warn('Textures manquantes pour Screen:', missingTextures);
+        //         } else {
+        //             console.log('✅ Toutes les textures critiques Screen sont disponibles');
+        //         }
+        //     }
+        // }).catch(error => {
+        //     console.error('❌ Erreur lors de la validation/préchargement des textures Screen:', error);
+        // });
+
+        this.addTextureMapping('ScreenEmission', 'digital/screen', 'Screen', {
+            // Propriétés optimisées pour l'émission
+            roughness: 0.8,           // Plus rugueux pour réduire les reflets
+            metalness: 0.2,           // Moins métallique
+            envMapIntensity: 0.0,     // Pas de reflets environnementaux
             color: '#1a1a1a',
             normalScale: new Vector2(1.0, 1.0),
             castShadow: true,
             receiveShadow: true,
+
+            // Optimisations pour l'émission
+            emissiveIntensity: 3.0,   // Intensité émissive plus élevée
+
+            useTextures: {
+                baseColor: true,
+                normal: false,          // Désactiver la normale pour plus d'émission
+                roughness: false,       // Utiliser la valeur fixe
+                metalness: false,       // Utiliser la valeur fixe
+                ao: false,             // Pas d'occlusion ambiante
+                envMap: false          // Pas de carte d'environnement
+            }
         });
 
-        // Validation et préchargement immédiat des textures Screen
-        this.validateScreenTexturePaths().then(isValid => {
-            if (isValid) {
-                console.log("Chemins de texture Screen validés, préchargement...");
-                return this.preloadTexturesForModel('Screen');
-            } else {
-                throw new Error("Chemins de texture Screen invalides");
-            }
-        }).then(textures => {
-            if (textures) {
-                console.log('Textures Screen préchargées avec succès:', Object.keys(textures));
-
-                // Vérifier que les textures critiques sont présentes
-                const criticalTextures = ['baseColor', 'normal', 'normalOpenGL', 'roughness', 'metalness'];
-                const availableTextures = Object.keys(textures);
-                const missingTextures = criticalTextures.filter(key => !availableTextures.includes(key));
-
-                if (missingTextures.length > 0) {
-                    console.warn('Textures manquantes pour Screen:', missingTextures);
-                } else {
-                    console.log('✅ Toutes les textures critiques Screen sont disponibles');
-                }
-            }
-        }).catch(error => {
-            console.error('❌ Erreur lors de la validation/préchargement des textures Screen:', error);
-        });
         this.addTextureMapping('ScreenOld', 'digital/screen', null, {
             roughness: 1.0,
             metalness: 1.0,
@@ -967,8 +1011,8 @@ class TextureManager {
         this.addTextureMapping('DirectionPanelBoard', 'primary', null, {
             roughness: 0.8,
             metalness: 0.1,
-            envMapIntensity: 0.05,
-            color: "#3b1e02",
+            envMapIntensity: 0.00,
+            color: "#251201",
             castShadow: true,
             receivedShadow: true,
         });

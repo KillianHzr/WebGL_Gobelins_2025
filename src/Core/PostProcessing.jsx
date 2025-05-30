@@ -23,9 +23,9 @@ export default function PostProcessing() {
     const postProcessingGroupRef = useRef(null);
     const bloomSettingsRef = useRef({
         enabled: true,
-        strength: 0.67,
-        radius: 0.15,
-        threshold: 0.33
+        strength: 0.4,
+        radius: 0.0,
+        threshold: 1.0
     });
 
     useEffect(() => {
