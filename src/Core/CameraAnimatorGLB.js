@@ -81,7 +81,7 @@ export class CameraAnimatorGLB {
     }
 
     /**
-     * Vérifie si l'une des interfaces est actuellement active
+     * Vérifie si l'une des interfaces est actuellement active OU si une interaction est en cours
      */
     isAnyInterfaceActive() {
         // Vérifier si useStore est disponible globalement
@@ -90,13 +90,27 @@ export class CameraAnimatorGLB {
                 const state = window.useStore.getState();
                 const interaction = state.interaction;
 
-                return (
+                // Vérifier les interfaces ouvertes
+                const interfacesOpen = (
                     interaction?.showCaptureInterface ||
                     interaction?.showScannerInterface ||
-                    interaction?.showImageInterface
+                    interaction?.showImageInterface ||
+                    interaction?.showBlackscreenInterface
                 );
+
+                // Vérifier si une interaction est en cours
+                const interactionInProgress = (
+                    interaction?.waitingForInteraction ||  // En attente d'une interaction utilisateur
+                    !interaction?.allowScroll ||           // Le scroll est désactivé (souvent pendant interactions)
+                    interaction?.currentStep !== null      // Une étape d'interaction est active
+                );
+
+                // Désactiver le mouse look si interface ouverte OU interaction en cours
+                return interfacesOpen || interactionInProgress;
+
             } catch (error) {
                 // En cas d'erreur, ne pas bloquer le mouse look
+                console.warn('Erreur lors de la vérification de l\'état des interfaces/interactions:', error);
                 return false;
             }
         }
@@ -118,8 +132,10 @@ export class CameraAnimatorGLB {
             return { offsetX: 0, offsetY: 0 };
         }
 
-        // Vérifier si une interface est active
-        if (this.isAnyInterfaceActive()) {
+        // Vérifier si une interface ou interaction est active
+        const shouldDisable = this.isAnyInterfaceActive();
+
+        if (shouldDisable) {
             // Réduire progressivement les offsets pour une transition fluide
             this.mouseLook.currentOffsetX *= 0.9;
             this.mouseLook.currentOffsetY *= 0.9;
@@ -138,6 +154,7 @@ export class CameraAnimatorGLB {
             };
         }
 
+        // Calcul normal des offsets basé sur la position de la souris
         const targetOffsetY = -((this.mouseLook.mouseX - 0.5) * 2 * this.mouseLook.maxRotationY);
         const targetOffsetX = -((this.mouseLook.mouseY - 0.5) * 2 * this.mouseLook.maxRotationX);
 

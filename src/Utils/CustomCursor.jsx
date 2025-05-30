@@ -180,7 +180,10 @@ const CustomCursor = () => {
                 '.camera-viewport-zoom-indicator',
                 '.camera-viewport-zoom-plus',
                 '.camera-viewport-zoom-minus',
-                '.image-interface-hold-button'
+                '.image-interface-hold-button',
+                '.marker-drag',
+                '.marker-button',
+                ''
             ];
 
             const isStillInteractive = interactiveSelectors.some(selector => {
