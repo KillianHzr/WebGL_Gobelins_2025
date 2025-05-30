@@ -386,7 +386,7 @@ class TemplateManager {
 
             'Screen001_1': {
                 id: 'Screen',
-                path: '/models/digital/screen/Screen.glb',
+                path: '/models/digital/screen/screentest.glb',
                 priority: 22,
                 useTextures: true,
                 group: 'screen'
@@ -402,7 +402,7 @@ class TemplateManager {
 
             'Cube001_3': {
                 id: 'ScreenEmission',
-                path: '/models/digital/screen/ScreenEmission.glb',
+                path: '/models/digital/screen/ScreenEmission_.glb',
                 priority: 22,
                 useTextures: false,
                 group: 'screen'
