@@ -5,6 +5,7 @@ const FollowingEyes = ({ className = "", variant = "normal" }) => {
     const leftPupilRef = useRef(null);
     const rightPupilRef = useRef(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [isHoveringButton, setIsHoveringButton] = useState(false);
 
     useEffect(() => {
         const handleMouseMove = (e) => {
@@ -13,6 +14,54 @@ const FollowingEyes = ({ className = "", variant = "normal" }) => {
 
         document.addEventListener('mousemove', handleMouseMove);
         return () => document.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+    // Effect to handle button hover for brightness effect
+    useEffect(() => {
+        const handleButtonHover = (isHovering) => {
+            setIsHoveringButton(isHovering);
+        };
+
+        const setupButtonListeners = () => {
+            const button = document.querySelector('.ending-landing-cta');
+            if (button) {
+                const onMouseEnter = () => handleButtonHover(true);
+                const onMouseLeave = () => handleButtonHover(false);
+
+                button.addEventListener('mouseenter', onMouseEnter);
+                button.addEventListener('mouseleave', onMouseLeave);
+
+                return () => {
+                    button.removeEventListener('mouseenter', onMouseEnter);
+                    button.removeEventListener('mouseleave', onMouseLeave);
+                };
+            }
+            return null;
+        };
+
+        // Setup listeners immediately if button exists
+        let cleanup = setupButtonListeners();
+
+        // If button doesn't exist yet, set up a MutationObserver to wait for it
+        if (!cleanup) {
+            const observer = new MutationObserver(() => {
+                if (!cleanup) {
+                    cleanup = setupButtonListeners();
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            return () => {
+                observer.disconnect();
+                if (cleanup) cleanup();
+            };
+        }
+
+        return cleanup;
     }, []);
 
     useEffect(() => {
@@ -65,6 +114,22 @@ const FollowingEyes = ({ className = "", variant = "normal" }) => {
 
     }, [mousePos, variant]);
 
+    const getSVGStyle = () => {
+        const baseStyle = { width: '100%', height: 'auto' };
+        if (isHoveringButton) {
+            return {
+                ...baseStyle,
+                filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) brightness(1.2)',
+                transition: 'filter 0.3s ease'
+            };
+        }
+        return {
+            ...baseStyle,
+            filter: 'none',
+            transition: 'filter 0.3s ease'
+        };
+    };
+
     const renderNormalSVG = () => (
         <svg
             ref={svgRef}
@@ -73,7 +138,7 @@ const FollowingEyes = ({ className = "", variant = "normal" }) => {
             viewBox="0 0 134 40"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ width: '100%', height: 'auto' }}
+            style={getSVGStyle()}
         >
             <g clipPath="url(#clip0_2818_5309)">
                 {/* Left Eye (white part) */}
@@ -126,7 +191,7 @@ const FollowingEyes = ({ className = "", variant = "normal" }) => {
             viewBox="0 0 134 40"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ width: '100%', height: 'auto' }}
+            style={getSVGStyle()}
         >
             <g clipPath="url(#clip0_2818_5310)">
                 {/* Right Eye (white part) - was oeil 2 */}
