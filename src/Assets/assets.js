@@ -92,22 +92,6 @@ const baseAssets = [
         author: 'Author',
         url: ''
     },
-    {
-        name: 'TrunkLargeInteractive',
-        type: 'gltf',
-        path: '/models/forest/tree/ObstacleTree.gltf',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
-    {
-        name: 'ThinTrunkInteractive',
-        type: 'gltf',
-        path: '/models/forest/tree/Obstacle2Tree.gltf',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
     // Arbres et troncs
     {
         name: 'TreeNaked',
@@ -136,14 +120,6 @@ const baseAssets = [
         name: 'TrunkThinPlane',
         type: 'gltf',
         path: '/models/forest/tree/TreeThinPlane.glb',
-        license: 'CC-BY',
-        author: 'Author',
-        url: ''
-    },
-    {
-        name: 'TreeStump',
-        type: 'gltf',
-        path: '/models/forest/tree/TreeStump.gltf',
         license: 'CC-BY',
         author: 'Author',
         url: ''

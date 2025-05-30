@@ -180,7 +180,7 @@ class SceneObjectManager {
              */
             'TrunkLargeInteractive': {
                 id: 'TrunkLargeInteractive',
-                path: '/models/forest/tree/TrunkLarge.glb',
+                path: '/models/forest/tree/TrunkLarge.gltf',
                 scale: [0.05763, 0.05763, 0.05763],
                 interactive: true,
                 useTextures: true,
@@ -417,7 +417,7 @@ class SceneObjectManager {
                 }]
             }, 'TreeStump': {
                 id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.glb',
+                path: '/models/forest/tree/TreeStump.gltf',
                 interactive: false,
                 useTextures: true,
                 defaultPlacements: [{
