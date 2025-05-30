@@ -5,11 +5,6 @@
   },
   "accessors": [
     {
-      "type": "SCALAR",
-      "componentType": 5123,
-      "count": 882
-    },
-    {
       "type": "VEC3",
       "componentType": 5126,
       "count": 882,
@@ -22,24 +17,32 @@
         -1,
         -0.62459397315979,
         -0.6534739136695862
-      ]
+      ],
+      "bufferView": 0,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
       "componentType": 5126,
-      "count": 882
+      "count": 882,
+      "bufferView": 0,
+      "byteOffset": 12
     },
     {
       "type": "VEC2",
       "componentType": 5126,
-      "count": 882
+      "count": 882,
+      "bufferView": 0,
+      "byteOffset": 24
     }
   ],
   "bufferViews": [
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 4079
+      "byteLength": 28224,
+      "byteStride": 32,
+      "target": 34962
     }
   ],
   "samplers": [
@@ -83,7 +86,7 @@
   "buffers": [
     {
       "uri": "Obstacle2BigRocks.bin",
-      "byteLength": 4079
+      "byteLength": 28224
     }
   ],
   "materials": [
@@ -112,23 +115,12 @@
       "primitives": [
         {
           "attributes": {
-            "POSITION": 1,
-            "NORMAL": 2,
-            "TEXCOORD_0": 3
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
           },
           "mode": 4,
-          "material": 0,
-          "indices": 0,
-          "extensions": {
-            "KHR_draco_mesh_compression": {
-              "bufferView": 0,
-              "attributes": {
-                "POSITION": 0,
-                "NORMAL": 1,
-                "TEXCOORD_0": 2
-              }
-            }
-          }
+          "material": 0
         }
       ]
     }
@@ -165,11 +157,9 @@
   ],
   "scene": 0,
   "extensionsUsed": [
-    "EXT_texture_webp",
-    "KHR_draco_mesh_compression"
+    "EXT_texture_webp"
   ],
   "extensionsRequired": [
-    "EXT_texture_webp",
-    "KHR_draco_mesh_compression"
+    "EXT_texture_webp"
   ]
 }

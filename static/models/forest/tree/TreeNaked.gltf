@@ -7,45 +7,61 @@
     {
       "type": "SCALAR",
       "componentType": 5123,
-      "count": 8202
+      "count": 8202,
+      "bufferView": 0,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
       "componentType": 5126,
       "count": 5474,
       "max": [
-        6.7485833168029785,
-        15.94095516204834,
-        6.498424053192139
+        6.748785018920898,
+        15.94114875793457,
+        6.4984235763549805
       ],
       "min": [
         -10.050647735595703,
         -0.002009575953707099,
         -10.567683219909668
-      ]
+      ],
+      "bufferView": 1,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
       "componentType": 5126,
-      "count": 5474
+      "count": 5474,
+      "bufferView": 1,
+      "byteOffset": 12
     },
     {
       "type": "VEC2",
       "componentType": 5126,
-      "count": 5474
+      "count": 5474,
+      "bufferView": 1,
+      "byteOffset": 24
     }
   ],
   "bufferViews": [
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 16511
+      "byteLength": 16404,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 16404,
+      "byteLength": 175168,
+      "byteStride": 32,
+      "target": 34962
     }
   ],
   "buffers": [
     {
       "uri": "TreeNaked.bin",
-      "byteLength": 16511
+      "byteLength": 191572
     }
   ],
   "meshes": [
@@ -59,17 +75,7 @@
             "TEXCOORD_0": 3
           },
           "mode": 4,
-          "indices": 0,
-          "extensions": {
-            "KHR_draco_mesh_compression": {
-              "bufferView": 0,
-              "attributes": {
-                "POSITION": 0,
-                "NORMAL": 1,
-                "TEXCOORD_0": 2
-              }
-            }
-          }
+          "indices": 0
         }
       ]
     }
@@ -93,11 +99,5 @@
       ]
     }
   ],
-  "scene": 0,
-  "extensionsUsed": [
-    "KHR_draco_mesh_compression"
-  ],
-  "extensionsRequired": [
-    "KHR_draco_mesh_compression"
-  ]
+  "scene": 0
 }

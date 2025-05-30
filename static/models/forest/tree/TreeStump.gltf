@@ -7,7 +7,9 @@
     {
       "type": "SCALAR",
       "componentType": 5123,
-      "count": 3618
+      "count": 3618,
+      "bufferView": 0,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
@@ -22,25 +24,37 @@
         -3.2877414226531982,
         -3.13858699798584,
         -0.03517502546310425
-      ]
+      ],
+      "bufferView": 1,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
       "componentType": 5126,
-      "count": 2312
+      "count": 2312,
+      "bufferView": 1,
+      "byteOffset": 12
     }
   ],
   "bufferViews": [
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 4842
+      "byteLength": 7236,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 7236,
+      "byteLength": 55488,
+      "byteStride": 24,
+      "target": 34962
     }
   ],
   "buffers": [
     {
       "uri": "TreeStump.bin",
-      "byteLength": 4842
+      "byteLength": 62724
     }
   ],
   "materials": [
@@ -70,16 +84,7 @@
           },
           "mode": 4,
           "material": 0,
-          "indices": 0,
-          "extensions": {
-            "KHR_draco_mesh_compression": {
-              "bufferView": 0,
-              "attributes": {
-                "POSITION": 0,
-                "NORMAL": 1
-              }
-            }
-          }
+          "indices": 0
         }
       ]
     }
@@ -114,11 +119,5 @@
       ]
     }
   ],
-  "scene": 0,
-  "extensionsUsed": [
-    "KHR_draco_mesh_compression"
-  ],
-  "extensionsRequired": [
-    "KHR_draco_mesh_compression"
-  ]
+  "scene": 0
 }

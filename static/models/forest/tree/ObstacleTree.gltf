@@ -7,7 +7,9 @@
     {
       "type": "SCALAR",
       "componentType": 5123,
-      "count": 3876
+      "count": 3876,
+      "bufferView": 0,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
@@ -22,24 +24,38 @@
         -3.0979175567626953,
         -3.0282435417175293,
         -24.598541259765625
-      ]
+      ],
+      "bufferView": 1,
+      "byteOffset": 0
     },
     {
       "type": "VEC3",
       "componentType": 5126,
-      "count": 2502
+      "count": 2502,
+      "bufferView": 1,
+      "byteOffset": 12
     },
     {
       "type": "VEC2",
       "componentType": 5126,
-      "count": 2502
+      "count": 2502,
+      "bufferView": 1,
+      "byteOffset": 24
     }
   ],
   "bufferViews": [
     {
       "buffer": 0,
       "byteOffset": 0,
-      "byteLength": 5894
+      "byteLength": 7752,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 7752,
+      "byteLength": 80064,
+      "byteStride": 32,
+      "target": 34962
     }
   ],
   "samplers": [
@@ -70,7 +86,7 @@
   "buffers": [
     {
       "uri": "ObstacleTree.bin",
-      "byteLength": 5894
+      "byteLength": 87816
     }
   ],
   "materials": [
@@ -103,17 +119,7 @@
           },
           "mode": 4,
           "material": 0,
-          "indices": 0,
-          "extensions": {
-            "KHR_draco_mesh_compression": {
-              "bufferView": 0,
-              "attributes": {
-                "POSITION": 0,
-                "NORMAL": 1,
-                "TEXCOORD_0": 2
-              }
-            }
-          }
+          "indices": 0
         }
       ]
     }
@@ -150,11 +156,9 @@
   ],
   "scene": 0,
   "extensionsUsed": [
-    "EXT_texture_webp",
-    "KHR_draco_mesh_compression"
+    "EXT_texture_webp"
   ],
   "extensionsRequired": [
-    "EXT_texture_webp",
-    "KHR_draco_mesh_compression"
+    "EXT_texture_webp"
   ]
 }
