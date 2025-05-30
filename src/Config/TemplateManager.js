@@ -4,11 +4,11 @@ class TemplateManager {
     constructor() {
         // Templates disponibles avec leurs informations
         this.templates = {
-            // // ===================================
-            // // REGULAR GROUP - Main forest elements
-            // // ===================================
-            //
-            // Trees
+            // ===================================
+            // REGULAR GROUP - Main forest elements
+            // ===================================
+
+            // // Trees
             // 'Retopo_TRONC001': {
             //     id: 'TreeNaked',
             //     path: '/models/forest/tree/TreeNaked.gltf',
@@ -44,12 +44,12 @@ class TemplateManager {
             //     useTextures: true,
             //     group: 'regular'
             // },
-            'Plane003_2': {
-                id: 'TreeRoof',
-                path: '/models/forest/tree/TreeRoof.glb',
-                priority: 21,
-                useTextures: true
-            },
+            // 'Plane003_2': {
+            //     id: 'TreeRoof',
+            //     path: '/models/forest/tree/TreeRoof.glb',
+            //     priority: 21,
+            //     useTextures: true
+            // },
             //
             // // Branches
             // 'BranchEucalyptus_1': {
@@ -362,13 +362,13 @@ class TemplateManager {
             // SCREEN GROUP - Digital elements
             // ===================================
 
-            // 'Cube1_2002_1': {
-            //     id: 'Server',
-            //     path: '/models/digital/Server.glb',
-            //     priority: 22,
-            //     useTextures: false,
-            //     group: 'screen'
-            // },
+            'Cube1_2002_1': {
+                id: 'Server',
+                path: '/models/digital/Server.glb',
+                priority: 22,
+                useTextures: false,
+                group: 'screen'
+            },
             // 'Retopo_TRONC001_2': {
             //     id: 'TreeNakedScreen',
             //     path: '/models/forest/tree/TreeNaked.gltf',
@@ -384,37 +384,37 @@ class TemplateManager {
             //     group: 'screen'
             // },
 
-            'Screen001_14': {
+            'Screen001_1': {
                 id: 'Screen',
-                path: '/models/digital/screen/screentest.glb',
+                path: '/models/digital/screen/Screen.glb',
                 priority: 22,
                 useTextures: true,
                 group: 'screen'
             },
             // Screens
-            // 'Cube001_1': {
-            //     id: 'ScreenOldEmission',
-            //     path: '/models/digital/screen/ScreenOldEmission.glb',
-            //     priority: 21,
-            //     useTextures: false,
-            //     group: 'screen'
-            // },
-            //
-            // // 'Screen001_14': {
-            // //     id: 'ScreenEmission',
-            // //     path: '/models/digital/screen/ScreenEmission.glb',
-            // //     priority: 22,
-            // //     useTextures: false,
-            // //     group: 'screen'
-            // // },
-            // // // Screens
-            // 'mesh002_1': {
-            //     id: 'ScreenOld',
-            //     path: '/models/digital/screen/ScreenOld.glb',
-            //     priority: 21,
-            //     useTextures: true,
-            //     group: 'screen'
-            // },
+            'Cube001_1': {
+                id: 'ScreenOldEmission',
+                path: '/models/digital/screen/ScreenOldEmission.glb',
+                priority: 21,
+                useTextures: false,
+                group: 'screen'
+            },
+
+            'Cube001_3': {
+                id: 'ScreenEmission',
+                path: '/models/digital/screen/ScreenEmission.glb',
+                priority: 22,
+                useTextures: false,
+                group: 'screen'
+            },
+            // // Screens
+            'mesh002_1': {
+                id: 'ScreenOld',
+                path: '/models/digital/screen/ScreenOld.glb',
+                priority: 21,
+                useTextures: true,
+                group: 'screen'
+            },
             // // 'BranchEucalyptus_2': {
             // //     id: 'BranchEucalyptusScreen',
             // //     path: '/models/forest/branch/BranchEucalyptus.glb',

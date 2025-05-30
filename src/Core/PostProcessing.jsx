@@ -24,8 +24,8 @@ export default function PostProcessing() {
     const bloomSettingsRef = useRef({
         enabled: true,
         strength: 0.67,
-        radius: 0.25,
-        threshold: 1.0
+        radius: 0.15,
+        threshold: 0.33
     });
 
     useEffect(() => {
