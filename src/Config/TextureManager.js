@@ -1605,20 +1605,20 @@ class TextureManager {
         const prefix = filePrefix || modelId;
 
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${prefix}_BaseColor.png`,
-            normal: `/textures/${folder}/${prefix}_Normal.png`,
-            normalOpenGL: `/textures/${folder}/${prefix}_NormalOpenGL.png`,
-            roughness: `/textures/${folder}/${prefix}_Roughness.png`,
-            metalness: `/textures/${folder}/${prefix}_Metallic.png`,
-            height: `/textures/${folder}/${prefix}_Height.png`
+            baseColor: `/textures/mobile/${folder}/${prefix}_BaseColor.webp`,
+            normal: `/textures/mobile/${folder}/${prefix}_Normal.png`,
+            normalOpenGL: `/textures/mobile/${folder}/${prefix}_NormalOpenGL.png`,
+            roughness: `/textures/mobile/${folder}/${prefix}_Roughness.png`,
+            metalness: `/textures/mobile/${folder}/${prefix}_Metallic.png`,
+            height: `/textures/mobile/${folder}/${prefix}_Height.png`
         };
 
         if (this.isAlphaTextureAvailable(folder, prefix)) {
-            this.texturePaths[modelId].alpha = `/textures/${folder}/${prefix}_Alpha.png`;
+            this.texturePaths[modelId].alpha = `/textures/mobile/${folder}/${prefix}_Alpha.png`;
         }
 
         if (this.isOpacityTextureAvailable(folder, prefix)) {
-            this.texturePaths[modelId].opacity = `/textures/${folder}/${prefix}_Opacity.png`;
+            this.texturePaths[modelId].opacity = `/textures/mobile/${folder}/${prefix}_Opacity.png`;
         }
 
         if (materialProperties) {
@@ -1628,11 +1628,11 @@ class TextureManager {
 
     addPlantTexture(modelId, folder, materialProperties = null) {
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${modelId}_BaseColor.png`,
+            baseColor: `/textures/desktop/${folder}/${modelId}_BaseColor.webp`,
         };
 
         if (this.isAlphaTextureAvailable(folder, modelId)) {
-            this.texturePaths[modelId].alpha = `/textures/${folder}/${modelId}_Alpha.png`;
+            this.texturePaths[modelId].alpha = `/textures/desktop/${folder}/${modelId}_Alpha.png`;
         }
 
         const defaultProperties = {
@@ -2992,7 +2992,7 @@ class TextureManager {
         const selectedAlpha = getRandomVariant(variantConfig.alpha);
 
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${selectedBaseColor}`, alpha: `/textures/${folder}/${selectedAlpha}`
+            baseColor: `/textures/desktop/${folder}/${selectedBaseColor}`, alpha: `/textures/desktop/${folder}/${selectedAlpha}`
         };
 
         const materialProperties = {
@@ -3501,6 +3501,7 @@ class TextureManager {
                 this.materialPool[key].dispose();
             }
         }
+        this.loadedTextures = {};
         this.materialPool = {};
 
         this.instanceTracker = {};
