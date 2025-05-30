@@ -392,21 +392,21 @@ class TemplateManager {
                 group: 'screen'
             },
             // Screens
-            'Cube001_1': {
-                id: 'ScreenOldEmission',
-                path: '/models/digital/screen/ScreenOldEmission.glb',
-                priority: 21,
-                useTextures: false,
-                group: 'screen'
-            },
+            // 'Cube001_1': {
+            //     id: 'ScreenOldEmission',
+            //     path: '/models/digital/screen/ScreenOldEmission.glb',
+            //     priority: 21,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
 
-            'Cube001_3': {
-                id: 'ScreenEmission',
-                path: '/models/digital/screen/ScreenEmission.glb',
-                priority: 22,
-                useTextures: false,
-                group: 'screen'
-            },
+            // 'Cube001_3': {
+            //     id: 'ScreenEmission',
+            //     path: '/models/digital/screen/ScreenEmission.glb',
+            //     priority: 22,
+            //     useTextures: false,
+            //     group: 'screen'
+            // },
             // // Screens
             'mesh002_1': {
                 id: 'ScreenOld',
