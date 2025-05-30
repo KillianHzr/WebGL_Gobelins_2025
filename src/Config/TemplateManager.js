@@ -37,12 +37,12 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            // 'Plane003_2': {
-            //     id: 'TreeRoof',
-            //     path: '/models/forest/tree/TreeRoof.glb',
-            //     priority: 21,
-            //     useTextures: true
-            // },
+            'Plane003_2': {
+                id: 'TreeRoof',
+                path: '/models/forest/tree/TreeRoof.glb',
+                priority: 21,
+                useTextures: true
+            },
 
             // Branches
             'BranchEucalyptus_1': {
