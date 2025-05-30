@@ -390,7 +390,7 @@ class SceneObjectManager {
                     // Animation principale du vison
                     'animation_0': {
                         autoplay: false, // Contrôle manuel
-                        defaultLoop: true,
+                        defaultLoop: false,
                         defaultClamp: true,
                         defaultTimeScale: 1.5
                     },
