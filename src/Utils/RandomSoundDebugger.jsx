@@ -12,7 +12,7 @@ const RandomSoundDebugger = () => {
     const [phaseInfo, setPhaseInfo] = useState({});
     const [visible, setVisible] = useState(false);
     const [systemActive, setSystemActive] = useState(false);
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(true);
     const [editMode, setEditMode] = useState(false);
     const [editValues, setEditValues] = useState({});
     const [editStatus, setEditStatus] = useState({ message: '', type: '' });

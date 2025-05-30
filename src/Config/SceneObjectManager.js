@@ -181,7 +181,7 @@ class SceneObjectManager {
             'TrunkLargeInteractive': {
                 id: 'TrunkLargeInteractive',
                 path: '/models/forest/tree/TrunkLarge.gltf',
-                scale: [0.05763, 0.05763, 0.05763],
+                scale: [0.10763, 0.10763, 0.10763],
                 interactive: true,
                 useTextures: true,
                 interaction: [{
@@ -189,9 +189,9 @@ class SceneObjectManager {
                     chapterDistance: 1.85, requiredStep: 'firstStop'
                 }],
                 defaultPlacement: {
-                    position: [5.42042, 0.4972, -10.60032],
+                    position: [4.42042, 0.4972, -10.60032],
                     rotation: [0.01065, -12.32268, 1.60327],
-                    scale: [0.05763, 0.05763, 0.05763],
+                    scale: [0.1763, 0.1763, 0.1763],
                 }
             },
 
@@ -487,74 +487,6 @@ class SceneObjectManager {
                     scale: [1.05783, 1.05783, 1.05783],
                 }
             },
-            //
-            //
-            // /**
-            //  * SCÈNE 09 & 10 - RÉVÉLATION FINALE ET APPEL À L'ACTION
-            //  * Scène 09: Clairière digitalisée avec panneau interactif
-            //  *  - CLICK "Récupérer votre facture" sur panneau directionnel digital
-            //  *  - Affichage de la facture écologique avec narration de Célia
-            //  *  - CLICK MAINTENU "Quitte le panneau" pour fermer l'interface
-            //  * Scène 10: Actualité fantasmée et CTA final
-            //  *  - CLICK MAINTENU "Allume la radio" pour entendre les actualités
-            //  *  - CLICK sur CTA final "Je veux en savoir plus" pour redirection externe
-            //  */
-            // 'DigitalDirectionPanelEndInteractive': {
-            //     id: 'DigitalDirectionPanel',
-            //     path: '/models/primary/DigitalDirectionPanel.glb',
-            //     scale: [0.55, 0.55, 0.55],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.LONG_PRESS,
-            //         text: "Maintiens",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.1,
-            //         requiredStep: 'tenthStop',
-            //         // Ajouter cette fonction callback pour jouer la narration dès l'interaction
-            //         onInteract: () => {
-            //             console.log("Long press sur le panneau digital - lancement narration");
-            //             narrationManager.playNarration('Scene09_ClairiereDigitalisee');
-            //         }
-            //     }, {
-            //         type: INTERACTION_TYPES.LONG_PRESS,
-            //         text: "Maintiens",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "none",
-            //         chapterDistance: 0.5,
-            //         requiredStep: 'tenthStopEnd'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [55.10253, 0, -134.2177],
-            //         rotation: [0, 135 + 58.43814, 0],
-            //         scale: [0.55, 0.55, 0.55],
-            //         outlinePulse: false,
-            //     }
-            // },
-            //
-            // 'RadioInteractive': {
-            //     id: 'Radio',
-            //     path: '/models/primary/Radio.glb',
-            //     interactive: true,
-            //     useTextures: false,
-            //     scale: [0.13, 0.13, 0.13],
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.LONG_PRESS, // Long press plutôt que click simple pour "Allumer la radio"
-            //         text: "Maintiens",
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "blackScreen",
-            //         requiredStep: 'seventhStop',
-            //     }],
-            //     defaultPlacement: {
-            //         position: [56.50845, 0, -131.60712],
-            //         rotation: [-3.09, 270 + 55.03315, -3.10794],
-            //         scale: [0.13, 0.13, 0.13],
-            //     }
-            // }
         };
 
         // Liste des placements d'objets dans la scène
