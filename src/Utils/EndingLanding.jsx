@@ -33,7 +33,6 @@ const EndingLanding = ({ onLearnMore }) => {
                 'Résumer un seul panneau ? <strong>250 mL d\'eau.</strong>',
                 'Analyser une simple photo ? <strong>250 mL encore</strong>.',
                 'Discuter avec Célia ? <strong>500 mL de plus.</strong>',
-                'Discuter avec Célia ? <strong>500 mL de plus.</strong>',
                 'Mais chaque jour, c\'est <strong>1 milliard de requêtes.</strong> \n' +
                 'Résultat : <strong>500 millions de litres d\'eau</strong>, assez pour remplir <strong>200 piscines olympiques</strong>.'
             ]
