@@ -14,6 +14,7 @@ import MainLayout from './Utils/MainLayout'
 import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 import RandomSoundDebugger from './Utils/RandomSoundDebugger';
+import BonusSoundsDebugger from './Utils/BonusSoundsDebugger';
 import CustomCursor from './Utils/CustomCursor';
 import ScrollIndicator from './Utils/ScrollIndicator.jsx';
 
@@ -549,6 +550,7 @@ export default function App() {
                 </Canvas>
             </div>
             <RandomSoundDebugger />
+            <BonusSoundsDebugger />
         </EventEmitterProvider>
     )
 }
