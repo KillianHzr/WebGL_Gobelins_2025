@@ -192,10 +192,7 @@ class TextureManager {
 
         scene.traverse((node) => {
             // Vérifier si c'est un objet avec "Emission" dans le nom ou l'ID
-            const shouldBeEmissive = this._shouldObjectBeEmissive(
-                node.userData?.objectId,
-                node.name
-            );
+            const shouldBeEmissive = this._shouldObjectBeEmissive(node.userData?.objectId, node.name);
 
             if (shouldBeEmissive && node.material) {
                 console.log(`📺 Objet émissif trouvé: ${node.name} (ID: ${node.userData?.objectId || 'unknown'})`);
@@ -248,8 +245,7 @@ class TextureManager {
 
             // Obtenir le matériau de base (peut utiliser les textures de la version non-émissive)
             const baseMaterial = await this.getMaterialAsync(textureBaseId, {
-                lod: 'high',
-                useCustomProperties: true
+                lod: 'high', useCustomProperties: true
             });
 
             if (!baseMaterial) {
@@ -578,8 +574,7 @@ class TextureManager {
         this.addPlantTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.4, // castShadow: false,
             color: '#1d6d35', useTextures: {
-                metalness: false,
-                roughness: false,
+                metalness: false, roughness: false,
 
                 // baseColor: false,
             }
@@ -836,8 +831,7 @@ class TextureManager {
 
         // Rochers
         this.addTextureMapping('BigRock', 'rock', null, {
-            roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7,
-            normalScale: new Vector2(1.0, 1.0),
+            roughness: 1.0, metalness: 0.05, envMapIntensity: 0.3, aoIntensity: 0.7, normalScale: new Vector2(1.0, 1.0),
         });
 
         this.addTextureMapping('RockWater', 'rock', 'BigRock', {
@@ -860,8 +854,7 @@ class TextureManager {
             color: '#867474',
 
             // Propriétés d'ombre - le sol reçoit mais ne projette pas
-            castShadow: false,
-            receiveShadow: true,
+            castShadow: false, receiveShadow: true,
 
             // Scale de la normale pour plus de détails
             normalScale: new Vector2(1.0, 1.0),
@@ -907,16 +900,11 @@ class TextureManager {
             // roughness: 0.2,
             // metalness: 0.8,
             // envMapIntensity: 0.3,
-            color: '#000000',
-            // normalScale: new Vector2(1.0, 1.0),
+            color: '#000000', // normalScale: new Vector2(1.0, 1.0),
             // castShadow: true,
             // receiveShadow: true,
             useTextures: {
-                baseColor: false,
-                normal: true,
-                roughness: true,
-                metalness: true,
-                ao: false,             // Pas d'occlusion ambiante
+                baseColor: false, normal: true, roughness: true, metalness: true, ao: false,             // Pas d'occlusion ambiante
                 envMap: false,         // Utiliser la carte d'environnement
                 emissiveMap: false,   // Pas d'émission par défaut
                 height: false,        // Pas de carte de hauteur
@@ -965,17 +953,13 @@ class TextureManager {
             roughness: 0.8,           // Plus rugueux pour réduire les reflets
             metalness: 0.2,           // Moins métallique
             envMapIntensity: 0.0,     // Pas de reflets environnementaux
-            color: '#1a1a1a',
-            normalScale: new Vector2(1.0, 1.0),
-            castShadow: true,
-            receiveShadow: true,
+            color: '#1a1a1a', normalScale: new Vector2(1.0, 1.0), castShadow: true, receiveShadow: true,
 
             // Optimisations pour l'émission
             emissiveIntensity: 3.0,   // Intensité émissive plus élevée
 
             useTextures: {
-                baseColor: true,
-                normal: false,          // Désactiver la normale pour plus d'émission
+                baseColor: true, normal: false,          // Désactiver la normale pour plus d'émission
                 roughness: false,       // Utiliser la valeur fixe
                 metalness: false,       // Utiliser la valeur fixe
                 ao: false,             // Pas d'occlusion ambiante
@@ -1065,9 +1049,7 @@ class TextureManager {
         });
 
         // Supprimer les textures Screen du cache pour forcer le rechargement
-        const textureKeysToDelete = Object.keys(this.loadedTextures).filter(key =>
-            key.includes('Screen') || key.includes('digital/screen')
-        );
+        const textureKeysToDelete = Object.keys(this.loadedTextures).filter(key => key.includes('Screen') || key.includes('digital/screen'));
         textureKeysToDelete.forEach(key => {
             if (this.loadedTextures[key] && this.loadedTextures[key].dispose) {
                 this.loadedTextures[key].dispose();
@@ -1082,8 +1064,7 @@ class TextureManager {
             envMapIntensity: 0.3,     // Plus de reflet
             color: '#1a1a1a',         // Couleur sombre d'écran
             normalScale: new Vector2(1.0, 1.0), // Normale plus visible
-            castShadow: true,
-            receiveShadow: true,
+            castShadow: true, receiveShadow: true,
 
             // S'assurer que toutes les textures importantes sont activées
             useTextures: {
@@ -1157,9 +1138,7 @@ class TextureManager {
                 })
                 .catch(error => {
                     validationResults[type] = {
-                        path: path,
-                        exists: false,
-                        error: error.message
+                        path: path, exists: false, error: error.message
                     };
                 });
 
@@ -1172,9 +1151,7 @@ class TextureManager {
 
         // Vérifier si les textures critiques existent
         const criticalTextures = ['baseColor', 'normal', 'normalOpenGL'];
-        const missingCritical = criticalTextures.filter(type =>
-            validationResults[type] && !validationResults[type].exists
-        );
+        const missingCritical = criticalTextures.filter(type => validationResults[type] && !validationResults[type].exists);
 
         if (missingCritical.length > 0) {
             console.error("Textures critiques manquantes pour Screen:", missingCritical);
@@ -1203,6 +1180,7 @@ class TextureManager {
             });
         });
     }
+
     configureGroundTexture(repeatX = 100, repeatY = 100, options = {}) {
         const groundConfig = {
             // Répétition de texture pour couvrir une grande surface
@@ -1215,8 +1193,7 @@ class TextureManager {
             },
 
             // Filtrage amélioré pour éviter l'aliasing à distance
-            textureFilter: 'anisotropic',
-            anisotropy: 16,
+            textureFilter: 'anisotropic', anisotropy: 16,
 
             // Propriétés spécifiques au sol
             ...options
@@ -1225,9 +1202,7 @@ class TextureManager {
         // Appliquer la configuration spéciale au sol
         this.setMaterialProperties('Ground', {
             // Améliorer le rendu à distance
-            roughness: 1.8,
-            metalness: 0.0,
-            envMapIntensity: 0.05,
+            roughness: 1.8, metalness: 0.0, envMapIntensity: 0.05,
 
             // Optimisations pour les grandes surfaces
             flatShading: true,  // Ombrage lisse
@@ -1237,8 +1212,7 @@ class TextureManager {
             shadowSide: FrontSide,
 
             // Améliorer la qualité visuelle
-            aoIntensity: 0.05,
-            normalScale: new Vector2(0.1, 0.1)
+            aoIntensity: 0.05, normalScale: new Vector2(0.1, 0.1)
         });
 
         return groundConfig;
@@ -1248,8 +1222,7 @@ class TextureManager {
         if (!material) return;
 
         // Liste des textures à répéter
-        const texturesToRepeat = [
-            'map',           // baseColor
+        const texturesToRepeat = ['map',           // baseColor
             'normalMap',     // normal
             'roughnessMap',  // roughness
             'metalnessMap',  // metalness
@@ -1605,20 +1578,20 @@ class TextureManager {
         const prefix = filePrefix || modelId;
 
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${prefix}_BaseColor.png`,
-            normal: `/textures/${folder}/${prefix}_Normal.png`,
-            normalOpenGL: `/textures/${folder}/${prefix}_NormalOpenGL.png`,
-            roughness: `/textures/${folder}/${prefix}_Roughness.png`,
-            metalness: `/textures/${folder}/${prefix}_Metallic.png`,
-            height: `/textures/${folder}/${prefix}_Height.png`
+            baseColor: `/textures/mobile/${folder}/${prefix}_BaseColor.webp`,
+            normal: `/textures/mobile/${folder}/${prefix}_Normal.png`,
+            normalOpenGL: `/textures/mobile/${folder}/${prefix}_NormalOpenGL.png`,
+            roughness: `/textures/mobile/${folder}/${prefix}_Roughness.png`,
+            metalness: `/textures/mobile/${folder}/${prefix}_Metallic.png`,
+            height: `/textures/mobile/${folder}/${prefix}_Height.png`
         };
 
         if (this.isAlphaTextureAvailable(folder, prefix)) {
-            this.texturePaths[modelId].alpha = `/textures/${folder}/${prefix}_Alpha.png`;
+            this.texturePaths[modelId].alpha = `/textures/mobile/${folder}/${prefix}_Alpha.png`;
         }
 
         if (this.isOpacityTextureAvailable(folder, prefix)) {
-            this.texturePaths[modelId].opacity = `/textures/${folder}/${prefix}_Opacity.png`;
+            this.texturePaths[modelId].opacity = `/textures/mobile/${folder}/${prefix}_Opacity.png`;
         }
 
         if (materialProperties) {
@@ -1628,11 +1601,11 @@ class TextureManager {
 
     addPlantTexture(modelId, folder, materialProperties = null) {
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${modelId}_BaseColor.png`,
+            baseColor: `/textures/desktop/${folder}/${modelId}_BaseColor.webp`,
         };
 
         if (this.isAlphaTextureAvailable(folder, modelId)) {
-            this.texturePaths[modelId].alpha = `/textures/${folder}/${modelId}_Alpha.png`;
+            this.texturePaths[modelId].alpha = `/textures/desktop/${folder}/${modelId}_Alpha.png`;
         }
 
         const defaultProperties = {
@@ -1807,6 +1780,7 @@ class TextureManager {
 
         texture.needsUpdate = true;
     }
+
     async getMaterialAsync(modelId, options = {}) {
         const group = this.modelGroupMap[modelId] || 'default';
         const optionsWithLOD = {...options, lod: options.lod || this.currentLOD};
@@ -2992,8 +2966,10 @@ class TextureManager {
         const selectedAlpha = getRandomVariant(variantConfig.alpha);
 
         this.texturePaths[modelId] = {
-            baseColor: `/textures/${folder}/${selectedBaseColor}`, alpha: `/textures/${folder}/${selectedAlpha}`
+            baseColor: `/textures/desktop/${folder}/${selectedBaseColor}`,
+            alpha: `/textures/desktop/${folder}/${selectedAlpha}`
         };
+        console.log("Textures randomisées ajoutées pour le modèl treeRoof:", modelId, this.texturePaths[modelId]);
 
         const materialProperties = {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.05, ...options.materialProperties
@@ -3501,6 +3477,7 @@ class TextureManager {
                 this.materialPool[key].dispose();
             }
         }
+        this.loadedTextures = {};
         this.materialPool = {};
 
         this.instanceTracker = {};
