@@ -80,6 +80,7 @@ function CameraController({children}) {
     const timelinePositionRef = useRef(0);
     const timelineLengthRef = useRef(0);
     const scrollVelocity = useRef(0);
+    const flickerScrollBlockTimeoutRef = useRef(null);
 
     // CORRECTION: Déplacer visonTriggeredRef au niveau du composant
     const visonTriggeredRef = useRef(false);
@@ -108,6 +109,7 @@ function CameraController({children}) {
     const isTransitioningRef = useRef(false);
     const savedInteractionPosition = useRef(null);
     const handledInteractions = useRef(new Set());
+    const scrollBackDisabledRef = useRef(false);
 
     // Pour suivre si l'initialisation de la caméra GLB est en cours/terminée
     const glbInitializedRef = useRef(false);
@@ -349,16 +351,35 @@ function CameraController({children}) {
         }
     };
 
-    // MODIFIÉ : Fonction pour vérifier si une position est autorisée
+    // Fonction pour vérifier si une position est autorisée
     const isPositionAllowed = (position) => {
         const effectiveMin = getEffectiveMinPosition(position);
+
+        // Vérifier s'il y a une restriction due à la flashlight
+        const flashlightRestriction = validatedPositionsRef.current.find(pos => pos.reason === 'flashlight-activation');
+
+        if (flashlightRestriction) {
+            // Si la flashlight a été activée, bloquer complètement le retour en arrière
+            return position >= flashlightRestriction.basePosition;
+        }
+
         return position >= effectiveMin;
     };
 
-    // MODIFIÉ : Fonction pour limiter une position aux bornes autorisées
+    // Fonction pour limiter une position aux bornes autorisées
     const clampToAllowedRange = (position) => {
         const effectiveMinPos = getEffectiveMinPosition(position);
         const maxPos = timelineLengthRef.current;
+
+        // Vérifier s'il y a une restriction due à la flashlight
+        const flashlightRestriction = validatedPositionsRef.current.find(pos => pos.reason === 'flashlight-activation');
+
+        if (flashlightRestriction) {
+            // Si la flashlight a été activée, utiliser sa position comme minimum absolu
+            const absoluteMin = flashlightRestriction.basePosition;
+            return Math.max(absoluteMin, Math.min(maxPos, position));
+        }
+
         return Math.max(effectiveMinPos, Math.min(maxPos, position));
     };
 
@@ -561,6 +582,109 @@ function CameraController({children}) {
         return targetObject;
     };
 
+    useEffect(() => {
+        const handleFlashlightFirstActivation = (data) => {
+            console.log('🔦 ScrollControls: Première activation de la flashlight - DÉSACTIVATION du scroll arrière');
+
+            // Désactiver complètement le scroll arrière
+            scrollBackDisabledRef.current = true;
+
+            // Émettre un événement pour informer d'autres composants
+            EventBus.trigger('scroll-back-completely-disabled', {
+                reason: 'flashlight-first-activation',
+                timestamp: Date.now()
+            });
+
+            // Afficher un message de debug si nécessaire
+            if (debug?.active) {
+                console.log('🚫 SCROLL ARRIÈRE DÉFINITIVEMENT DÉSACTIVÉ');
+            }
+        };
+
+        const flashlightActivationSubscription = EventBus.on('flashlight-first-activation', handleFlashlightFirstActivation);
+
+        return () => {
+            flashlightActivationSubscription();
+        };
+    }, [debug]);
+
+    useEffect(() => {
+        const handleFlashlightFlickerStarted = (data) => {
+            console.log('🔦 ScrollControls: Début du clignottement de la flashlight détecté - DÉSACTIVATION du scroll');
+            console.log('🔦 Données du clignottement:', data);
+
+            // Désactiver complètement le scroll pendant le clignottement
+            if (setAllowScroll) {
+                setAllowScroll(false);
+                console.log('🚫 SCROLL DÉSACTIVÉ pendant le clignottement');
+            }
+
+            // Arrêter toute vélocité de scroll en cours
+            scrollVelocity.current = 0;
+
+            // Émettre un événement pour informer d'autres composants
+            EventBus.trigger('scroll-disabled-for-flicker', {
+                reason: 'flashlight-flickering',
+                timestamp: Date.now(),
+                flickerData: data
+            });
+        };
+
+        const handleFlashlightFlickerCompletelyFinished = (data) => {
+            console.log('🔦 ScrollControls: Fin complète du clignottement de la flashlight détectée - RÉACTIVATION du scroll');
+            console.log('🔦 Données du clignottement:', data);
+
+            // Réactiver le scroll uniquement vers l'avant (le scroll arrière reste désactivé)
+            if (setAllowScroll) {
+                setAllowScroll(true);
+                console.log('✅ SCROLL RÉACTIVÉ après le clignottement (uniquement vers l\'avant)');
+            }
+
+            // Basculer de endGroup vers screenGroup UNIQUEMENT si les conditions sont bonnes
+            if (endGroupVisible && !screenGroupVisible) {
+                // Mettre à jour le store
+                setEndGroupVisible(false);
+                setScreenGroupVisible(true);
+
+                // Mettre à jour directement les références DOM
+                if (window.endGroupRef && window.endGroupRef.current) {
+                    window.endGroupRef.current.visible = false;
+                    console.log('✅ EndGroup caché (fin de clignottement)');
+                }
+                if (window.screenGroupRef && window.screenGroupRef.current) {
+                    window.screenGroupRef.current.visible = true;
+                    console.log('✅ ScreenGroup affiché (fin de clignottement)');
+                }
+
+                // Émettre les événements
+                EventBus.trigger('end-group-visibility-changed', false);
+                EventBus.trigger('screen-group-visibility-changed', true);
+
+                console.log('🎬 Switch synchronisé avec fin de clignottement: endGroup→CACHÉ, screenGroup→VISIBLE');
+            } else {
+                console.log('🎬 Switch déjà effectué ou états inattendus:', {
+                    endGroupVisible,
+                    screenGroupVisible
+                });
+            }
+
+            // Émettre un événement pour informer d'autres composants
+            EventBus.trigger('scroll-enabled-after-flicker', {
+                reason: 'flashlight-flicker-finished',
+                timestamp: Date.now(),
+                flickerData: data
+            });
+        };
+
+        // S'abonner aux événements de clignottement
+        const flashlightFlickerStartedSubscription = EventBus.on('flashlight-flicker-started', handleFlashlightFlickerStarted);
+        const flashlightFlickerFinishedSubscription = EventBus.on('flashlight-flicker-completely-finished', handleFlashlightFlickerCompletelyFinished);
+
+        return () => {
+            flashlightFlickerStartedSubscription();
+            flashlightFlickerFinishedSubscription();
+        };
+    }, [setAllowScroll, endGroupVisible, screenGroupVisible, setEndGroupVisible, setScreenGroupVisible]);
 
     useEffect(() => {
         const handleFlashlightFlickerCompletelyFinished = (data) => {
@@ -1364,10 +1488,18 @@ function CameraController({children}) {
             lastTouchY = currentY;
 
             const direction = Math.sign(deltaY);
+
+            // Si le scroll arrière est désactivé et qu'on essaie de scroller vers l'arrière, ignorer complètement
+            if (scrollBackDisabledRef.current && direction > 0) { // direction > 0 = swipe vers le haut = scroll arrière
+                console.log('🚫 Touch scroll arrière ignoré - flashlight activée');
+                e.preventDefault();
+                return; // Sortir complètement, ne pas traiter l'événement
+            }
+
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
-            // CORRIGÉ : Vérifier si le mouvement arrière est autorisé
+            // Vérifier si le mouvement arrière est autorisé
             if (direction < 0) { // Scroll arrière
                 const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude);
                 if (!isPositionAllowed(potentialPosition)) {
@@ -1382,28 +1514,39 @@ function CameraController({children}) {
         };
 
         const handleWheel = (e) => {
-            if (!allowScroll || chapterTransitioning) return;
+            if (!allowScroll || chapterTransitioning) {
+                console.log('🚫 Scroll bloqué:', {
+                    allowScroll,
+                    chapterTransitioning,
+                    reason: !allowScroll ? 'scroll-disabled' : 'chapter-transitioning'
+                });
+                e.preventDefault();
+                return;
+            }
 
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
             setScrollDirection(direction);
 
+            if (scrollBackDisabledRef.current && direction < 0) {
+                console.log('🚫 Scroll arrière ignoré - flashlight activée');
+                e.preventDefault();
+                return;
+            }
+
             let scrollMagnitude = Math.abs(normalizedDelta) * BASE_SENSITIVITY;
             const cappedMagnitude = Math.min(scrollMagnitude, MAX_SCROLL_SPEED);
 
-            // CORRIGÉ : Vérifier si le mouvement arrière est autorisé
-            // direction > 0 = scroll vers l'avant, direction < 0 = scroll vers l'arrière
-            if (direction < 0) { // Scroll arrière (direction négative)
-                const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude); // direction est déjà négatif
+            // Vérifier si le mouvement arrière est autorisé
+            if (direction < 0) { // Scroll arrière
+                const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude);
                 if (!isPositionAllowed(potentialPosition)) {
-                    // Bloquer le mouvement arrière
                     e.preventDefault();
                     return;
                 }
             }
 
             scrollVelocity.current = direction * cappedMagnitude;
-
             e.preventDefault();
         };
 
