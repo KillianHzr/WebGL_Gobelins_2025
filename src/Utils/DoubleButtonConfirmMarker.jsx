@@ -1,5 +1,6 @@
 import React, {useCallback, useState} from "react";
 import {Html} from "@react-three/drei";
+import {narrationManager} from "./NarrationManager";
 
 const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker({
                                                                                     id,
@@ -46,6 +47,28 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
         setClickCount(newClickCount);
 
         console.log(`Clic sur "Arrête le massacre" - ${newClickCount}/3`);
+
+        // NOUVEAU : Déclencher les narrations selon le nombre de clics
+        try {
+            switch (newClickCount) {
+                case 1:
+                    console.log("Déclenchement narration Scene10_Photo1");
+                    narrationManager.playNarration('Scene10_Photo1');
+                    break;
+                case 2:
+                    console.log("Déclenchement narration Scene10_Photo2");
+                    narrationManager.playNarration('Scene10_Photo2');
+                    break;
+                case 3:
+                    console.log("Déclenchement narration Scene10_Photo3");
+                    narrationManager.playNarration('Scene10_Photo3');
+                    break;
+                default:
+                    console.log(`Aucune narration définie pour le clic ${newClickCount}`);
+            }
+        } catch (error) {
+            console.error("Erreur lors du déclenchement de la narration:", error);
+        }
 
         // Animation pour tous les clics, avec indication si c'est le 3ème
         const isThirdClick = newClickCount >= 3;

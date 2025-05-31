@@ -440,7 +440,7 @@ export default function Lights() {
     useEffect(() => {
         if (!debug?.active || !lightsInitialized) return;
 
-        console.log('Lights listening for GUI events');
+        // console.log('Lights listening for GUI events');
 
         const subscriptions = [
             // Mode d'éclairage
@@ -646,13 +646,13 @@ export default function Lights() {
     useEffect(() => {
         if (!debug?.active || !lightsInitialized) return;
 
-        console.log('=== LIGHTS DEBUG DIAGNOSTICS ===');
-        console.log('Current mode:', activeMode);
-        console.log('Normalized position:', normalizedPosition);
-        console.log('Transition factor:', transitionFactor);
-        console.log('Forced night mode:', forcedNightMode);
-        console.log('Active values:', activeValues);
-        console.log('Light settings:', lightSettingsRef.current);
+        // console.log('=== LIGHTS DEBUG DIAGNOSTICS ===');
+        // console.log('Current mode:', activeMode);
+        // console.log('Normalized position:', normalizedPosition);
+        // console.log('Transition factor:', transitionFactor);
+        // console.log('Forced night mode:', forcedNightMode);
+        // console.log('Active values:', activeValues);
+        // console.log('Light settings:', lightSettingsRef.current);
     }, [debug, activeMode, normalizedPosition, transitionFactor, forcedNightMode, activeValues, lightsInitialized]);
 
     // Ne rendre les lumières que si le système est prêt

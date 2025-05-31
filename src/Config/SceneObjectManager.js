@@ -465,28 +465,28 @@ class SceneObjectManager {
                     scale: [3.58521, 3.5852, 3.58521],
                 }]
             },
-            // 'VisonDead': {
-            //     id: 'VisonDead',
-            //     path: '/models/primary/AnimalVisonDead.glb',
-            //     scale: [1.05783, 1.05783, 1.05783],
-            //     interactive: true,
-            //     useTextures: true,
-            //     interaction: [{
-            //         type: INTERACTION_TYPES.CONFIRM,  // CHANGÉ : de CLICK à CONFIRM
-            //         text: "Prends en photo",        // CHANGÉ : texte plus descriptif
-            //         offset: 0.5,
-            //         axis: "y",
-            //         interfaceToShow: "capture",
-            //         chapterDistance: 3.4,
-            //         requiredStep: 'sixthStop'
-            //     }],
-            //     defaultPlacement: {
-            //         position: [7.281, -0.07878, -135.01186],
-            //         // position: [-33.943, 0.51133, 45.149],
-            //         rotation: [-3.14159, -6.18583, -3.14159],
-            //         scale: [1.05783, 1.05783, 1.05783],
-            //     }
-            // },
+            'VisonDead': {
+                id: 'VisonDead',
+                path: '/models/primary/AnimalVisonDead.glb',
+                scale: [1.05783, 1.05783, 1.05783],
+                interactive: true,
+                useTextures: true,
+                interaction: [{
+                    type: INTERACTION_TYPES.CONFIRM,  // CHANGÉ : de CLICK à CONFIRM
+                    text: "Prends en photo",        // CHANGÉ : texte plus descriptif
+                    offset: 0.5,
+                    axis: "y",
+                    interfaceToShow: "capture",
+                    chapterDistance: 3.4,
+                    requiredStep: 'sixthStop'
+                }],
+                defaultPlacement: {
+                    position: [7.281, -0.07878, -135.01186],
+                    // position: [-33.943, 0.51133, 45.149],
+                    rotation: [-3.14159, -6.18583, -3.14159],
+                    scale: [1.05783, 1.05783, 1.05783],
+                }
+            },
         };
 
         // Liste des placements d'objets dans la scène
