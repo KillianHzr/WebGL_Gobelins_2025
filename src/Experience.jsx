@@ -24,6 +24,8 @@ import SceneFog from "./Core/SceneFog.jsx";
 import NarrationTriggers from './Utils/NarrationTriggers';
 import * as THREE from 'three';
 import {useAnimationFrame} from "./Utils/AnimationManager.js";
+import SceneEnvironment from "./Core/SceneEnvironment.jsx";
+import SkySphere from "./Core/SkySphere.jsx";
 
 // Exposer EventBus et useStore globalement pour éviter les dépendances circulaires
 if (typeof window !== 'undefined') {
@@ -289,7 +291,9 @@ export default function Experience() {
             <AudioManagerComponent/>
             <NarrationTriggers/>
             {/*<CameraSwitcher/>*/}
-            <SceneFog />
+            {/*<SceneFog />*/}
+            {/*<SceneEnvironment />*/}
+            <SkySphere/>
 
             {debug && <Stats />}
             {/*{debug && <Debug />}*/}
