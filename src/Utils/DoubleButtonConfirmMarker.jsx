@@ -14,23 +14,28 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                                                                                     MARKER_EVENTS
                                                                                 }) {
     const [clickCount, setClickCount] = useState(0);
-    const [buttonsVisible, setButtonsVisible] = useState(true);
+    const [buttonsOpacity, setButtonsOpacity] = useState(1);
     const [leftHovered, setLeftHovered] = useState(false);
     const [rightHovered, setRightHovered] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [showActionState, setShowActionState] = useState(false); // Nouvel état pour contrôler l'affichage
 
-    // Animation de disparition/réapparition des boutons
-    const animateButtons = useCallback(() => {
+    // Animation de disparition/réapparition des boutons avec opacité
+    const animateButtons = useCallback((isThirdClick = false) => {
         if (isAnimating) return;
 
         setIsAnimating(true);
-        setButtonsVisible(false);
+        setButtonsOpacity(0);
 
-        // Réapparition après 500ms
+        // Réapparition après 2000ms (2 secondes)
         setTimeout(() => {
-            setButtonsVisible(true);
+            // Si c'est le 3ème clic, changer l'état d'affichage maintenant
+            if (isThirdClick) {
+                setShowActionState(true);
+            }
+            setButtonsOpacity(1);
             setIsAnimating(false);
-        }, 500);
+        }, 2000);
     }, [isAnimating]);
 
     // Gestion du clic sur "arrête le massacre"
@@ -42,11 +47,11 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
 
         console.log(`Clic sur "Arrête le massacre" - ${newClickCount}/3`);
 
-        if (newClickCount < 3) {
-            // Première et deuxième fois : animer la disparition/réapparition
-            animateButtons();
-        } else {
-            // Troisième fois : les boutons restent et deviennent des boutons d'action
+        // Animation pour tous les clics, avec indication si c'est le 3ème
+        const isThirdClick = newClickCount >= 3;
+        animateButtons(isThirdClick);
+
+        if (isThirdClick) {
             console.log("Transformation en boutons d'action !");
         }
     }, [clickCount, animateButtons, stopAllPropagation]);
@@ -77,11 +82,20 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
             center
         >
             <div
-                className={`double-button-container ${buttonsVisible ? 'visible' : 'hidden'} ${isAnimating ? 'animating' : ''}`}>
+                className="double-button-container"
+                style={{
+                    opacity: buttonsOpacity,
+                    transition: 'opacity 0.3s ease',
+                    pointerEvents: buttonsOpacity === 0 ? 'none' : 'auto'
+                }}
+            >
                 {/* Bouton de gauche - Style marker-button */}
                 <div className="marker-button confirm left-marker">
                     <div
-                        className={`marker-button-inner confirm ${leftHovered ? 'marker-button-inner-hovered' : ''} ${clickCount >= 3 ? 'action-state' : 'massacre-state'}`}
+                        className={`marker-button-inner confirm ${leftHovered ? 'marker-button-inner-hovered' : ''} ${showActionState ? 'action-state' : 'massacre-state'}`}
+                        style={{
+                            pointerEvents: buttonsOpacity === 0 ? 'none' : 'auto'
+                        }}
                         onMouseEnter={(e) => {
                             stopAllPropagation(e);
                             setLeftHovered(true);
@@ -92,10 +106,10 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                             setLeftHovered(false);
                             if (onPointerLeave) onPointerLeave(e);
                         }}
-                        onClick={clickCount >= 3 ? handleActionClick : handleMassacreClick}
+                        onClick={showActionState ? handleActionClick : handleMassacreClick}
                     >
                         <div className="marker-button-inner-text confirm">
-                            {clickCount >= 3 ? text : "Arrête le massacre"}
+                            {showActionState ? text : "Arrête le massacre"}
                         </div>
                     </div>
                 </div>
@@ -105,12 +119,14 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                     className={`marker-button confirm right-marker`}
                     style={{
                         opacity: 1,
-                        // transform: clickCount >= 3 ? 'scale(1)' : 'scale(0.8)',
                         transition: 'all 0.4s ease'
                     }}
                 >
                     <div
                         className={`marker-button-inner confirm ${rightHovered ? 'marker-button-inner-hovered' : ''} action-state`}
+                        style={{
+                            pointerEvents: buttonsOpacity === 0 ? 'none' : 'auto'
+                        }}
                         onMouseEnter={(e) => {
                             stopAllPropagation(e);
                             setRightHovered(true);
@@ -122,7 +138,6 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                             if (onPointerLeave) onPointerLeave(e);
                         }}
                         onClick={handleActionClick}
-
                     >
                         <div className="marker-button-inner-text confirm">
                             {text}
