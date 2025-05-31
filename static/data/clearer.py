@@ -2,6 +2,7 @@ import json
 import math
 from typing import List, Dict, Any
 
+
 def calculate_distance(obj1: Dict[str, float], obj2: Dict[str, float]) -> float:
     """
     Calcule la distance euclidienne entre deux objets 3D.
@@ -9,33 +10,34 @@ def calculate_distance(obj1: Dict[str, float], obj2: Dict[str, float]) -> float:
     """
     # Distance euclidienne basique sur les positions
     pos_distance = math.sqrt(
-        (obj1['x'] - obj2['x'])**2 +
-        (obj1['y'] - obj2['y'])**2 +
-        (obj1['z'] - obj2['z'])**2
+        (obj1['x'] - obj2['x']) ** 2 +
+        (obj1['y'] - obj2['y']) ** 2 +
+        (obj1['z'] - obj2['z']) ** 2
     )
 
     # Distance sur les rotations (optionnel)
     rot_distance = 0
     if all(key in obj1 and key in obj2 for key in ['rotationX', 'rotationY', 'rotationZ']):
         rot_distance = math.sqrt(
-            (obj1['rotationX'] - obj2['rotationX'])**2 +
-            (obj1['rotationY'] - obj2['rotationY'])**2 +
-            (obj1['rotationZ'] - obj2['rotationZ'])**2
+            (obj1['rotationX'] - obj2['rotationX']) ** 2 +
+            (obj1['rotationY'] - obj2['rotationY']) ** 2 +
+            (obj1['rotationZ'] - obj2['rotationZ']) ** 2
         )
 
     # Distance sur les échelles (optionnel)
     scale_distance = 0
     if all(key in obj1 and key in obj2 for key in ['scaleX', 'scaleY', 'scaleZ']):
         scale_distance = math.sqrt(
-            (obj1['scaleX'] - obj2['scaleX'])**2 +
-            (obj1['scaleY'] - obj2['scaleY'])**2 +
-            (obj1['scaleZ'] - obj2['scaleZ'])**2
+            (obj1['scaleX'] - obj2['scaleX']) ** 2 +
+            (obj1['scaleY'] - obj2['scaleY']) ** 2 +
+            (obj1['scaleZ'] - obj2['scaleZ']) ** 2
         )
 
     # Combinaison pondérée des distances (vous pouvez ajuster les poids)
     total_distance = pos_distance + (rot_distance * 0.1) + (scale_distance * 0.01)
 
     return total_distance
+
 
 def calculate_normalized_distance(obj1: Dict[str, float], obj2: Dict[str, float]) -> float:
     """
@@ -44,9 +46,9 @@ def calculate_normalized_distance(obj1: Dict[str, float], obj2: Dict[str, float]
     """
     # Distance euclidienne sur les positions
     pos_distance = math.sqrt(
-        (obj1['x'] - obj2['x'])**2 +
-        (obj1['y'] - obj2['y'])**2 +
-        (obj1['z'] - obj2['z'])**2
+        (obj1['x'] - obj2['x']) ** 2 +
+        (obj1['y'] - obj2['y']) ** 2 +
+        (obj1['z'] - obj2['z']) ** 2
     )
 
     # Normalisation approximative (ajustez selon vos données)
@@ -56,47 +58,122 @@ def calculate_normalized_distance(obj1: Dict[str, float], obj2: Dict[str, float]
 
     return normalized_distance
 
-def remove_close_objects(objects: List[Dict[str, Any]],
-                        threshold: float = 0.1,
-                        use_normalized: bool = True) -> List[Dict[str, Any]]:
+
+def modify_object_properties(obj: Dict[str, Any],
+                             scale_factor: float = 1.0,
+                             y_offset: float = 0.0) -> Dict[str, Any]:
     """
-    Supprime les objets trop proches selon le seuil donné.
+    Modifie les propriétés d'un objet (échelle et position Y).
+
+    Args:
+        obj: L'objet à modifier
+        scale_factor: Facteur multiplicateur pour l'échelle (ex: 2.0 = double la taille)
+        y_offset: Décalage à appliquer sur la position Y (peut être positif ou négatif)
+
+    Returns:
+        L'objet modifié (copie)
+    """
+    modified_obj = obj.copy()
+
+    # Modification de l'échelle
+    if 'scaleX' in modified_obj:
+        modified_obj['scaleX'] *= scale_factor
+    if 'scaleY' in modified_obj:
+        modified_obj['scaleY'] *= scale_factor
+    if 'scaleZ' in modified_obj:
+        modified_obj['scaleZ'] *= scale_factor
+
+    # Modification de la position Y
+    if 'y' in modified_obj:
+        modified_obj['y'] += y_offset
+
+    return modified_obj
+
+
+def remove_close_objects(objects: List[Dict[str, Any]],
+                         threshold: float = 0.1,
+                         use_normalized: bool = True,
+                         scale_factor: float = 1.0,
+                         y_offset: float = 0.0) -> List[Dict[str, Any]]:
+    """
+    Supprime les objets trop proches selon le seuil donné et modifie leurs propriétés.
+    GARDE TOUJOURS UN DES DEUX OBJETS (le premier rencontré).
+
+    IMPORTANT: La suppression se base sur les positions ORIGINALES,
+    les modifications (échelle, Y) sont appliquées APRÈS le filtrage.
 
     Args:
         objects: Liste des objets JSON
         threshold: Seuil de proximité (0.0001 à 0.9 si use_normalized=True)
         use_normalized: Utilise la distance normalisée ou la distance brute
+        scale_factor: Facteur multiplicateur pour l'échelle (ex: 1.5 = +50% de taille)
+        y_offset: Décalage sur l'axe Y (ex: 2.0 = monte de 2 unités)
 
     Returns:
-        Liste filtrée des objets
+        Liste filtrée des objets avec propriétés modifiées
     """
     if not objects:
         return objects
 
-    filtered_objects = []
+    # ÉTAPE 1: Filtrage basé sur les positions ORIGINALES
+    filtered_objects_original = []
     distance_func = calculate_normalized_distance if use_normalized else calculate_distance
 
     for i, current_obj in enumerate(objects):
         is_too_close = False
+        closest_distance = float('inf')
+        closest_index = -1
 
-        # Vérifier la distance avec tous les objets déjà acceptés
-        for accepted_obj in filtered_objects:
+        # Vérifier la distance avec tous les objets déjà acceptés (POSITIONS ORIGINALES)
+        for j, accepted_obj in enumerate(filtered_objects_original):
             distance = distance_func(current_obj, accepted_obj)
+
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_index = j
 
             if distance < threshold:
                 is_too_close = True
-                print(f"Objet {i} supprimé (distance {distance:.6f} < seuil {threshold})")
                 break
 
         if not is_too_close:
-            filtered_objects.append(current_obj)
-            print(f"Objet {i} conservé")
+            # Garder l'objet ORIGINAL pour le moment (sans modifications)
+            filtered_objects_original.append(current_obj)
+            print(f"Objet {i} conservé (distance OK)")
+        else:
+            # L'objet est trop proche d'un objet déjà accepté
+            print(
+                f"Objet {i} supprimé car trop proche de l'objet conservé #{closest_index} (distance {closest_distance:.6f} < seuil {threshold})")
 
-    return filtered_objects
+    # ÉTAPE 2: Appliquer les modifications (échelle, Y) APRÈS le filtrage
+    final_objects = []
+    for i, obj in enumerate(filtered_objects_original):
+        modified_obj = modify_object_properties(obj, scale_factor, y_offset)
+        final_objects.append(modified_obj)
+        print(f"Objet conservé #{i} modifié (échelle: x{scale_factor}, Y: +{y_offset})")
 
-def process_json_file(input_file: str, output_file: str, threshold: float = 0.1):
+    print(f"\n--- Résumé du filtrage ---")
+    print(f"Objets originaux: {len(objects)}")
+    print(f"Objets après filtrage: {len(filtered_objects_original)}")
+    print(f"Objets supprimés: {len(objects) - len(filtered_objects_original)}")
+
+    return final_objects
+
+
+def process_json_file(input_file: str,
+                      output_file: str,
+                      threshold: float = 0.1,
+                      scale_factor: float = 1.0,
+                      y_offset: float = 0.0):
     """
-    Traite un fichier JSON complet.
+    Traite un fichier JSON complet avec modification des propriétés.
+
+    Args:
+        input_file: Fichier JSON d'entrée
+        output_file: Fichier JSON de sortie
+        threshold: Seuil de proximité pour filtrage
+        scale_factor: Facteur d'échelle (1.0 = pas de changement)
+        y_offset: Décalage position Y (0.0 = pas de changement)
     """
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
@@ -104,12 +181,14 @@ def process_json_file(input_file: str, output_file: str, threshold: float = 0.1)
 
         # Si c'est une liste directe d'objets
         if isinstance(data, list):
-            filtered_data = remove_close_objects(data, threshold)
+            filtered_data = remove_close_objects(data, threshold, True, scale_factor, y_offset)
 
         # Si les objets sont dans une clé spécifique
         elif isinstance(data, dict) and 'objects' in data:
             filtered_data = data.copy()
-            filtered_data['objects'] = remove_close_objects(data['objects'], threshold)
+            filtered_data['objects'] = remove_close_objects(
+                data['objects'], threshold, True, scale_factor, y_offset
+            )
 
         else:
             print("Format JSON non reconnu. Attendu: liste d'objets ou dict avec clé 'objects'")
@@ -124,6 +203,8 @@ def process_json_file(input_file: str, output_file: str, threshold: float = 0.1)
         print(f"Objects originaux: {original_count}")
         print(f"Objects conservés: {final_count}")
         print(f"Objects supprimés: {original_count - final_count}")
+        print(f"Facteur d'échelle appliqué: {scale_factor}")
+        print(f"Décalage Y appliqué: {y_offset}")
 
     except FileNotFoundError:
         print(f"Fichier {input_file} non trouvé")
@@ -131,6 +212,7 @@ def process_json_file(input_file: str, output_file: str, threshold: float = 0.1)
         print(f"Erreur de format JSON dans {input_file}")
     except Exception as e:
         print(f"Erreur: {e}")
+
 
 # Exemple d'utilisation avec vos données
 def example_usage():
@@ -168,31 +250,51 @@ def example_usage():
             "scaleX": 4.996318042732904,
             "scaleY": 4.996317967849013,
             "scaleZ": 4.996317012813175
-        },
-        # ... ajoutez les autres objets
+        }
     ]
 
-    print("=== Test avec seuil 0.1 ===")
-    filtered = remove_close_objects(sample_objects, threshold=0.1)
+    print("=== Test avec seuil 0.1, échelle x1.5, Y+3 ===")
+    filtered = remove_close_objects(sample_objects, threshold=0.1, scale_factor=1.5, y_offset=3.0)
 
     print(f"\nRésultat: {len(filtered)} objets conservés sur {len(sample_objects)}")
 
-    # Test avec différents seuils
-    print("\n=== Tests avec différents seuils ===")
-    for threshold in [0.0001, 0.01, 0.1, 0.5, 0.9]:
-        filtered = remove_close_objects(sample_objects, threshold=threshold, use_normalized=True)
-        print(f"Seuil {threshold}: {len(filtered)} objets conservés")
+    # Afficher les modifications appliquées
+    if filtered:
+        print("\nExemple d'objet modifié:")
+        print(f"Échelle X originale: {sample_objects[0]['scaleX']:.3f}")
+        print(f"Échelle X modifiée: {filtered[0]['scaleX']:.3f}")
+        print(f"Position Y originale: {sample_objects[0]['y']:.3f}")
+        print(f"Position Y modifiée: {filtered[0]['y']:.3f}")
+
+    # Test avec différents paramètres
+    print("\n=== Tests avec différents paramètres ===")
+    test_params = [
+        (0.01, 1.0, 0.0),  # Seuil strict, pas de modification
+        (0.1, 1.2, 1.0),  # Seuil moyen, +20% échelle, +1 en Y
+        (0.5, 0.8, -2.0),  # Seuil large, -20% échelle, -2 en Y
+        (0.1, 2.0, 5.0),  # Seuil moyen, double échelle, +5 en Y
+    ]
+
+    for threshold, scale, y_off in test_params:
+        filtered = remove_close_objects(sample_objects,
+                                        threshold=threshold,
+                                        scale_factor=scale,
+                                        y_offset=y_off)
+        print(f"Seuil {threshold}, échelle x{scale}, Y+{y_off}: {len(filtered)} objets conservés")
+
 
 if __name__ == "__main__":
+    # Configuration des paramètres (modifiez ces valeurs selon vos besoins)
+    THRESHOLD = 0.02  # Seuil de proximité
+    SCALE_FACTOR = 1.15  # Facteur d'échelle (1.2 = +20% de taille)
+    Y_OFFSET = 4.75  # Décalage en Y (2.0 = monte de 2 unités)
+
     # Exemple d'utilisation
     example_usage()
-    THRESHOLD = 0.01
-    # Pour traiter un fichier:
-    process_json_file('treePositions_ThreeRoof2.json', 'output.json', threshold=THRESHOLD)
 
-    # Configuration du seuil (modifiez cette valeur entre 0.0001 et 0.9)
-     # Ajustez selon vos besoins
-
-    print(f"\nSeuil configuré à: {THRESHOLD}")
-    print("Pour traiter un fichier, utilisez:")
-    print("process_json_file('votre_fichier.json', 'fichier_filtre.json', threshold=THRESHOLD)")
+    # Pour traiter un fichier avec les nouveaux paramètres:
+    process_json_file('treePositions_ThreeRoof2.json',
+                      'output.json',
+                      threshold=THRESHOLD,
+                      scale_factor=SCALE_FACTOR,
+                      y_offset=Y_OFFSET)
