@@ -586,20 +586,35 @@ function CameraController({children}) {
 
     useEffect(() => {
         const handleFlashlightFirstActivation = (data) => {
-            console.log('🔦 ScrollControls: Première activation de la flashlight - DÉSACTIVATION du scroll arrière');
+            console.log('🔦 ScrollControls: Première activation de la flashlight - Enregistrement position minimale');
 
-            // Désactiver complètement le scroll arrière
-            scrollBackDisabledRef.current = true;
+            // Au lieu de désactiver complètement le scroll arrière,
+            // enregistrer la position actuelle comme position minimale autorisée
+            const currentPosition = timelinePositionRef.current;
+
+            // Ajouter cette position à la liste des positions validées avec marqueur spécial
+            validatedPositionsRef.current.push({
+                basePosition: currentPosition,
+                offsetPosition: currentPosition + SCROLL_SAFETY_OFFSET,
+                hasPassedOffset: false,
+                reason: 'flashlight-activation', // Marqueur spécial pour la flashlight
+                timestamp: Date.now()
+            });
+
+            // Mettre à jour la position minimale
+            updateMinAllowedPosition(currentPosition);
 
             // Émettre un événement pour informer d'autres composants
-            EventBus.trigger('scroll-back-completely-disabled', {
+            EventBus.trigger('scroll-back-limited-to-flashlight-position', {
                 reason: 'flashlight-first-activation',
+                minPosition: currentPosition,
+                offsetPosition: currentPosition + SCROLL_SAFETY_OFFSET,
                 timestamp: Date.now()
             });
 
             // Afficher un message de debug si nécessaire
             if (debug?.active) {
-                console.log('🚫 SCROLL ARRIÈRE DÉFINITIVEMENT DÉSACTIVÉ');
+                console.log(`🔦 SCROLL ARRIÈRE LIMITÉ à partir de la position ${currentPosition.toFixed(2)}`);
             }
         };
 
