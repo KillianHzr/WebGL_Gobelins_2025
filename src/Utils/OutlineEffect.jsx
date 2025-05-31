@@ -3,9 +3,9 @@ import * as THREE from 'three';
 import {useThree, useFrame} from '@react-three/fiber';
 
 /**
- * Shader personnalisé pour créer un outline basé sur l'extension des normales
+ * Shader simple pour outline géométrique avec two-pass rendering
  */
-const createOutlineShader = (color, thickness, intensity) => {
+const createTwoPassOutlineShader = (color, thickness, intensity) => {
     return {
         uniforms: {
             outlineColor: { value: new THREE.Color(color) },
@@ -16,7 +16,7 @@ const createOutlineShader = (color, thickness, intensity) => {
             uniform float outlineThickness;
             
             void main() {
-                // Étendre la géométrie le long des normales
+                // Extension simple des normales
                 vec3 newPosition = position + normal * outlineThickness;
                 
                 vec4 mvPosition = modelViewMatrix * vec4(newPosition, 1.0);
@@ -35,51 +35,27 @@ const createOutlineShader = (color, thickness, intensity) => {
 };
 
 /**
- * Shader Fresnel pour un outline plus subtil
+ * Shader pour l'objet original (masquage)
  */
-const createFresnelOutlineShader = (color, intensity, power) => {
+const createMaskShader = () => {
     return {
-        uniforms: {
-            outlineColor: { value: new THREE.Color(color) },
-            outlineIntensity: { value: intensity },
-            fresnelPower: { value: power }
-        },
         vertexShader: `
-            varying vec3 vNormal;
-            varying vec3 vViewPosition;
-            
             void main() {
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                vViewPosition = -mvPosition.xyz;
-                vNormal = normalize(normalMatrix * normal);
-                
                 gl_Position = projectionMatrix * mvPosition;
             }
         `,
         fragmentShader: `
-            uniform vec3 outlineColor;
-            uniform float outlineIntensity;
-            uniform float fresnelPower;
-            
-            varying vec3 vNormal;
-            varying vec3 vViewPosition;
-            
             void main() {
-                vec3 viewDirection = normalize(vViewPosition);
-                float fresnel = 1.0 - abs(dot(viewDirection, vNormal));
-                fresnel = pow(fresnel, fresnelPower);
-                
-                float alpha = fresnel * outlineIntensity;
-                if (alpha < 0.1) discard;
-                
-                gl_FragColor = vec4(outlineColor, alpha);
+                // Couleur transparente pour masquer
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
             }
         `
     };
 };
 
 /**
- * Composant OutlineEffect optimisé
+ * Composant OutlineEffect avec two-pass rendering
  */
 const OutlineEffect = forwardRef(({
                                       objectRef,
@@ -88,11 +64,10 @@ const OutlineEffect = forwardRef(({
                                       thickness = 0.02,
                                       intensity = 3,
                                       pulseSpeed = 0,
-                                      technique = 'geometry', // 'geometry', 'fresnel', 'hybrid'
-                                      fresnelPower = 2.0,
                                       debug = false
                                   }, ref) => {
     const outlineRef = useRef();
+    const maskRef = useRef();
     const pulseRef = useRef({ value: 0, direction: 1 });
     const shadersRef = useRef([]);
     const { scene } = useThree();
@@ -106,33 +81,31 @@ const OutlineEffect = forwardRef(({
         if (debug) console.log('[OutlineEffect]', ...args);
     };
 
-    // Créer les matériaux de shader
-    const outlineMaterials = useMemo(() => {
-        const materials = {};
-
-        // Matériau géométrique
-        const geometryShader = createOutlineShader(color, thickness, intensity);
-        materials.geometry = new THREE.ShaderMaterial({
-            ...geometryShader,
+    // Créer les matériaux
+    const materials = useMemo(() => {
+        // Matériau pour l'outline (rendu en premier, en arrière)
+        const outlineShader = createTwoPassOutlineShader(color, thickness, intensity);
+        const outlineMaterial = new THREE.ShaderMaterial({
+            ...outlineShader,
             side: THREE.BackSide,
             transparent: false,
-            depthWrite: false,
+            depthWrite: true,
             depthTest: true
         });
 
-        // Matériau Fresnel
-        const fresnelShader = createFresnelOutlineShader(color, intensity * 0.5, fresnelPower);
-        materials.fresnel = new THREE.ShaderMaterial({
-            ...fresnelShader,
+        // Matériau pour masquer l'outline à l'intérieur (rendu en second, en avant)
+        const maskShader = createMaskShader();
+        const maskMaterial = new THREE.ShaderMaterial({
+            ...maskShader,
             side: THREE.FrontSide,
             transparent: true,
-            depthWrite: false,
+            depthWrite: true,
             depthTest: true,
-            blending: THREE.AdditiveBlending
+            colorWrite: false // Ne pas écrire de couleur, juste la profondeur
         });
 
-        return materials;
-    }, [color, thickness, intensity, fresnelPower]);
+        return { outline: outlineMaterial, mask: maskMaterial };
+    }, [color, thickness, intensity]);
 
     // Fonction pour vérifier si l'objet est prêt
     const checkObjectReady = () => {
@@ -141,9 +114,6 @@ const OutlineEffect = forwardRef(({
             return false;
         }
 
-        const obj = objectRef.current;
-
-        // Vérifier que l'objet a des mesh enfants avec géométries valides
         let hasMeshes = false;
         let hasValidGeometries = false;
 
@@ -156,17 +126,11 @@ const OutlineEffect = forwardRef(({
             }
         });
 
-        if (!hasMeshes) {
-            debugLog('Object has no meshes yet');
+        if (!hasMeshes || !hasValidGeometries) {
+            debugLog('Object not ready: missing meshes or geometries');
             return false;
         }
 
-        if (!hasValidGeometries) {
-            debugLog('Object meshes have no valid geometries yet');
-            return false;
-        }
-
-        // Vérifier que l'objet est dans la scène
         let isInScene = false;
         let current = objectRef.current;
         while (current) {
@@ -182,13 +146,6 @@ const OutlineEffect = forwardRef(({
             return false;
         }
 
-        // Vérifier que l'objet a une position valide (pas NaN)
-        const pos = objectRef.current.position;
-        if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
-            debugLog('Object has invalid position');
-            return false;
-        }
-
         debugLog('Object is ready!');
         return true;
     };
@@ -196,38 +153,36 @@ const OutlineEffect = forwardRef(({
     // Exposer les méthodes via la référence
     useImperativeHandle(ref, () => ({
         outlineGroup: outlineRef.current,
+        maskGroup: maskRef.current,
 
         setVisible: (visible) => {
             if (outlineRef.current) {
                 outlineRef.current.visible = visible;
-                debugLog('Visibility set to:', visible);
             }
+            if (maskRef.current) {
+                maskRef.current.visible = visible;
+            }
+            debugLog('Visibility set to:', visible);
         },
 
         setColor: (newColor) => {
-            Object.values(outlineMaterials).forEach(material => {
-                if (material.uniforms && material.uniforms.outlineColor) {
-                    material.uniforms.outlineColor.value.set(newColor);
-                }
-            });
+            if (materials.outline.uniforms && materials.outline.uniforms.outlineColor) {
+                materials.outline.uniforms.outlineColor.value.set(newColor);
+            }
             debugLog('Color changed to:', newColor);
         },
 
         setThickness: (newThickness) => {
-            Object.values(outlineMaterials).forEach(material => {
-                if (material.uniforms && material.uniforms.outlineThickness) {
-                    material.uniforms.outlineThickness.value = newThickness;
-                }
-            });
+            if (materials.outline.uniforms && materials.outline.uniforms.outlineThickness) {
+                materials.outline.uniforms.outlineThickness.value = newThickness;
+            }
             debugLog('Thickness changed to:', newThickness);
         },
 
         setIntensity: (newIntensity) => {
-            Object.values(outlineMaterials).forEach(material => {
-                if (material.uniforms && material.uniforms.outlineIntensity) {
-                    material.uniforms.outlineIntensity.value = newIntensity;
-                }
-            });
+            if (materials.outline.uniforms && materials.outline.uniforms.outlineIntensity) {
+                materials.outline.uniforms.outlineIntensity.value = newIntensity;
+            }
             debugLog('Intensity changed to:', newIntensity);
         },
 
@@ -241,78 +196,47 @@ const OutlineEffect = forwardRef(({
             }, 100);
         },
 
-        getState: () => ({ active, color, thickness, intensity, technique, isReady })
+        getState: () => ({ active, color, thickness, intensity, isReady })
     }));
 
-    // Fonction pour créer l'outline géométrique
-    const createGeometryOutline = (targetObject, material) => {
-        const outlines = [];
+    // Fonction pour créer un groupe de meshes depuis l'objet cible
+    const createMeshGroup = (targetObject, material, groupName) => {
+        const meshes = [];
 
-        // Calculer la transformation mondiale de l'objet cible
         targetObject.updateMatrixWorld(true);
 
         targetObject.traverse((child) => {
             if (child.isMesh && child.geometry && child.geometry.attributes.position) {
-                debugLog('Creating outline for mesh:', child.name || 'unnamed');
+                debugLog(`Creating ${groupName} mesh for:`, child.name || 'unnamed');
 
                 try {
                     // Cloner la géométrie
-                    const outlineGeometry = child.geometry.clone();
+                    const geometry = child.geometry.clone();
 
                     // S'assurer que la géométrie a des normales
-                    if (!outlineGeometry.attributes.normal) {
-                        outlineGeometry.computeVertexNormals();
+                    if (!geometry.attributes.normal) {
+                        geometry.computeVertexNormals();
                     }
 
-                    // Créer le mesh d'outline
+                    // Créer le mesh
                     const clonedMaterial = material.clone();
-                    const outlineMesh = new THREE.Mesh(outlineGeometry, clonedMaterial);
+                    const mesh = new THREE.Mesh(geometry, clonedMaterial);
 
-                    // Appliquer la transformation mondiale du mesh original
+                    // Appliquer la transformation du mesh original
                     child.updateMatrixWorld(true);
-                    outlineMesh.matrix.copy(child.matrixWorld);
-                    outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+                    mesh.matrix.copy(child.matrixWorld);
+                    mesh.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
+                    mesh.matrixAutoUpdate = false;
 
-                    // Désactiver l'auto-update pour utiliser la matrice manuelle
-                    outlineMesh.matrixAutoUpdate = false;
-
-                    outlines.push(outlineMesh);
+                    meshes.push(mesh);
                 } catch (error) {
-                    console.warn('[OutlineEffect] Error creating outline for mesh:', error);
+                    console.warn(`[OutlineEffect] Error creating ${groupName} mesh:`, error);
                 }
             }
         });
 
-        debugLog('Created', outlines.length, 'outline meshes');
-        return outlines;
-    };
-
-    // Fonction pour créer l'outline Fresnel
-    const createFresnelOutline = (targetObject, material) => {
-        const outlines = [];
-
-        targetObject.updateMatrixWorld(true);
-
-        targetObject.traverse((child) => {
-            if (child.isMesh && child.geometry && child.geometry.attributes.position) {
-                try {
-                    const clonedMaterial = material.clone();
-                    const outlineMesh = new THREE.Mesh(child.geometry.clone(), clonedMaterial);
-
-                    // Appliquer la même transformation
-                    child.updateMatrixWorld(true);
-                    outlineMesh.matrix.copy(child.matrixWorld);
-                    outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
-                    outlineMesh.matrixAutoUpdate = false;
-
-                    outlines.push(outlineMesh);
-                } catch (error) {
-                    console.warn('[OutlineEffect] Error creating fresnel outline for mesh:', error);
-                }
-            }
-        });
-
-        return outlines;
+        debugLog(`Created ${meshes.length} ${groupName} meshes`);
+        return meshes;
     };
 
     // Fonction principale pour créer l'effet d'outline
@@ -322,50 +246,55 @@ const OutlineEffect = forwardRef(({
             return;
         }
 
-        debugLog('Creating outline effect with technique:', technique);
+        debugLog('Creating two-pass outline effect');
 
-        // Nettoyer l'outline existant
+        // Nettoyer les outlines existants
         if (outlineRef.current) {
             scene.remove(outlineRef.current);
             outlineRef.current.traverse(child => {
                 if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(mat => mat.dispose());
-                    } else {
-                        child.material.dispose();
-                    }
-                }
+                if (child.material) child.material.dispose();
             });
         }
 
-        const outlineGroup = new THREE.Group();
-        outlineGroup.name = 'OutlineEffect';
-        outlineGroup.visible = active;
-
-        let outlineMeshes = [];
+        if (maskRef.current) {
+            scene.remove(maskRef.current);
+            maskRef.current.traverse(child => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            });
+        }
 
         try {
-            switch (technique) {
-                case 'geometry':
-                    outlineMeshes = createGeometryOutline(objectRef.current, outlineMaterials.geometry);
-                    break;
+            // Créer le groupe d'outline (rendu en premier avec BackSide)
+            const outlineGroup = new THREE.Group();
+            outlineGroup.name = 'TwoPassOutline';
+            outlineGroup.visible = active;
 
-                case 'fresnel':
-                    outlineMeshes = createFresnelOutline(objectRef.current, outlineMaterials.fresnel);
-                    break;
+            const outlineMeshes = createMeshGroup(objectRef.current, materials.outline, 'outline');
 
-                case 'hybrid':
-                default:
-                    const geometryOutlines = createGeometryOutline(objectRef.current, outlineMaterials.geometry);
-                    const fresnelOutlines = createFresnelOutline(objectRef.current, outlineMaterials.fresnel);
-                    outlineMeshes = [...geometryOutlines, ...fresnelOutlines];
-                    break;
-            }
+            // Assigner des renderOrder pour contrôler l'ordre de rendu
+            outlineMeshes.forEach((mesh, index) => {
+                mesh.name = `outline-mesh-${index}`;
+                mesh.renderOrder = -100; // Rendu en premier
+                outlineGroup.add(mesh);
+            });
+
+            // Créer le groupe de masque (rendu en second avec FrontSide)
+            const maskGroup = new THREE.Group();
+            maskGroup.name = 'TwoPassMask';
+            maskGroup.visible = active;
+
+            const maskMeshes = createMeshGroup(objectRef.current, materials.mask, 'mask');
+
+            maskMeshes.forEach((mesh, index) => {
+                mesh.name = `mask-mesh-${index}`;
+                mesh.renderOrder = -99; // Rendu après l'outline
+                maskGroup.add(mesh);
+            });
 
             if (outlineMeshes.length === 0) {
-                debugLog('No outline meshes created - retrying in a moment');
-                // Réessayer après un délai
+                debugLog('No outline meshes created - retrying...');
                 if (retryTimeoutRef.current) {
                     clearTimeout(retryTimeoutRef.current);
                 }
@@ -377,26 +306,19 @@ const OutlineEffect = forwardRef(({
                 return;
             }
 
-            // Ajouter tous les meshes d'outline au groupe
-            outlineMeshes.forEach((mesh, index) => {
-                mesh.name = `outline-mesh-${index}`;
-                outlineGroup.add(mesh);
-            });
+            // Stocker les références pour l'animation
+            shadersRef.current = [materials.outline].filter(material => material.uniforms);
 
-            // Stocker les références des shaders pour l'animation
-            shadersRef.current = outlineMeshes
-                .map(mesh => mesh.material)
-                .filter(material => material.uniforms);
-
-            // Ajouter le groupe à la scène
+            // Ajouter à la scène
             scene.add(outlineGroup);
+            scene.add(maskGroup);
             outlineRef.current = outlineGroup;
+            maskRef.current = maskGroup;
 
-            debugLog('Outline effect created successfully with', outlineMeshes.length, 'meshes');
+            debugLog('Two-pass outline created with', outlineMeshes.length, 'outline meshes and', maskMeshes.length, 'mask meshes');
 
         } catch (error) {
-            console.error('[OutlineEffect] Error creating outline:', error);
-            // Réessayer en cas d'erreur
+            console.error('[OutlineEffect] Error creating two-pass outline:', error);
             if (retryTimeoutRef.current) {
                 clearTimeout(retryTimeoutRef.current);
             }
@@ -410,16 +332,13 @@ const OutlineEffect = forwardRef(({
 
     // Système de retry pour vérifier si l'objet est prêt
     useEffect(() => {
-        // S'assurer que le composant est marqué comme monté
         mountedRef.current = true;
 
         if (!objectRef?.current) {
             return;
         }
 
-        // Forcer la vérification si l'objet n'est pas ready, même si pas changé
         const shouldCheck = (objectRef.current !== lastObjectRef.current) || !isReady;
-
         if (!shouldCheck) {
             return;
         }
@@ -427,7 +346,6 @@ const OutlineEffect = forwardRef(({
         lastObjectRef.current = objectRef.current;
         setIsReady(false);
 
-        // Nettoyer les timeouts précédents
         if (retryTimeoutRef.current) {
             clearTimeout(retryTimeoutRef.current);
         }
@@ -443,7 +361,7 @@ const OutlineEffect = forwardRef(({
             } else if (attempt < 20) {
                 retryTimeoutRef.current = setTimeout(() => attemptToReady(attempt + 1), 200);
             } else {
-                debugLog('Max attempts reached, object may not be ready');
+                debugLog('Max attempts reached');
             }
         };
 
@@ -464,56 +382,53 @@ const OutlineEffect = forwardRef(({
                     createOutlineEffect();
                 }
             }, 100);
-
             return () => clearTimeout(timer);
         }
-    }, [isReady, technique]);
+    }, [isReady]);
 
     // Mettre à jour la visibilité
     useEffect(() => {
-        if (outlineRef.current) {
+        if (outlineRef.current && maskRef.current) {
             outlineRef.current.visible = active;
+            maskRef.current.visible = active;
             debugLog('Active state changed to:', active);
         }
     }, [active]);
 
     // Mettre à jour les propriétés des shaders
     useEffect(() => {
-        Object.values(outlineMaterials).forEach((material) => {
-            if (material.uniforms) {
-                if (material.uniforms.outlineColor) {
-                    material.uniforms.outlineColor.value.set(color);
-                }
-                if (material.uniforms.outlineThickness) {
-                    material.uniforms.outlineThickness.value = thickness;
-                }
-                if (material.uniforms.outlineIntensity) {
-                    material.uniforms.outlineIntensity.value = intensity;
-                }
+        if (materials.outline.uniforms) {
+            if (materials.outline.uniforms.outlineColor) {
+                materials.outline.uniforms.outlineColor.value.set(color);
             }
-        });
-    }, [color, thickness, intensity, outlineMaterials]);
+            if (materials.outline.uniforms.outlineThickness) {
+                materials.outline.uniforms.outlineThickness.value = thickness;
+            }
+            if (materials.outline.uniforms.outlineIntensity) {
+                materials.outline.uniforms.outlineIntensity.value = intensity;
+            }
+        }
+    }, [color, thickness, intensity, materials]);
 
-    // Cleanup lors du démontage
+    // Cleanup
     useEffect(() => {
         return () => {
             mountedRef.current = false;
-
             if (retryTimeoutRef.current) {
                 clearTimeout(retryTimeoutRef.current);
             }
-
             if (outlineRef.current) {
                 scene.remove(outlineRef.current);
                 outlineRef.current.traverse(child => {
                     if (child.geometry) child.geometry.dispose();
-                    if (child.material) {
-                        if (Array.isArray(child.material)) {
-                            child.material.forEach(mat => mat.dispose());
-                        } else {
-                            child.material.dispose();
-                        }
-                    }
+                    if (child.material) child.material.dispose();
+                });
+            }
+            if (maskRef.current) {
+                scene.remove(maskRef.current);
+                maskRef.current.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
                 });
             }
         };
@@ -523,7 +438,7 @@ const OutlineEffect = forwardRef(({
     useFrame((state, delta) => {
         if (!active || pulseSpeed <= 0 || shadersRef.current.length === 0) return;
 
-        // Calculer la pulsation
+        // Pulsation
         pulseRef.current.value += delta * pulseSpeed * pulseRef.current.direction;
 
         if (pulseRef.current.value >= 1) {
@@ -534,17 +449,11 @@ const OutlineEffect = forwardRef(({
             pulseRef.current.direction = 1;
         }
 
-        // Appliquer la pulsation aux shaders
         const pulseIntensity = intensity * (0.5 + 0.5 * pulseRef.current.value);
 
         shadersRef.current.forEach(material => {
-            if (material.uniforms) {
-                if (material.uniforms.time) {
-                    material.uniforms.time.value = state.clock.elapsedTime;
-                }
-                if (material.uniforms.outlineIntensity) {
-                    material.uniforms.outlineIntensity.value = pulseIntensity;
-                }
+            if (material.uniforms && material.uniforms.outlineIntensity) {
+                material.uniforms.outlineIntensity.value = pulseIntensity;
             }
         });
     });
