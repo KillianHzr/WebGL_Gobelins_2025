@@ -8,6 +8,7 @@ import useStore from '../Store/useStore';
 import {useRayCaster} from "./RayCaster";
 import {MARKER_EVENTS} from './EventEmitter.jsx';
 import {useAnimationFrame} from "./AnimationManager.js";
+import DoubleButtonConfirmMarker from "./DoubleButtonConfirmMarker.jsx";
 
 export const ModelMarker = React.memo(function ModelMarker({
                                                                objectRef,
@@ -62,7 +63,7 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Ne pas montrer si l'étape a déjà été complétée
         !interactionCompleted && (
             // Cas spécial pour le type DISABLE : toujours afficher quand l'interaction est disponible
-            (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
+            (effectiveMarkerType === INTERACTION_TYPES.CONFIRM &&
                 (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
             // Condition standard pour les autres types (basée sur le hover)
@@ -296,6 +297,7 @@ export const INTERACTION_TYPES = {
     DRAG_UP: 'dragUp',
     DRAG_DOWN: 'dragDown',
     DISABLE: 'disable',
+    CONFIRM: 'confirm',
 };
 
 export const useOptimalMarkerPosition = (objectRef, options = {}) => {
@@ -1311,6 +1313,21 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
                         />
                     </div>
                 </Html>
+            )}
+
+            {markerType === INTERACTION_TYPES.CONFIRM && (
+                <DoubleButtonConfirmMarker
+                    id={id}
+                    text={text}
+                    buttonHovered={buttonHovered}
+                    setButtonHovered={setButtonHovered}
+                    onClick={onClick}
+                    onPointerEnter={onPointerEnter}
+                    onPointerLeave={onPointerLeave}
+                    stopAllPropagation={stopAllPropagation}
+                    EventBus={EventBus}
+                    MARKER_EVENTS={MARKER_EVENTS}
+                />
             )}
         </group>
     </>);
