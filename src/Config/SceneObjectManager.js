@@ -472,8 +472,8 @@ class SceneObjectManager {
                 interactive: true,
                 useTextures: true,
                 interaction: [{
-                    type: INTERACTION_TYPES.CLICK,
-                    text: "Clique",
+                    type: INTERACTION_TYPES.CONFIRM,  // CHANGÉ : de CLICK à CONFIRM
+                    text: "Prends en photo",        // CHANGÉ : texte plus descriptif
                     offset: 0.5,
                     axis: "y",
                     interfaceToShow: "capture",
