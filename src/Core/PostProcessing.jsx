@@ -51,8 +51,8 @@ export default function PostProcessing() {
         // Ajouter le UnrealBloomPass pour l'effet de bloom
         if (bloomSettingsRef.current.enabled) {
             const resolution = new Vector2(
-                window.innerWidth * window.devicePixelRatio,
-                window.innerHeight * window.devicePixelRatio
+                window.innerWidth * (window.devicePixelRatio * 0.85),
+                window.innerHeight * (window.devicePixelRatio * 0.85)
             );
             const bloomPass = new UnrealBloomPass(
                 resolution,

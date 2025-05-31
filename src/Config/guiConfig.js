@@ -315,7 +315,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 100
+                default: 50
             }
         },
         // Nouvelle section pour les paramètres de rendu de la caméra
@@ -496,14 +496,14 @@ const guiConfig = {
                     max: 200,
                     step: 1,
                     name: "Initial Near",
-                    default: 50
+                    default: 33
                 },
                 initialFar: {
                     min: 30,
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 75
+                    default: 50
                 }
             }
         }
@@ -536,7 +536,7 @@ const guiConfig = {
                     '8192x8192': 8192,
                     '16384x16384': 16384
                 },
-                default: 2048
+                default: 1024
             },
             bias: {
                 name: "Shadow Bias",

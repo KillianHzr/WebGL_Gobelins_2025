@@ -380,7 +380,7 @@ export default function Lights() {
         if (!lightsInitialized) return;
 
         let frameId;
-        const smoothingFactor = 0.05; // Plus petit = transition plus lente
+        const smoothingFactor = 0.3; // Plus petit = transition plus lente
 
         const updateFrame = () => {
             // Récupérer les valeurs cibles actuelles

@@ -853,7 +853,6 @@ class TextureManager {
             // Couleur de base légèrement grisée
             color: '#867474',
 
-            // Propriétés d'ombre - le sol reçoit mais ne projette pas
             castShadow: false, receiveShadow: true,
 
             // Scale de la normale pour plus de détails

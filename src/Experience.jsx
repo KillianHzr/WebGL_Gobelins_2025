@@ -292,14 +292,14 @@ export default function Experience() {
             <SceneFog />
 
             {debug && <Stats />}
-            {debug && <Debug />}
+            {/*{debug && <Debug />}*/}
 
             {/* Ordre important : Camera d'abord, puis Lights */}
             <Camera/>
             <Lights/>
 
             <Controls/>
-            {debug && <MaterialControls/>}
+            {/*{debug && <MaterialControls/>}*/}
             <PostProcessing/>
 
             <RayCaster>

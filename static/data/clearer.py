@@ -61,14 +61,16 @@ def calculate_normalized_distance(obj1: Dict[str, float], obj2: Dict[str, float]
 
 def modify_object_properties(obj: Dict[str, Any],
                              scale_factor: float = 1.0,
-                             y_offset: float = 0.0) -> Dict[str, Any]:
+                             y_offset: float = 0.0,
+                             min_height: float = None) -> Dict[str, Any]:
     """
-    Modifie les propriétés d'un objet (échelle et position Y).
+    Modifie les propriétés d'un objet (échelle, position Y et hauteur minimum).
 
     Args:
         obj: L'objet à modifier
         scale_factor: Facteur multiplicateur pour l'échelle (ex: 2.0 = double la taille)
         y_offset: Décalage à appliquer sur la position Y (peut être positif ou négatif)
+        min_height: Hauteur minimum en Y. Si l'objet (APRÈS décalage) est plus bas, il sera remonté à cette hauteur
 
     Returns:
         L'objet modifié (copie)
@@ -83,9 +85,18 @@ def modify_object_properties(obj: Dict[str, Any],
     if 'scaleZ' in modified_obj:
         modified_obj['scaleZ'] *= scale_factor
 
-    # Modification de la position Y
+    # Modification de la position Y (ÉTAPE 1: appliquer le décalage)
     if 'y' in modified_obj:
+        original_y = modified_obj['y']
         modified_obj['y'] += y_offset
+        y_after_offset = modified_obj['y']
+
+        # Application de la hauteur minimum (ÉTAPE 2: vérifier après décalage)
+        if min_height is not None:
+            if modified_obj['y'] < min_height:
+                print(
+                    f"Objet remonté: Y original={original_y:.3f} → Y après décalage={y_after_offset:.3f} → Y final={min_height:.3f} (hauteur minimum)")
+                modified_obj['y'] = min_height
 
     return modified_obj
 
@@ -94,13 +105,17 @@ def remove_close_objects(objects: List[Dict[str, Any]],
                          threshold: float = 0.1,
                          use_normalized: bool = True,
                          scale_factor: float = 1.0,
-                         y_offset: float = 0.0) -> List[Dict[str, Any]]:
+                         y_offset: float = 0.0,
+                         min_height: float = None) -> List[Dict[str, Any]]:
     """
     Supprime les objets trop proches selon le seuil donné et modifie leurs propriétés.
     GARDE TOUJOURS UN DES DEUX OBJETS (le premier rencontré).
 
     IMPORTANT: La suppression se base sur les positions ORIGINALES,
-    les modifications (échelle, Y) sont appliquées APRÈS le filtrage.
+    les modifications sont appliquées APRÈS le filtrage dans cet ordre :
+    1. Échelle (scale_factor)
+    2. Décalage Y (y_offset)
+    3. Hauteur minimum (min_height) - appliquée sur le résultat final
 
     Args:
         objects: Liste des objets JSON
@@ -108,6 +123,7 @@ def remove_close_objects(objects: List[Dict[str, Any]],
         use_normalized: Utilise la distance normalisée ou la distance brute
         scale_factor: Facteur multiplicateur pour l'échelle (ex: 1.5 = +50% de taille)
         y_offset: Décalage sur l'axe Y (ex: 2.0 = monte de 2 unités)
+        min_height: Hauteur minimum en Y (ex: 1.0 = tous les objets seront au minimum à Y=1.0)
 
     Returns:
         Liste filtrée des objets avec propriétés modifiées
@@ -145,17 +161,30 @@ def remove_close_objects(objects: List[Dict[str, Any]],
             print(
                 f"Objet {i} supprimé car trop proche de l'objet conservé #{closest_index} (distance {closest_distance:.6f} < seuil {threshold})")
 
-    # ÉTAPE 2: Appliquer les modifications (échelle, Y) APRÈS le filtrage
+    # ÉTAPE 2: Appliquer les modifications (échelle, Y, hauteur min) APRÈS le filtrage
     final_objects = []
     for i, obj in enumerate(filtered_objects_original):
-        modified_obj = modify_object_properties(obj, scale_factor, y_offset)
+        modified_obj = modify_object_properties(obj, scale_factor, y_offset, min_height)
         final_objects.append(modified_obj)
-        print(f"Objet conservé #{i} modifié (échelle: x{scale_factor}, Y: +{y_offset})")
+
+        # Affichage des modifications appliquées
+        modifications = []
+        if scale_factor != 1.0:
+            modifications.append(f"échelle: x{scale_factor}")
+        if y_offset != 0.0:
+            modifications.append(f"Y: +{y_offset}")
+        if min_height is not None:
+            modifications.append(f"hauteur min: {min_height}")
+
+        if modifications:
+            print(f"Objet conservé #{i} modifié ({', '.join(modifications)})")
 
     print(f"\n--- Résumé du filtrage ---")
     print(f"Objets originaux: {len(objects)}")
     print(f"Objets après filtrage: {len(filtered_objects_original)}")
     print(f"Objets supprimés: {len(objects) - len(filtered_objects_original)}")
+    if min_height is not None:
+        print(f"Hauteur minimum appliquée: {min_height}")
 
     return final_objects
 
@@ -164,7 +193,8 @@ def process_json_file(input_file: str,
                       output_file: str,
                       threshold: float = 0.1,
                       scale_factor: float = 1.0,
-                      y_offset: float = 0.0):
+                      y_offset: float = 0.0,
+                      min_height: float = None):
     """
     Traite un fichier JSON complet avec modification des propriétés.
 
@@ -174,6 +204,7 @@ def process_json_file(input_file: str,
         threshold: Seuil de proximité pour filtrage
         scale_factor: Facteur d'échelle (1.0 = pas de changement)
         y_offset: Décalage position Y (0.0 = pas de changement)
+        min_height: Hauteur minimum en Y (None = pas de hauteur minimum)
     """
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
@@ -181,13 +212,13 @@ def process_json_file(input_file: str,
 
         # Si c'est une liste directe d'objets
         if isinstance(data, list):
-            filtered_data = remove_close_objects(data, threshold, True, scale_factor, y_offset)
+            filtered_data = remove_close_objects(data, threshold, True, scale_factor, y_offset, min_height)
 
         # Si les objets sont dans une clé spécifique
         elif isinstance(data, dict) and 'objects' in data:
             filtered_data = data.copy()
             filtered_data['objects'] = remove_close_objects(
-                data['objects'], threshold, True, scale_factor, y_offset
+                data['objects'], threshold, True, scale_factor, y_offset, min_height
             )
 
         else:
@@ -205,6 +236,8 @@ def process_json_file(input_file: str,
         print(f"Objects supprimés: {original_count - final_count}")
         print(f"Facteur d'échelle appliqué: {scale_factor}")
         print(f"Décalage Y appliqué: {y_offset}")
+        if min_height is not None:
+            print(f"Hauteur minimum appliquée: {min_height}")
 
     except FileNotFoundError:
         print(f"Fichier {input_file} non trouvé")
@@ -231,7 +264,7 @@ def example_usage():
         },
         {
             "x": -18.88863754272461,
-            "y": 1.890096664428711,
+            "y": 1.890096664428711,  # Objet plus bas
             "z": -138.70361328125,
             "rotationX": 2.1282555915624712,
             "rotationY": -0.3925090627145855,
@@ -242,7 +275,7 @@ def example_usage():
         },
         {
             "x": -16.800365447998047,
-            "y": 0.8295907974243164,
+            "y": 0.8295907974243164,  # Objet encore plus bas
             "z": -136.35488891601562,
             "rotationX": 1.5796504791771422,
             "rotationY": 0.044142557249213836,
@@ -253,41 +286,53 @@ def example_usage():
         }
     ]
 
-    print("=== Test avec seuil 0.1, échelle x1.5, Y+3 ===")
-    filtered = remove_close_objects(sample_objects, threshold=0.1, scale_factor=1.5, y_offset=3.0)
+    print("=== Test avec seuil 0.1, échelle x1.5, Y+3, hauteur min 5.0 ===")
+    print("Ordre des opérations : 1) Échelle 2) Décalage Y 3) Hauteur minimum")
+    filtered = remove_close_objects(sample_objects,
+                                    threshold=0.1,
+                                    scale_factor=1.5,
+                                    y_offset=3.0,
+                                    min_height=5.0)
 
     print(f"\nRésultat: {len(filtered)} objets conservés sur {len(sample_objects)}")
 
     # Afficher les modifications appliquées
     if filtered:
-        print("\nExemple d'objet modifié:")
-        print(f"Échelle X originale: {sample_objects[0]['scaleX']:.3f}")
-        print(f"Échelle X modifiée: {filtered[0]['scaleX']:.3f}")
-        print(f"Position Y originale: {sample_objects[0]['y']:.3f}")
-        print(f"Position Y modifiée: {filtered[0]['y']:.3f}")
+        print("\nExemples de transformations :")
+        for i in range(min(len(sample_objects), len(filtered))):
+            original = sample_objects[i]
+            modified = filtered[i]
+            print(f"\nObjet {i}:")
+            print(f"  Y original: {original['y']:.3f}")
+            print(f"  Y après décalage (+3.0): {original['y'] + 3.0:.3f}")
+            print(f"  Y final (après hauteur min 5.0): {modified['y']:.3f}")
+            print(f"  Échelle X: {original['scaleX']:.3f} → {modified['scaleX']:.3f}")
 
-    # Test avec différents paramètres
-    print("\n=== Tests avec différents paramètres ===")
+    # Test avec différents paramètres incluant hauteur minimum
+    print("\n=== Tests avec différents paramètres et hauteur minimum ===")
     test_params = [
-        (0.01, 1.0, 0.0),  # Seuil strict, pas de modification
-        (0.1, 1.2, 1.0),  # Seuil moyen, +20% échelle, +1 en Y
-        (0.5, 0.8, -2.0),  # Seuil large, -20% échelle, -2 en Y
-        (0.1, 2.0, 5.0),  # Seuil moyen, double échelle, +5 en Y
+        (0.01, 1.0, 0.0, None),  # Pas de hauteur minimum
+        (0.1, 1.2, 1.0, 3.0),  # Hauteur minimum à 3.0
+        (0.5, 0.8, -2.0, 1.0),  # Hauteur minimum à 1.0
+        (0.1, 2.0, 5.0, 8.0),  # Hauteur minimum à 8.0 (tous seront remontés)
     ]
 
-    for threshold, scale, y_off in test_params:
+    for threshold, scale, y_off, min_h in test_params:
+        print(f"\n--- Test: seuil {threshold}, échelle x{scale}, Y+{y_off}, hauteur min {min_h} ---")
         filtered = remove_close_objects(sample_objects,
                                         threshold=threshold,
                                         scale_factor=scale,
-                                        y_offset=y_off)
-        print(f"Seuil {threshold}, échelle x{scale}, Y+{y_off}: {len(filtered)} objets conservés")
+                                        y_offset=y_off,
+                                        min_height=min_h)
+        print(f"Résultat: {len(filtered)} objets conservés")
 
 
 if __name__ == "__main__":
     # Configuration des paramètres (modifiez ces valeurs selon vos besoins)
     THRESHOLD = 0.02  # Seuil de proximité
-    SCALE_FACTOR = 1.15  # Facteur d'échelle (1.2 = +20% de taille)
-    Y_OFFSET = 4.75  # Décalage en Y (2.0 = monte de 2 unités)
+    SCALE_FACTOR = 1.0  # Facteur d'échelle (1.2 = +20% de taille)
+    Y_OFFSET = 0.0  # Décalage en Y (2.0 = monte de 2 unités)
+    MIN_HEIGHT = 5.25  # Hauteur minimum (tous les objets seront au minimum à Y=1.0)
 
     # Exemple d'utilisation
     example_usage()
@@ -297,4 +342,5 @@ if __name__ == "__main__":
                       'output.json',
                       threshold=THRESHOLD,
                       scale_factor=SCALE_FACTOR,
-                      y_offset=Y_OFFSET)
+                      y_offset=Y_OFFSET,
+                      min_height=MIN_HEIGHT)

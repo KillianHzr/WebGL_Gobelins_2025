@@ -24,6 +24,28 @@ class AnimationManager {
             'preFrame', 'camera', 'physics', 'animation', 'postProcess', 'ui', 'analytics'
         ];
 
+        // 🚀 NOUVEAU : Configuration de throttling par catégorie
+        this.throttleConfig = {
+            preFrame: 2,    // Chaque frame (pas de throttling)
+            camera: 1,      // Chaque frame (critique pour la navigation)
+            physics: 2,     // 1 frame sur 2 (30 FPS au lieu de 60)
+            animation: 1,   // Chaque frame (animations fluides)
+            postProcess: 3, // 1 frame sur 3 (20 FPS)
+            ui: 4,          // 1 frame sur 4 (15 FPS)
+            analytics: 10   // 1 frame sur 10 (6 FPS - mesures uniquement)
+        };
+
+        // 🚀 NOUVEAU : Compteurs pour le throttling de chaque catégorie
+        this.frameCounters = {
+            preFrame: 0,
+            camera: 0,
+            physics: 0,
+            animation: 0,
+            postProcess: 0,
+            ui: 0,
+            analytics: 0
+        };
+
         // ID counter pour générer des identifiants uniques
         this.idCounter = 0;
 
@@ -37,6 +59,60 @@ class AnimationManager {
             frameCount: 0,
             averageFrameTime: 0
         };
+    }
+
+    /**
+     * 🚀 NOUVEAU : Configure le throttling pour une catégorie spécifique
+     * @param {string} category - Catégorie à configurer
+     * @param {number} interval - Interval de throttling (1 = chaque frame, 2 = 1 frame sur 2, etc.)
+     */
+    setThrottling(category, interval) {
+        if (this.throttleConfig.hasOwnProperty(category)) {
+            this.throttleConfig[category] = Math.max(1, Math.floor(interval));
+            console.log(`Throttling ${category}: 1 frame sur ${this.throttleConfig[category]}`);
+        } else {
+            console.warn(`Catégorie ${category} non trouvée pour le throttling`);
+        }
+    }
+
+    /**
+     * 🚀 NOUVEAU : Obtient la configuration de throttling actuelle
+     * @returns {object} Configuration de throttling
+     */
+    getThrottlingConfig() {
+        return { ...this.throttleConfig };
+    }
+
+    /**
+     * 🚀 NOUVEAU : Mode performance qui ajuste automatiquement le throttling
+     * @param {string} mode - 'low', 'medium', 'high', 'ultra'
+     */
+    setPerformanceMode(mode) {
+        const configs = {
+            low: {
+                preFrame: 1, camera: 1, physics: 4, animation: 2,
+                postProcess: 6, ui: 8, analytics: 15
+            },
+            medium: {
+                preFrame: 1, camera: 1, physics: 3, animation: 1,
+                postProcess: 4, ui: 6, analytics: 12
+            },
+            high: {
+                preFrame: 1, camera: 1, physics: 2, animation: 1,
+                postProcess: 3, ui: 4, analytics: 10
+            },
+            ultra: {
+                preFrame: 1, camera: 1, physics: 1, animation: 1,
+                postProcess: 1, ui: 2, analytics: 5
+            }
+        };
+
+        if (configs[mode]) {
+            this.throttleConfig = { ...configs[mode] };
+            console.log(`Mode performance ${mode} appliqué:`, this.throttleConfig);
+        } else {
+            console.warn(`Mode performance ${mode} non reconnu`);
+        }
     }
 
     /**
@@ -93,7 +169,7 @@ class AnimationManager {
     }
 
     /**
-     * Exécute tous les callbacks pour une frame
+     * 🚀 MODIFIÉ : Exécute tous les callbacks avec throttling par catégorie
      * @param {object} state - L'état Three.js
      * @param {number} delta - Temps écoulé depuis la dernière frame
      */
@@ -101,25 +177,52 @@ class AnimationManager {
         if (!this.isActive) return;
 
         const startTime = performance.now();
+        let executedCallbacks = 0;
+        let skippedCallbacks = 0;
 
-        // Exécution des callbacks dans l'ordre défini
+        // Exécution des callbacks dans l'ordre défini avec throttling
         for (const category of this.executionOrder) {
+            // 🚀 NOUVEAU : Vérifier le throttling pour cette catégorie
+            this.frameCounters[category]++;
+            const throttleInterval = this.throttleConfig[category];
+
+            // Si ce n'est pas le bon moment pour cette catégorie, skip
+            if (this.frameCounters[category] % throttleInterval !== 0) {
+                skippedCallbacks += this.callbacks[category].size;
+                continue;
+            }
+
+            // Exécuter les callbacks de cette catégorie
             for (const callback of this.callbacks[category].values()) {
                 try {
                     callback(state, delta);
+                    executedCallbacks++;
                 } catch (error) {
                     console.error(`Erreur dans un callback ${category}:`, error);
                 }
             }
         }
 
-        // Mise à jour des statistiques
+        // 🚀 NOUVEAU : Mise à jour des statistiques avec info sur le throttling
         const frameTime = performance.now() - startTime;
         this.stats.lastFrameTime = frameTime;
-
         this.stats.frameCount++;
+
+        // Moyenne mobile plus efficace pour les stats
+        const alpha = 0.05; // Facteur de lissage
         this.stats.averageFrameTime =
-            (this.stats.averageFrameTime * (this.stats.frameCount - 1) + frameTime) / this.stats.frameCount;
+            this.stats.averageFrameTime * (1 - alpha) + frameTime * alpha;
+
+        // Log périodique des performances (uniquement en mode debug)
+        if (this.stats.frameCount % 300 === 0 && window.location.search.includes('debug')) {
+            console.log(`📊 AnimationManager Stats:`, {
+                frameTime: `${frameTime.toFixed(2)}ms`,
+                avgFrameTime: `${this.stats.averageFrameTime.toFixed(2)}ms`,
+                executed: executedCallbacks,
+                skipped: skippedCallbacks,
+                throttling: this.throttleConfig
+            });
+        }
 
         // Reset des stats après un certain nombre de frames pour éviter les débordements
         if (this.stats.frameCount > 1000) {
@@ -144,6 +247,12 @@ class AnimationManager {
             this.callbacks[category].clear();
         }
         this.idCounter = 0;
+
+        // 🚀 NOUVEAU : Reset des compteurs de throttling
+        for (const category in this.frameCounters) {
+            this.frameCounters[category] = 0;
+        }
+
         this.updateStats();
     }
 
@@ -152,12 +261,26 @@ class AnimationManager {
      * @returns {object} Les statistiques
      */
     getStats() {
-        return { ...this.stats };
+        return {
+            ...this.stats,
+            throttleConfig: { ...this.throttleConfig },
+            frameCounters: { ...this.frameCounters }
+        };
     }
 }
 
 // Instance unique pour toute l'application
 export const animationManager = new AnimationManager();
+
+// 🚀 NOUVEAU : Exposer les contrôles de throttling globalement
+if (typeof window !== 'undefined') {
+    window.animationManager = {
+        setThrottling: (category, interval) => animationManager.setThrottling(category, interval),
+        setPerformanceMode: (mode) => animationManager.setPerformanceMode(mode),
+        getStats: () => animationManager.getStats(),
+        getThrottlingConfig: () => animationManager.getThrottlingConfig()
+    };
+}
 
 /**
  * Hook React pour utiliser l'AnimationManager
@@ -203,7 +326,10 @@ export function useAnimationManager() {
     return {
         registerCallback,
         unregisterCallback,
-        getStats: () => animationManager.getStats()
+        getStats: () => animationManager.getStats(),
+        // 🚀 NOUVEAU : Méthodes de throttling
+        setThrottling: (category, interval) => animationManager.setThrottling(category, interval),
+        setPerformanceMode: (mode) => animationManager.setPerformanceMode(mode)
     };
 }
 

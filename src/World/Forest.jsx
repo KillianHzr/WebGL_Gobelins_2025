@@ -8,7 +8,7 @@ import {textureManager} from '../Config/TextureManager';
 
 // -------------------- OPTIMIZED LOD PARAMETERS --------------------
 const LOD_CONFIG = {
-    MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 1, MIN_DETAIL_PERCENTAGE: 0.15, DEBUG_LOD: false
+    MAX_DETAIL_DISTANCE: 33, MIN_DETAIL_DISTANCE: 50, LOD_LEVELS: 1, MIN_DETAIL_PERCENTAGE: 0.1, DEBUG_LOD: false
 };
 
 const TRUNK_SWITCH_CONFIG = {
@@ -17,7 +17,7 @@ const TRUNK_SWITCH_CONFIG = {
 
 // Optimized loading configuration
 const LOADING_CONFIG = {
-    BATCH_SIZE: 10, BATCH_DELAY: 20, PRIORITY_RADIUS: 100, MAX_WORKERS: 2, ENABLE_GEOMETRY_CACHE: true, CHUNK_SIZE: 60
+    BATCH_SIZE: 10, BATCH_DELAY: 2, PRIORITY_RADIUS: 50, MAX_WORKERS: 2, ENABLE_GEOMETRY_CACHE: true, CHUNK_SIZE: 5
 };
 // ----------------------------------------------------------------------
 
@@ -200,7 +200,7 @@ export default function Forest() {
     const lodInstancesRef = useRef([]);
     const animationFrameIdRef = useRef(null);
     const frameSkipRef = useRef(0);
-    const FRAME_SKIP = 2;
+    const FRAME_SKIP = 6;
 
     // Refs for priority loading
     const loadingQueueRef = useRef([]);

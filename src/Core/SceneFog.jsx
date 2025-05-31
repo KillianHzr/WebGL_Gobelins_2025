@@ -1,15 +1,14 @@
-import { useEffect, useRef } from 'react';
-import {useThree } from '@react-three/fiber';
-import { Color, Fog } from 'three';
+import {useEffect, useRef} from 'react';
+import {useThree} from '@react-three/fiber';
+import {Color, Fog} from 'three';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
-import {useAnimationFrame} from "../Utils/AnimationManager.js";
 
 /**
  * Composant qui gère uniquement le brouillard (fog) dans la scène
  */
 const SceneFog = () => {
-    const { scene } = useThree();
+    const {scene} = useThree();
     const timelinePosition = useStore(state => state.timelinePosition);
     const sequenceLength = useStore(state => state.sequenceLength);
     const debug = useStore(state => state.debug);
@@ -119,29 +118,33 @@ const SceneFog = () => {
     }, [debug, gui, scene.fog]);
 
     // Mettre à jour le brouillard en fonction de la position de défilement
-    useAnimationFrame(() => {
-        if (!scene.fog || sequenceLength <= 0) return;
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!scene.fog || sequenceLength <= 0) return;
 
-        // Récupérer la configuration actuelle
-        const config = fogConfigRef.current;
+            // Récupérer la configuration actuelle
+            const config = fogConfigRef.current;
 
-        // Calculer la progression du défilement (0 à 1)
-        const scrollProgress = Math.max(0, Math.min(1, timelinePosition / sequenceLength));
+            // Calculer la progression du défilement (0 à 1)
+            const scrollProgress = Math.max(0, Math.min(1, timelinePosition / sequenceLength));
 
-        // Calculer l'intensité du brouillard en fonction de la progression
-        let fogIntensity = 0;
-        if (scrollProgress > config.startPoint) {
-            fogIntensity = Math.min(1, (scrollProgress - config.startPoint) / (config.endPoint - config.startPoint));
-        }
+            // Calculer l'intensité du brouillard en fonction de la progression
+            let fogIntensity = 0;
+            if (scrollProgress > config.startPoint) {
+                fogIntensity = Math.min(1, (scrollProgress - config.startPoint) / (config.endPoint - config.startPoint));
+            }
 
-        // Interpoler les valeurs du brouillard entre les valeurs initiales et cibles
-        const currentNear = config.initialNear - (config.initialNear - config.targetNear) * fogIntensity;
-        const currentFar = config.initialFar - (config.initialFar - config.targetFar) * fogIntensity;
+            // Interpoler les valeurs du brouillard entre les valeurs initiales et cibles
+            const currentNear = config.initialNear - (config.initialNear - config.targetNear) * fogIntensity;
+            const currentFar = config.initialFar - (config.initialFar - config.targetFar) * fogIntensity;
 
-        // Mettre à jour le brouillard
-        scene.fog.near = currentNear;
-        scene.fog.far = currentFar;
-    }, 'postProcess'); // Catégorie 'postProcess' car lié au rendu
+            // Mettre à jour le brouillard
+            scene.fog.near = currentNear;
+            scene.fog.far = currentFar;
+        }, 100); // 10 FPS au lieu de 60 FPS
+
+        return () => clearInterval(interval);
+    }, []);
 
 
     // Ce composant ne rend rien visuellement, il modifie uniquement scene.fog
