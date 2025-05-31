@@ -81,6 +81,8 @@ function CameraController({children}) {
     const timelineLengthRef = useRef(0);
     const scrollVelocity = useRef(0);
     const flickerScrollBlockTimeoutRef = useRef(null);
+    const scrollBlockedAt81Ref = useRef(false);
+    const has81ThresholdBeenTriggeredRef = useRef(false);
 
     // CORRECTION: Déplacer visonTriggeredRef au niveau du composant
     const visonTriggeredRef = useRef(false);
@@ -607,84 +609,6 @@ function CameraController({children}) {
             flashlightActivationSubscription();
         };
     }, [debug]);
-
-    useEffect(() => {
-        const handleFlashlightFlickerStarted = (data) => {
-            console.log('🔦 ScrollControls: Début du clignottement de la flashlight détecté - DÉSACTIVATION du scroll');
-            console.log('🔦 Données du clignottement:', data);
-
-            // Désactiver complètement le scroll pendant le clignottement
-            if (setAllowScroll) {
-                setAllowScroll(false);
-                console.log('🚫 SCROLL DÉSACTIVÉ pendant le clignottement');
-            }
-
-            // Arrêter toute vélocité de scroll en cours
-            scrollVelocity.current = 0;
-
-            // Émettre un événement pour informer d'autres composants
-            EventBus.trigger('scroll-disabled-for-flicker', {
-                reason: 'flashlight-flickering',
-                timestamp: Date.now(),
-                flickerData: data
-            });
-        };
-
-        const handleFlashlightFlickerCompletelyFinished = (data) => {
-            console.log('🔦 ScrollControls: Fin complète du clignottement de la flashlight détectée - RÉACTIVATION du scroll');
-            console.log('🔦 Données du clignottement:', data);
-
-            // Réactiver le scroll uniquement vers l'avant (le scroll arrière reste désactivé)
-            if (setAllowScroll) {
-                setAllowScroll(true);
-                console.log('✅ SCROLL RÉACTIVÉ après le clignottement (uniquement vers l\'avant)');
-            }
-
-            // Basculer de endGroup vers screenGroup UNIQUEMENT si les conditions sont bonnes
-            if (endGroupVisible && !screenGroupVisible) {
-                // Mettre à jour le store
-                setEndGroupVisible(false);
-                setScreenGroupVisible(true);
-
-                // Mettre à jour directement les références DOM
-                if (window.endGroupRef && window.endGroupRef.current) {
-                    window.endGroupRef.current.visible = false;
-                    console.log('✅ EndGroup caché (fin de clignottement)');
-                }
-                if (window.screenGroupRef && window.screenGroupRef.current) {
-                    window.screenGroupRef.current.visible = true;
-                    console.log('✅ ScreenGroup affiché (fin de clignottement)');
-                }
-
-                // Émettre les événements
-                EventBus.trigger('end-group-visibility-changed', false);
-                EventBus.trigger('screen-group-visibility-changed', true);
-
-                console.log('🎬 Switch synchronisé avec fin de clignottement: endGroup→CACHÉ, screenGroup→VISIBLE');
-            } else {
-                console.log('🎬 Switch déjà effectué ou états inattendus:', {
-                    endGroupVisible,
-                    screenGroupVisible
-                });
-            }
-
-            // Émettre un événement pour informer d'autres composants
-            EventBus.trigger('scroll-enabled-after-flicker', {
-                reason: 'flashlight-flicker-finished',
-                timestamp: Date.now(),
-                flickerData: data
-            });
-        };
-
-        // S'abonner aux événements de clignottement
-        const flashlightFlickerStartedSubscription = EventBus.on('flashlight-flicker-started', handleFlashlightFlickerStarted);
-        const flashlightFlickerFinishedSubscription = EventBus.on('flashlight-flicker-completely-finished', handleFlashlightFlickerCompletelyFinished);
-
-        return () => {
-            flashlightFlickerStartedSubscription();
-            flashlightFlickerFinishedSubscription();
-        };
-    }, [setAllowScroll, endGroupVisible, screenGroupVisible, setEndGroupVisible, setScreenGroupVisible]);
 
     useEffect(() => {
         const handleFlashlightFlickerCompletelyFinished = (data) => {
@@ -1387,6 +1311,16 @@ function CameraController({children}) {
 
         // Détection de la fin du scroll
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
+        if (scrollProgress >= 0.81 && !has81ThresholdBeenTriggeredRef.current) {
+            console.log('🚫 Scroll bloqué à 81% pendant 2 secondes');
+            has81ThresholdBeenTriggeredRef.current = true;
+            scrollBlockedAt81Ref.current = true;
+
+            setTimeout(() => {
+                console.log('✅ Scroll débloqué après 2 secondes');
+                scrollBlockedAt81Ref.current = false;
+            }, 2000);
+        }
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
         // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
@@ -1481,6 +1415,11 @@ function CameraController({children}) {
         };
 
         const handleTouchMove = (e) => {
+            if (scrollBlockedAt81Ref.current) {
+                e.preventDefault();
+                return;
+            }
+
             if (!allowScroll || chapterTransitioning) return;
 
             const currentY = e.touches[0].clientY;
@@ -1514,6 +1453,11 @@ function CameraController({children}) {
         };
 
         const handleWheel = (e) => {
+            if (scrollBlockedAt81Ref.current) {
+                e.preventDefault();
+                return;
+            }
+
             if (!allowScroll || chapterTransitioning) {
                 console.log('🚫 Scroll bloqué:', {
                     allowScroll,
