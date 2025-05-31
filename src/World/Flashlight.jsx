@@ -31,9 +31,9 @@ export default function Flashlight() {
 
     // Configuration des seuils d'activation de la lampe torche
     const flashlightThresholdsRef = useRef({
-        activationThreshold: 0.7,        // Activation directe à 70% du scroll
+        activationThreshold: 0.66,        // Activation directe à 70% du scroll
         targetIntensity: 15,             // Intensité cible (passage direct de 0 à 15)
-        flickerActivationThreshold: 0.85  // Déclenchement du clignottement à 80%
+        flickerActivationThreshold: 0.8  // Déclenchement du clignottement à 80%
     });
 
     // *** NOUVEAU: Références pour le clignottement avec pattern binaire naturel ***

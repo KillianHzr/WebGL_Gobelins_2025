@@ -79,7 +79,7 @@ const createFresnelOutlineShader = (color, intensity, power) => {
 };
 
 /**
- * Composant OutlineEffect corrigé avec gestion du timing et des références
+ * Composant OutlineEffect optimisé
  */
 const OutlineEffect = forwardRef(({
                                       objectRef,
@@ -98,6 +98,8 @@ const OutlineEffect = forwardRef(({
     const { scene } = useThree();
     const [isReady, setIsReady] = useState(false);
     const lastObjectRef = useRef(null);
+    const retryTimeoutRef = useRef(null);
+    const mountedRef = useRef(true);
 
     // Debug function
     const debugLog = (...args) => {
@@ -132,23 +134,35 @@ const OutlineEffect = forwardRef(({
         return materials;
     }, [color, thickness, intensity, fresnelPower]);
 
-    // Vérifier si l'objet est prêt
+    // Fonction pour vérifier si l'objet est prêt
     const checkObjectReady = () => {
         if (!objectRef?.current) {
             debugLog('ObjectRef not available');
             return false;
         }
 
-        // Vérifier que l'objet a des mesh enfants
+        const obj = objectRef.current;
+
+        // Vérifier que l'objet a des mesh enfants avec géométries valides
         let hasMeshes = false;
+        let hasValidGeometries = false;
+
         objectRef.current.traverse((child) => {
-            if (child.isMesh && child.geometry) {
+            if (child.isMesh) {
                 hasMeshes = true;
+                if (child.geometry && child.geometry.attributes && child.geometry.attributes.position) {
+                    hasValidGeometries = true;
+                }
             }
         });
 
         if (!hasMeshes) {
             debugLog('Object has no meshes yet');
+            return false;
+        }
+
+        if (!hasValidGeometries) {
+            debugLog('Object meshes have no valid geometries yet');
             return false;
         }
 
@@ -165,6 +179,13 @@ const OutlineEffect = forwardRef(({
 
         if (!isInScene) {
             debugLog('Object not in scene yet');
+            return false;
+        }
+
+        // Vérifier que l'objet a une position valide (pas NaN)
+        const pos = objectRef.current.position;
+        if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
+            debugLog('Object has invalid position');
             return false;
         }
 
@@ -214,7 +235,7 @@ const OutlineEffect = forwardRef(({
             debugLog('Manual refresh requested');
             setIsReady(false);
             setTimeout(() => {
-                if (checkObjectReady()) {
+                if (mountedRef.current && checkObjectReady()) {
                     setIsReady(true);
                 }
             }, 100);
@@ -231,29 +252,34 @@ const OutlineEffect = forwardRef(({
         targetObject.updateMatrixWorld(true);
 
         targetObject.traverse((child) => {
-            if (child.isMesh && child.geometry) {
+            if (child.isMesh && child.geometry && child.geometry.attributes.position) {
                 debugLog('Creating outline for mesh:', child.name || 'unnamed');
 
-                // Cloner la géométrie
-                const outlineGeometry = child.geometry.clone();
+                try {
+                    // Cloner la géométrie
+                    const outlineGeometry = child.geometry.clone();
 
-                // S'assurer que la géométrie a des normales
-                if (!outlineGeometry.attributes.normal) {
-                    outlineGeometry.computeVertexNormals();
+                    // S'assurer que la géométrie a des normales
+                    if (!outlineGeometry.attributes.normal) {
+                        outlineGeometry.computeVertexNormals();
+                    }
+
+                    // Créer le mesh d'outline
+                    const clonedMaterial = material.clone();
+                    const outlineMesh = new THREE.Mesh(outlineGeometry, clonedMaterial);
+
+                    // Appliquer la transformation mondiale du mesh original
+                    child.updateMatrixWorld(true);
+                    outlineMesh.matrix.copy(child.matrixWorld);
+                    outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+
+                    // Désactiver l'auto-update pour utiliser la matrice manuelle
+                    outlineMesh.matrixAutoUpdate = false;
+
+                    outlines.push(outlineMesh);
+                } catch (error) {
+                    console.warn('[OutlineEffect] Error creating outline for mesh:', error);
                 }
-
-                // Créer le mesh d'outline
-                const outlineMesh = new THREE.Mesh(outlineGeometry, material);
-
-                // Appliquer la transformation mondiale du mesh original
-                child.updateMatrixWorld(true);
-                outlineMesh.matrix.copy(child.matrixWorld);
-                outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
-
-                // Désactiver l'auto-update pour utiliser la matrice manuelle
-                outlineMesh.matrixAutoUpdate = false;
-
-                outlines.push(outlineMesh);
             }
         });
 
@@ -268,16 +294,21 @@ const OutlineEffect = forwardRef(({
         targetObject.updateMatrixWorld(true);
 
         targetObject.traverse((child) => {
-            if (child.isMesh && child.geometry) {
-                const outlineMesh = new THREE.Mesh(child.geometry.clone(), material);
+            if (child.isMesh && child.geometry && child.geometry.attributes.position) {
+                try {
+                    const clonedMaterial = material.clone();
+                    const outlineMesh = new THREE.Mesh(child.geometry.clone(), clonedMaterial);
 
-                // Appliquer la même transformation
-                child.updateMatrixWorld(true);
-                outlineMesh.matrix.copy(child.matrixWorld);
-                outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
-                outlineMesh.matrixAutoUpdate = false;
+                    // Appliquer la même transformation
+                    child.updateMatrixWorld(true);
+                    outlineMesh.matrix.copy(child.matrixWorld);
+                    outlineMesh.matrix.decompose(outlineMesh.position, outlineMesh.quaternion, outlineMesh.scale);
+                    outlineMesh.matrixAutoUpdate = false;
 
-                outlines.push(outlineMesh);
+                    outlines.push(outlineMesh);
+                } catch (error) {
+                    console.warn('[OutlineEffect] Error creating fresnel outline for mesh:', error);
+                }
             }
         });
 
@@ -286,8 +317,8 @@ const OutlineEffect = forwardRef(({
 
     // Fonction principale pour créer l'effet d'outline
     const createOutlineEffect = () => {
-        if (!objectRef?.current || !isReady) {
-            debugLog('Cannot create outline: object not ready');
+        if (!objectRef?.current || !isReady || !mountedRef.current) {
+            debugLog('Cannot create outline: object not ready or component unmounted');
             return;
         }
 
@@ -298,6 +329,13 @@ const OutlineEffect = forwardRef(({
             scene.remove(outlineRef.current);
             outlineRef.current.traverse(child => {
                 if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => mat.dispose());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
             });
         }
 
@@ -325,8 +363,23 @@ const OutlineEffect = forwardRef(({
                     break;
             }
 
+            if (outlineMeshes.length === 0) {
+                debugLog('No outline meshes created - retrying in a moment');
+                // Réessayer après un délai
+                if (retryTimeoutRef.current) {
+                    clearTimeout(retryTimeoutRef.current);
+                }
+                retryTimeoutRef.current = setTimeout(() => {
+                    if (mountedRef.current) {
+                        createOutlineEffect();
+                    }
+                }, 500);
+                return;
+            }
+
             // Ajouter tous les meshes d'outline au groupe
-            outlineMeshes.forEach(mesh => {
+            outlineMeshes.forEach((mesh, index) => {
+                mesh.name = `outline-mesh-${index}`;
                 outlineGroup.add(mesh);
             });
 
@@ -335,6 +388,7 @@ const OutlineEffect = forwardRef(({
                 .map(mesh => mesh.material)
                 .filter(material => material.uniforms);
 
+            // Ajouter le groupe à la scène
             scene.add(outlineGroup);
             outlineRef.current = outlineGroup;
 
@@ -342,55 +396,77 @@ const OutlineEffect = forwardRef(({
 
         } catch (error) {
             console.error('[OutlineEffect] Error creating outline:', error);
+            // Réessayer en cas d'erreur
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+            }
+            retryTimeoutRef.current = setTimeout(() => {
+                if (mountedRef.current) {
+                    createOutlineEffect();
+                }
+            }, 1000);
         }
     };
 
-    // Vérifier périodiquement si l'objet est prêt
+    // Système de retry pour vérifier si l'objet est prêt
     useEffect(() => {
-        if (!objectRef?.current || objectRef.current === lastObjectRef.current) {
+        // S'assurer que le composant est marqué comme monté
+        mountedRef.current = true;
+
+        if (!objectRef?.current) {
+            return;
+        }
+
+        // Forcer la vérification si l'objet n'est pas ready, même si pas changé
+        const shouldCheck = (objectRef.current !== lastObjectRef.current) || !isReady;
+
+        if (!shouldCheck) {
             return;
         }
 
         lastObjectRef.current = objectRef.current;
         setIsReady(false);
 
-        // Attendre un court délai pour que l'objet soit complètement monté
-        const checkTimer = setTimeout(() => {
+        // Nettoyer les timeouts précédents
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+        }
+
+        const attemptToReady = (attempt = 0) => {
+            if (!mountedRef.current) {
+                return;
+            }
+
             if (checkObjectReady()) {
                 setIsReady(true);
+                debugLog('Object ready after', attempt, 'attempts');
+            } else if (attempt < 20) {
+                retryTimeoutRef.current = setTimeout(() => attemptToReady(attempt + 1), 200);
             } else {
-                // Réessayer plusieurs fois
-                let attempts = 0;
-                const retryInterval = setInterval(() => {
-                    attempts++;
-                    if (checkObjectReady()) {
-                        setIsReady(true);
-                        clearInterval(retryInterval);
-                    } else if (attempts >= 10) {
-                        debugLog('Max attempts reached, object may not be ready');
-                        clearInterval(retryInterval);
-                    }
-                }, 200);
+                debugLog('Max attempts reached, object may not be ready');
             }
-        }, 100);
+        };
 
-        return () => clearTimeout(checkTimer);
-    }, [objectRef?.current]);
+        retryTimeoutRef.current = setTimeout(() => attemptToReady(0), 50);
+
+        return () => {
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+            }
+        };
+    }, [objectRef?.current, isReady]);
 
     // Créer l'effet quand l'objet est prêt
     useEffect(() => {
-        if (isReady) {
-            createOutlineEffect();
-        }
+        if (isReady && mountedRef.current) {
+            const timer = setTimeout(() => {
+                if (mountedRef.current) {
+                    createOutlineEffect();
+                }
+            }, 100);
 
-        return () => {
-            if (outlineRef.current) {
-                scene.remove(outlineRef.current);
-                outlineRef.current.traverse(child => {
-                    if (child.geometry) child.geometry.dispose();
-                });
-            }
-        };
+            return () => clearTimeout(timer);
+        }
     }, [isReady, technique]);
 
     // Mettre à jour la visibilité
@@ -403,7 +479,7 @@ const OutlineEffect = forwardRef(({
 
     // Mettre à jour les propriétés des shaders
     useEffect(() => {
-        Object.values(outlineMaterials).forEach(material => {
+        Object.values(outlineMaterials).forEach((material) => {
             if (material.uniforms) {
                 if (material.uniforms.outlineColor) {
                     material.uniforms.outlineColor.value.set(color);
@@ -417,6 +493,31 @@ const OutlineEffect = forwardRef(({
             }
         });
     }, [color, thickness, intensity, outlineMaterials]);
+
+    // Cleanup lors du démontage
+    useEffect(() => {
+        return () => {
+            mountedRef.current = false;
+
+            if (retryTimeoutRef.current) {
+                clearTimeout(retryTimeoutRef.current);
+            }
+
+            if (outlineRef.current) {
+                scene.remove(outlineRef.current);
+                outlineRef.current.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(mat => mat.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            }
+        };
+    }, [scene]);
 
     // Animation de pulsation
     useFrame((state, delta) => {
