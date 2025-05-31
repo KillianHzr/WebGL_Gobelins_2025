@@ -454,17 +454,17 @@ class SceneObjectManager {
             //     }
             // },
             //
-            // 'DataCenter': {
-            //     id: 'DataCenter',
-            //     path: '/models/digital/DataCenter.glb',
-            //     interactive: false,
-            //     useTextures: true,
-            //     defaultPlacements: [{
-            //         position: [40.48621, -0.04933, -137.81503],
-            //         rotation: [0, -3.14 / 2, 0],
-            //         scale: [3.58521, 3.5852, 3.58521],
-            //     }]
-            // },
+            'DataCenter': {
+                id: 'DataCenter',
+                path: '/models/digital/DataCenter.glb',
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [40.48621, -0.04933, -137.81503],
+                    rotation: [0, -3.14 / 2, 0],
+                    scale: [3.58521, 3.5852, 3.58521],
+                }]
+            },
             // 'VisonDead': {
             //     id: 'VisonDead',
             //     path: '/models/primary/AnimalVisonDead.glb',

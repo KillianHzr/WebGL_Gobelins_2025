@@ -339,7 +339,7 @@ if __name__ == "__main__":
 
     # Pour traiter un fichier avec les nouveaux paramètres:
     process_json_file('treePositions_ThreeRoof2.json',
-                      'output.json',
+                      'output_ThreeRoof.json',
                       threshold=THRESHOLD,
                       scale_factor=SCALE_FACTOR,
                       y_offset=Y_OFFSET,

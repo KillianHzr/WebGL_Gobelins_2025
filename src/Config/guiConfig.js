@@ -466,14 +466,14 @@ const guiConfig = {
                 max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 15
+                default: 200
             },
             far: {
                 min: 0,
                 max: 100,
                 step: 0.1,
                 name: "Fog Far",
-                default: 20
+                default: 100
             },
             transition: {
                 folder: "Fog Transition",
