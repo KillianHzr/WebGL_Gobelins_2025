@@ -9,7 +9,7 @@ import { gsap } from 'gsap';
 // Configuration des niveaux de qualité
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 100000,
+        bladeCount: 10000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
