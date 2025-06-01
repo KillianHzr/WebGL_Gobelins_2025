@@ -291,7 +291,7 @@ export default function Experience() {
             <AudioManagerComponent/>
             <NarrationTriggers/>
             {/*<CameraSwitcher/>*/}
-            {/*<SceneFog />*/}
+            <SceneFog />
             {/*<SceneEnvironment />*/}
             <SkySphere/>
 
