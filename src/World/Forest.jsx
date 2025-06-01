@@ -8,7 +8,7 @@ import {textureManager} from '../Config/TextureManager';
 
 // -------------------- OPTIMIZED LOD PARAMETERS --------------------
 const LOD_CONFIG = {
-    MAX_DETAIL_DISTANCE: 60, MIN_DETAIL_DISTANCE: 90, LOD_LEVELS: 1, MIN_DETAIL_PERCENTAGE: 0.15, DEBUG_LOD: false
+    MAX_DETAIL_DISTANCE: 33, MIN_DETAIL_DISTANCE: 50, LOD_LEVELS: 1, MIN_DETAIL_PERCENTAGE: 0.1, DEBUG_LOD: false
 };
 
 const TRUNK_SWITCH_CONFIG = {
@@ -17,13 +17,13 @@ const TRUNK_SWITCH_CONFIG = {
 
 // Optimized loading configuration
 const LOADING_CONFIG = {
-    BATCH_SIZE: 10, BATCH_DELAY: 20, PRIORITY_RADIUS: 100, MAX_WORKERS: 2, ENABLE_GEOMETRY_CACHE: true, CHUNK_SIZE: 60
+    BATCH_SIZE: 10, BATCH_DELAY: 2, PRIORITY_RADIUS: 50, MAX_WORKERS: 2, ENABLE_GEOMETRY_CACHE: true, CHUNK_SIZE: 5
 };
 // ----------------------------------------------------------------------
 
 // Improved geometry cache with better memory management
 const GeometryCache = {
-    cache: new Map(), materials: new Map(), // New: Global material cache for strict reuse
+    cache: new Map(), materials: new Map(), pendingMaterials: new Map(), // Nouveau: pour gérer les matériaux en cours de chargement
     stats: {hits: 0, misses: 0},
 
     getKey(objectId, detailLevel) {
@@ -44,24 +44,90 @@ const GeometryCache = {
         this.cache.set(this.getKey(objectId, detailLevel), geometry);
     },
 
-    // New: Get or create shared material
+    // NOUVELLE MÉTHODE: Obtenir un matériau de manière asynchrone
+    async getMaterialAsync(objectId, properties = {}) {
+        // Vérifier si le matériau est déjà en cache
+        if (this.materials.has(objectId)) {
+            const material = this.materials.get(objectId);
+            // Si le matériau est encore en cours de chargement des textures, attendre
+            if (material.userData.isLoadingTextures) {
+                await this.waitForMaterialTextures(material);
+            }
+            return material;
+        }
+
+        // Vérifier si le matériau est déjà en cours de création
+        if (this.pendingMaterials.has(objectId)) {
+            return await this.pendingMaterials.get(objectId);
+        }
+
+        // Créer une nouvelle promesse pour ce matériau
+        const materialPromise = textureManager.getMaterialAsync(objectId, {
+            aoIntensity: 0.0, alphaTest: 1.0, ...properties
+        });
+
+        // Stocker la promesse pour éviter les doublons
+        this.pendingMaterials.set(objectId, materialPromise);
+
+        try {
+            const material = await materialPromise;
+
+            // Optimiser le matériau pour le rendu d'instances
+            if (material) {
+                material.uniformsNeedUpdate = true;
+                material.needsUpdate = true;
+
+                // Stocker dans le cache
+                this.materials.set(objectId, material);
+            }
+
+            // Nettoyer la promesse en attente
+            this.pendingMaterials.delete(objectId);
+
+            return material;
+        } catch (error) {
+            console.error(`Erreur lors de la création du matériau pour ${objectId}:`, error);
+            this.pendingMaterials.delete(objectId);
+            throw error;
+        }
+    },
+
+    // Méthode pour attendre que les textures d'un matériau soient chargées
+    async waitForMaterialTextures(material, timeout = 5000) {
+        if (!material.userData.isLoadingTextures) {
+            return material;
+        }
+
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+
+            const checkInterval = setInterval(() => {
+                if (!material.userData.isLoadingTextures) {
+                    clearInterval(checkInterval);
+                    resolve(material);
+                } else if (Date.now() - startTime > timeout) {
+                    clearInterval(checkInterval);
+                    console.warn(`Timeout lors de l'attente des textures pour ${material.userData.modelId}`);
+                    resolve(material); // Résoudre quand même pour éviter de bloquer
+                }
+            }, 50);
+        });
+    },
+
+    // Version synchrone modifiée pour être plus robuste
     getMaterial(objectId, properties = {}) {
         if (!this.materials.has(objectId)) {
-            // Create a new material if it doesn't exist
-            const material = textureManager.getMaterial(objectId, {
+            // Créer un matériau temporaire en attendant la version complète
+            const tempMaterial = textureManager.getMaterial(objectId, {
                 aoIntensity: 0.0, alphaTest: 1.0, ...properties
             });
 
-            // Important: Optimize material for instance rendering
-            if (material) {
-                material.uniformsNeedUpdate = true;
-                // Disable material features that cause additional draw calls
-                material.needsUpdate = true;
-
-                // Store in cache
-                this.materials.set(objectId, material);
+            if (tempMaterial) {
+                tempMaterial.uniformsNeedUpdate = true;
+                tempMaterial.needsUpdate = true;
+                this.materials.set(objectId, tempMaterial);
             }
-            return material;
+            return tempMaterial;
         }
         return this.materials.get(objectId);
     },
@@ -74,13 +140,13 @@ const GeometryCache = {
         });
         this.cache.clear();
 
-        // Also dispose materials when clearing cache
         this.materials.forEach(material => {
             if (material && material.dispose) {
                 material.dispose();
             }
         });
         this.materials.clear();
+        this.pendingMaterials.clear();
     }
 };
 
@@ -134,7 +200,7 @@ export default function Forest() {
     const lodInstancesRef = useRef([]);
     const animationFrameIdRef = useRef(null);
     const frameSkipRef = useRef(0);
-    const FRAME_SKIP = 2;
+    const FRAME_SKIP = 6;
 
     // Refs for priority loading
     const loadingQueueRef = useRef([]);
@@ -524,49 +590,35 @@ export default function Forest() {
         if (isLoadingRef.current || loadingQueueRef.current.length === 0) return;
 
         isLoadingRef.current = true;
-        processNextBatch();
+        processNextBatch().then(r => {
+            console.log("Progressive loading started, processing first batch...");
+        });
     };
-    const applyEmissionToLoadedForest = () => {
-        if (!forestRef.current) return;
 
-        console.log("Applying emission to loaded forest objects...");
-
-        // Configurer l'émission spécifiquement pour les écrans
-        textureManager.configureScreenEmission(); // Cyan avec intensité 2.5
-
-        // Appliquer l'émission sur tous les objets de la scène
-        const modifiedCount = textureManager.forceEmissiveOnScreenInstances(forestRef.current);
-
-        console.log(`Emission applied to ${modifiedCount} screen objects`);
-
-        return modifiedCount;
-    };
     // Process a batch of chunks
+
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
 
         if (queue.length === 0) {
             isLoadingRef.current = false;
-
-            // Marquer le chargement comme terminé
             window.forestLoadingComplete = true;
-            console.log('Forest loading complete! CameraSwitcher can now safely interact with forest objects.');
 
-            // NOUVELLE ÉTAPE: Appliquer l'émission après le chargement complet
+            console.log('🌲 Forest loading complete!');
+
+            // CORRECTION : Application SÉLECTIVE + NETTOYAGE de l'émission
             setTimeout(() => {
-                applyEmissionToLoadedForest();
-            }, 1000); // Délai pour s'assurer que tout est rendu
+                console.log("🔥 Application sélective de l'émission + nettoyage...");
 
-            // Trigger event when everything is loaded
+                const result = forceEmissionOnlyOnEmissionObjects();
+                console.log(`✅ Émission terminée: ${result.applied} objets 'Emission' activés, ${result.cleaned} objets normaux nettoyés`);
+
+
+            }, 1000);
+
+            // Déclencher l'événement de fin de chargement
             EventBus.trigger('forest-ready');
             objectsLoadedRef.current = true;
-
-            // Log material and geometry cache stats
-            console.log('Forest loading complete!', {
-                instancedMeshes: lodInstancesRef.current.length,
-                geometryCacheStats: GeometryCache.stats,
-                materialCacheSize: GeometryCache.materials.size
-            });
 
             return;
         }
@@ -579,7 +631,23 @@ export default function Forest() {
         batch.forEach(chunk => {
             Object.keys(chunk.objects).forEach(type => objectTypes.add(type));
         });
+
+        // CORRECTION: Préchargement spécial pour Screen
         const preloadedTextures = await preloadTexturesForModels(Array.from(objectTypes));
+
+        // Vérification spéciale pour Screen
+        if (objectTypes.has('Screen') && !preloadedTextures['Screen']) {
+            console.warn('Problème de préchargement des textures Screen, tentative de correction...');
+            try {
+                const screenTextures = await textureManager.preloadTexturesForModel('Screen');
+                if (screenTextures) {
+                    preloadedTextures['Screen'] = screenTextures;
+                    console.log('Textures Screen récupérées avec succès');
+                }
+            } catch (error) {
+                console.error('Échec de la récupération des textures Screen:', error);
+            }
+        }
 
         // Process each chunk in batch in parallel
         await Promise.all(batch.map(chunk => createChunkInstances(chunk, preloadedTextures)));
@@ -660,10 +728,8 @@ export default function Forest() {
             return [];
         }
 
-        // Find geometry
+        // Trouver la géométrie
         let geometry = null;
-
-        // Extract geometry from first mesh
         model.scene.traverse((child) => {
             if (child.isMesh && child.geometry && !geometry) {
                 geometry = child.geometry.clone();
@@ -675,66 +741,93 @@ export default function Forest() {
             return [];
         }
 
-        // MODIFICATION: Vérifier si cet objet doit être émissif
+        // CORRECTION : Vérification stricte pour les objets émissifs (seulement "Emission")
         const shouldBeEmissive = textureManager._shouldObjectBeEmissive(objectId);
 
-        // Créer le matériau avec les options d'émission si nécessaire
-        const materialOptions = {
-            aoIntensity: 0.0,
-            alphaTest: 1.0
-        };
-
         if (shouldBeEmissive) {
-            materialOptions.isEmissive = true;
-            materialOptions.emissiveColor = textureManager.emissiveConfig.color;
-            materialOptions.emissiveIntensity = textureManager.emissiveConfig.intensity;
-            console.log(`Creating emissive material for ${objectId}`);
+            console.log(`🔥 Objet émissif détecté: ${objectId}`);
+        } else if (objectId.includes('Screen')) {
+            console.log(`📱 Écran normal (non émissif): ${objectId}`);
         }
 
-        // OPTIMIZATION: Use global material cache for strict reuse
-        const material = GeometryCache.getMaterial(objectId, materialOptions);
+        // Créer le matériau avec gestion spéciale pour les objets émissifs
+        let material;
+        try {
+            if (shouldBeEmissive) {
+                console.log(`🔥 Création de matériau émissif pour ${objectId}...`);
+
+                // Utiliser la nouvelle méthode pour créer un matériau émissif
+                material = await textureManager.createEmissiveMaterialForEmissionObjects(objectId);
+
+                if (!material) {
+                    // Fallback: créer un matériau basé sur la version non-émissive
+                    const baseObjectId = objectId.replace('Emission', '');
+                    console.log(`🔄 Fallback: création basée sur ${baseObjectId}`);
+
+                    material = await GeometryCache.getMaterialAsync(baseObjectId, {
+                        aoIntensity: 0.0,
+                        alphaTest: 1.0,
+                        isEmissive: true,
+                        emissiveColor: textureManager.emissiveConfig.color,
+                        emissiveIntensity: textureManager.emissiveConfig.intensity
+                    });
+                }
+            } else {
+                // Matériau normal pour les objets non émissifs (écrans normaux, etc.)
+                material = GeometryCache.getMaterial(objectId, {
+                    aoIntensity: 0.0,
+                    alphaTest: 1.0
+                });
+            }
+        } catch (error) {
+            console.error(`❌ Erreur lors de la création du matériau pour ${objectId}:`, error);
+            // Fallback vers la méthode normale
+            material = GeometryCache.getMaterial(objectId, {
+                aoIntensity: 0.0,
+                alphaTest: 1.0
+            });
+        }
 
         if (!material) {
             console.warn(`Failed to create material for ${objectId}`);
             return [];
         }
-        if (shouldBeEmissive) {
-            textureManager._safelySetEmissive(material, {
+
+        // CORRECTION : Application finale de l'émission SEULEMENT si l'objet est marqué émissif
+        if (shouldBeEmissive && material) {
+            console.log(`🎯 Application finale de l'émission sur ${objectId}...`);
+
+            const emissionApplied = textureManager._safelySetEmissive(material, {
                 color: textureManager.emissiveConfig.color,
                 intensity: textureManager.emissiveConfig.intensity,
                 useTexture: textureManager.emissiveConfig.useTexture,
-                emissiveMap: material.map // Utiliser la texture de base comme émission
+                emissiveMap: textureManager.emissiveConfig.useTexture ? material.map : null
             });
+
+            if (emissionApplied) {
+                console.log(`✅ Émission appliquée avec succès à ${objectId}`);
+            } else {
+                console.warn(`⚠️ Échec de l'application de l'émission à ${objectId}`);
+            }
         }
 
+        // ... reste de la fonction pour créer les instances LOD ...
 
-        // Create LOD instances
+        // Créer les instances LOD
         const instances = [];
         const lodLevels = LOD_CONFIG.LOD_LEVELS;
-        const distanceRange = LOD_CONFIG.MIN_DETAIL_DISTANCE - LOD_CONFIG.MAX_DETAIL_DISTANCE;
-
-        // Create a temporary object for matrix calculations
         const dummy = new THREE.Object3D();
 
-        // Create instanced meshes for each LOD level
         for (let level = 0; level < lodLevels; level++) {
-            // Calculate detail level
             const detailLevel = level === 0 ? 1.0 : 1.0 - (level / (lodLevels - 1));
+            const minDistance = level === 0 ? 0 : LOD_CONFIG.MAX_DETAIL_DISTANCE + (level - 1) / (lodLevels - 1) * (LOD_CONFIG.MIN_DETAIL_DISTANCE - LOD_CONFIG.MAX_DETAIL_DISTANCE);
+            const maxDistance = level === lodLevels - 1 ? Infinity : LOD_CONFIG.MAX_DETAIL_DISTANCE + level / (lodLevels - 1) * (LOD_CONFIG.MIN_DETAIL_DISTANCE - LOD_CONFIG.MAX_DETAIL_DISTANCE);
 
-            // Calculate distance range for this LOD level
-            const minDistance = level === 0 ? 0 : LOD_CONFIG.MAX_DETAIL_DISTANCE + (level - 1) / (lodLevels - 1) * distanceRange;
-            const maxDistance = level === lodLevels - 1 ? Infinity : LOD_CONFIG.MAX_DETAIL_DISTANCE + level / (lodLevels - 1) * distanceRange;
-
-            // Check geometry cache or create simplified geometry
             let levelGeometry;
-
             if (LOADING_CONFIG.ENABLE_GEOMETRY_CACHE && GeometryCache.has(objectId, detailLevel)) {
                 levelGeometry = GeometryCache.get(objectId, detailLevel);
             } else {
-                // Create new simplified geometry
                 levelGeometry = await createOptimizedGeometry(geometry, detailLevel, objectId);
-
-                // Cache for reuse
                 if (LOADING_CONFIG.ENABLE_GEOMETRY_CACHE) {
                     GeometryCache.set(objectId, detailLevel, levelGeometry);
                 }
@@ -742,27 +835,34 @@ export default function Forest() {
 
             if (!levelGeometry) continue;
 
-            // OPTIMIZATION: Use existing material reference
-            // Create instanced mesh with efficient parameters
+            // Créer le mesh instancié
             const instancedMesh = new THREE.InstancedMesh(levelGeometry, material, positions.length);
 
-
+            // CORRECTION : Marquer SEULEMENT les instances vraiment émissives
             if (shouldBeEmissive) {
                 instancedMesh.userData.isEmissive = true;
                 instancedMesh.userData.emissiveConfig = {
                     color: textureManager.emissiveConfig.color,
-                    intensity: textureManager.emissiveConfig.intensity
+                    intensity: textureManager.emissiveConfig.intensity,
+                    useTexture: textureManager.emissiveConfig.useTexture
                 };
+
+                console.log(`🔥 Instance émissive créée: ${objectId}_lod${level}`);
+            } else {
+                // Marquer explicitement comme non émissif pour éviter toute confusion
+                instancedMesh.userData.isEmissive = false;
+
+                if (objectId.includes('Screen')) {
+                    console.log(`📱 Instance d'écran normal créée: ${objectId}_lod${level}`);
+                }
             }
 
-            // OPTIMIZATION: Set renderOrder by distance to reduce overdraw
             instancedMesh.renderOrder = -minDistance;
-
             instancedMesh.name = `${objectId}_lod${level}_chunk${chunkId}`;
             instancedMesh.castShadow = true;
             instancedMesh.receiveShadow = true;
 
-            // Set custom properties for LOD management
+            // Définir les propriétés LOD
             instancedMesh.userData.lodLevel = level;
             instancedMesh.userData.minDistance = minDistance;
             instancedMesh.userData.maxDistance = maxDistance;
@@ -770,12 +870,11 @@ export default function Forest() {
             instancedMesh.userData.objectId = objectId;
             instancedMesh.userData.chunkId = chunkId;
 
-
-            // Calculate bounding sphere for frustum culling
+            // Calculer la sphère englobante
             const boundingSphere = new THREE.Sphere(chunkCenter.clone(), LOADING_CONFIG.CHUNK_SIZE * Math.sqrt(2));
             instancedMesh.userData.boundingSphere = boundingSphere;
 
-            // Set instance matrices
+            // Définir les matrices d'instance
             positions.forEach((pos, index) => {
                 dummy.position.set(pos.x, pos.y, pos.z);
                 dummy.rotation.set(pos.rotationX, pos.rotationY, pos.rotationZ);
@@ -784,19 +883,106 @@ export default function Forest() {
                 instancedMesh.setMatrixAt(index, dummy.matrix);
             });
 
-            // Update instance matrices
             instancedMesh.instanceMatrix.needsUpdate = true;
-
-            // OPTIMIZATION: Pre-compute bounds for faster culling
             instancedMesh.computeBoundingSphere();
             instancedMesh.computeBoundingBox();
 
-            // Add to instance list
             instances.push(instancedMesh);
         }
 
         return instances;
     };
+
+
+
+    const forceEmissionOnlyOnEmissionObjects = () => {
+        console.log("🚀 Application sélective de l'émission sur les objets 'Emission' uniquement...");
+
+        if (!forestRef.current) {
+            console.warn("⚠️ forestRef.current n'est pas disponible");
+            return { applied: 0, cleaned: 0 };
+        }
+
+
+        // 2. ENSUITE configurer l'émission avec des paramètres optimisés
+        textureManager.setEmissiveConfig({
+            color: 0xffffff,      // Cyan brillant
+            intensity: 2.5,       // Intensité élevée
+            useTexture: true,     // Utiliser la texture comme base
+            forceOverride: true   // Forcer l'écrasement
+        });
+
+        // 3. ENFIN appliquer SEULEMENT sur les objets avec "Emission"
+        console.log("🔥 Étape 2: Application de l'émission sur les objets 'Emission'...");
+        const appliedCount = textureManager.forceEmissiveOnEmissionObjectsOnly(forestRef.current);
+
+        // 4. Forcer le rendu
+        if (window.renderer && camera) {
+            window.renderer.render(scene, camera);
+        }
+
+        console.log(`✅ Opération terminée: ${appliedCount} appliqués`);
+        return { applied: appliedCount };
+    };
+
+
+// 2. Fonction pour appliquer un correctif de timing spécifique à Screen
+    const applyScreenTimingFix = async () => {
+        console.log("Application du correctif de timing pour Screen...");
+
+        // Attendre que le chargement de la forêt soit terminé
+        if (!window.forestLoadingComplete) {
+            console.log("Attente de la fin du chargement de la forêt...");
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (window.forestLoadingComplete) {
+                        clearInterval(checkInterval);
+                        resolve(applyScreenTimingFix());
+                    }
+                }, 100);
+            });
+        }
+
+        // Forcer la recréation du matériau Screen
+        const newScreenMaterial = await textureManager.forceRecreateScreenMaterial();
+
+        // Appliquer le nouveau matériau à toutes les instances Screen
+        let updatedInstances = 0;
+
+        if (forestRef.current) {
+            forestRef.current.traverse((object) => {
+                if (object.userData?.objectId === 'Screen' || object.name.includes('Screen')) {
+                    if (object.material) {
+                        // Remplacer le matériau
+                        const oldMaterial = object.material;
+                        object.material = newScreenMaterial;
+
+                        // Disposer de l'ancien matériau si ce n'est pas partagé
+                        if (oldMaterial && oldMaterial !== newScreenMaterial) {
+                            // Vérifier s'il est utilisé ailleurs avant de le disposer
+                            setTimeout(() => {
+                                if (oldMaterial.dispose) {
+                                    oldMaterial.dispose();
+                                }
+                            }, 1000);
+                        }
+
+                        updatedInstances++;
+                    }
+                }
+            });
+        }
+
+        console.log(`Correctif appliqué à ${updatedInstances} instances Screen`);
+
+        // Forcer le rendu
+        if (window.renderer) {
+            window.renderer.render(scene, camera);
+        }
+
+        return updatedInstances;
+    };
+
 
     const getChunkHash = (chunkId, x, z) => {
         // Use a simple hash algorithm to generate a pseudo-random but stable value
@@ -810,26 +996,12 @@ export default function Forest() {
         return hash;
     };
 
-    const updateScreenEmission = (intensity = 2.5, color = 0x00ffff) => {
-        if (!forestRef.current) return;
-
-        // Mettre à jour la configuration
-        textureManager.configureScreenEmission(intensity, color);
-
-        // Réappliquer sur tous les objets
-        const modifiedCount = textureManager.forceEmissiveOnScreenInstances(forestRef.current);
-
-        console.log(`Screen emission updated: ${modifiedCount} objects modified`);
-
-        return modifiedCount;
-    };
     const getChunkCustomThreshold = (chunkId, chunkX, chunkZ) => {
         const hash = getChunkHash(chunkId, chunkX, chunkZ);
         // Generate variation between -SWITCH_RANGE/2 and +SWITCH_RANGE/2
         const variation = (hash % TRUNK_SWITCH_CONFIG.SWITCH_RANGE) - (TRUNK_SWITCH_CONFIG.SWITCH_RANGE / 2);
         return TRUNK_SWITCH_CONFIG.SWITCH_DISTANCE + variation;
     };
-
 
 
     // IMPROVED: Optimized geometry simplification for fewer polygons while maintaining shape
@@ -1023,7 +1195,6 @@ export default function Forest() {
 
                 // Check frustum culling first (major optimization)
                 const visible = isInFrustum(instance.userData.boundingSphere, frustumRef.current);
-
 
 
                 // Standard logic for other objects

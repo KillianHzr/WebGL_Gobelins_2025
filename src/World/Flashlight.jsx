@@ -16,6 +16,7 @@ export default function Flashlight() {
     const flashlightRef = useRef();
     const flashlightTargetRef = useRef(new THREE.Object3D());
     const configRef = useRef(guiConfig.flashlight);
+    const firstActivationRef = useRef(false);
 
     // Références pour éviter les mises à jour d'état excessives
     const initializedRef = useRef(false);
@@ -31,9 +32,9 @@ export default function Flashlight() {
 
     // Configuration des seuils d'activation de la lampe torche
     const flashlightThresholdsRef = useRef({
-        activationThreshold: 0.7,        // Activation directe à 70% du scroll
+        activationThreshold: 0.66,        // Activation directe à 70% du scroll
         targetIntensity: 15,             // Intensité cible (passage direct de 0 à 15)
-        flickerActivationThreshold: 0.85  // Déclenchement du clignottement à 80%
+        flickerActivationThreshold: 0.8  // Déclenchement du clignottement à 80%
     });
 
     // *** NOUVEAU: Références pour le clignottement avec pattern binaire naturel ***
@@ -501,6 +502,19 @@ export default function Flashlight() {
                     targetIntensityRef.current = targetIntensity;
                     console.log(`Flashlight: Activation directe à ${targetIntensity} (position: ${(position * 100).toFixed(1)}%)`);
                     updateFlashlightState({intensity: targetIntensity});
+
+                    // NOUVEAU: Émettre un événement la première fois que la flashlight s'allume
+                    if (!firstActivationRef.current) {
+                        firstActivationRef.current = true;
+
+                        EventBus.trigger('flashlight-first-activation', {
+                            normalizedPosition: position,
+                            timestamp: Date.now(),
+                            intensity: targetIntensity
+                        });
+
+                        console.log(`🔦 Flashlight: Première activation - DÉSACTIVATION COMPLÈTE du scroll arrière`);
+                    }
                 }
             } else if (position < thresholds.activationThreshold && targetIntensityRef.current > 0) {
                 // En dessous du seuil de 70%, éteindre la lampe

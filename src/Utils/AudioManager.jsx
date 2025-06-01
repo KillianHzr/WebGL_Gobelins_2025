@@ -4,6 +4,7 @@ import useStore from '../Store/useStore';
 import { narrationManager } from './NarrationManager';
 import { EventBus } from './EventEmitter';
 import RandomAmbientSounds from './RandomAmbientSounds';
+import BonusSoundsManager from './BonusSoundsManager';
 
 // Classe centrale pour gérer l'audio de l'application
 class AudioManager {
@@ -19,6 +20,9 @@ class AudioManager {
 
         // Ajouter le système de sons aléatoires
         this.randomAmbientSounds = null;
+
+        // Ajouter le système de sons bonus
+        this.bonusSoundsManager = null;
 
         // Système d'ambiances de rivière
         this.riverSounds = {
@@ -59,6 +63,9 @@ class AudioManager {
 
         // Initialiser le système de sons aléatoires
         this.randomAmbientSounds = new RandomAmbientSounds(this).init();
+
+        // Initialiser le système de sons bonus
+        this.bonusSoundsManager = new BonusSoundsManager(this).init();
 
         // Initialiser le gestionnaire de narration
         narrationManager.init();
@@ -831,6 +838,12 @@ class AudioManager {
             this.randomAmbientSounds = null;
         }
 
+        // Arrêter et nettoyer le système de sons bonus
+        if (this.bonusSoundsManager) {
+            this.bonusSoundsManager.dispose();
+            this.bonusSoundsManager = null;
+        }
+
         this.currentAmbience = null;
 
         this.sounds.forEach(sound => {
@@ -880,7 +893,7 @@ export default function AudioManagerComponent() {
             }
         };
 
-        // NOUVEAU: Exposer les fonctions pour configurer les sons aléatoires
+        // Exposer les fonctions pour configurer les sons aléatoires
         window.updateRandomSoundConfig = (soundId, config) => {
             if (audioManager) {
                 return audioManager.updateRandomSoundConfig(soundId, config);
@@ -893,6 +906,30 @@ export default function AudioManagerComponent() {
             }
         };
 
+        // Exposer les fonctions pour le système de sons bonus
+        window.forceTriggerBonusSound = (soundType) => {
+            if (audioManager && audioManager.bonusSoundsManager) {
+                return audioManager.bonusSoundsManager.forceTriggerSound(soundType);
+            }
+            return 'Bonus sounds system not available';
+        };
+
+        window.toggleBonusSounds = () => {
+            if (audioManager && audioManager.bonusSoundsManager) {
+                const currentState = audioManager.bonusSoundsManager.getDebugState();
+                audioManager.bonusSoundsManager.setActive(!currentState.active);
+                return `Bonus sounds ${currentState.active ? 'disabled' : 'enabled'}`;
+            }
+            return 'Bonus sounds system not available';
+        };
+
+        window.getBonusSoundsState = () => {
+            if (audioManager && audioManager.bonusSoundsManager) {
+                return audioManager.bonusSoundsManager.getDebugState();
+            }
+            return null;
+        };
+
         // Nettoyage lors du démontage
         return () => {
             audioManager.dispose();
@@ -901,6 +938,9 @@ export default function AudioManagerComponent() {
             delete window.forcePlayRiverSound;
             delete window.updateRandomSoundConfig;
             delete window.updateAllRandomSoundsConfig;
+            delete window.forceTriggerBonusSound;
+            delete window.toggleBonusSounds;
+            delete window.getBonusSoundsState;
         };
     }, []);
 

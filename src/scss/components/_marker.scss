@@ -38,7 +38,43 @@
             right: 33vw;
             top: 33vh;
         }
+        &.double-button {
+            position: relative;
+            width: auto;
+            height: auto;
+            border: none;
+            background: none;
 
+            .double-button-container {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+            }
+        }
+
+        // Styles pour les marqueurs individuels dans le container double
+        &.left-marker,
+        &.right-marker {
+            position: relative;
+            width: 88px;
+            height: 88px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            aspect-ratio: 1;
+            border-radius: 999px;
+            border: 1.5px solid #F9FEFF;
+            pointer-events: auto;
+        }
+        &.confirm {
+            position: relative !important;
+            width: fit-content;
+            height: fit-content;
+            aspect-ratio: unset;
+            border: none;
+        }
         &-inner {
             position: absolute;
             width: 88px;
@@ -58,6 +94,13 @@
             cursor: pointer;
             transition: box-shadow 0.3s ease, backdrop-filter 0.3s ease;
 
+            &.confirm {
+                position: relative;
+                width: fit-content;
+                height: fit-content;
+                aspect-ratio: unset;
+                //border: none;
+            }
             &-hovered {
                 box-shadow: 0 0 8px 4px rgba(255, 255, 255, 0.50);
                 backdrop-filter: blur(2px);
@@ -77,6 +120,14 @@
                 font-style: normal;
                 font-weight: 700;
                 line-height: normal;
+
+                &.confirm {
+                    width: fit-content;
+                    height: fit-content;
+                    aspect-ratio: unset;
+                    max-width: unset;
+                    //border: none;
+                }
             }
 
             &-progress {

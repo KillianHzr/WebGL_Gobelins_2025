@@ -112,6 +112,18 @@
   }
 }
 
+.eye {
+  &-1 {
+    transform: translate(-400px, -100px);
+  }
+  &-2 {
+    transform: translate(-250px, 130px);
+  }
+  &-3 {
+    transform: translate(400px, 30px);
+  }
+}
+
 .first-asset {
   transform: translateY(-60%);
 }
@@ -130,10 +142,6 @@
   img {
     transform: unset !important;
   }
-}
-
-.fourth-asset {
-  transform: translateY(10%);
 }
 
 .ending-asset-right {
@@ -173,12 +181,13 @@
   border-radius: 100px;
   border: 1.5px solid #F9FEFF;
   cursor: pointer;
+  box-shadow: 0px 0px 8px 4px rgba(255, 255, 255, 0.10);
   transition: all 0.3s ease;
   text-align: center;
   animation: fadeIn 0.5s ease-in;
 
   &:hover {
-    box-shadow: 0 0 4px 0 #FFF;
+    box-shadow: 0px 0px 8px 4px rgba(255, 255, 255, 0.50);
   }
 
   &:active {

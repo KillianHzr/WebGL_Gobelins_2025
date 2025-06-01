@@ -1,3 +1,4 @@
+import './Utils/GlobalLogger';
 import React, { useRef, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import Experience from './Experience'
@@ -14,6 +15,7 @@ import MainLayout from './Utils/MainLayout'
 import EndingLanding from './Utils/EndingLanding';
 import { narrationManager } from './Utils/NarrationManager'
 import RandomSoundDebugger from './Utils/RandomSoundDebugger';
+import BonusSoundsDebugger from './Utils/BonusSoundsDebugger';
 import CustomCursor from './Utils/CustomCursor';
 import ScrollIndicator from './Utils/ScrollIndicator.jsx';
 
@@ -26,37 +28,146 @@ export default function App() {
     const [showExperience, setShowExperience] = useState(false)
     const [showMainLayout, setShowMainLayout] = useState(false)
     const [showEndingLanding, setShowEndingLanding] = useState(false)
+    const [scene3DDisabled, setScene3DDisabled] = useState(false) // NOUVEAU: État pour désactiver complètement la 3D
     const canvasRef = useRef(null)
+    const experienceRef = useRef(null) // NOUVEAU: Référence vers Experience
     const narrationEndedRef = useRef(false)
+
+    // Fonction pour désactiver complètement la scène 3D
+    const disable3DScene = () => {
+        console.log('🚫 Désactivation complète de la scène 3D pour optimiser les performances...');
+
+        try {
+            // 1. Marquer la scène comme désactivée
+            setScene3DDisabled(true);
+
+            // 2. Cacher le canvas
+            if (canvasRef.current) {
+                canvasRef.current.style.display = 'none';
+                canvasRef.current.style.visibility = 'hidden';
+            }
+
+            // 3. Arrêter tous les loops d'animation et de rendu
+            if (window.animationFrameId) {
+                cancelAnimationFrame(window.animationFrameId);
+                window.animationFrameId = null;
+            }
+
+            // 4. Nettoyer les ressources Three.js si possible
+            if (window.renderer) {
+                console.log('🧹 Nettoyage du renderer Three.js...');
+
+                // Arrêter le rendu
+                window.renderer.setAnimationLoop(null);
+
+                // Disposer des ressources
+                if (window.renderer.dispose) {
+                    window.renderer.dispose();
+                }
+
+                // Nettoyer le contexte WebGL
+                const gl = window.renderer.getContext();
+                if (gl && gl.getExtension('WEBGL_lose_context')) {
+                    gl.getExtension('WEBGL_lose_context').loseContext();
+                }
+            }
+
+            // 5. Nettoyer la scène Three.js
+            if (window.scene) {
+                console.log('🧹 Nettoyage de la scène Three.js...');
+
+                // Traverser et disposer tous les objets
+                window.scene.traverse((object) => {
+                    if (object.geometry) {
+                        object.geometry.dispose();
+                    }
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach(material => material.dispose());
+                        } else {
+                            object.material.dispose();
+                        }
+                    }
+                    if (object.texture) {
+                        object.texture.dispose();
+                    }
+                });
+
+                // Vider la scène
+                while (window.scene.children.length > 0) {
+                    window.scene.remove(window.scene.children[0]);
+                }
+            }
+
+            // 6. Nettoyer les managers et caches
+            if (window.textureManager && typeof window.textureManager.dispose === 'function') {
+                window.textureManager.dispose();
+            }
+
+            if (window.forestLoadingComplete) {
+                window.forestLoadingComplete = false;
+            }
+
+            // 7. Arrêter les sons d'ambiance pour économiser les ressources
+            if (window.audioManager && typeof window.audioManager.stopNatureAmbience === 'function') {
+                window.audioManager.stopNatureAmbience();
+            }
+
+            // 8. Forcer le garbage collection si disponible
+            if (window.gc) {
+                window.gc();
+            }
+
+            console.log('✅ Scène 3D complètement désactivée - performances optimisées pour l\'ending');
+
+            // 9. Émettre un événement pour informer les autres composants
+            EventBus.trigger('3d-scene-disabled', {
+                timestamp: Date.now(),
+                reason: 'ending-landing-active'
+            });
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la désactivation de la scène 3D:', error);
+        }
+    };
+
+    // NOUVEAU: Fonction pour réactiver la scène 3D si nécessaire
+    const enable3DScene = () => {
+        console.log('🔄 Réactivation de la scène 3D...');
+
+        setScene3DDisabled(false);
+
+        if (canvasRef.current) {
+            canvasRef.current.style.display = 'block';
+            canvasRef.current.style.visibility = 'visible';
+        }
+
+        EventBus.trigger('3d-scene-enabled', {
+            timestamp: Date.now()
+        });
+    };
 
     // Forcer le reload/réinitialisation de la caméra
     const forceReloadCamera = () => {
         console.log("🎥 FORCE RELOAD CAMERA: Starting camera system reload...");
 
         try {
-            // 1. Récupérer le modèle de caméra depuis le store
             const store = useStore.getState();
             const cameraModel = store.cameraModel;
 
             if (!cameraModel) {
-                // console.warn("🎥 FORCE RELOAD CAMERA: No camera model in store, trying to reload from AssetManager");
-
-                // Essayer de recharger depuis l'AssetManager
                 if (window.assetManager && typeof window.assetManager.getItem === 'function') {
                     const freshCameraModel = window.assetManager.getItem('Camera');
                     if (freshCameraModel) {
                         console.log("🎥 FORCE RELOAD CAMERA: Found camera model in AssetManager");
 
-                        // Créer une structure combinée
                         const combinedModel = {
                             scene: freshCameraModel.scene?.clone() || freshCameraModel.scene,
                             animations: freshCameraModel.animations || []
                         };
 
-                        // Mettre à jour le store
                         store.setCameraModel(combinedModel);
 
-                        // Émettre l'événement de rechargement
                         EventBus.trigger('camera-glb-reloaded', {
                             cameraModel: combinedModel,
                             forced: true
@@ -66,14 +177,12 @@ export default function App() {
             } else {
                 console.log("🎥 FORCE RELOAD CAMERA: Camera model found in store, triggering reload event");
 
-                // Émettre l'événement de rechargement avec le modèle existant
                 EventBus.trigger('camera-glb-reloaded', {
                     cameraModel: cameraModel,
                     forced: true
                 });
             }
 
-            // 2. Forcer la réinitialisation du ScrollControls
             EventBus.trigger('force-reinitialize-scroll-controls', {
                 reason: 'camera-reload',
                 timestamp: Date.now()
@@ -92,18 +201,15 @@ export default function App() {
             console.log("Debug mode: showing experience immediately");
             setShowExperience(true);
 
-            // Mettre canvasRef visible immédiatement aussi
             if (canvasRef.current) {
                 canvasRef.current.style.visibility = 'visible';
                 canvasRef.current.focus();
             }
 
-            // AJOUT: Forcer le reload de la caméra en mode debug aussi
             setTimeout(() => {
                 forceReloadCamera();
             }, 1000);
 
-            // On peut aussi déclencher directement la narration Scene01_Mission si nécessaire
             setTimeout(() => {
                 narrationManager.playNarration('Scene01_Mission');
             }, 500);
@@ -117,56 +223,51 @@ export default function App() {
         };
 
         checkViewport();
-
         window.addEventListener('resize', checkViewport);
-
         return () => window.removeEventListener('resize', checkViewport);
     }, []);
 
-    // Subscribe to ending landing visibility changes
+    // MODIFIÉ: Subscribe to ending landing visibility changes avec désactivation 3D
     useEffect(() => {
-        // Set initial state
         setShowEndingLanding(endingLandingVisible || false);
 
-        // Subscribe to store changes
         const unsubscribe = useStore.subscribe(
             state => state.endingLandingVisible,
             visible => {
                 setShowEndingLanding(visible);
-                // When showing ending, hide the experience
-                if (visible && canvasRef.current) {
-                    canvasRef.current.style.visibility = 'hidden';
-                } else if (!visible && canvasRef.current && showExperience) {
+
+                if (visible) {
+                    // NOUVEAU: Désactiver complètement la 3D quand l'ending landing est affiché
+                    console.log('🎬 Ending landing affiché - désactivation de la scène 3D...');
+                    setTimeout(() => {
+                        disable3DScene();
+                    }, 1000); // Délai pour permettre une transition fluide
+                } else if (!visible && canvasRef.current && showExperience && !scene3DDisabled) {
+                    // Réactiver seulement si la 3D n'est pas explicitement désactivée
                     canvasRef.current.style.visibility = 'visible';
                 }
             }
         );
 
         return unsubscribe;
-    }, [endingLandingVisible, showExperience]);
+    }, [endingLandingVisible, showExperience, scene3DDisabled]);
 
     // Only initialize asset manager when in desktop view
     useEffect(() => {
         if (!isDesktopView) return;
 
-        // Créer une référence globale à l'AssetManager
         if (assetManagerRef.current && !isAssetManagerInitialized) {
             window.assetManager = assetManagerRef.current;
             console.log('AssetManager reference set to window.assetManager');
             setIsAssetManagerInitialized(true);
-
-            // Make EventBus globally available for LoadingManager
             window.EventBus = EventBus;
         }
 
-        // Émettre un événement pour prévenir quand
-        // les composants que les assets sont prêts
         const handleForestSceneReady = () => {
             console.log("Forest scene fully loaded");
             setLoaded(true);
         };
 
-        // S'abonner à l'événement 'forest-scene-ready'
         const forestSceneReadyUnsubscribe = EventBus.on('forest-scene-ready', handleForestSceneReady);
 
         return () => {
@@ -176,13 +277,10 @@ export default function App() {
 
     // Écouteur d'événements pour les interactions avec les panneaux
     useEffect(() => {
-        // Fonction plus robuste avec plus de debugging
         const handlePanelInteraction = (data) => {
             console.log("Événement d'interaction détecté:", data);
 
-            // Vérifier les identifiants sous différentes formes possibles
             const checkInteraction = (data, panelIds, narrationId) => {
-                // Vérifier plusieurs propriétés possibles qui pourraient contenir l'identifiant
                 const possibleIdFields = [
                     data.requiredStep,
                     data.id,
@@ -190,7 +288,6 @@ export default function App() {
                     data.step
                 ];
 
-                // Vérifier si l'un des identifiants correspond à l'un des panelIds
                 for (const field of possibleIdFields) {
                     if (!field) continue;
 
@@ -205,14 +302,12 @@ export default function App() {
                 return false;
             };
 
-            // Essayer pour le panneau de départ (plusieurs identifiants possibles)
             checkInteraction(
                 data,
                 ['initialStartStop', 'DirectionPanelStartInteractive', 'DirectionPanel'],
                 'Scene02_PanneauInformation'
             );
 
-            // Essayer pour le panneau digital (plusieurs identifiants possibles)
             checkInteraction(
                 data,
                 ['tenthStop', 'DigitalDirectionPanelEndInteractive', 'DigitalDirectionPanel'],
@@ -220,23 +315,17 @@ export default function App() {
             );
         };
 
-        // Écouter TOUS les événements possiblement liés aux interactions
         const subscriptions = [
             EventBus.on(MARKER_EVENTS.INTERACTION_COMPLETE, handlePanelInteraction),
-            EventBus.on('INTERACTION_COMPLETE', handlePanelInteraction), // Format alternatif
-            EventBus.on('marker:interaction:complete', handlePanelInteraction), // Format alternatif
-            EventBus.on('interaction-complete', handlePanelInteraction), // Format alternatif
-
-            // Écouter aussi l'événement de clic qui pourrait être émis avant l'interaction complète
+            EventBus.on('INTERACTION_COMPLETE', handlePanelInteraction),
+            EventBus.on('marker:interaction:complete', handlePanelInteraction),
+            EventBus.on('interaction-complete', handlePanelInteraction),
             EventBus.on(MARKER_EVENTS.MARKER_CLICK, handlePanelInteraction),
             EventBus.on('marker:click', handlePanelInteraction)
         ];
 
-        // Journalisation pour débugger
         console.log("Écouteurs d'événements pour les interactions des panneaux configurés");
-        console.log("MARKER_EVENTS.INTERACTION_COMPLETE =", MARKER_EVENTS.INTERACTION_COMPLETE);
 
-        // Nettoyage de tous les écouteurs
         return () => {
             subscriptions.forEach(unsub => {
                 if (typeof unsub === 'function') {
@@ -248,7 +337,6 @@ export default function App() {
 
     useEffect(() => {
         const handleAllEvents = (data) => {
-            // Filtrer pour ne voir que les événements liés aux interactions
             if (data && (
                 (typeof data.id === 'string' && (
                     data.id.includes('Direction') ||
@@ -264,12 +352,10 @@ export default function App() {
             }
         };
 
-        // Ajouter des écouteurs pour plusieurs événements génériques
         const subscriptions = [
-            EventBus.on('*', handleAllEvents) // Wildcard (si supporté)
+            EventBus.on('*', handleAllEvents)
         ];
 
-        // Nettoyage
         return () => {
             subscriptions.forEach(unsub => {
                 if (typeof unsub === 'function') unsub();
@@ -278,15 +364,11 @@ export default function App() {
     }, []);
 
     useEffect(() => {
-        // Sauvegarde de la fonction trigger originale
         const originalTrigger = EventBus.trigger;
 
-        // Remplacement par notre fonction augmentée
         EventBus.trigger = function(eventName, data) {
-            // Appel de la fonction originale d'abord
             const result = originalTrigger.call(this, eventName, data);
 
-            // Maintenant, notre logique spécifique
             if (eventName === MARKER_EVENTS.INTERACTION_COMPLETE ||
                 eventName === 'INTERACTION_COMPLETE' ||
                 eventName === 'marker:interaction:complete' ||
@@ -294,25 +376,21 @@ export default function App() {
 
                 console.log(`[EventBus] Événement capturé: ${eventName}`, data);
 
-                // Pour le panneau de départ
                 if (data && (
                     (data.requiredStep === 'initialStartStop') ||
                     (data.id && (data.id === 'initialStartStop' || data.id.includes('DirectionPanel')))
                 )) {
                     console.log("Long press sur le panneau d'information détecté - lancement narration");
-                    // Léger délai pour éviter les conflits
                     setTimeout(() => {
                         narrationManager.playNarration('Scene02_PanneauInformation');
                     }, 100);
                 }
 
-                // Pour le panneau digital
                 if (data && (
                     (data.requiredStep === 'tenthStop') ||
                     (data.id && (data.id === 'tenthStop' || data.id.includes('DigitalDirectionPanel')))
                 )) {
                     console.log("Long press sur le panneau digital détecté - lancement narration");
-                    // Léger délai pour éviter les conflits
                     setTimeout(() => {
                         narrationManager.playNarration('Scene09_ClairiereDigitalisee');
                     }, 100);
@@ -322,14 +400,12 @@ export default function App() {
             return result;
         };
 
-        // Nettoyage - restaurer la fonction originale
         return () => {
             EventBus.trigger = originalTrigger;
         };
     }, []);
 
     useEffect(() => {
-        // Exposer via window pour débug et accès direct
         window.playPanelNarrations = {
             startPanel: () => {
                 console.log("Lancement manuel de la narration du panneau de départ");
@@ -342,51 +418,43 @@ export default function App() {
         };
 
         window.forceReloadCamera = forceReloadCamera;
-
         window.useStore = useStore;
+
+        // Exposer les fonctions de contrôle 3D
+        window.disable3DScene = disable3DScene;
+        window.enable3DScene = enable3DScene;
     }, []);
 
     const onAssetsReady = () => {
-        // Callback passé au AssetManager
         if (assetsLoaded) {
             return;
         }
         console.log("Assets ready callback triggered");
         setAssetsLoaded(true);
-
-        // Émettre un événement pour le LoadingManager
         EventBus.trigger('assetsInitialized', { count: assetManagerRef.current?.assetsToLoad?.length || 0 });
     };
 
-    // Callback when user clicks "Découvre ta mission" button
-    // Dans App.jsx, modifiez la fonction handleEnterExperience comme suit
     const handleEnterExperience = () => {
         console.log("User entered experience - preparing transition");
         narrationEndedRef.current = false;
 
-        // Set a flag to show the black screen transition
         setShowExperience(false);
 
-        // Set up the black screen transition first
         setTimeout(() => {
             console.log("Black screen transition in progress - preparing to play radio on sound");
 
-            // Jouer le son radio_on.wav
             if (window.audioManager && typeof window.audioManager.playSound === 'function') {
                 window.audioManager.playSound('radio-on');
                 console.log("Playing radio on sound");
             }
 
-            // Attendre 1 seconde avant de jouer la première narration
             setTimeout(() => {
                 console.log("Delay complete, playing Scene00_Radio1 narration");
 
-                // Set up a listener for the narration ended event
                 const narrationEndedListener = EventBus.on('narration-ended', (data) => {
                     if (data && data.narrationId === 'Scene00_Radio1') {
                         console.log("Scene00_Radio1 narration completed, playing Scene00_Radio2 after delay");
 
-                        // Attendre 1 seconde avant de jouer Scene00_Radio2
                         setTimeout(() => {
                             narrationManager.playNarration('Scene00_Radio2');
                             console.log("Lecture de la narration Scene00_Radio2");
@@ -395,13 +463,11 @@ export default function App() {
                     else if (data && data.narrationId === 'Scene00_Radio2') {
                         console.log("Scene00_Radio2 narration completed, playing radio off sound");
 
-                        // Jouer le son radio_off.wav après la fin de la deuxième narration
                         if (window.audioManager && typeof window.audioManager.playSound === 'function') {
                             window.audioManager.playSound('radio-off');
                             console.log("Playing radio off sound");
                         }
 
-                        // Attendre que le son radio off se termine avant de continuer
                         setTimeout(() => {
                             console.log("Radio off sound complete, proceeding to 3D scene");
                             narrationEndedRef.current = true;
@@ -409,38 +475,31 @@ export default function App() {
                             console.log("🎥 FORCING CAMERA RELOAD BEFORE SHOWING 3D SCENE");
                             forceReloadCamera();
 
-                            // Transition to 3D scene after narration ends
                             setShowExperience(true);
 
-                            // Focus on canvas after showing it
                             if (canvasRef.current) {
                                 canvasRef.current.focus();
                             }
 
                             setTimeout(() => {
-                                // Démarrer l'ambiance nature en fondu
                                 if (window.audioManager && typeof window.audioManager.playNatureAmbience === 'function') {
                                     console.log("Starting nature ambience after camera reload and radio narrations");
-                                    window.audioManager.playNatureAmbience(3000); // Fondu sur 3 secondes
+                                    window.audioManager.playNatureAmbience(3000);
                                 }
 
-                                // Play the next narration after showing the 3D scene
                                 setTimeout(() => {
                                     narrationManager.playNarration('Scene01_Mission');
                                     console.log("Lecture de la narration Scene01_Mission après transition et camera reload");
                                 }, 2000);
                             }, 1500);
-                        }, 1000); // Attendre 1 seconde pour le son radio off
+                        }, 1000);
                     }
                 });
 
-                // Play the Scene00_Radio1 narration
                 narrationManager.playNarration('Scene00_Radio1');
                 console.log("Lecture de la narration Scene00_Radio1 pendant l'écran noir");
 
-                // Fallback in case the narration-ended events aren't fired
-                // Augmenter la durée pour tenir compte des deux narrations + délai
-                const defaultDuration = 60000; // 60 seconds in ms
+                const defaultDuration = 60000;
                 setTimeout(() => {
                     if (!narrationEndedRef.current) {
                         console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
@@ -449,32 +508,26 @@ export default function App() {
                         console.log("🎥 FORCING CAMERA RELOAD IN FALLBACK");
                         forceReloadCamera();
 
-                        // Transition to 3D scene after the fallback duration
                         setShowExperience(true);
 
-                        // Focus on canvas after showing it
                         if (canvasRef.current) {
                             canvasRef.current.focus();
                         }
 
-                        // Play the next narration after showing the 3D scene
                         setTimeout(() => {
                             narrationManager.playNarration('Scene01_Mission');
                             console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
                         }, 2000);
                     }
                 }, defaultDuration);
-            }, 1000); // Délai d'1 seconde avant de jouer la première narration
-        }, 800); // This should match when the black screen is at full opacity
+            }, 1000);
+        }, 800);
     };
 
-    // Handle the "learn more" button click in ending landing
     const handleLearnMore = () => {
-        // Open the Gobelins website in a new tab
         window.open('https://www.laquadrature.net/donner/', '_blank');
     };
 
-    // Show MainLayout when loading is complete (on landing page)
     useEffect(() => {
         if (assetsLoaded) {
             console.log("Assets loaded - showing MainLayout");
@@ -488,29 +541,25 @@ export default function App() {
 
     return (
         <EventEmitterProvider>
-            {/* Asset Manager component */}
             <CustomCursor />
             <AssetManager
                 ref={assetManagerRef}
                 onReady={onAssetsReady}
-                key="assetManager" // Clé stable pour éviter les remontages
+                key="assetManager"
             />
 
-            {/* Loading Screen and Desktop Landing */}
             {!showExperience && !debug?.skipIntro && (
                 <LoadingScreen onComplete={handleEnterExperience} />
             )}
 
-            {/* Main Layout - only show after assets are loaded */}
             {showMainLayout && <MainLayout />}
 
-            {/* Ending Landing - shows when triggered */}
             {showEndingLanding && (
                 <EndingLanding onLearnMore={handleLearnMore} />
             )}
 
-            {/* Interfaces - only show when experience is visible */}
-            {showExperience && (
+            {/* Interfaces - seulement si la 3D n'est pas désactivée */}
+            {showExperience && !scene3DDisabled && (
                 <>
                     <BlackscreenInterface/>
                     <CaptureInterface />
@@ -520,35 +569,67 @@ export default function App() {
                 </>
             )}
 
-            {/* Canvas for 3D content */}
-            <div
-                ref={canvasRef}
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    visibility: showExperience ? 'visible' : 'hidden',
-                    opacity: showExperience ? 1 : 0,
-                    transition: 'opacity 1s ease',
-                    transitionDelay: '0.5s',
-                    zIndex: 2,
-                    backgroundColor: '#000'
-                }}
-                tabIndex={0}
-            >
-                <Canvas
+            {/* Canvas pour le contenu 3D - conditionnel */}
+            {!scene3DDisabled && (
+                <div
+                    ref={canvasRef}
                     style={{
-                        backgroundColor: '#000',
+                        width: '100%',
+                        height: '100%',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        visibility: showExperience ? 'visible' : 'hidden',
+                        opacity: showExperience ? 1 : 0,
+                        transition: 'opacity 1s ease',
+                        transitionDelay: '0.5s',
+                        zIndex: 2,
+                        backgroundColor: '#000'
                     }}
-                    gl={{ preserveDrawingBuffer: true }}
-                    shadows
+                    tabIndex={0}
                 >
-                    <Experience />
-                </Canvas>
-            </div>
+                    <Canvas
+                        style={{
+                            backgroundColor: '#000',
+                        }}
+                        gl={{
+                            preserveDrawingBuffer: true,
+                            // NOUVEAU: Optimisations WebGL pour meilleures performances
+                            antialias: false, // Désactiver l'antialiasing pour de meilleures perfs
+                            alpha: false,     // Pas besoin de transparence
+                            depth: true,      // Garder le depth buffer
+                            stencil: false,   // Désactiver le stencil buffer
+                            powerPreference: "high-performance" // Privilégier les performances
+                        }}
+                        shadows
+                        // NOUVEAU: Configuration optimisée pour les performances
+                        dpr={Math.min(window.devicePixelRatio, 2)} // Limiter le pixel ratio
+                        performance={{ min: 0.5 }} // Ajustement automatique des performances
+                    >
+                        <Experience ref={experienceRef} />
+                    </Canvas>
+                </div>
+            )}
+
+            {scene3DDisabled && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '10px',
+                    right: '10px',
+                    background: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    padding: '5px 10px',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    zIndex: 1000,
+                    pointerEvents: 'none'
+                }}>
+                    🚫 Scène 3D désactivée pour optimiser les performances
+                </div>
+            )}
+
             <RandomSoundDebugger />
+            <BonusSoundsDebugger />
         </EventEmitterProvider>
     )
 }

@@ -45,7 +45,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 0.02;
+const MAX_SCROLL_SPEED = 2.2;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.005;
 const BASE_SENSITIVITY = 0.05;
@@ -80,6 +80,9 @@ function CameraController({children}) {
     const timelinePositionRef = useRef(0);
     const timelineLengthRef = useRef(0);
     const scrollVelocity = useRef(0);
+    const flickerScrollBlockTimeoutRef = useRef(null);
+    const scrollBlockedAt81Ref = useRef(false);
+    const has81ThresholdBeenTriggeredRef = useRef(false);
 
     // CORRECTION: Déplacer visonTriggeredRef au niveau du composant
     const visonTriggeredRef = useRef(false);
@@ -108,6 +111,7 @@ function CameraController({children}) {
     const isTransitioningRef = useRef(false);
     const savedInteractionPosition = useRef(null);
     const handledInteractions = useRef(new Set());
+    const scrollBackDisabledRef = useRef(false);
 
     // Pour suivre si l'initialisation de la caméra GLB est en cours/terminée
     const glbInitializedRef = useRef(false);
@@ -270,8 +274,8 @@ function CameraController({children}) {
                     timelineLength: timelineLengthRef.current
                 });
 
-                const VISON_TRIGGER = 0.01;
-                const SCREEN_TRIGGER = 0.025; //VisonRun
+                const VISON_TRIGGER = 0.62;
+                const SCREEN_TRIGGER = 0.23; //VisonRun
 
                 if (normalizedPosition >= VISON_TRIGGER && !visonTriggeredRef.current) {
                     console.log("🦡 Déclenchement animation Vison à la position:", normalizedPosition);
@@ -349,16 +353,35 @@ function CameraController({children}) {
         }
     };
 
-    // MODIFIÉ : Fonction pour vérifier si une position est autorisée
+    // Fonction pour vérifier si une position est autorisée
     const isPositionAllowed = (position) => {
         const effectiveMin = getEffectiveMinPosition(position);
+
+        // Vérifier s'il y a une restriction due à la flashlight
+        const flashlightRestriction = validatedPositionsRef.current.find(pos => pos.reason === 'flashlight-activation');
+
+        if (flashlightRestriction) {
+            // Si la flashlight a été activée, bloquer complètement le retour en arrière
+            return position >= flashlightRestriction.basePosition;
+        }
+
         return position >= effectiveMin;
     };
 
-    // MODIFIÉ : Fonction pour limiter une position aux bornes autorisées
+    // Fonction pour limiter une position aux bornes autorisées
     const clampToAllowedRange = (position) => {
         const effectiveMinPos = getEffectiveMinPosition(position);
         const maxPos = timelineLengthRef.current;
+
+        // Vérifier s'il y a une restriction due à la flashlight
+        const flashlightRestriction = validatedPositionsRef.current.find(pos => pos.reason === 'flashlight-activation');
+
+        if (flashlightRestriction) {
+            // Si la flashlight a été activée, utiliser sa position comme minimum absolu
+            const absoluteMin = flashlightRestriction.basePosition;
+            return Math.max(absoluteMin, Math.min(maxPos, position));
+        }
+
         return Math.max(effectiveMinPos, Math.min(maxPos, position));
     };
 
@@ -561,6 +584,46 @@ function CameraController({children}) {
         return targetObject;
     };
 
+    useEffect(() => {
+        const handleFlashlightFirstActivation = (data) => {
+            console.log('🔦 ScrollControls: Première activation de la flashlight - Enregistrement position minimale');
+
+            // Au lieu de désactiver complètement le scroll arrière,
+            // enregistrer la position actuelle comme position minimale autorisée
+            const currentPosition = timelinePositionRef.current;
+
+            // Ajouter cette position à la liste des positions validées avec marqueur spécial
+            validatedPositionsRef.current.push({
+                basePosition: currentPosition,
+                offsetPosition: currentPosition + SCROLL_SAFETY_OFFSET,
+                hasPassedOffset: false,
+                reason: 'flashlight-activation', // Marqueur spécial pour la flashlight
+                timestamp: Date.now()
+            });
+
+            // Mettre à jour la position minimale
+            updateMinAllowedPosition(currentPosition);
+
+            // Émettre un événement pour informer d'autres composants
+            EventBus.trigger('scroll-back-limited-to-flashlight-position', {
+                reason: 'flashlight-first-activation',
+                minPosition: currentPosition,
+                offsetPosition: currentPosition + SCROLL_SAFETY_OFFSET,
+                timestamp: Date.now()
+            });
+
+            // Afficher un message de debug si nécessaire
+            if (debug?.active) {
+                console.log(`🔦 SCROLL ARRIÈRE LIMITÉ à partir de la position ${currentPosition.toFixed(2)}`);
+            }
+        };
+
+        const flashlightActivationSubscription = EventBus.on('flashlight-first-activation', handleFlashlightFirstActivation);
+
+        return () => {
+            flashlightActivationSubscription();
+        };
+    }, [debug]);
 
     useEffect(() => {
         const handleFlashlightFlickerCompletelyFinished = (data) => {
@@ -1263,6 +1326,16 @@ function CameraController({children}) {
 
         // Détection de la fin du scroll
         const scrollProgress = timelinePositionRef.current / timelineLengthRef.current;
+        if (scrollProgress >= 0.81 && !has81ThresholdBeenTriggeredRef.current) {
+            console.log('🚫 Scroll bloqué à 81% pendant 2 secondes');
+            has81ThresholdBeenTriggeredRef.current = true;
+            scrollBlockedAt81Ref.current = true;
+
+            setTimeout(() => {
+                console.log('✅ Scroll débloqué après 2 secondes');
+                scrollBlockedAt81Ref.current = false;
+            }, 2000);
+        }
         const isNowAtEnd = scrollProgress >= END_SCROLL_THRESHOLD;
 
         // Mettre à jour l'état uniquement s'il change pour éviter des re-rendus inutiles
@@ -1357,6 +1430,11 @@ function CameraController({children}) {
         };
 
         const handleTouchMove = (e) => {
+            if (scrollBlockedAt81Ref.current) {
+                e.preventDefault();
+                return;
+            }
+
             if (!allowScroll || chapterTransitioning) return;
 
             const currentY = e.touches[0].clientY;
@@ -1364,10 +1442,18 @@ function CameraController({children}) {
             lastTouchY = currentY;
 
             const direction = Math.sign(deltaY);
+
+            // Si le scroll arrière est désactivé et qu'on essaie de scroller vers l'arrière, ignorer complètement
+            if (scrollBackDisabledRef.current && direction > 0) { // direction > 0 = swipe vers le haut = scroll arrière
+                console.log('🚫 Touch scroll arrière ignoré - flashlight activée');
+                e.preventDefault();
+                return; // Sortir complètement, ne pas traiter l'événement
+            }
+
             const magnitude = Math.abs(deltaY) * BASE_SENSITIVITY * 1.5;
             const cappedMagnitude = Math.min(magnitude, MAX_SCROLL_SPEED);
 
-            // CORRIGÉ : Vérifier si le mouvement arrière est autorisé
+            // Vérifier si le mouvement arrière est autorisé
             if (direction < 0) { // Scroll arrière
                 const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude);
                 if (!isPositionAllowed(potentialPosition)) {
@@ -1382,28 +1468,44 @@ function CameraController({children}) {
         };
 
         const handleWheel = (e) => {
-            if (!allowScroll || chapterTransitioning) return;
+            if (scrollBlockedAt81Ref.current) {
+                e.preventDefault();
+                return;
+            }
+
+            if (!allowScroll || chapterTransitioning) {
+                console.log('🚫 Scroll bloqué:', {
+                    allowScroll,
+                    chapterTransitioning,
+                    reason: !allowScroll ? 'scroll-disabled' : 'chapter-transitioning'
+                });
+                e.preventDefault();
+                return;
+            }
 
             const normalizedDelta = normalizeWheelDelta(e);
             const direction = Math.sign(normalizedDelta);
             setScrollDirection(direction);
 
+            if (scrollBackDisabledRef.current && direction < 0) {
+                console.log('🚫 Scroll arrière ignoré - flashlight activée');
+                e.preventDefault();
+                return;
+            }
+
             let scrollMagnitude = Math.abs(normalizedDelta) * BASE_SENSITIVITY;
             const cappedMagnitude = Math.min(scrollMagnitude, MAX_SCROLL_SPEED);
 
-            // CORRIGÉ : Vérifier si le mouvement arrière est autorisé
-            // direction > 0 = scroll vers l'avant, direction < 0 = scroll vers l'arrière
-            if (direction < 0) { // Scroll arrière (direction négative)
-                const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude); // direction est déjà négatif
+            // Vérifier si le mouvement arrière est autorisé
+            if (direction < 0) { // Scroll arrière
+                const potentialPosition = timelinePositionRef.current + (direction * cappedMagnitude);
                 if (!isPositionAllowed(potentialPosition)) {
-                    // Bloquer le mouvement arrière
                     e.preventDefault();
                     return;
                 }
             }
 
             scrollVelocity.current = direction * cappedMagnitude;
-
             e.preventDefault();
         };
 

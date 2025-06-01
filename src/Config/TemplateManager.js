@@ -4,10 +4,10 @@ class TemplateManager {
     constructor() {
         // Templates disponibles avec leurs informations
         this.templates = {
-            // // ===================================
-            // // REGULAR GROUP - Main forest elements
-            // // ===================================
-            //
+            // ===================================
+            // REGULAR GROUP - Main forest elements
+            // ===================================
+
             // Trees
             'Retopo_TRONC001': {
                 id: 'TreeNaked',
@@ -37,21 +37,14 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            'Trunk': {
-                id: 'TreeStump',
-                path: '/models/forest/tree/TreeStump.gltf',
-                priority: 4,
-                useTextures: true,
-                group: 'regular'
-            },
-            'TreeRoof': {
+            'Plane003_2': {
                 id: 'TreeRoof',
                 path: '/models/forest/tree/TreeRoof.glb',
                 priority: 21,
                 useTextures: true
             },
-            //
-            // // Branches
+
+            // Branches
             'BranchEucalyptus_1': {
                 id: 'BranchEucalyptus',
                 path: '/models/forest/branch/BranchEucalyptus.glb',
@@ -165,13 +158,13 @@ class TemplateManager {
                 useTextures: true,
                 group: 'regular'
             },
-            // // 'PlantIvy002': {
-            // //     id: 'PlantIvy',
-            // //     path: '/models/forest/plant/PlantIvy.glb',
-            // //     priority: 17,
-            // //     useTextures: true,
-            // //     group: 'regular'
-            // // },
+            // 'PlantIvy002': {
+            //     id: 'PlantIvy',
+            //     path: '/models/forest/plant/PlantIvy.glb',
+            //     priority: 17,
+            //     useTextures: true,
+            //     group: 'regular'
+            // },
             'PlantMiscanthus': {
                 id: 'PlantMiscanthus',
                 path: '/models/forest/plant/PlantMiscanthus.glb',
@@ -384,7 +377,7 @@ class TemplateManager {
             //     group: 'screen'
             // },
 
-            'GN_Instance_12351': {
+            'Screen001_1': {
                 id: 'Screen',
                 path: '/models/digital/screen/screentest.glb',
                 priority: 22,
@@ -396,17 +389,17 @@ class TemplateManager {
                 id: 'ScreenOldEmission',
                 path: '/models/digital/screen/ScreenOldEmission.glb',
                 priority: 21,
-                useTextures: false,
+                useTextures: true,
                 group: 'screen'
             },
 
-            // 'Screen001_14': {
-            //     id: 'ScreenEmission',
-            //     path: '/models/digital/screen/ScreenEmission.glb',
-            //     priority: 22,
-            //     useTextures: false,
-            //     group: 'screen'
-            // },
+            'Cube001_3': {
+                id: 'ScreenEmission',
+                path: '/models/digital/screen/ScreenEmission_.glb',
+                priority: 22,
+                useTextures: true,
+                group: 'screen'
+            },
             // // Screens
             'mesh002_1': {
                 id: 'ScreenOld',

@@ -566,9 +566,9 @@ const EasyModelMarker = React.memo(function EasyModelMarker({
                 objectRef={modelRef}
                 active={true}
                 color="#ffffff"
-                thickness={0.01}
+                thickness={0.02}
                 intensity={1.3}
-                technique="geometry"
+                // technique="external"
                 debug={false}
             />
         );

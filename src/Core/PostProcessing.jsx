@@ -23,8 +23,8 @@ export default function PostProcessing() {
     const postProcessingGroupRef = useRef(null);
     const bloomSettingsRef = useRef({
         enabled: true,
-        strength: 0.67,
-        radius: 0.25,
+        strength: 0.4,
+        radius: 0.0,
         threshold: 1.0
     });
 
@@ -120,8 +120,8 @@ export default function PostProcessing() {
         // Ajouter le UnrealBloomPass pour l'effet de bloom
         if (bloomSettingsRef.current.enabled) {
             const resolution = new Vector2(
-                window.innerWidth * window.devicePixelRatio,
-                window.innerHeight * window.devicePixelRatio
+                window.innerWidth * (window.devicePixelRatio * 0.85),
+                window.innerHeight * (window.devicePixelRatio * 0.85)
             );
             const bloomPass = new UnrealBloomPass(
                 resolution,

@@ -1,46 +1,33 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import LoadingManager from './LoadingManager';
+import WebGLLoadingManager from './WebGLLoadingManager';
 import DesktopLanding from './DesktopLanding';
 import useStore from '../Store/useStore';
-import { EventBus } from './EventEmitter.jsx';
 
 /**
- * LoadingScreen component
- * Displays a loading progress bar and transitions to landing page when complete
+ * LoadingScreen component - Version améliorée avec WebGLLoadingManager
+ * Affiche une barre de progression fiable et des transitions fluides
  */
 const LoadingScreen = ({ onComplete }) => {
-    const { debug } = useStore();  // Récupérer l'état debug du store
+    const { debug } = useStore();
     const [loadingComplete, setLoadingComplete] = useState(false);
     const [loadingFadeOut, setLoadingFadeOut] = useState(false);
-    const [showLanding, setShowLanding] = useState(!debug?.skipIntro); // Condition basée sur skipIntro
+    const [showLanding, setShowLanding] = useState(!debug?.skipIntro);
     const [landingEnabled, setLandingEnabled] = useState(false);
     const [blackScreenTransition, setBlackScreenTransition] = useState(false);
     const [displayProgress, setDisplayProgress] = useState(0);
+    const [currentPhase, setCurrentPhase] = useState('Initialisation...');
     const animationFrameRef = useRef(null);
 
-    // Messages de chargement rotatifs
-    const loadingMessages = [
-        "Localisation du vison...",
-    ];
-    const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-    const messageTimerRef = useRef(null);
-
-    // Rotation des messages de chargement toutes les 2 secondes
-    useEffect(() => {
-        if (!loadingComplete) {
-            messageTimerRef.current = setInterval(() => {
-                setCurrentMessageIndex(prevIndex =>
-                    (prevIndex + 1) % loadingMessages.length
-                );
-            }, 2000);
-        }
-
-        return () => {
-            if (messageTimerRef.current) {
-                clearInterval(messageTimerRef.current);
-            }
-        };
-    }, [loadingComplete, loadingMessages.length]);
+    // Messages de chargement selon la phase
+    const getPhaseMessage = (phase, progress) => {
+        if (progress < 10) return "Initialisation du moteur 3D...";
+        if (progress < 40) return "Chargement des modèles 3D...";
+        if (progress < 60) return "Application des textures...";
+        if (progress < 80) return "Construction de la scène...";
+        if (progress < 90) return "Compilation des shaders...";
+        if (progress < 100) return "Finalisation du rendu...";
+        return "Localisation du vison...";
+    };
 
     // Si on doit sauter l'intro, on appelle onComplete immédiatement
     useEffect(() => {
@@ -50,27 +37,22 @@ const LoadingScreen = ({ onComplete }) => {
         }
     }, [debug, onComplete]);
 
-    // Callback pour quand le chargement est terminé
+    // Callback pour quand le chargement WebGL est terminé
     const handleLoadingComplete = useCallback(() => {
         if (debug?.skipIntro) {
-            // Si on doit sauter l'intro, ne pas afficher l'écran de chargement
             console.log("Loading complete, skipping landing page due to debug mode");
             if (onComplete) onComplete();
             return;
         }
 
-        console.log("Loading complete, transitioning to landing page");
+        console.log("WebGL loading complete, transitioning to landing page");
 
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
         }
 
-        // Nettoyer le timer de rotation des messages
-        if (messageTimerRef.current) {
-            clearInterval(messageTimerRef.current);
-        }
-
         setDisplayProgress(100);
+        setCurrentPhase("Chargement terminé");
         setLoadingFadeOut(true);
 
         setTimeout(() => {
@@ -80,7 +62,7 @@ const LoadingScreen = ({ onComplete }) => {
     }, [debug, onComplete]);
 
     const handleEnterExperience = useCallback(() => {
-        console.log("Entering experience - starting first fade to black");
+        console.log("Entering experience - starting transition");
         setBlackScreenTransition(true);
 
         setTimeout(() => {
@@ -88,12 +70,12 @@ const LoadingScreen = ({ onComplete }) => {
         }, 400);
     }, [onComplete]);
 
-    // Get loading progress from the LoadingManager
-    const { progress } = LoadingManager({
+    // Utiliser le nouveau WebGLLoadingManager
+    const { progress, phase, detailed, isComplete } = WebGLLoadingManager({
         onComplete: handleLoadingComplete
     });
 
-    // Smoothly animate the progress bar for better visual feedback
+    // Animation fluide du progress bar
     useEffect(() => {
         if (progress > displayProgress) {
             const animateProgress = () => {
@@ -120,38 +102,23 @@ const LoadingScreen = ({ onComplete }) => {
         };
     }, [progress, displayProgress]);
 
+    // Mettre à jour le message de phase
     useEffect(() => {
-        console.log(`Loading screen - Actual progress: ${progress}%, Displayed: ${Math.round(displayProgress)}%`);
-    }, [progress, displayProgress]);
+        const message = getPhaseMessage(phase, displayProgress);
+        setCurrentPhase(message);
+    }, [phase, displayProgress]);
 
-    // Additional progress event listeners to catch any missed events
+    // Debug logging
     useEffect(() => {
-        const handleForestReady = () => {
-            console.log("Loading screen caught forest-ready event");
-            if (!loadingComplete) {
-                handleLoadingComplete();
+        if (debug?.active) {
+            console.log(`Loading: ${Math.round(displayProgress)}% - ${currentPhase}`);
+            if (detailed) {
+                console.log('Detailed progress:', detailed);
             }
-        };
+        }
+    }, [displayProgress, currentPhase, detailed, debug]);
 
-        const forestReadyUnsubscribe = EventBus.on('forest-ready', handleForestReady);
-        const forestSceneReadyUnsubscribe = EventBus.on('forest-scene-ready', handleForestReady);
-
-        // Check logs for "Forest est prête" periodically
-        const checkInterval = setInterval(() => {
-            if (!loadingComplete && window._loadingLogs && window._loadingLogs.join(' ').includes("Forest est prête")) {
-                console.log("Loading screen detected 'Forest est prête' in logs");
-                handleLoadingComplete();
-            }
-        }, 1000);
-
-        return () => {
-            if (forestReadyUnsubscribe) forestReadyUnsubscribe();
-            if (forestSceneReadyUnsubscribe) forestSceneReadyUnsubscribe();
-            clearInterval(checkInterval);
-        };
-    }, [loadingComplete, handleLoadingComplete]);
-
-    // Format the displayed percentage
+    // Format du pourcentage affiché
     const formattedPercentage = Math.round(displayProgress);
 
     // Si on est en mode debug avec skipIntro, ne rien afficher
@@ -161,7 +128,7 @@ const LoadingScreen = ({ onComplete }) => {
 
     return (
         <>
-            {/* Desktop landing page - always rendered behind loading */}
+            {/* Desktop landing page - toujours rendu derrière le loading */}
             {showLanding && (
                 <DesktopLanding
                     onEnterExperience={handleEnterExperience}
@@ -169,27 +136,52 @@ const LoadingScreen = ({ onComplete }) => {
                 />
             )}
 
-            {/* Loading progress bar */}
+            {/* Écran de chargement avec barre de progression WebGL */}
             {!loadingComplete && (
                 <div className={`loading-screen ${loadingFadeOut ? 'fade-out' : ''}`}>
                     <div className="loading-content">
                         <div className="loading-logo">
                             <img src="/images/loader.gif" alt="Gobelins Logo" />
                         </div>
+
                         <div className="loading-progress-container">
                             <div
                                 className="loading-progress-bar"
                                 style={{ width: `${formattedPercentage}%` }}
                             ></div>
                         </div>
+
                         <div className="loading-percentage">
-                            {loadingMessages[currentMessageIndex]}
+                            {currentPhase}
                         </div>
+
+                        {/* Informations détaillées pour le debug */}
+                        {debug?.active && detailed && (
+                            <div className="loading-debug" style={{
+                                position: 'absolute',
+                                bottom: '20px',
+                                left: '20px',
+                                fontSize: '12px',
+                                color: '#666',
+                                fontFamily: 'monospace'
+                            }}>
+                                <div>Assets: {Math.round(detailed.assets)}%</div>
+                                <div>Textures: {Math.round(detailed.textures)}%</div>
+                                <div>Scène: {Math.round(detailed.scene)}%</div>
+                                <div>Shaders: {Math.round(detailed.shaders)}%</div>
+                                {window.renderer && (
+                                    <>
+                                        <div>Triangles: {window.renderer.info.render.triangles}</div>
+                                        <div>Draw calls: {window.renderer.info.render.calls}</div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* Black screen transition */}
+            {/* Transition écran noir */}
             {blackScreenTransition && (
                 <div className="black-screen-transition"></div>
             )}

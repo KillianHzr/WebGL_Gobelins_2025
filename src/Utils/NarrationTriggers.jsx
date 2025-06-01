@@ -19,7 +19,7 @@ const NarrationTriggers = () => {
         'JumpRock4': 'Scene05_SautAu-DessusDeLaRiviere',
         'ThinTrunkInteractive': 'Scene06_PassageEn-DessousDeLaBranche',
         'RiverCheckpoint': 'Scene07_RemplissageDeLaGourde',
-        'Vison': 'Scene08_DecouverteDuVisonMort',
+        'VisonDead': 'Scene08_DecouverteDuVisonMort',
     };
 
     const stepToObjectMap = {};
@@ -76,6 +76,12 @@ const NarrationTriggers = () => {
                 } else if (data.objectKey) {
                     objectKey = data.objectKey;
                     console.log(`Utilisation directe de objectKey: ${objectKey}`);
+                }
+
+                if (objectKey === 'VisonDead' || data.requiredStep === 'sixthStop') {
+                    console.log('🦡 Interaction détectée avec le vison mort - déclenchement narration');
+                    playNarrationIfNotTriggered('Scene08_DecouverteDuVisonMort');
+                    return;
                 }
 
                 // Verification checks for prerequisites

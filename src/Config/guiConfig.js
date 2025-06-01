@@ -144,7 +144,7 @@ const guiConfig = {
                 options: [256, 512, 1024, 2048, 4096]
             },
             bias: {
-                default: -0.001,
+                default: -0.01,
                 min: -0.01,
                 max: 0.01,
                 step: 0.0001
@@ -301,7 +301,7 @@ const guiConfig = {
                 max: 150,
                 step: 1,
                 name: "FOV",
-                default: 24.9
+                default: 30
             },
             near: {
                 min: 0.01,
@@ -315,7 +315,7 @@ const guiConfig = {
                 max: 1000,
                 step: 1,
                 name: "Far",
-                default: 1000
+                default: 50
             }
         },
         // Nouvelle section pour les paramètres de rendu de la caméra
@@ -450,7 +450,53 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-
+        environment: {
+            intensity: {
+                default: 1.0,
+                min: 0,
+                max: 2,
+                step: 0.01
+            },
+            rotationSpeed: {
+                default: 0.01,
+                min: 0,
+                max: 0.01,
+                step: 0.0001
+            },
+            transitionDuration: {
+                default: 3000, // millisecondes - transition plus longue pour un effet plus smooth
+                min: 500,
+                max: 10000,
+                step: 100
+            },
+            enableAutoTransition: {
+                default: true,
+                description: "Active les transitions automatiques basées sur la position de scroll"
+            },
+            timeline: {
+                dayStart: {
+                    default: 0.0,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance jour (0% du scroll)"
+                },
+                goddessStart: {
+                    default: 0.2,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance goddess - lumière orange (40% du scroll)"
+                },
+                nightStart: {
+                    default: 0.5,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance night (70% du scroll)"
+                }
+            }
+        },
         fog: {
             enabled: {
                 name: "Fog",
@@ -466,14 +512,14 @@ const guiConfig = {
                 max: 100,
                 step: 0.1,
                 name: "Fog Near",
-                default: 15
+                default: 200
             },
             far: {
                 min: 0,
                 max: 100,
                 step: 0.1,
                 name: "Fog Far",
-                default: 20
+                default: 100
             },
             transition: {
                 folder: "Fog Transition",
@@ -496,14 +542,14 @@ const guiConfig = {
                     max: 200,
                     step: 1,
                     name: "Initial Near",
-                    default: 50
+                    default: 30
                 },
                 initialFar: {
                     min: 30,
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 100
+                    default: 45
                 }
             }
         }
@@ -536,7 +582,7 @@ const guiConfig = {
                     '8192x8192': 8192,
                     '16384x16384': 16384
                 },
-                default: 2048
+                default: 1024
             },
             bias: {
                 name: "Shadow Bias",
