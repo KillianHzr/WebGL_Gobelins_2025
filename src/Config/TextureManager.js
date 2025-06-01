@@ -499,7 +499,7 @@ class TextureManager {
             roughness: 0.78,
             metalness: 0.71,
             envMapIntensity: 0.08,
-            color: '#47370b',
+            color: '#342909',
             useTextures: {
                 baseColor: false,
             }
@@ -519,7 +519,7 @@ class TextureManager {
             roughness: 0.81,
             metalness: 0.7,
             envMapIntensity: 0.08,
-            color: '#5F4611',
+            color: '#3c2d0b',
             normalScale: new Vector2(1.0, 1.0),
             useTextures: {
                 baseColor: false,
@@ -604,7 +604,7 @@ class TextureManager {
 
         this.addPlantTexture('BranchFig', 'forest/branch', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true, receivedShadow: true, color: '#65c153', useTextures: {
+            castShadow: true, receivedShadow: true, color: '#48a735', useTextures: {
                 // baseColor: false,
             }
         });
