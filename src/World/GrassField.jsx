@@ -64,9 +64,9 @@ const GrassField = ({
                         weightMapThreshold = 0.1,
                         weightMapSmoothing = 0.2,
                         // Nouveaux paramètres de couleur et saturation
-                        grassHue = 0.33, // 0.0-1.0 (0=rouge, 0.25=vert, 0.5=cyan, 0.75=violet)
+                        grassHue = 0.3, // 0.0-1.0 (0=rouge, 0.25=vert, 0.5=cyan, 0.75=violet)
                         grassSaturation = 1.0, // 0.0-1.0 (0=gris, 1=couleur pure)
-                        grassBrightness = 0.1, // 0.0-1.0 (0=noir, 1=blanc)
+                        grassBrightness = 1.0, // 0.0-1.0 (0=noir, 1=blanc)
                         colorVariation = 0.0 // 0.0-1.0 variation de couleur entre brins
                     }) => {
     const meshRef = useRef();
@@ -289,8 +289,8 @@ const GrassField = ({
             }
 
             void main() {
-                float contrast = 1.0;
-                float brightness = 0.1;
+                float contrast = 0.05;
+                float brightness = 0.01;
 
                 ${config.enableTextureTransitions ? `
                     vec3 startTexture = texture2D(uGrassTextures[0], vUv).rgb * contrast;
