@@ -9,45 +9,55 @@ export default function ForestSceneWrapper() {
     const assetCheckAttemptsRef = useRef(0);
     const alreadyCheckedRef = useRef(false);
     const maxRetryAttempts = 15;
-    const stabilityDelay = 1000; // Délai de stabilité en ms
+    const stabilityDelay = 1000;
 
     useEffect(() => {
-        // Réinitialiser le compteur de tentatives à chaque montage du composant
+        // Émettre immédiatement un événement pour indiquer le début du processus
+        EventBus.trigger('forest-loading-progress', {
+            phase: 'INITIALIZING',
+            phaseLabel: 'Initialisation du système forestier...',
+            phaseProgress: 0,
+            totalProgress: 0,
+            isComplete: false
+        });
+
         assetCheckAttemptsRef.current = 0;
 
-        // Liste des modèles requis pour la scène forestière - récupérée du gestionnaire de templates
         const requiredAssetsInfo = templateManager.getRequiredAssets();
         const requiredModels = requiredAssetsInfo.map(asset => asset.name);
 
-        // S'abonner à l'événement 'ready' de l'AssetManager
         const handleAssetsReady = () => {
             if (alreadyCheckedRef.current) return;
 
-            // console.log("ForestSceneWrapper :: Assets loaded, checking models...");
+            console.log("ForestSceneWrapper :: Assets loaded, checking models...");
             alreadyCheckedRef.current = true;
 
-                checkAssets();
+            // Émettre un événement de progression pour la vérification des modèles
+            EventBus.trigger('forest-loading-progress', {
+                phase: 'CHECKING_MODELS',
+                phaseLabel: 'Vérification des modèles 3D...',
+                phaseProgress: 0,
+                totalProgress: 2,
+                isComplete: false
+            });
+
+            checkAssets();
         };
 
-        // Fonction plus robuste pour vérifier si un modèle spécifique est réellement accessible
         const isModelReallyAvailable = (modelName) => {
             if (!window.assetManager) return false;
 
             try {
-                // Vérifier d'abord via getItem
                 if (typeof window.assetManager.getItem === 'function') {
                     const model = window.assetManager.getItem(modelName);
                     if (model) {
-                        // Pour un GLTF, vérifier que la scène est disponible
                         if (model.scene) {
                             return true;
                         }
-                        // Pour d'autres types de modèles/assets
                         return true;
                     }
                 }
 
-                // Vérifier directement dans items comme plant de secours
                 if (window.assetManager.items && window.assetManager.items[modelName]) {
                     return true;
                 }
@@ -59,56 +69,83 @@ export default function ForestSceneWrapper() {
             }
         };
 
-        // Vérifier tous les modèles requis
         const areAllRequiredModelsAvailable = () => {
-            // Vérifier si tous les modèles requis sont disponibles
             const availableModels = requiredModels.filter(isModelReallyAvailable);
-            // console.log(`ForestSceneWrapper :: Available models: ${availableModels.length}/${requiredModels.length} - ${availableModels.join(', ')}`);
-
             const missingModels = requiredModels.filter(model => !isModelReallyAvailable(model));
+
             if (missingModels.length > 0) {
-                // console.log(`ForestSceneWrapper :: Missing models: ${missingModels.join(', ')}`);
+                console.log(`ForestSceneWrapper :: Missing models: ${missingModels.join(', ')}`);
             }
+
+            // Émettre la progression de vérification des modèles
+            const progressPercent = (availableModels.length / requiredModels.length) * 100;
+            EventBus.trigger('forest-loading-progress', {
+                phase: 'CHECKING_MODELS',
+                phaseLabel: `Vérification modèles: ${availableModels.length}/${requiredModels.length}`,
+                phaseProgress: progressPercent,
+                totalProgress: 2 + (progressPercent * 0.03), // 3% max pour cette phase
+                isComplete: false
+            });
 
             return availableModels.length === requiredModels.length;
         };
 
-        // Déclarer une variable pour stocker l'ID du timeout de stabilité
         let stabilityTimeoutId;
 
         const checkAssets = () => {
-            // Incrémenter le compteur de tentatives
             assetCheckAttemptsRef.current += 1;
-            // console.log(`ForestSceneWrapper :: Checking assets (attempt ${assetCheckAttemptsRef.current}/${maxRetryAttempts})`);
+            console.log(`ForestSceneWrapper :: Checking assets (attempt ${assetCheckAttemptsRef.current}/${maxRetryAttempts})`);
 
-            EventBus.trigger('forest-scene-loading', { attempt: assetCheckAttemptsRef.current });
+            // Émettre la progression de la vérification
+            const attemptProgress = (assetCheckAttemptsRef.current / maxRetryAttempts) * 100;
+            EventBus.trigger('forest-loading-progress', {
+                phase: 'CHECKING_ASSETS',
+                phaseLabel: `Vérification assets (tentative ${assetCheckAttemptsRef.current}/${maxRetryAttempts})`,
+                phaseProgress: attemptProgress,
+                totalProgress: 3 + (attemptProgress * 0.02), // 2% max pour cette phase
+                isComplete: false
+            });
 
             try {
-                // Vérification de base: est-ce que l'AssetManager existe?
                 if (!window.assetManager) {
-                    // console.log("ForestSceneWrapper :: AssetManager not found");
+                    console.log("ForestSceneWrapper :: AssetManager not found");
                     if (assetCheckAttemptsRef.current < maxRetryAttempts) {
                         setIsRetrying(true);
-                        checkAssets
+                        setTimeout(checkAssets, 500);
                         return;
                     }
                 }
 
-                // Vérification plus précise: est-ce que tous les modèles requis sont disponibles?
                 if (areAllRequiredModelsAvailable()) {
-                    // console.log("ForestSceneWrapper :: All required models are available, waiting for stability...");
+                    console.log("ForestSceneWrapper :: All required models are available, waiting for stability...");
+
+                    // Émettre un événement de modèles disponibles
+                    EventBus.trigger('forest-loading-progress', {
+                        phase: 'MODELS_READY',
+                        phaseLabel: 'Modèles prêts, préparation de la scène...',
+                        phaseProgress: 100,
+                        totalProgress: 5,
+                        isComplete: false
+                    });
 
                     EventBus.trigger('forest-models-available', { status: 'ready' });
 
-                    // Annuler tout timeout de stabilité précédent
                     if (stabilityTimeoutId) {
                         clearTimeout(stabilityTimeoutId);
                     }
 
-                    // Attendre un délai de stabilité avant de rendre la scène
-                    // Cela donne le temps aux modèles d'être complètement initialisés
                     stabilityTimeoutId = setTimeout(() => {
-                        // console.log("ForestSceneWrapper :: Stability period complete, rendering scene");
+                        console.log("ForestSceneWrapper :: Stability period complete, rendering scene");
+
+                        // Émettre le début du rendu de la scène
+                        EventBus.trigger('forest-loading-progress', {
+                            phase: 'SCENE_RENDERING',
+                            phaseLabel: 'Démarrage du rendu forestier...',
+                            phaseProgress: 0,
+                            totalProgress: 5,
+                            isComplete: false
+                        });
+
                         EventBus.trigger('forest-scene-rendering');
                         setAssetsReady(true);
                         setIsRetrying(false);
@@ -117,7 +154,7 @@ export default function ForestSceneWrapper() {
                     return;
                 }
 
-                // console.log("ForestSceneWrapper :: Some models are not yet available, will retry...");
+                console.log("ForestSceneWrapper :: Some models are not yet available, will retry...");
 
                 if (assetCheckAttemptsRef.current < maxRetryAttempts) {
                     setIsRetrying(true);
@@ -125,25 +162,41 @@ export default function ForestSceneWrapper() {
                 } else {
                     console.error("ForestSceneWrapper :: Max retry attempts reached for models");
 
-                    // Vérifier combien de modèles sont disponibles
                     const availableModels = requiredModels.filter(isModelReallyAvailable);
                     const missingModels = requiredModels.filter(model => !isModelReallyAvailable(model));
 
-                    // console.log(`ForestSceneWrapper :: Final check: ${availableModels.length}/${requiredModels.length} models available`);
-                    // console.log(`ForestSceneWrapper :: Missing models: ${missingModels.join(', ')}`);
+                    console.log(`ForestSceneWrapper :: Final check: ${availableModels.length}/${requiredModels.length} models available`);
+                    console.log(`ForestSceneWrapper :: Missing models: ${missingModels.join(', ')}`);
 
-                    // Si au moins certains modèles sont disponibles, on peut essayer d'afficher la scène
-                    // Mais d'abord, attendons un peu plus longtemps pour donner une dernière chance
                     setTimeout(() => {
                         const finalAvailableModels = requiredModels.filter(isModelReallyAvailable);
                         if (finalAvailableModels.length > 0) {
-                            // console.log(`ForestSceneWrapper :: Final attempt with ${finalAvailableModels.length} models`);
+                            console.log(`ForestSceneWrapper :: Final attempt with ${finalAvailableModels.length} models`);
+
+                            // Émettre un événement de rendu avec modèles partiels
+                            EventBus.trigger('forest-loading-progress', {
+                                phase: 'PARTIAL_RENDERING',
+                                phaseLabel: `Rendu partiel (${finalAvailableModels.length} modèles)...`,
+                                phaseProgress: 0,
+                                totalProgress: 5,
+                                isComplete: false
+                            });
+
                             EventBus.trigger('forest-scene-rendering');
                             setAssetsReady(true);
                         } else {
                             console.error("ForestSceneWrapper :: No models available, cannot render scene");
+
+                            // Émettre un événement d'erreur
+                            EventBus.trigger('forest-loading-progress', {
+                                phase: 'ERROR',
+                                phaseLabel: 'Erreur: Aucun modèle disponible',
+                                phaseProgress: 0,
+                                totalProgress: 5,
+                                isComplete: false
+                            });
                         }
-                    }, 2000); // Attendre 2 secondes de plus pour une dernière vérification
+                    }, 2000);
                 }
             } catch (err) {
                 console.error("Error checking assets:", err);
@@ -151,11 +204,10 @@ export default function ForestSceneWrapper() {
                     setIsRetrying(true);
                     setTimeout(checkAssets, 500);
                 } else {
-                    // Dernier essai après un délai supplémentaire
                     setTimeout(() => {
                         try {
                             const finalCheck = areAllRequiredModelsAvailable();
-                            // console.log(`ForestSceneWrapper :: Emergency final check: ${finalCheck ? 'Success' : 'Failed'}`);
+                            console.log(`ForestSceneWrapper :: Emergency final check: ${finalCheck ? 'Success' : 'Failed'}`);
                             if (finalCheck) {
                                 EventBus.trigger('forest-scene-rendering');
                                 setAssetsReady(true);
@@ -168,10 +220,8 @@ export default function ForestSceneWrapper() {
             }
         };
 
-        // S'abonner à l'événement ready
         const unsubscribe = EventBus.on('ready', handleAssetsReady);
 
-        // Si l'assetManager est déjà prêt, vérifier directement mais avec un délai
         if (window.assetManager && window.assetManager.items) {
             alreadyCheckedRef.current = true;
             setTimeout(checkAssets, 500);
@@ -179,13 +229,12 @@ export default function ForestSceneWrapper() {
 
         return () => {
             unsubscribe();
-            // Nettoyer le timeout de stabilité si le composant est démonté
             if (stabilityTimeoutId) {
                 clearTimeout(stabilityTimeoutId);
             }
         };
     }, []);
 
-    // Assets prêts, afficher la scène forestière
-    return <ForestScene/>;
+    // Retourner la scène forestière seulement quand tout est prêt
+    return assetsReady ? <ForestScene/> : null;
 }

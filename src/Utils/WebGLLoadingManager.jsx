@@ -4,13 +4,7 @@ import useStore from '../Store/useStore';
 
 /**
  * WebGLLoadingManager - Système de loading robuste pour Three.js
- *
- * Surveillance directe de :
- * - THREE.LoadingManager global
- * - État du rendu WebGL
- * - Compilation des shaders
- * - Chargement des géométries et textures
- * - Initialisation complète de la scène
+ * VERSION AMÉLIORÉE avec suivi de la progression de la forêt
  */
 const WebGLLoadingManager = ({ onComplete }) => {
     const [progress, setProgress] = useState(0);
@@ -20,7 +14,8 @@ const WebGLLoadingManager = ({ onComplete }) => {
         textures: 0,
         geometries: 0,
         shaders: 0,
-        scene: 0
+        scene: 0,
+        forest: 0
     });
 
     const progressRef = useRef(0);
@@ -32,20 +27,79 @@ const WebGLLoadingManager = ({ onComplete }) => {
     const sceneObjectsCountRef = useRef(0);
     const lastProgressUpdate = useRef(Date.now());
 
-    // Phase de chargement avec pourcentages
-    const LOADING_PHASES = {
-        INITIALIZING: { min: 0, max: 10, label: 'Initialisation du moteur 3D...' },
-        LOADING_ASSETS: { min: 10, max: 20, label: 'Chargement des modèles 3D...' },
-        LOADING_TEXTURES: { min: 20, max: 30, label: 'Application des textures...' },
-        BUILDING_SCENE: { min: 40, max: 50, label: 'Construction de la scène...' },
-        COMPILING_SHADERS: { min: 50, max: 60, label: 'Compilation des shaders...' },
-        FINALIZING: { min: 60, max: 100, label: 'Finalisation du rendu...' }
+    // NOUVEAU: États pour la progression de la forêt
+    const forestProgressRef = useRef(0);
+    const [forestPhase, setForestPhase] = useState('En attente...');
+    const assetsProgressRef = useRef(0);
+
+    // NOUVEAU: Poids des différentes phases de chargement
+    const LOADING_WEIGHTS = {
+        ASSETS: 25,        // 25% pour les assets de base
+        WEBGL_INIT: 5,     // 5% pour l'initialisation WebGL
+        FOREST: 70         // 70% pour la création de la forêt (le plus lourd!)
     };
+
+    // Fonction pour calculer la progression globale
+    const calculateGlobalProgress = useCallback((assetsProgress, forestProgress) => {
+        const weightedAssetsProgress = (assetsProgress / 100) * LOADING_WEIGHTS.ASSETS;
+        const weightedWebGLProgress = (renderCheckCountRef.current >= 3 ? 1 : 0) * LOADING_WEIGHTS.WEBGL_INIT;
+        const weightedForestProgress = (forestProgress / 100) * LOADING_WEIGHTS.FOREST;
+
+        const totalProgress = weightedAssetsProgress + weightedWebGLProgress + weightedForestProgress;
+
+        return Math.min(100, totalProgress);
+    }, []);
+
+    // Fonction pour terminer le chargement (sortie du scope attachToThreeLoadingManager)
+    const completeLoading = useCallback(() => {
+        if (isCompleteRef.current) return;
+
+        isCompleteRef.current = true;
+        setLoadingPhase('Chargement terminé!');
+        setProgress(100);
+        progressRef.current = 100;
+
+        setDetailedProgress({
+            assets: 100,
+            textures: 100,
+            geometries: 100,
+            shaders: 100,
+            scene: 100,
+            forest: 100
+        });
+
+        // Arrêter la surveillance
+        if (webglCheckIntervalRef.current) {
+            clearInterval(webglCheckIntervalRef.current);
+            webglCheckIntervalRef.current = null;
+        }
+
+        console.log('🎉 Chargement WebGL ET Forêt complètement terminé');
+
+        setTimeout(() => {
+            if (onComplete) onComplete();
+        }, 500);
+    }, [onComplete]);
+
+    // Fonction pour vérifier si le chargement est complet
+    const checkCompletionConditions = useCallback(() => {
+        const assetsComplete = assetsProgressRef.current >= 100;
+        const forestComplete = forestProgressRef.current >= 100;
+
+        console.log(`🔍 Vérification completion: Assets=${assetsComplete} (${assetsProgressRef.current}%), Forest=${forestComplete} (${forestProgressRef.current}%)`);
+
+        if (assetsComplete && forestComplete && !isCompleteRef.current) {
+            console.log('✅ Toutes les conditions de completion sont remplies!');
+            completeLoading();
+            return true;
+        }
+
+        return false;
+    }, [completeLoading]);
 
     // Fonction pour détecter si WebGL est prêt et rendu
     const checkWebGLRenderState = useCallback(() => {
         try {
-            // Vérifier si le renderer existe et est actif
             if (!window.renderer) return false;
 
             const renderer = window.renderer;
@@ -53,7 +107,6 @@ const WebGLLoadingManager = ({ onComplete }) => {
 
             if (!gl) return false;
 
-            // Vérifier l'état WebGL
             const webglState = {
                 contextLost: gl.isContextLost(),
                 framebufferComplete: gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE,
@@ -61,31 +114,25 @@ const WebGLLoadingManager = ({ onComplete }) => {
                 hasPrograms: renderer.info.programs?.length > 0
             };
 
-            // Vérifier si des objets sont rendus
             const renderInfo = renderer.info.render;
             const hasActiveRender = renderInfo.calls > 0 && renderInfo.triangles > 0;
 
-            // Vérifier la scène
             const scene = window.scene;
             const hasSceneContent = scene && scene.children.length > 0;
 
-            // Compter les objets de la scène de manière récursive
             let totalObjects = 0;
             if (scene) {
                 scene.traverse(() => totalObjects++);
             }
 
-            // La scène est considérée comme prête si :
             const isReady = !webglState.contextLost &&
-                           webglState.framebufferComplete &&
-                           hasActiveRender &&
-                           hasSceneContent &&
-                           totalObjects > 50; // Seuil minimum d'objets dans la scène
+                webglState.framebufferComplete &&
+                hasActiveRender &&
+                hasSceneContent &&
+                totalObjects > 50;
 
             if (isReady) {
                 renderCheckCountRef.current++;
-
-                // Exiger plusieurs frames de rendu stable avant de considérer comme terminé
                 if (renderCheckCountRef.current >= 3) {
                     return true;
                 }
@@ -93,10 +140,9 @@ const WebGLLoadingManager = ({ onComplete }) => {
                 renderCheckCountRef.current = 0;
             }
 
-            // Mettre à jour les statistiques détaillées
             setDetailedProgress(prev => ({
                 ...prev,
-                scene: Math.min(100, (totalObjects / 100) * 100), // Estimé sur 100 objets minimum
+                scene: Math.min(100, (totalObjects / 100) * 100),
                 shaders: Math.min(100, ((renderer.info.programs?.length || 0) / 10) * 100)
             }));
 
@@ -108,17 +154,76 @@ const WebGLLoadingManager = ({ onComplete }) => {
         }
     }, []);
 
+    // NOUVEAU: Écouteur pour la progression de la forêt
+    useEffect(() => {
+        const handleForestProgress = (data) => {
+            console.log(`🌲 WebGLLoadingManager reçoit progression forêt: ${data.totalProgress.toFixed(1)}%`);
+
+            forestProgressRef.current = data.totalProgress;
+            setForestPhase(data.phaseLabel);
+
+            setDetailedProgress(prev => ({
+                ...prev,
+                forest: data.totalProgress
+            }));
+
+            // Recalculer la progression globale
+            const globalProgress = calculateGlobalProgress(
+                assetsProgressRef.current,
+                data.totalProgress
+            );
+
+            setProgress(globalProgress);
+            progressRef.current = globalProgress;
+
+            // Mettre à jour la phase affichée si on est dans la phase forêt
+            if (data.totalProgress > 0) {
+                setLoadingPhase(data.phaseLabel);
+            }
+
+            // Vérifier les conditions de completion
+            if (data.totalProgress >= 100) {
+                console.log('🌲 Forêt à 100%, vérification des conditions de completion...');
+                checkCompletionConditions();
+            }
+        };
+
+        const handleForestReady = () => {
+            console.log('🌲 Événement forest-ready reçu!');
+            forestProgressRef.current = 100;
+
+            setDetailedProgress(prev => ({
+                ...prev,
+                forest: 100
+            }));
+
+            // Recalculer la progression finale
+            const finalProgress = calculateGlobalProgress(assetsProgressRef.current, 100);
+            setProgress(finalProgress);
+            progressRef.current = finalProgress;
+
+            // Forcer la completion immédiatement
+            console.log('🌲 Forest-ready: Forçage immédiat de la completion');
+            completeLoading();
+        };
+
+        const forestProgressCleanup = EventBus.on('forest-loading-progress', handleForestProgress);
+        const forestReadyCleanup = EventBus.on('forest-ready', handleForestReady);
+
+        return () => {
+            forestProgressCleanup();
+            forestReadyCleanup();
+        };
+    }, [calculateGlobalProgress, completeLoading, checkCompletionConditions]);
+
     // Surveillance avancée du THREE.LoadingManager
     useEffect(() => {
         let threeLoadingManager = null;
 
-        // Fonction pour s'attacher au LoadingManager de Three.js
         const attachToThreeLoadingManager = async () => {
-            // Essayer de récupérer le LoadingManager depuis l'AssetManager
             if (window.assetManager && window.assetManager.loadingManager) {
                 threeLoadingManager = window.assetManager.loadingManager;
             } else {
-                // Créer un LoadingManager global si nécessaire
                 const {LoadingManager} = await import('three');
                 threeLoadingManager = new LoadingManager();
                 window.globalLoadingManager = threeLoadingManager;
@@ -126,39 +231,35 @@ const WebGLLoadingManager = ({ onComplete }) => {
 
             loadingManagerRef.current = threeLoadingManager;
 
-            // Configuration des callbacks du LoadingManager
             threeLoadingManager.onStart = (url, itemsLoaded, itemsTotal) => {
-                console.log(`Début du chargement: ${itemsLoaded}/${itemsTotal} (${url})`);
-                setLoadingPhase(LOADING_PHASES.LOADING_ASSETS.label);
-
-                const assetProgress = Math.min(40, (itemsLoaded / itemsTotal) * 30 + 10);
-                updateProgress(assetProgress);
+                console.log(`Début du chargement assets: ${itemsLoaded}/${itemsTotal} (${url})`);
+                setLoadingPhase('Chargement des assets 3D...');
             };
 
             threeLoadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
-                console.log(`Progression: ${itemsLoaded}/${itemsTotal} - ${url}`);
-
-                // Calculer la progression des assets (10-40%)
-                const assetProgress = Math.min(40, (itemsLoaded / itemsTotal) * 30 + 10);
-                updateProgress(assetProgress);
+                const assetProgress = (itemsLoaded / itemsTotal) * 100;
+                assetsProgressRef.current = assetProgress;
 
                 setDetailedProgress(prev => ({
                     ...prev,
-                    assets: (itemsLoaded / itemsTotal) * 100
+                    assets: assetProgress
                 }));
 
-                // Déterminer le type de resource pour ajuster la phase
+                // Recalculer la progression globale
+                const globalProgress = calculateGlobalProgress(assetProgress, forestProgressRef.current);
+                setProgress(globalProgress);
+                progressRef.current = globalProgress;
+
                 if (url.includes('.jpg') || url.includes('.png') || url.includes('.webp')) {
-                    setLoadingPhase(LOADING_PHASES.LOADING_TEXTURES.label);
+                    setLoadingPhase('Chargement des textures...');
                 } else if (url.includes('.glb') || url.includes('.gltf')) {
-                    setLoadingPhase(LOADING_PHASES.LOADING_ASSETS.label);
+                    setLoadingPhase('Chargement des modèles 3D...');
                 }
             };
 
             threeLoadingManager.onLoad = () => {
                 console.log('THREE.LoadingManager: Tous les assets sont chargés');
-                setLoadingPhase(LOADING_PHASES.BUILDING_SCENE.label);
-                updateProgress(60);
+                assetsProgressRef.current = 100;
 
                 setDetailedProgress(prev => ({
                     ...prev,
@@ -166,8 +267,16 @@ const WebGLLoadingManager = ({ onComplete }) => {
                     textures: 100
                 }));
 
-                // Commencer la surveillance WebGL après le chargement des assets
-                startWebGLMonitoring();
+                // Recalculer avec assets complets
+                const globalProgress = calculateGlobalProgress(100, forestProgressRef.current);
+                setProgress(globalProgress);
+                progressRef.current = globalProgress;
+
+                setLoadingPhase('Assets chargés, préparation de la scène...');
+
+                // Vérifier les conditions de completion
+                console.log('📦 Assets à 100%, vérification des conditions de completion...');
+                checkCompletionConditions();
             };
 
             threeLoadingManager.onError = (url) => {
@@ -175,57 +284,9 @@ const WebGLLoadingManager = ({ onComplete }) => {
             };
         };
 
-        // Fonction pour démarrer la surveillance WebGL
-        const startWebGLMonitoring = () => {
-            setLoadingPhase(LOADING_PHASES.COMPILING_SHADERS.label);
-            updateProgress(80);
-
-            webglCheckIntervalRef.current = setInterval(() => {
-                const isWebGLReady = checkWebGLRenderState();
-
-                if (isWebGLReady && !isCompleteRef.current) {
-                    completeLoading();
-                } else {
-                    // Augmenter progressivement le pourcentage pendant la vérification
-                    const currentProgress = progressRef.current;
-                    if (currentProgress < 95) {
-                        updateProgress(Math.min(95, currentProgress + 0.5));
-                    }
-                }
-            }, 100); // Vérifier toutes les 100ms
-        };
-
         // Fonction pour terminer le chargement
-        const completeLoading = () => {
-            if (isCompleteRef.current) return;
+        // SUPPRIMÉ - maintenant défini au niveau supérieur
 
-            isCompleteRef.current = true;
-            setLoadingPhase('Chargement terminé');
-            updateProgress(100);
-
-            setDetailedProgress({
-                assets: 100,
-                textures: 100,
-                geometries: 100,
-                shaders: 100,
-                scene: 100
-            });
-
-            // Arrêter la surveillance
-            if (webglCheckIntervalRef.current) {
-                clearInterval(webglCheckIntervalRef.current);
-                webglCheckIntervalRef.current = null;
-            }
-
-            console.log('🎉 Chargement WebGL complètement terminé');
-
-            // Délai pour s'assurer que tout est stable
-            setTimeout(() => {
-                if (onComplete) onComplete();
-            }, 500);
-        };
-
-        // Fonction pour mettre à jour le progrès de manière lissée
         const updateProgress = (newProgress) => {
             const clampedProgress = Math.max(progressRef.current, Math.min(100, newProgress));
             progressRef.current = clampedProgress;
@@ -233,13 +294,11 @@ const WebGLLoadingManager = ({ onComplete }) => {
             lastProgressUpdate.current = Date.now();
         };
 
-        // Initialiser le système
         const initializeLoading = async () => {
             try {
-                setLoadingPhase(LOADING_PHASES.INITIALIZING.label);
-                updateProgress(5);
+                setLoadingPhase('Ajustement des jumelles...');
+                updateProgress(2);
 
-                // Attendre que l'AssetManager soit disponible
                 const waitForAssetManager = () => {
                     return new Promise((resolve) => {
                         const checkAssetManager = () => {
@@ -256,38 +315,33 @@ const WebGLLoadingManager = ({ onComplete }) => {
                 await waitForAssetManager();
                 await attachToThreeLoadingManager();
 
-                // Si aucun asset à charger, passer directement à la surveillance WebGL
+                // Passer à la phase suivante seulement si aucun asset à charger
                 setTimeout(() => {
-                    if (progressRef.current < 20) {
-                        console.log('Aucun asset détecté, passage à la surveillance WebGL');
-                        startWebGLMonitoring();
+                    if (progressRef.current < 10) {
+                        console.log('Aucun asset détecté, attente de la forêt...');
+                        setLoadingPhase('En attente de la scène forestière...');
                     }
                 }, 2000);
 
             } catch (error) {
                 console.error('Erreur lors de l\'initialisation du loading:', error);
-                // En cas d'erreur, essayer de terminer quand même
                 setTimeout(completeLoading, 5000);
             }
         };
 
         initializeLoading();
 
-        // Écouteurs d'événements de backup pour s'assurer qu'on ne rate rien
+        // Écouteurs d'événements de backup
         const handleBackupEvents = () => {
-            // Événements de l'ancien système pour compatibilité
             const cleanups = [
-                EventBus.on('forest-ready', () => {
-                    console.log('Événement forest-ready reçu');
-                    if (progressRef.current < 85) updateProgress(85);
-                }),
-                EventBus.on('forest-scene-ready', () => {
-                    console.log('Événement forest-scene-ready reçu');
-                    if (progressRef.current < 90) updateProgress(90);
-                }),
                 EventBus.on('assets-ready', () => {
                     console.log('Événement assets-ready reçu');
-                    if (progressRef.current < 60) updateProgress(60);
+                    assetsProgressRef.current = 100;
+                    if (progressRef.current < 30) {
+                        const globalProgress = calculateGlobalProgress(100, forestProgressRef.current);
+                        updateProgress(globalProgress);
+                    }
+                    checkCompletionConditions();
                 })
             ];
 
@@ -296,15 +350,18 @@ const WebGLLoadingManager = ({ onComplete }) => {
 
         const backupCleanup = handleBackupEvents();
 
-        // Timeout de sécurité pour éviter un chargement infini
+        // Timeout de sécurité réduit avec logs détaillés
         const safetyTimeout = setTimeout(() => {
             if (!isCompleteRef.current) {
-                console.warn('Timeout de sécurité atteint, forçage de la completion du loading');
+                console.warn('⏰ Timeout de sécurité atteint, état actuel:');
+                console.warn(`📦 Assets: ${assetsProgressRef.current}%`);
+                console.warn(`🌲 Forêt: ${forestProgressRef.current}%`);
+                console.warn(`🎯 Progression globale: ${progressRef.current}%`);
+                console.warn('🔧 Forçage de la completion du loading');
                 completeLoading();
             }
-        }, 30000); // 30 secondes max
+        }, 45000); // Réduit à 45 secondes
 
-        // Nettoyage
         return () => {
             if (webglCheckIntervalRef.current) {
                 clearInterval(webglCheckIntervalRef.current);
@@ -313,30 +370,33 @@ const WebGLLoadingManager = ({ onComplete }) => {
             backupCleanup();
             isCompleteRef.current = false;
         };
-    }, [onComplete, checkWebGLRenderState]);
+    }, [onComplete, checkWebGLRenderState, calculateGlobalProgress, completeLoading, checkCompletionConditions]);
 
     // Interface de progression détaillée pour le debug
     const getDetailedStatus = () => {
         return {
             phase: loadingPhase,
+            forestPhase: forestPhase,
             progress: progress,
             webglReady: checkWebGLRenderState(),
             renderCalls: window.renderer?.info?.render?.calls || 0,
             triangles: window.renderer?.info?.render?.triangles || 0,
             sceneObjects: sceneObjectsCountRef.current,
             shaders: window.renderer?.info?.programs?.length || 0,
-            detailed: detailedProgress
+            detailed: detailedProgress,
+            weights: LOADING_WEIGHTS
         };
     };
 
     // Exposer l'état pour le debug
     useEffect(() => {
         window.loadingStatus = getDetailedStatus;
-    }, [progress, loadingPhase, detailedProgress]);
+    }, [progress, loadingPhase, forestPhase, detailedProgress]);
 
     return {
         progress,
         phase: loadingPhase,
+        forestPhase: forestPhase,
         detailed: detailedProgress,
         isComplete: isCompleteRef.current
     };
