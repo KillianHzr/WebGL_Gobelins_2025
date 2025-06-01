@@ -21,6 +21,70 @@ const LOADING_CONFIG = {
 };
 // ----------------------------------------------------------------------
 
+const FOREST_LOADING_PHASES = {
+    WAITING_CAMERA: { weight: 5, label: 'Ajustement des jumelles...' },
+    LOADING_POSITIONS: { weight: 10, label: 'Cartographie de la zone...' },
+    LOADING_MODELS: { weight: 15, label: 'Identification de la faune...' },
+    PREPARING_QUEUE: { weight: 5, label: 'Préparation de l\'équipement...' },
+    CREATING_INSTANCES: { weight: 50, label: 'Localisation du vison...' },
+    APPLYING_TEXTURES: { weight: 10, label: 'Écoute de la radio...' },
+    FINALIZING: { weight: 5, label: 'Réveil...' }
+};
+
+// Calculer le poids total
+const TOTAL_WEIGHT = Object.values(FOREST_LOADING_PHASES).reduce((sum, phase) => sum + phase.weight, 0);
+
+// Fonction utilitaire pour émettre la progression - VERSION CORRIGÉE
+const emitForestProgress = (phase, progressInPhase = 0) => {
+    try {
+        // Calculer la progression jusqu'à cette phase
+        let progressBefore = 0;
+        const phaseKeys = Object.keys(FOREST_LOADING_PHASES);
+        const currentPhaseIndex = phaseKeys.findIndex(key => key === phase);
+
+        for (let i = 0; i < currentPhaseIndex; i++) {
+            progressBefore += FOREST_LOADING_PHASES[phaseKeys[i]].weight;
+        }
+
+        // Ajouter la progression dans la phase actuelle
+        const currentPhaseWeight = FOREST_LOADING_PHASES[phase].weight;
+        const currentPhaseProgress = progressInPhase * currentPhaseWeight;
+
+        // Calculer le pourcentage total
+        const totalProgress = (progressBefore + currentPhaseProgress) / TOTAL_WEIGHT * 100;
+
+        console.log(`🌲 Forest Loading: ${FOREST_LOADING_PHASES[phase].label} (${totalProgress.toFixed(1)}%)`);
+
+        const eventData = {
+            phase: phase,
+            phaseLabel: FOREST_LOADING_PHASES[phase].label,
+            phaseProgress: progressInPhase * 100,
+            totalProgress: Math.min(100, totalProgress), // S'assurer qu'on ne dépasse pas 100%
+            isComplete: totalProgress >= 100
+        };
+
+        // Émettre l'événement avec gestion d'erreur
+        if (typeof EventBus !== 'undefined' && EventBus.trigger) {
+            EventBus.trigger('forest-loading-progress', eventData);
+        } else {
+            console.warn('EventBus non disponible pour émettre forest-loading-progress');
+        }
+
+        // Si on atteint 100%, émettre aussi forest-ready après un court délai
+        if (totalProgress >= 100) {
+            setTimeout(() => {
+                console.log('🌲 Émission de forest-ready depuis emitForestProgress');
+                if (typeof EventBus !== 'undefined' && EventBus.trigger) {
+                    EventBus.trigger('forest-ready', eventData);
+                }
+            }, 100);
+        }
+
+    } catch (error) {
+        console.error('Erreur lors de l\'émission de la progression de la forêt:', error);
+    }
+};
+
 // Improved geometry cache with better memory management
 const GeometryCache = {
     cache: new Map(), materials: new Map(), pendingMaterials: new Map(), // Nouveau: pour gérer les matériaux en cours de chargement
@@ -230,6 +294,7 @@ export default function Forest() {
         cameraStabilityTimerRef.current = setTimeout(() => {
             console.log("Camera is now stable - ready to load forest");
             setCameraStable(true);
+            emitForestProgress('WAITING_CAMERA', 1.0);
         }, 2000);
     };
 
@@ -381,6 +446,7 @@ export default function Forest() {
     const initForestLoading = async () => {
         try {
             console.log("Starting forest loading process...");
+            emitForestProgress('LOADING_POSITIONS', 0);
 
             // 1. Load positions first
             const positions = await loadObjectPositions();
@@ -390,19 +456,25 @@ export default function Forest() {
             }
             objectPositionsRef.current = positions;
             useStore.getState().setTreePositions(positions);
+            emitForestProgress('LOADING_POSITIONS', 1.0);
 
-            // 2. Load necessary models (optimized with Promise.all)
+            // 2. Load necessary models
+            emitForestProgress('LOADING_MODELS', 0);
             const models = await loadObjectModelsOptimized();
             if (!models) {
                 console.error('Failed to load tree models');
                 return;
             }
             objectModelsRef.current = models;
+            emitForestProgress('LOADING_MODELS', 1.0);
 
-            // 3. Prepare priority loading queue - now with type grouping
+            // 3. Prepare priority loading queue
+            emitForestProgress('PREPARING_QUEUE', 0);
             prepareLoadingQueue(positions);
+            emitForestProgress('PREPARING_QUEUE', 1.0);
 
             // 4. Start progressive loading
+            emitForestProgress('CREATING_INSTANCES', 0);
             startProgressiveLoading();
 
             // 5. Start LOD update loop
@@ -599,6 +671,8 @@ export default function Forest() {
 
     const processNextBatch = async () => {
         const queue = loadingQueueRef.current;
+        const totalChunks = loadedChunksRef.current.size + queue.length;
+        const processedChunks = loadedChunksRef.current.size;
 
         if (queue.length === 0) {
             isLoadingRef.current = false;
@@ -606,21 +680,50 @@ export default function Forest() {
 
             console.log('🌲 Forest loading complete!');
 
-            // CORRECTION : Application SÉLECTIVE + NETTOYAGE de l'émission
+            // Finalisation
+            emitForestProgress('APPLYING_TEXTURES', 0);
+
             setTimeout(() => {
                 console.log("🔥 Application sélective de l'émission + nettoyage...");
 
                 const result = forceEmissionOnlyOnEmissionObjects();
-                console.log(`✅ Émission terminée: ${result.applied} objets 'Emission' activés, ${result.cleaned} objets normaux nettoyés`);
+                console.log(`✅ Émission terminée: ${result.applied} objets 'Emission' activés`);
 
+                emitForestProgress('APPLYING_TEXTURES', 1.0);
+                emitForestProgress('FINALIZING', 0.5);
+
+                // CRITIQUE: S'assurer d'émettre forest-ready
+                setTimeout(() => {
+                    emitForestProgress('FINALIZING', 1.0); // Ceci va automatiquement émettre forest-ready
+
+                    // Sécurité: émettre forest-ready explicitement aussi
+                    setTimeout(() => {
+                        console.log('🌲 Émission explicite de forest-ready en sécurité');
+                        try {
+                            EventBus.trigger('forest-ready', {
+                                phase: 'FINALIZING',
+                                phaseLabel: 'Forêt complètement chargée!',
+                                phaseProgress: 100,
+                                totalProgress: 100,
+                                isComplete: true
+                            });
+                            objectsLoadedRef.current = true;
+                        } catch (error) {
+                            console.error('Erreur lors de l\'émission de forest-ready:', error);
+                        }
+                    }, 200);
+
+                }, 300);
 
             }, 1000);
 
-            // Déclencher l'événement de fin de chargement
-            EventBus.trigger('forest-ready');
-            objectsLoadedRef.current = true;
-
             return;
+        }
+
+        // Calculer et émettre la progression de création d'instances
+        if (totalChunks > 0) {
+            const progressInPhase = processedChunks / totalChunks;
+            emitForestProgress('CREATING_INSTANCES', Math.min(0.95, progressInPhase)); // Cap à 95% pour laisser place à la finalisation
         }
 
         // Take a batch of chunks to process
@@ -632,22 +735,7 @@ export default function Forest() {
             Object.keys(chunk.objects).forEach(type => objectTypes.add(type));
         });
 
-        // CORRECTION: Préchargement spécial pour Screen
         const preloadedTextures = await preloadTexturesForModels(Array.from(objectTypes));
-
-        // Vérification spéciale pour Screen
-        if (objectTypes.has('Screen') && !preloadedTextures['Screen']) {
-            console.warn('Problème de préchargement des textures Screen, tentative de correction...');
-            try {
-                const screenTextures = await textureManager.preloadTexturesForModel('Screen');
-                if (screenTextures) {
-                    preloadedTextures['Screen'] = screenTextures;
-                    console.log('Textures Screen récupérées avec succès');
-                }
-            } catch (error) {
-                console.error('Échec de la récupération des textures Screen:', error);
-            }
-        }
 
         // Process each chunk in batch in parallel
         await Promise.all(batch.map(chunk => createChunkInstances(chunk, preloadedTextures)));

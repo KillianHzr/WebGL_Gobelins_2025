@@ -4,8 +4,7 @@ import DesktopLanding from './DesktopLanding';
 import useStore from '../Store/useStore';
 
 /**
- * LoadingScreen component - Version améliorée avec WebGLLoadingManager
- * Affiche une barre de progression fiable et des transitions fluides
+ * LoadingScreen component - Version améliorée avec progression détaillée de la forêt
  */
 const LoadingScreen = ({ onComplete }) => {
     const { debug } = useStore();
@@ -16,18 +15,8 @@ const LoadingScreen = ({ onComplete }) => {
     const [blackScreenTransition, setBlackScreenTransition] = useState(false);
     const [displayProgress, setDisplayProgress] = useState(0);
     const [currentPhase, setCurrentPhase] = useState('Initialisation...');
+    const [forestPhase, setForestPhase] = useState('');
     const animationFrameRef = useRef(null);
-
-    // Messages de chargement selon la phase
-    const getPhaseMessage = (phase, progress) => {
-        if (progress < 10) return "Initialisation du moteur 3D...";
-        if (progress < 40) return "Chargement des modèles 3D...";
-        if (progress < 60) return "Application des textures...";
-        if (progress < 80) return "Construction de la scène...";
-        if (progress < 90) return "Compilation des shaders...";
-        if (progress < 100) return "Finalisation du rendu...";
-        return "Localisation du vison...";
-    };
 
     // Si on doit sauter l'intro, on appelle onComplete immédiatement
     useEffect(() => {
@@ -53,6 +42,7 @@ const LoadingScreen = ({ onComplete }) => {
 
         setDisplayProgress(100);
         setCurrentPhase("Chargement terminé");
+        setForestPhase("Forêt complètement chargée!");
         setLoadingFadeOut(true);
 
         setTimeout(() => {
@@ -70,8 +60,8 @@ const LoadingScreen = ({ onComplete }) => {
         }, 400);
     }, [onComplete]);
 
-    // Utiliser le nouveau WebGLLoadingManager
-    const { progress, phase, detailed, isComplete } = WebGLLoadingManager({
+    // Utiliser le nouveau WebGLLoadingManager avec progression forestière
+    const { progress, phase, forestPhase: currentForestPhase, detailed, isComplete } = WebGLLoadingManager({
         onComplete: handleLoadingComplete
     });
 
@@ -102,24 +92,52 @@ const LoadingScreen = ({ onComplete }) => {
         };
     }, [progress, displayProgress]);
 
-    // Mettre à jour le message de phase
+    // Mettre à jour les phases affichées
     useEffect(() => {
-        const message = getPhaseMessage(phase, displayProgress);
-        setCurrentPhase(message);
-    }, [phase, displayProgress]);
+        setCurrentPhase(phase);
+    }, [phase]);
+
+    useEffect(() => {
+        if (currentForestPhase) {
+            setForestPhase(currentForestPhase);
+        }
+    }, [currentForestPhase]);
 
     // Debug logging
     useEffect(() => {
         if (debug?.active) {
             console.log(`Loading: ${Math.round(displayProgress)}% - ${currentPhase}`);
+            if (forestPhase) {
+                console.log(`Forest: ${forestPhase}`);
+            }
             if (detailed) {
                 console.log('Detailed progress:', detailed);
             }
         }
-    }, [displayProgress, currentPhase, detailed, debug]);
+    }, [displayProgress, currentPhase, forestPhase, detailed, debug]);
 
     // Format du pourcentage affiché
     const formattedPercentage = Math.round(displayProgress);
+
+    // Fonction pour déterminer le message principal à afficher
+    const getMainMessage = () => {
+        if (detailed && detailed.forest > 0) {
+            return forestPhase || currentPhase;
+        }
+        return currentPhase;
+    };
+
+    // Fonction pour déterminer le message secondaire
+    const getSecondaryMessage = () => {
+        if (detailed) {
+            if (detailed.forest > 0) {
+                return `Forêt: ${Math.round(detailed.forest)}% • Assets: ${Math.round(detailed.assets)}%`;
+            } else if (detailed.assets > 0) {
+                return `Chargement des modèles et textures...`;
+            }
+        }
+        return null;
+    };
 
     // Si on est en mode debug avec skipIntro, ne rien afficher
     if (debug?.skipIntro) {
@@ -136,7 +154,7 @@ const LoadingScreen = ({ onComplete }) => {
                 />
             )}
 
-            {/* Écran de chargement avec barre de progression WebGL */}
+            {/* Écran de chargement avec barre de progression améliorée */}
             {!loadingComplete && (
                 <div className={`loading-screen ${loadingFadeOut ? 'fade-out' : ''}`}>
                     <div className="loading-content">
@@ -152,7 +170,7 @@ const LoadingScreen = ({ onComplete }) => {
                         </div>
 
                         <div className="loading-percentage">
-                            {currentPhase}
+                            {getMainMessage()}
                         </div>
 
                         {/* Informations détaillées pour le debug */}
@@ -161,19 +179,32 @@ const LoadingScreen = ({ onComplete }) => {
                                 position: 'absolute',
                                 bottom: '20px',
                                 left: '20px',
-                                fontSize: '12px',
+                                fontSize: '11px',
                                 color: '#666',
-                                fontFamily: 'monospace'
+                                fontFamily: 'monospace',
+                                lineHeight: '1.4'
                             }}>
-                                <div>Assets: {Math.round(detailed.assets)}%</div>
-                                <div>Textures: {Math.round(detailed.textures)}%</div>
-                                <div>Scène: {Math.round(detailed.scene)}%</div>
-                                <div>Shaders: {Math.round(detailed.shaders)}%</div>
+                                <div><strong>Progression détaillée:</strong></div>
+                                <div>📦 Assets: {Math.round(detailed.assets)}%</div>
+                                <div>🌲 Forêt: {Math.round(detailed.forest)}%</div>
+                                <div>🎨 Textures: {Math.round(detailed.textures)}%</div>
+                                <div>🖥️  Scène: {Math.round(detailed.scene)}%</div>
+                                <div>⚡ Shaders: {Math.round(detailed.shaders)}%</div>
+
                                 {window.renderer && (
                                     <>
-                                        <div>Triangles: {window.renderer.info.render.triangles}</div>
-                                        <div>Draw calls: {window.renderer.info.render.calls}</div>
+                                        <div style={{ marginTop: '8px' }}>
+                                            <strong>Rendu:</strong>
+                                        </div>
+                                        <div>🔺 Triangles: {window.renderer.info.render.triangles.toLocaleString()}</div>
+                                        <div>📞 Draw calls: {window.renderer.info.render.calls}</div>
                                     </>
+                                )}
+
+                                {forestPhase && forestPhase !== currentPhase && (
+                                    <div style={{ marginTop: '8px', color: '#4a9' }}>
+                                        🌿 {forestPhase}
+                                    </div>
                                 )}
                             </div>
                         )}
