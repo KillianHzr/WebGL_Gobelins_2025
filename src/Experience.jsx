@@ -303,7 +303,7 @@ export default function Experience() {
             <Lights/>
 
             <Controls/>
-            {/*{debug && <MaterialControls/>}*/}
+            {debug && <MaterialControls/>}
             <PostProcessing/>
 
             <RayCaster>
