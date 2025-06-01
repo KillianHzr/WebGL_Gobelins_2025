@@ -117,6 +117,9 @@ export default function Lights() {
         shadowNormalBias: Number(guiConfig.renderer.shadowMap.normalBias.default)
     });
 
+    // Référence pour les updates debounced
+    const updateTimeoutRef = useRef(null);
+
     // Écouter l'initialisation de la caméra
     useEffect(() => {
         console.log('💡 Lights: Setting up camera initialization listener');
@@ -151,11 +154,13 @@ export default function Lights() {
         }, 8000); // 8 secondes maximum
 
         return () => {
-            cameraInitSubscription();
+            if (typeof cameraInitSubscription === 'function') {
+                cameraInitSubscription();
+            }
             clearTimeout(safetyTimeout);
             clearTimeout(immediateCheck);
         };
-    }, [cameraReady]);
+    }, [cameraReady, camera]);
 
     // Initialiser le système d'éclairage une fois que la caméra est prête
     useEffect(() => {
@@ -175,24 +180,52 @@ export default function Lights() {
         console.log('💡 Lights system initialized and ready');
     }, [cameraReady, lightsInitialized, activeMode]);
 
-    // Écouter l'événement de position normalisée de la timeline seulement si tout est initialisé
+    // ✅ CORRECTION: Écouter l'événement de position normalisée de la timeline avec priorité
     useEffect(() => {
         if (!lightsInitialized) return;
 
         const handleTimelinePositionUpdate = (data) => {
-            setNormalizedPosition(data.position);
+            if (!data || typeof data.position !== 'number') {
+                console.warn('💡 Lights: Données de position invalides:', data);
+                return;
+            }
+
+            // Debounce pour éviter les updates trop fréquents
+            if (updateTimeoutRef.current) {
+                clearTimeout(updateTimeoutRef.current);
+            }
+
+            updateTimeoutRef.current = setTimeout(() => {
+                setNormalizedPosition(data.position);
+            }, 5); // Délai de 5ms pour priorité 1 (après SkySphere)
         };
 
-        // S'abonner à l'événement
+        console.log('💡 Lights: Setting up priority timeline position listener');
         const subscription = EventBus.on('timeline-position-normalized', handleTimelinePositionUpdate);
 
-        console.log('💡 Lights: Listening for timeline position updates');
+        // Debug check en développement
+        if (process.env.NODE_ENV === 'development') {
+            setTimeout(() => {
+                const activeListeners = EventBus.getActiveListeners();
+                const timelineListeners = activeListeners.filter(([id]) =>
+                    id.includes('timeline-position-normalized')
+                );
+                if (timelineListeners.length > 2) {
+                    console.warn('⚠️ Lights: Trop de listeners timeline détectés!', timelineListeners.length);
+                }
+            }, 100);
+        }
 
-        // Nettoyage
         return () => {
-            subscription();
+            console.log('💡 Lights: Cleaning up timeline position listener');
+            if (updateTimeoutRef.current) {
+                clearTimeout(updateTimeoutRef.current);
+            }
+            if (typeof subscription === 'function') {
+                subscription();
+            }
         };
-    }, [lightsInitialized]);
+    }, [lightsInitialized]); // ✅ Seule dépendance nécessaire
 
     // Gérer le changement de mode nuit forcé
     useEffect(() => {
@@ -360,11 +393,25 @@ export default function Lights() {
         lightSettingsRef.current.needsUpdate = true;
     };
 
-    // Mettre à jour l'éclairage lorsque la position normalisée change
+    // ✅ CORRECTION: Mettre à jour l'éclairage lorsque la position normalisée change (avec debounce)
     useEffect(() => {
         if (!lightsInitialized) return;
-        updateLightingBasedOnPosition(normalizedPosition);
-    }, [normalizedPosition, lightsInitialized]);
+
+        // Debounce pour éviter les updates trop fréquents
+        if (updateTimeoutRef.current) {
+            clearTimeout(updateTimeoutRef.current);
+        }
+
+        updateTimeoutRef.current = setTimeout(() => {
+            updateLightingBasedOnPosition(normalizedPosition);
+        }, 16); // ~60fps
+
+        return () => {
+            if (updateTimeoutRef.current) {
+                clearTimeout(updateTimeoutRef.current);
+            }
+        };
+    }, [normalizedPosition, lightsInitialized]); // ✅ Dependencies claires
 
     // Lissage supplémentaire pour éviter les changements brusques
     const smoothedLightRef = useRef({
@@ -440,12 +487,13 @@ export default function Lights() {
     useEffect(() => {
         if (!debug?.active || !lightsInitialized) return;
 
+        console.log('💡 Lights: Setting up GUI event listeners');
         // console.log('Lights listening for GUI events');
 
         const subscriptions = [
             // Mode d'éclairage
             EventBus.on('lights-mode-changed', (data) => {
-                console.log('Lights mode changed:', data.mode);
+                console.log('💡 Lights mode changed:', data.mode);
                 if (data.mode === 'auto') {
                     setForcedNightMode(false);
                     // Reprendre le mode automatique basé sur la position
@@ -469,7 +517,7 @@ export default function Lights() {
             }),
 
             EventBus.on('lights-night-mode-forced', (data) => {
-                console.log('Night mode forced:', data.forced);
+                console.log('💡 Night mode forced:', data.forced);
                 setForcedNightMode(data.forced);
             }),
 
@@ -541,7 +589,7 @@ export default function Lights() {
 
             // Seuils de transition
             EventBus.on('lights-threshold-changed', (data) => {
-                console.log('Threshold changed:', data.threshold, data.value);
+                console.log('💡 Threshold changed:', data.threshold, data.value);
                 LightConfig.transitionThresholds[data.threshold] = data.value;
                 // Recalculer l'éclairage avec les nouveaux seuils
                 updateLightingBasedOnPosition(normalizedPosition);
@@ -582,7 +630,7 @@ export default function Lights() {
 
             // Presets
             EventBus.on('lights-preset-applied', (data) => {
-                console.log('Applying preset:', data.preset);
+                console.log('💡 Applying preset:', data.preset);
 
                 if (data.preset === 'day') {
                     const dayConfig = LightConfig.modes.day;
@@ -613,13 +661,14 @@ export default function Lights() {
         ];
 
         return () => {
+            console.log('💡 Lights: Cleaning up GUI event listeners');
             subscriptions.forEach(unsub => {
                 if (typeof unsub === 'function') {
                     unsub();
                 }
             });
         };
-    }, [debug, normalizedPosition, updateLightingBasedOnPosition, lightsInitialized]);
+    }, [debug, normalizedPosition, lightsInitialized]);
 
     // Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
     useEffect(() => {

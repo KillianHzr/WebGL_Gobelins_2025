@@ -450,7 +450,53 @@ const guiConfig = {
     },
     scene: {
         folder: "Scene",
-
+        environment: {
+            intensity: {
+                default: 1.0,
+                min: 0,
+                max: 2,
+                step: 0.01
+            },
+            rotationSpeed: {
+                default: 0.01,
+                min: 0,
+                max: 0.01,
+                step: 0.0001
+            },
+            transitionDuration: {
+                default: 3000, // millisecondes - transition plus longue pour un effet plus smooth
+                min: 500,
+                max: 10000,
+                step: 100
+            },
+            enableAutoTransition: {
+                default: true,
+                description: "Active les transitions automatiques basées sur la position de scroll"
+            },
+            timeline: {
+                dayStart: {
+                    default: 0.0,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance jour (0% du scroll)"
+                },
+                goddessStart: {
+                    default: 0.2,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance goddess - lumière orange (40% du scroll)"
+                },
+                nightStart: {
+                    default: 0.5,
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    description: "Position timeline où commence l'ambiance night (70% du scroll)"
+                }
+            }
+        },
         fog: {
             enabled: {
                 name: "Fog",
@@ -496,14 +542,14 @@ const guiConfig = {
                     max: 200,
                     step: 1,
                     name: "Initial Near",
-                    default: 33
+                    default: 30
                 },
                 initialFar: {
                     min: 30,
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 50
+                    default: 45
                 }
             }
         }
