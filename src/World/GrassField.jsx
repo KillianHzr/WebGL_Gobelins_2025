@@ -9,7 +9,7 @@ import { gsap } from 'gsap';
 // Configuration des niveaux de qualité
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 10000,
+        bladeCount: 1000000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
@@ -242,8 +242,8 @@ const GrassField = ({
 
                 ${config.enableWind ? `
                     float waveSize = 10.0;
-                    float tipDistance = 0.3;
-                    float centerDistance = 0.1;
+                    float tipDistance = 0.1;
+                    float centerDistance = 0.025;
 
                     if (color.x > 0.6) {
                         cpos.x += sin((iTime / 500.0) + (uv.x * waveSize)) * tipDistance;
@@ -284,7 +284,7 @@ const GrassField = ({
 
             // Fonction pour ajouter de la saturation à une couleur existante
             vec3 adjustSaturation(vec3 color, float saturation) {
-                float gray = dot(color, vec3(0.299, 0.587, 0.114));
+                float gray = dot(color, vec3(1.5, 1.5, 1.5));
                 return mix(vec3(gray), color, saturation);
             }
 
@@ -512,7 +512,7 @@ const GrassField = ({
     // Animation
     useFrame(() => {
         if (config.enableWind && config.animationQuality !== 'none') {
-            const elapsedTime = (Date.now() - startTime.current) * 0.6;
+            const elapsedTime = (Date.now() - startTime.current) * 0.3;
             timeUniform.current.value = elapsedTime;
         }
     });
