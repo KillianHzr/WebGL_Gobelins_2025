@@ -549,7 +549,7 @@ const guiConfig = {
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 45
+                    default: 50
                 }
             }
         }
