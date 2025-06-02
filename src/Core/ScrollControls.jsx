@@ -179,7 +179,7 @@ function CameraController({children}) {
 
                     camera.fov = glbCamera.fov || 24; // Valeur par défaut si pas de FOV
                     camera.near = glbCamera.near || 0.1;
-                    camera.far = glbCamera.far || 1000;
+                    camera.far = 55;
                     camera.aspect = glbCamera.aspect || camera.aspect;
                     camera.zoom = glbCamera.zoom || 1;
 

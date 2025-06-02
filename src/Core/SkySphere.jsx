@@ -351,7 +351,7 @@ const SkySphere = () => {
                 syncTimeout = setTimeout(() => {
                     clearInterval(syncInterval);
                     if (!isInitialized.current) {
-                        console.warn('🌌 SkySphere: Timeout de synchronisation');
+                        // console.warn('🌌 SkySphere: Timeout de synchronisation');
                         isInitialized.current = true;
                     }
                 }, 10000);

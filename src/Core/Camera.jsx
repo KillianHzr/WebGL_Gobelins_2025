@@ -57,7 +57,7 @@ export default function Camera() {
                 // Appliquer les paramètres de base de la caméra
                 camera.fov = 24; // Valeur par défaut raisonnable
                 camera.near = 0.1;
-                camera.far = 1000;
+                camera.far = 55;
                 camera.updateProjectionMatrix();
 
                 notifyCameraInitialized();
@@ -122,7 +122,7 @@ export default function Camera() {
         });
 
         if (camera.far !== guiConfig.camera.settings.far.default) {
-            camera.far = guiConfig.camera.settings.far.default;
+            camera.far = 55;
             camera.updateProjectionMatrix();
         }
 
