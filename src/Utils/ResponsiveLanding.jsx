@@ -73,7 +73,7 @@ const ResponsiveLanding = () => {
                 </button>
 
                 <p className="responsive-landing-message">
-                    Pour une immersion complète, utilise un ordinateur.
+                    Pour une immersion complète, utilise un ordinateur
                 </p>
             </div>
 
