@@ -31,7 +31,7 @@ setInterval(cleanupCaches, 60000); // Toutes les minutes
 // Configuration des niveaux de qualité avec LOD dynamique et culling
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 3000000,
+        bladeCount: 1000000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
@@ -255,7 +255,7 @@ const createOptimizedBladeGeometry = (complex = false) => {
         const colors = new Float32Array([
             0.1, 0.2, 0.1,  // Dark green
             0.1, 0.2, 0.1,  // Dark green
-            0.7, 0.9, 0.7   // Light green
+            0.5, 0.7, 0.5   // Light green
         ]);
 
         geometry.setAttribute('position', new BufferAttribute(vertices, 3));
@@ -660,8 +660,10 @@ const GrassField = ({
                 // Early alpha test for LOD
                 if (vOpacity < 0.01) discard;
                 
-                const float contrast = 0.06;
-                const float brightness = 0.02;
+                
+                // VALOU
+                const float contrast = 0.05;
+                const float brightness = 0.01;
 
                 ${config.enableTextureTransitions ? `
                     vec3 tex1 = texture2D(uGrassTextures[0], vUv).rgb;
@@ -683,13 +685,16 @@ const GrassField = ({
                 float finalHue = uGrassHue + hueVar;
                 
                 float heightFactor = vColor.r;
+                
+                // VALOU
                 float satMult = 0.75 + heightFactor * 0.5;
                 float brightMult = uGrassBrightness * (0.4 + heightFactor * 0.6);
                 
                 vec3 grassHSV = vec3(finalHue, uGrassSaturation * satMult, brightMult);
                 vec3 grassRGB = hsv2rgb(grassHSV);
                 
-                vec3 finalColor = mix(blendedColor, blendedColor * grassRGB * 1.8, 0.85);
+                // VALOU
+                vec3 finalColor = mix(blendedColor, blendedColor * grassRGB * 0.8, 0.85);
                 
                 // Simple saturation boost
                 float lum = dot(finalColor, vec3(0.299, 0.587, 0.114));
