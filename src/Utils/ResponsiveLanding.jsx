@@ -61,12 +61,8 @@ const ResponsiveLanding = () => {
     return (
         <div className="responsive-landing">
             <div className="responsive-landing-content">
-                <div className="responsive-landing-school-logo">
-                    <img src="/images/Gobelins_Logo.svg" alt="School logo" />
-                </div>
-
                 <div className="responsive-landing-project-logo">
-                    <img src="/images/LeLayon_Logo.svg" alt="Project logo" />
+                    <img src="/images/Celia_Mobilelogo.svg" alt="Project logo" />
                 </div>
 
                 <button
@@ -77,7 +73,7 @@ const ResponsiveLanding = () => {
                 </button>
 
                 <p className="responsive-landing-message">
-                    Cette randonnée se parcourt sur Desktop
+                    Pour une immersion complète, utilise un ordinateur.
                 </p>
             </div>
 
