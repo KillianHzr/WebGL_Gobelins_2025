@@ -31,7 +31,7 @@ setInterval(cleanupCaches, 60000); // Toutes les minutes
 // Configuration des niveaux de qualité avec LOD dynamique et culling
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 1000000,
+        bladeCount: 3000000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
@@ -213,8 +213,8 @@ const createOptimizedBladeGeometry = (complex = false) => {
         return cached.geometry.clone();
     }
 
-    const BLADE_WIDTH = 0.04; // Légèrement réduit
-    const BLADE_HEIGHT = 0.18; // Légèrement réduit
+    const BLADE_WIDTH = 0.02; // Légèrement réduit
+    const BLADE_HEIGHT = 0.3; // Légèrement réduit
 
     const geometry = new BufferGeometry();
 
