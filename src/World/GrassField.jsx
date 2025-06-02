@@ -1,15 +1,20 @@
-// File: GrassField.jsx
+// File: GrassField.jsx - Version ULTRA-OPTIMISÉE avec Instancing + Caching
 
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
-import { TextureLoader, RepeatWrapping, ShaderMaterial, DoubleSide, Vector3, Color, BufferAttribute, BufferGeometry } from 'three';
+import { useLoader } from '@react-three/fiber';
+import { TextureLoader, RepeatWrapping, ShaderMaterial, DoubleSide, Vector3, Color, BufferAttribute, BufferGeometry, InstancedMesh, Matrix4, InstancedBufferAttribute, DataTexture, RGBAFormat, UnsignedByteType } from 'three';
 import { useGLTF } from '@react-three/drei';
 import { gsap } from 'gsap';
+import { useAnimationFrame, animationManager } from '../Utils/AnimationManager';
 
-// Configuration des niveaux de qualité
+// 🚀 NOUVEAU : Cache global pour les géométries
+const GEOMETRY_CACHE = new Map();
+const WEIGHTMAP_CACHE = new Map();
+
+// Configuration des niveaux de qualité avec instancing
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 1000000,
+        bladeCount: 100000, // 🚀 Augmenté grâce à l'instancing
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
@@ -17,10 +22,16 @@ const QUALITY_PRESETS = {
         enableSurfacePlacement: true,
         enableWeightMap: true,
         bladeComplexity: 5,
-        animationQuality: 'high'
+        animationQuality: 'low',
+        performanceMode: 'high',
+        animationThrottling: {
+            animation: 2,
+            physics: 4,
+            ui: 8
+        }
     },
     HIGH: {
-        bladeCount: 35000,
+        bladeCount: 80000, // 🚀 Augmenté
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
@@ -28,10 +39,17 @@ const QUALITY_PRESETS = {
         enableSurfacePlacement: true,
         enableWeightMap: true,
         bladeComplexity: 5,
-        animationQuality: 'medium'
+        animationQuality: 'medium',
+        performanceMode: 'high',
+        animationThrottling: {
+            wind: 1,
+            texture: 2,
+            physics: 2,
+            ui: 4
+        }
     },
     MEDIUM: {
-        bladeCount: 20000,
+        bladeCount: 50000, // 🚀 Augmenté
         enableWind: true,
         enableClouds: false,
         enableComplexGeometry: false,
@@ -39,10 +57,17 @@ const QUALITY_PRESETS = {
         enableSurfacePlacement: true,
         enableWeightMap: true,
         bladeComplexity: 3,
-        animationQuality: 'low'
+        animationQuality: 'low',
+        performanceMode: 'medium',
+        animationThrottling: {
+            wind: 2,
+            texture: 4,
+            physics: 3,
+            ui: 6
+        }
     },
     LOW: {
-        bladeCount: 8000,
+        bladeCount: 25000, // 🚀 Augmenté
         enableWind: false,
         enableClouds: false,
         enableComplexGeometry: false,
@@ -50,8 +75,124 @@ const QUALITY_PRESETS = {
         enableSurfacePlacement: false,
         enableWeightMap: false,
         bladeComplexity: 3,
-        animationQuality: 'none'
+        animationQuality: 'none',
+        performanceMode: 'low',
+        animationThrottling: {
+            wind: 1,
+            texture: 8,
+            physics: 6,
+            ui: 10
+        }
     }
+};
+
+// 🚀 NOUVEAU : Fonction pour créer une weightmap optimisée
+const createOptimizedWeightMap = async (texture, intensity, threshold, smoothing) => {
+    const cacheKey = `${texture.image.src}-${intensity}-${threshold}-${smoothing}`;
+
+    if (WEIGHTMAP_CACHE.has(cacheKey)) {
+        return WEIGHTMAP_CACHE.get(cacheKey);
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = texture.image;
+
+    // Utiliser une résolution optimisée (pas forcément full-res)
+    const targetSize = 1024; // Résolution optimale pour les performances
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+
+    ctx.drawImage(img, 0, 0, targetSize, targetSize);
+    const imageData = ctx.getImageData(0, 0, targetSize, targetSize);
+
+    // Pré-calculer les valeurs optimisées en Uint8Array pour de meilleures perfs
+    const optimizedData = new Uint8Array(targetSize * targetSize);
+
+    for (let i = 0; i < imageData.data.length; i += 4) {
+        const grayscale = imageData.data[i] / 255.0;
+        const inverted = 1.0 - grayscale;
+        const smoothed = Math.max(0, (inverted - threshold) / (1 - threshold));
+        const final = Math.min(1.0, Math.pow(smoothed, 1 / (smoothing + 0.1)) * intensity);
+
+        optimizedData[i / 4] = Math.round(final * 255);
+    }
+
+    const result = {
+        data: optimizedData,
+        width: targetSize,
+        height: targetSize
+    };
+
+    WEIGHTMAP_CACHE.set(cacheKey, result);
+    return result;
+};
+
+// 🚀 NOUVEAU : Fonction pour créer une géométrie de brin de base
+const createBaseBladeGeometry = (complex = false) => {
+    const BLADE_WIDTH = 0.05;
+    const BLADE_HEIGHT = 0.2;
+
+    const geometry = new BufferGeometry();
+
+    if (complex) {
+        // Géométrie complexe (5 vertices)
+        const vertices = new Float32Array([
+            -BLADE_WIDTH/2, 0, 0,     // Bottom left
+            BLADE_WIDTH/2, 0, 0,      // Bottom right
+            BLADE_WIDTH/4, BLADE_HEIGHT/2, 0,   // Mid right
+            -BLADE_WIDTH/4, BLADE_HEIGHT/2, 0,  // Mid left
+            0, BLADE_HEIGHT, 0         // Top center
+        ]);
+
+        const indices = [
+            0, 1, 2,  // Bottom triangle
+            2, 4, 3,  // Top triangle
+            3, 0, 2   // Left triangle
+        ];
+
+        const colors = new Float32Array([
+            0, 0, 0,  // Black (bottom)
+            0, 0, 0,  // Black (bottom)
+            0.5, 0.5, 0.5,  // Gray (mid)
+            0.5, 0.5, 0.5,  // Gray (mid)
+            1, 1, 1   // White (top)
+        ]);
+
+        geometry.setAttribute('position', new BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new BufferAttribute(colors, 3));
+        geometry.setIndex(indices);
+    } else {
+        // Géométrie simple (3 vertices)
+        const vertices = new Float32Array([
+            -BLADE_WIDTH/2, 0, 0,     // Bottom left
+            BLADE_WIDTH/2, 0, 0,      // Bottom right
+            0, BLADE_HEIGHT, 0        // Top center
+        ]);
+
+        const indices = [0, 1, 2];
+
+        const colors = new Float32Array([
+            0, 0, 0,  // Black
+            0, 0, 0,  // Black
+            1, 1, 1   // White
+        ]);
+
+        geometry.setAttribute('position', new BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new BufferAttribute(colors, 3));
+        geometry.setIndex(indices);
+    }
+
+    // UV mapping simple
+    const uvs = new Float32Array(geometry.attributes.position.count * 2);
+    for (let i = 0; i < uvs.length; i += 2) {
+        uvs[i] = Math.random();     // U
+        uvs[i + 1] = Math.random(); // V
+    }
+    geometry.setAttribute('uv', new BufferAttribute(uvs, 2));
+
+    geometry.computeVertexNormals();
+    return geometry;
 };
 
 const GrassField = ({
@@ -63,13 +204,15 @@ const GrassField = ({
                         weightMapIntensity = 1.0,
                         weightMapThreshold = 0.1,
                         weightMapSmoothing = 0.2,
-                        // Nouveaux paramètres de couleur et saturation
-                        grassHue = 0.3, // 0.0-1.0 (0=rouge, 0.25=vert, 0.5=cyan, 0.75=violet)
-                        grassSaturation = 1.0, // 0.0-1.0 (0=gris, 1=couleur pure)
-                        grassBrightness = 1.0, // 0.0-1.0 (0=noir, 1=blanc)
-                        colorVariation = 0.0 // 0.0-1.0 variation de couleur entre brins
+                        grassHue = 0.3,
+                        grassSaturation = 1.0,
+                        grassBrightness = 1.0,
+                        colorVariation = 0.0,
+                        enablePerformanceOptimization = true,
+                        customThrottling = {}
                     }) => {
-    const meshRef = useRef();
+    const instancedMeshRef = useRef();
+    const [isLoaded, setIsLoaded] = useState(false);
 
     // Merge preset avec config custom
     const config = useMemo(() => ({
@@ -77,11 +220,18 @@ const GrassField = ({
         ...customConfig
     }), [quality, customConfig]);
 
-    // Constants basées sur la config
+    // Configuration du système d'animation centralisé
+    useEffect(() => {
+        if (enablePerformanceOptimization) {
+            animationManager.setPerformanceMode(config.performanceMode);
+            const throttling = { ...config.animationThrottling, ...customThrottling };
+            Object.entries(throttling).forEach(([category, interval]) => {
+                animationManager.setThrottling(category, interval);
+            });
+        }
+    }, [quality, config.performanceMode, config.animationThrottling, customThrottling, enablePerformanceOptimization]);
+
     const BLADE_COUNT = config.bladeCount;
-    const BLADE_WIDTH = 0.05;
-    const BLADE_HEIGHT = 0.3;
-    const BLADE_HEIGHT_VARIATION = 0.1;
 
     // Chargement des textures
     const grassTextures = useLoader(TextureLoader, [
@@ -100,145 +250,68 @@ const GrassField = ({
         }
     }, [cloudTexture]);
 
+    // Uniforms optimisés
     const timeUniform = useRef({ type: 'f', value: 0.0 });
     const progress = useRef({ type: 'f', value: 0.0 });
     const startTime = useRef(Date.now());
     const previousGrassTextureIndex = useRef(0);
-    const weightMapCanvas = useRef(null);
-    const weightMapImageData = useRef(null);
 
-    // Échantillonnage de la weightMap
+    // 🚀 NOUVEAU : Weightmap optimisée
+    const optimizedWeightMap = useRef(null);
+
+    // Échantillonnage optimisé de la weightMap
     const sampleWeightMap = useCallback((u, v) => {
-        if (!config.enableWeightMap || !weightMapImageData.current) {
+        if (!config.enableWeightMap || !optimizedWeightMap.current) {
             return 1.0;
         }
 
-        const { width, height, data } = weightMapImageData.current;
+        const { data, width, height } = optimizedWeightMap.current;
         const x = Math.floor(u * width) % width;
         const y = Math.floor((1 - v) * height) % height;
 
-        const pixelIndex = (y * width + x) * 4;
-        const grayscaleValue = data[pixelIndex] / 255.0;
+        return data[y * width + x] / 255.0;
+    }, [config.enableWeightMap]);
 
-        // INVERSER : Noir = herbe maximale, Blanc = pas d'herbe
-        const invertedValue = 1.0 - grayscaleValue;
-        const smoothed = Math.max(0, (invertedValue - weightMapThreshold) / (1 - weightMapThreshold));
-        const finalValue = Math.pow(smoothed, 1 / (weightMapSmoothing + 0.1));
-
-        return Math.min(1.0, finalValue * weightMapIntensity);
-    }, [config.enableWeightMap, weightMapThreshold, weightMapSmoothing, weightMapIntensity]);
-
-    // Création du canvas pour lire les pixels de la weightMap
+    // Création de la weightmap optimisée
     useEffect(() => {
         if (!config.enableWeightMap || !weightMapTexture) return;
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        weightMapCanvas.current = canvas;
-
-        const img = weightMapTexture.image;
-        canvas.width = img.width;
-        canvas.height = img.height;
-
-        ctx.drawImage(img, 0, 0);
-        weightMapImageData.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        console.log('✅ WeightMap chargée:', canvas.width, 'x', canvas.height);
-    }, [weightMapTexture, config.enableWeightMap]);
-
-    const getGrassTexture = () => {
-        if (!config.enableTextureTransitions) {
-            return [grassTextures[grassTextureIndex], grassTextures[grassTextureIndex]];
-        }
-        return [grassTextures[previousGrassTextureIndex.current], grassTextures[grassTextureIndex]];
-    };
+        createOptimizedWeightMap(weightMapTexture, weightMapIntensity, weightMapThreshold, weightMapSmoothing)
+            .then(result => {
+                optimizedWeightMap.current = result;
+                console.log('✅ WeightMap optimisée chargée:', result.width, 'x', result.height);
+            });
+    }, [weightMapTexture, config.enableWeightMap, weightMapIntensity, weightMapThreshold, weightMapSmoothing]);
 
     // Chargement du modèle 3D
     const { nodes } = config.enableSurfacePlacement ?
         useGLTF('/models/Ground.glb') : { nodes: null };
     const targetMesh = nodes?.Retopo_Plane002;
 
-    // Génération de brin simple (LOW/MEDIUM quality)
-    const generateSimpleBlade = useCallback((center, vArrOffset, uv, heightMultiplier = 1.0) => {
-        const height = (BLADE_HEIGHT + Math.random() * BLADE_HEIGHT_VARIATION) * heightMultiplier;
-        const yaw = Math.random() * Math.PI * 2;
-        const yawUnitVec = new Vector3(Math.sin(yaw), 0, -Math.cos(yaw));
-
-        const bl = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(BLADE_WIDTH / 2));
-        const br = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(-BLADE_WIDTH / 2));
-        const tc = new Vector3().copy(center).setY(center.y + height);
-
-        // Système de couleurs simplifié : 3 variants comme dans paste.txt
-        const black = new Color(0, 0, 0);      // Base
-        const gray = new Color(0.5, 0.5, 0.5); // Milieu
-        const white = new Color(1.0, 1.0, 1.0); // Pointe
-
-        const verts = [
-            { pos: bl.toArray(), uvArray: uv, color: black.toArray() },  // Base gauche
-            { pos: br.toArray(), uvArray: uv, color: black.toArray() },  // Base droite
-            { pos: tc.toArray(), uvArray: uv, color: white.toArray() },  // Pointe
-        ];
-
-        const indices = [vArrOffset, vArrOffset + 1, vArrOffset + 2];
-
-        return { verts, indices };
-    }, [BLADE_HEIGHT, BLADE_HEIGHT_VARIATION, BLADE_WIDTH]);
-
-    // Génération de brin complexe (HIGH/ULTRA quality) - comme dans paste.txt
-    const generateComplexBlade = useCallback((center, vArrOffset, uv, heightMultiplier = 1.0) => {
-        const MID_WIDTH = BLADE_WIDTH * 0.5;
-        const TIP_OFFSET = 0.1;
-        const height = (BLADE_HEIGHT + Math.random() * BLADE_HEIGHT_VARIATION) * heightMultiplier;
-
-        const yaw = Math.random() * Math.PI * 2;
-        const yawUnitVec = new Vector3(Math.sin(yaw), 0, -Math.cos(yaw));
-        const tipBend = Math.random() * Math.PI * 2;
-        const tipBendUnitVec = new Vector3(Math.sin(tipBend), 0, -Math.cos(tipBend));
-
-        const bl = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(BLADE_WIDTH / 2));
-        const br = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(-BLADE_WIDTH / 2));
-        const tl = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(MID_WIDTH / 2)).setY(center.y + height / 2);
-        const tr = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(-MID_WIDTH / 2)).setY(center.y + height / 2);
-        const tc = new Vector3().addVectors(center, tipBendUnitVec.clone().multiplyScalar(TIP_OFFSET)).setY(center.y + height);
-
-        // Système de couleurs simplifié : exactement comme dans paste.txt
-        const black = new Color(0, 0, 0);      // Base
-        const gray = new Color(0.5, 0.5, 0.5); // Milieu
-        const white = new Color(1.0, 1.0, 1.0); // Pointe
-
-        const verts = [
-            { pos: bl.toArray(), uvArray: uv, color: black.toArray() },  // Base gauche
-            { pos: br.toArray(), uvArray: uv, color: black.toArray() },  // Base droite
-            { pos: tr.toArray(), uvArray: uv, color: gray.toArray() },   // Milieu droite
-            { pos: tl.toArray(), uvArray: uv, color: gray.toArray() },   // Milieu gauche
-            { pos: tc.toArray(), uvArray: uv, color: white.toArray() },  // Pointe
-        ];
-
-        const indices = [
-            vArrOffset, vArrOffset + 1, vArrOffset + 2,
-            vArrOffset + 2, vArrOffset + 4, vArrOffset + 3,
-            vArrOffset + 3, vArrOffset, vArrOffset + 2
-        ];
-
-        return { verts, indices };
-    }, [BLADE_HEIGHT, BLADE_HEIGHT_VARIATION, BLADE_WIDTH]);
-
-    // Sélection de la fonction de génération selon la qualité
-    const generateBlade = config.enableComplexGeometry ? generateComplexBlade : generateSimpleBlade;
-
-    // Shader material avec contrôle de couleur et saturation
+    // 🚀 NOUVEAU : Shader material optimisé avec instancing
     const grassMaterial = useMemo(() => {
         const vertexShader = /* glsl */`
             varying vec2 vUv;
             ${config.enableClouds ? 'varying vec2 cloudUV;' : ''}
             varying vec3 vColor;
             ${config.enableWind ? 'uniform float iTime;' : ''}
+            
+            // 🚀 Instanced attributes
+            attribute float windOffset;
+            attribute float heightMultiplier;
+            attribute vec2 bladeUV;
 
             void main() {
-                vUv = uv;
-                ${config.enableClouds ? 'cloudUV = uv;' : ''}
+                vUv = bladeUV;
+                ${config.enableClouds ? 'cloudUV = bladeUV;' : ''}
                 vColor = color;
+                
+                // Utiliser la position transformée par la matrice d'instance
                 vec3 cpos = position;
+                cpos.y *= heightMultiplier; // Appliquer la variation de hauteur
+                
+                // Appliquer la transformation d'instance
+                vec4 instancePosition = instanceMatrix * vec4(cpos, 1.0);
 
                 ${config.enableWind ? `
                     float waveSize = 10.0;
@@ -246,9 +319,9 @@ const GrassField = ({
                     float centerDistance = 0.025;
 
                     if (color.x > 0.6) {
-                        cpos.x += sin((iTime / 500.0) + (uv.x * waveSize)) * tipDistance;
+                        instancePosition.x += sin((iTime / 500.0) + windOffset) * tipDistance;
                     } else if (color.x > 0.0) {
-                        cpos.x += sin((iTime / 500.0) + (uv.x * waveSize)) * centerDistance;
+                        instancePosition.x += sin((iTime / 500.0) + windOffset) * centerDistance;
                     }
                 ` : ''}
 
@@ -257,7 +330,7 @@ const GrassField = ({
                     cloudUV.y += ${config.enableWind ? 'iTime / 10000.0' : '0.0'};
                 ` : ''}
 
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(cpos, 1.0);
+                gl_Position = projectionMatrix * modelViewMatrix * instancePosition;
             }`;
 
         const fragmentShader = /* glsl */`
@@ -269,71 +342,52 @@ const GrassField = ({
             ${config.enableClouds ? 'uniform sampler2D uCloudTexture;' : ''}
             ${config.enableTextureTransitions ? 'uniform float uProgress;' : ''}
             
-            // Paramètres de couleur
             uniform float uGrassHue;
             uniform float uGrassSaturation;
             uniform float uGrassBrightness;
             uniform float uColorVariation;
 
-            // Fonction HSV vers RGB
-            vec3 hsv2rgb(vec3 c) {
-                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-            }
-
-            // Fonction pour ajouter de la saturation à une couleur existante
-            vec3 adjustSaturation(vec3 color, float saturation) {
-                float gray = dot(color, vec3(1.5, 1.5, 1.5));
-                return mix(vec3(gray), color, saturation);
+            // 🚀 OPTIMISÉ : LUT pré-calculée pour HSV (approximation rapide)
+            vec3 fastHsv2rgb(vec3 c) {
+                vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
+                return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
             }
 
             void main() {
-                float contrast = 0.05;
-                float brightness = 0.01;
+                const float contrast = 0.05;
+                const float brightness = 0.01;
 
                 ${config.enableTextureTransitions ? `
-                    vec3 startTexture = texture2D(uGrassTextures[0], vUv).rgb * contrast;
-                    startTexture = startTexture + vec3(brightness);
-                    
-                    vec3 endTexture = texture2D(uGrassTextures[1], vUv).rgb * contrast;
-                    endTexture = endTexture + vec3(brightness);
-                    
+                    vec3 startTexture = texture2D(uGrassTextures[0], vUv).rgb * contrast + brightness;
+                    vec3 endTexture = texture2D(uGrassTextures[1], vUv).rgb * contrast + brightness;
                     vec3 finalTexture = mix(startTexture, endTexture, uProgress);
                 ` : `
-                    vec3 finalTexture = texture2D(uGrassTextures[0], vUv).rgb * contrast;
-                    finalTexture = finalTexture + vec3(brightness);
+                    vec3 finalTexture = texture2D(uGrassTextures[0], vUv).rgb * contrast + brightness;
                 `}
 
                 ${config.enableClouds ? `
-                    vec3 cloudColor = texture2D(uCloudTexture, cloudUV).rgb * contrast;
-                    cloudColor = cloudColor + vec3(brightness);
+                    vec3 cloudColor = texture2D(uCloudTexture, cloudUV).rgb * contrast + brightness;
                     vec3 blendedColor = mix(finalTexture, cloudColor, 0.3);
                 ` : `
                     vec3 blendedColor = finalTexture;
                 `}
 
-                // Génération de la couleur de base de l'herbe
-                // Variation de teinte basée sur la position pour plus de naturel
-                float hueVariation = (sin(vUv.x * 10.0) * sin(vUv.y * 10.0)) * uColorVariation * 0.1;
+                // 🚀 OPTIMISÉ : Calculs de couleur simplifiés
+                float hueVariation = sin(vUv.x * 10.0) * sin(vUv.y * 10.0) * uColorVariation * 0.1;
                 float finalHue = uGrassHue + hueVariation;
                 
-                // Variation de saturation basée sur vColor (noir=base, gris=milieu, blanc=pointe)
-                float heightFactor = vColor.r; // 0=base, 0.5=milieu, 1=pointe
-                float saturationMultiplier = 0.7 + (heightFactor * 0.6); // Plus saturé vers la pointe
+                float heightFactor = vColor.r;
+                float satMultiplier = 0.7 + heightFactor * 0.6;
+                float brightMultiplier = uGrassBrightness * (0.3 + heightFactor * 0.7);
                 
-                // Variation de luminosité
-                float brightnessMultiplier = uGrassBrightness * (0.3 + heightFactor * 0.7);
+                vec3 grassColorHSV = vec3(finalHue, uGrassSaturation * satMultiplier, brightMultiplier);
+                vec3 grassColorRGB = fastHsv2rgb(grassColorHSV);
                 
-                // Création de la couleur HSV
-                vec3 grassColorHSV = vec3(finalHue, uGrassSaturation * saturationMultiplier, brightnessMultiplier);
-                vec3 grassColorRGB = hsv2rgb(grassColorHSV);
-                
-                // Mélange avec la texture
                 vec3 finalColor = mix(blendedColor, blendedColor * grassColorRGB * 2.0, 0.8);
                 
-                // Augmentation globale de la saturation
-                finalColor = adjustSaturation(finalColor, 1.4);
+                // 🚀 OPTIMISÉ : Saturation simplifiée
+                float gray = dot(finalColor, vec3(0.299, 0.587, 0.114));
+                finalColor = mix(vec3(gray), finalColor, 1.4);
                 
                 gl_FragColor = vec4(finalColor, 1.0);
             }`;
@@ -358,8 +412,57 @@ const GrassField = ({
         });
     }, [cloudTexture, grassTextures, quality, config, grassHue, grassSaturation, grassBrightness, colorVariation]);
 
-    // Placement sur surface 3D
-    const generateSurfacePlacement = useCallback(() => {
+    // 🚀 NOUVEAU : Génération des instances avec cache
+    const generateInstances = useCallback(() => {
+        const cacheKey = `${quality}-${config.enableSurfacePlacement}-${config.enableWeightMap}-${BLADE_COUNT}-${weightMapPath}`;
+
+        if (GEOMETRY_CACHE.has(cacheKey)) {
+            console.log('📦 Utilisation du cache pour:', cacheKey);
+            return GEOMETRY_CACHE.get(cacheKey);
+        }
+
+        console.log('🌱 Génération de', BLADE_COUNT, 'instances avec qualité', quality);
+
+        const matrices = [];
+        const windOffsets = [];
+        const heightMultipliers = [];
+        const bladeUVs = [];
+
+        // Générer les positions
+        const positions = config.enableSurfacePlacement ?
+            generateSurfacePositions() : generateFlatPositions();
+
+        positions.forEach(({ pos, uv, weight = 1.0 }) => {
+            // Matrice de transformation
+            const matrix = new Matrix4();
+            const heightMult = config.enableWeightMap ? 0.5 + (weight * 0.5) : 1.0;
+            const heightVar = 1.0 + (Math.random() - 0.5) * 0.2; // Variation de hauteur
+
+            // Rotation aléatoire
+            const yaw = Math.random() * Math.PI * 2;
+            matrix.makeRotationY(yaw);
+            matrix.setPosition(pos.x, pos.y, pos.z);
+
+            matrices.push(matrix);
+            windOffsets.push(Math.random() * Math.PI * 2); // Offset pour le vent
+            heightMultipliers.push(heightMult * heightVar);
+            bladeUVs.push(uv[0], uv[1]);
+        });
+
+        const result = {
+            matrices,
+            windOffsets: new Float32Array(windOffsets),
+            heightMultipliers: new Float32Array(heightMultipliers),
+            bladeUVs: new Float32Array(bladeUVs),
+            count: positions.length
+        };
+
+        GEOMETRY_CACHE.set(cacheKey, result);
+        return result;
+    }, [config, quality, BLADE_COUNT, weightMapPath]);
+
+    // Génération des positions sur surface 3D
+    const generateSurfacePositions = useCallback(() => {
         if (!targetMesh?.geometry) {
             console.error('❌ Aucune géométrie trouvée sur le mesh cible.');
             return [];
@@ -368,7 +471,6 @@ const GrassField = ({
         const positions = [];
         const geom = targetMesh.geometry.clone();
         geom.computeBoundingBox();
-        geom.computeVertexNormals();
 
         const positionAttr = geom.attributes.position;
         const surfaceMin = geom.boundingBox.min;
@@ -396,8 +498,8 @@ const GrassField = ({
                 .addScaledVector(v2, sqrtR1 * r2);
 
             const uv = [
-                convertRange(pos.x, surfaceMin.x, surfaceMax.x, 0, 1),
-                convertRange(pos.z, surfaceMin.z, surfaceMax.z, 0, 1)
+                (pos.x - surfaceMin.x) / (surfaceMax.x - surfaceMin.x),
+                (pos.z - surfaceMin.z) / (surfaceMax.z - surfaceMin.z)
             ];
 
             const weightValue = sampleWeightMap(uv[0], uv[1]);
@@ -412,8 +514,8 @@ const GrassField = ({
         return positions;
     }, [targetMesh, BLADE_COUNT, config.enableWeightMap, sampleWeightMap]);
 
-    // Placement plat
-    const generateFlatPlacement = useCallback(() => {
+    // Génération des positions plates
+    const generateFlatPositions = useCallback(() => {
         const positions = [];
         const fieldSize = 50;
 
@@ -438,93 +540,112 @@ const GrassField = ({
         return positions;
     }, [BLADE_COUNT, config.enableWeightMap, sampleWeightMap]);
 
-    // Génération du champ
-    const generateField = useCallback(() => {
-        console.log('🌱 Génération de', BLADE_COUNT, 'brins avec qualité', quality);
+    // 🚀 NOUVEAU : Création de l'InstancedMesh
+    useEffect(() => {
+        if (!instancedMeshRef.current) return;
 
-        const positions = [], uvs = [], indices = [], colors = [];
+        const baseGeometry = createBaseBladeGeometry(config.enableComplexGeometry);
+        const instances = generateInstances();
 
-        const bladePositions = config.enableSurfacePlacement ?
-            generateSurfacePlacement() : generateFlatPlacement();
+        // Créer l'InstancedMesh
+        instancedMeshRef.current.geometry = baseGeometry;
+        instancedMeshRef.current.material = grassMaterial;
+        instancedMeshRef.current.count = instances.count;
 
-        if (bladePositions.length === 0) return;
-
-        bladePositions.forEach(({ pos, uv, weight = 1.0 }, i) => {
-            const vArrOffset = i * config.bladeComplexity;
-            const heightMultiplier = config.enableWeightMap ? 0.5 + (weight * 0.5) : 1.0;
-
-            const blade = generateBlade(pos, vArrOffset, uv, heightMultiplier);
-
-            blade.verts.forEach(v => {
-                positions.push(...v.pos);
-                uvs.push(...v.uvArray);
-                colors.push(...v.color);
-            });
-            indices.push(...blade.indices);
+        // Appliquer les matrices d'instances
+        instances.matrices.forEach((matrix, i) => {
+            instancedMeshRef.current.setMatrixAt(i, matrix);
         });
 
-        const grassGeometry = new BufferGeometry();
-        grassGeometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
-        grassGeometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
-        grassGeometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
-        grassGeometry.setIndex(indices);
-        grassGeometry.computeVertexNormals();
+        // 🚀 NOUVEAU : Ajouter les attributs d'instance
+        instancedMeshRef.current.geometry.setAttribute(
+            'windOffset',
+            new InstancedBufferAttribute(instances.windOffsets, 1)
+        );
+        instancedMeshRef.current.geometry.setAttribute(
+            'heightMultiplier',
+            new InstancedBufferAttribute(instances.heightMultipliers, 1)
+        );
+        instancedMeshRef.current.geometry.setAttribute(
+            'bladeUV',
+            new InstancedBufferAttribute(instances.bladeUVs, 2)
+        );
 
-        if (meshRef.current) {
-            meshRef.current.geometry = grassGeometry;
-            meshRef.current.material = grassMaterial;
-            console.log('✅ Champ d\'herbe appliqué avec', bladePositions.length, 'brins');
-        }
-    }, [generateBlade, grassMaterial, config, quality, generateSurfacePlacement, generateFlatPlacement]);
+        instancedMeshRef.current.instanceMatrix.needsUpdate = true;
 
-    useEffect(() => {
-        generateField();
+        console.log('✅ InstancedMesh créé avec', instances.count, 'brins');
+        setIsLoaded(true);
         if (onLoaded) onLoaded();
-    }, [generateField, onLoaded]);
+    }, [generateInstances, grassMaterial, config.enableComplexGeometry, onLoaded]);
 
-    // Transitions de textures et mise à jour des uniforms
-    useEffect(() => {
-        // Mise à jour des uniforms de couleur
-        if (grassMaterial.uniforms.uGrassHue) {
-            grassMaterial.uniforms.uGrassHue.value = grassHue;
-            grassMaterial.uniforms.uGrassSaturation.value = grassSaturation;
-            grassMaterial.uniforms.uGrassBrightness.value = grassBrightness;
-            grassMaterial.uniforms.uColorVariation.value = colorVariation;
+    // Animation du vent optimisée
+    useAnimationFrame((state, delta) => {
+        if (config.enableWind && config.animationQuality !== 'none') {
+            const elapsedTime = (Date.now() - startTime.current) * 0.3;
+            timeUniform.current.value = elapsedTime;
         }
+    }, 'animation');
 
+    // Gestion des mises à jour de couleur
+    useEffect(() => {
+        const colorUpdateCallback = () => {
+            if (grassMaterial.uniforms.uGrassHue) {
+                grassMaterial.uniforms.uGrassHue.value = grassHue;
+                grassMaterial.uniforms.uGrassSaturation.value = grassSaturation;
+                grassMaterial.uniforms.uGrassBrightness.value = grassBrightness;
+                grassMaterial.uniforms.uColorVariation.value = colorVariation;
+            }
+        };
+
+        if (enablePerformanceOptimization) {
+            const callbackId = animationManager.addCallback('ui', colorUpdateCallback);
+            return () => animationManager.removeCallback('ui', callbackId);
+        } else {
+            colorUpdateCallback();
+        }
+    }, [grassMaterial, grassHue, grassSaturation, grassBrightness, colorVariation, enablePerformanceOptimization]);
+
+    // Transitions de textures
+    useEffect(() => {
         if (!config.enableTextureTransitions) {
             grassMaterial.uniforms.uGrassTextures.value = [grassTextures[grassTextureIndex], grassTextures[grassTextureIndex]];
             return;
         }
 
-        grassMaterial.uniforms.uGrassTextures.value = getGrassTexture();
+        grassMaterial.uniforms.uGrassTextures.value = [grassTextures[previousGrassTextureIndex.current], grassTextures[grassTextureIndex]];
+
         gsap.to(progress.current, {
             value: 1,
             duration: 2,
             onComplete: () => {
                 previousGrassTextureIndex.current = grassTextureIndex;
-                grassMaterial.uniforms.uGrassTextures.value = getGrassTexture();
+                grassMaterial.uniforms.uGrassTextures.value = [grassTextures[grassTextureIndex], grassTextures[grassTextureIndex]];
                 progress.current.value = 0.0;
             }
         });
-    }, [grassTextureIndex, getGrassTexture, grassMaterial, config.enableTextureTransitions, grassHue, grassSaturation, grassBrightness, colorVariation]);
+    }, [grassTextureIndex, grassMaterial, config.enableTextureTransitions]);
 
-    // Animation
-    useFrame(() => {
-        if (config.enableWind && config.animationQuality !== 'none') {
-            const elapsedTime = (Date.now() - startTime.current) * 0.3;
-            timeUniform.current.value = elapsedTime;
+    // Monitoring des performances
+    useAnimationFrame((state, delta) => {
+        const stats = animationManager.getStats();
+
+        if (stats.frameCount % 180 === 0 && window.location.search.includes('debug')) {
+            console.log(`🔍 GrassField Performance - ${quality}:`, {
+                frameTime: `${stats.lastFrameTime.toFixed(2)}ms`,
+                avgFrameTime: `${stats.averageFrameTime.toFixed(2)}ms`,
+                instanceCount: instancedMeshRef.current?.count || 0,
+                throttling: stats.throttleConfig
+            });
         }
-    });
+    }, 'analytics');
 
     return (
-        <mesh ref={meshRef} position={[0, 15.15, 0]}>
-            <bufferGeometry />
-        </mesh>
+        <instancedMesh
+            ref={instancedMeshRef}
+            args={[null, null, BLADE_COUNT]}
+            position={[0, 15.15, 0]}
+        />
     );
 };
-
-const convertRange = (val, oldMin, oldMax, newMin, newMax) =>
-    ((val - oldMin) * (newMax - newMin)) / (oldMax - oldMin) + newMin;
 
 export default GrassField;
