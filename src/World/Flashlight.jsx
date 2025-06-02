@@ -33,7 +33,7 @@ export default function Flashlight() {
     // Configuration des seuils d'activation de la lampe torche
     const flashlightThresholdsRef = useRef({
         activationThreshold: 0.66,        // Activation directe à 70% du scroll
-        targetIntensity: 15,             // Intensité cible (passage direct de 0 à 15)
+        targetIntensity: 40,             // Intensité cible (passage direct de 0 à 15)
         flickerActivationThreshold: 0.8  // Déclenchement du clignottement à 80%
     });
 
@@ -41,7 +41,7 @@ export default function Flashlight() {
     const flickerRef = useRef({
         enabled: false,
         intensity: 1.0,
-        frequency: 3.0,          // Fréquence plus rapide pour des patterns courts
+        frequency: 6.0,          // Fréquence plus rapide pour des patterns courts
         irregularity: 0.3,       // Moins d'irrégularité pour plus de contrôle
         microFlicker: 0.1,       // Micro-clignotements réduits
         duration: 0,
@@ -60,9 +60,9 @@ export default function Flashlight() {
         // Pattern 1: Arrêt brutal + remontée progressive courte
         [0, 0, 0.2, 0, 0.4, 0.7, 1],
         // Pattern 2: Double arrêt + remontée rapide
-        [0, 0, 0.2, 0, 0, 0.4, 0.7, 1, 1, 1],
+        [0, 0, 1, 0, 0, 1, 0, 1, 1, 1],
         // Pattern 3: Arrêt + flicker remontée
-        [0, 0, 0, 0.2, 0, 0.4, 0.2, 0.6, 0.9, 1],
+        [0, 0, 0, 1, 0, 1, 0, 0, 1, 1],
         // Pattern 4: Panne progressive puis remontée
         [1, 0.5, 0.2, 0, 0, 0, 0.3, 0.7, 1, 1]
     ]);
@@ -77,8 +77,8 @@ export default function Flashlight() {
 
     // État pour stocker les paramètres avancés
     const [advancedParams, setAdvancedParams] = useState({
-        angle: 0.271,
-        penumbra: 1,
+        angle: 0.21,
+        penumbra: 0.1,
         distance: 50,
         decay: 1.1
     });
@@ -89,12 +89,13 @@ export default function Flashlight() {
     const debug = useStore(state => state.debug);
     const gui = useStore(state => state.gui);
 
-    // *** NOUVEAU: Fonction pour calculer l'intensité de clignottement binaire ***
     const calculateFlickerIntensity = (time, baseIntensity) => {
         const flicker = flickerRef.current;
         if (!flicker.enabled || !flicker.isActive) return baseIntensity;
 
-        const pattern = flickerPatternsRef.current[flicker.patternIndex % flickerPatternsRef.current.length];
+        // Pattern spécifique : 1, 0, 1, 0, 0, 0, 1, 1
+        const customPattern = [1, 0, 1, 1, 0, 0, 0, 1];
+        const pattern = customPattern; // Utilise le pattern personnalisé au lieu de celui des refs
         const patternSpeed = flicker.frequency;
         const timeSinceStart = time - flicker.startTime;
 
@@ -103,19 +104,26 @@ export default function Flashlight() {
         const patternIndex = Math.floor(patternProgress);
         const patternValue = pattern[patternIndex];
 
-        // Interpolation douce pour éviter les changements trop brutaux
-        const nextIndex = (patternIndex + 1) % pattern.length;
-        const nextValue = pattern[nextIndex];
-        const t = patternProgress - patternIndex;
-        const smoothValue = THREE.MathUtils.lerp(patternValue, nextValue, t * 0.4);
+        // Pas d'interpolation - changements brutaux instantanés
+        let smoothValue = patternValue; // Utilise directement la valeur du pattern sans transition
 
-        // Vérifier si on a terminé une répétition complète
-        // Vérifier si on a terminé une répétition complète
+        // NOUVEAU: Ajouter un long moment d'extinction avant la dernière répétition
+        const cycleProgress = (timeSinceStart * patternSpeed) / pattern.length;
+        const nextCycleWillBeLast = Math.floor(cycleProgress + 1) >= flicker.repeatCount;
+
+        // Si on approche de la dernière répétition, ajouter une pause sombre brutale
+        if (nextCycleWillBeLast && flicker.currentRepeat < flicker.repeatCount - 1) {
+            const pauseProgress = (cycleProgress % 1);
+            if (pauseProgress > 0.3 && pauseProgress < 0.9) {
+                smoothValue = 0; // Extinction complète et brutale pendant 60% du cycle
+            }
+        }
+
+        // Vérification des cycles (inchangée)
         const currentCycle = Math.floor(timeSinceStart * patternSpeed / pattern.length);
         if (currentCycle > flicker.currentRepeat) {
             flicker.currentRepeat = currentCycle;
 
-            // Émettre l'événement de fin de répétition
             EventBus.trigger('flashlight-repeat-completed', {
                 repeatNumber: flicker.currentRepeat,
                 totalRepeats: flicker.repeatCount,
@@ -125,12 +133,10 @@ export default function Flashlight() {
 
             console.log(`Flashlight: Répétition ${flicker.currentRepeat}/${flicker.repeatCount} terminée`);
 
-            // Vérifier si on a atteint le nombre de répétitions souhaité
             if (flicker.currentRepeat >= flicker.repeatCount) {
                 flicker.isActive = false;
                 console.log('Flashlight: Clignottement terminé après toutes les répétitions');
 
-                // NOUVEAU: Émettre l'événement de fin complète du clignottement
                 EventBus.trigger('flashlight-flicker-completely-finished', {
                     patternIndex: flicker.patternIndex,
                     totalRepeats: flicker.repeatCount,
@@ -139,24 +145,14 @@ export default function Flashlight() {
                 });
 
                 console.log('🔦 Flashlight: Événement de fin complète de clignottement émis');
-
                 return baseIntensity;
             }
         }
-        // Ajouter un léger bruit pour le naturel, mais moins que avant
+
+        // Appliquer l'intensité du clignottement directement (pas de bruit)
         let finalValue = smoothValue;
-        if (flicker.irregularity > 0) {
-            const noise = Math.sin(time * 15 + flicker.noiseOffset) * 0.5 + 0.5;
-            finalValue = THREE.MathUtils.lerp(smoothValue, smoothValue * noise, flicker.irregularity * 0.2);
-        }
 
-        // Micro-flicker léger pendant la remontée
-        if (flicker.microFlicker > 0 && smoothValue > 0.3 && smoothValue < 0.9) {
-            const microNoise = Math.sin(time * 25 + flicker.noiseOffset * 3) * 0.5 + 0.5;
-            finalValue = THREE.MathUtils.lerp(finalValue, finalValue * microNoise, flicker.microFlicker);
-        }
-
-        // Appliquer l'intensité du clignottement
+        // Appliquer l'intensité du clignottement avec possibilité d'extinction complète
         const intensity = baseIntensity * THREE.MathUtils.lerp(1, finalValue, flicker.intensity);
 
         return Math.max(0, Math.min(intensity, baseIntensity));

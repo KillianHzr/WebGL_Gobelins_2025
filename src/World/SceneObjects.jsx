@@ -1364,13 +1364,13 @@ const SceneObjects = React.memo(function SceneObjects({
                 onGroundLoaded={handleGroundLoaded}
             />
             <InteractiveObjects filter={interactiveFilter}/>
-            {isGroundLoaded && (
-                <GrassField
-                    groundRef={groundRef}
-                    grassTextureIndex={timeItemsObject.grassTextureIndex || 0}
-                    onLoaded={() => setIsGrassLoaded(true)}
-                />
-            )}
+            {/*{isGroundLoaded && (*/}
+            {/*    <GrassField*/}
+            {/*        groundRef={groundRef}*/}
+            {/*        grassTextureIndex={timeItemsObject.grassTextureIndex || 0}*/}
+            {/*        onLoaded={() => setIsGrassLoaded(true)}*/}
+            {/*    />*/}
+            {/*)}*/}
         </group>
     );
 });
