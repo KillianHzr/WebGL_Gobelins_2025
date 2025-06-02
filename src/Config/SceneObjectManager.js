@@ -344,7 +344,7 @@ class SceneObjectManager {
                     offset: 0.33,
                     axis: "y",
                     interfaceToShow: "none",
-                    chapterDistance: 1.1,
+                    chapterDistance: 1.05,
                     requiredStep: 'fourteenthStop'
                 }],
                 defaultPlacement: {

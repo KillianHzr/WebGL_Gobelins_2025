@@ -48,7 +48,6 @@ const RayCaster = ({children}) => {
 
         // 4. Vérification des InstancedMesh avec beaucoup d'instances
         if (object.isInstancedMesh && object.count > 10) {
-            console.warn(`⚠️ RayCaster: InstancedMesh "${object.name || 'unnamed'}" avec ${object.count} instances exclu du raycasting pour les performances`);
             return false;
         }
 
