@@ -1,56 +1,56 @@
-// File: GrassField.jsx - Version avec Culling et LOD fonctionnels
+// File: GrassField.jsx
 
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { TextureLoader, RepeatWrapping, ShaderMaterial, DoubleSide, Vector3, Color, BufferAttribute, BufferGeometry } from 'three';
 import { useGLTF } from '@react-three/drei';
 import { gsap } from 'gsap';
 
-// 🚀 Configuration des niveaux de qualité OPTIMISÉE
+// Configuration des niveaux de qualité
 const QUALITY_PRESETS = {
     ULTRA: {
-        bladeCount: 25000,
+        bladeCount: 1000000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
         enableTextureTransitions: true,
         enableSurfacePlacement: true,
         enableWeightMap: true,
-        animationQuality: 'high',
-        cullingDistance: 28 // Distance de culling
+        bladeComplexity: 5,
+        animationQuality: 'high'
     },
     HIGH: {
-        bladeCount: 15000,
+        bladeCount: 35000,
         enableWind: true,
         enableClouds: true,
         enableComplexGeometry: true,
-        enableTextureTransitions: false,
+        enableTextureTransitions: true,
         enableSurfacePlacement: true,
         enableWeightMap: true,
-        animationQuality: 'medium',
-        cullingDistance: 10
+        bladeComplexity: 5,
+        animationQuality: 'medium'
     },
     MEDIUM: {
-        bladeCount: 8000,
+        bladeCount: 20000,
         enableWind: true,
         enableClouds: false,
         enableComplexGeometry: false,
         enableTextureTransitions: false,
         enableSurfacePlacement: true,
-        enableWeightMap: false,
-        animationQuality: 'low',
-        cullingDistance: 50
+        enableWeightMap: true,
+        bladeComplexity: 3,
+        animationQuality: 'low'
     },
     LOW: {
-        bladeCount: 3000,
+        bladeCount: 8000,
         enableWind: false,
         enableClouds: false,
         enableComplexGeometry: false,
         enableTextureTransitions: false,
         enableSurfacePlacement: false,
         enableWeightMap: false,
-        animationQuality: 'none',
-        cullingDistance: 30
+        bladeComplexity: 3,
+        animationQuality: 'none'
     }
 };
 
@@ -63,26 +63,19 @@ const GrassField = ({
                         weightMapIntensity = 1.0,
                         weightMapThreshold = 0.1,
                         weightMapSmoothing = 0.2,
-                        grassHue = 0.3,
-                        grassSaturation = 1.0,
-                        grassBrightness = 1.0,
-                        colorVariation = 0.0
+                        // Nouveaux paramètres de couleur et saturation
+                        grassHue = 0.3, // 0.0-1.0 (0=rouge, 0.25=vert, 0.5=cyan, 0.75=violet)
+                        grassSaturation = 1.0, // 0.0-1.0 (0=gris, 1=couleur pure)
+                        grassBrightness = 1.0, // 0.0-1.0 (0=noir, 1=blanc)
+                        colorVariation = 0.0 // 0.0-1.0 variation de couleur entre brins
                     }) => {
     const meshRef = useRef();
 
-    // Merge preset avec config custom (défini en premier)
+    // Merge preset avec config custom
     const config = useMemo(() => ({
         ...QUALITY_PRESETS[quality],
         ...customConfig
     }), [quality, customConfig]);
-
-    // 🆕 Accès à la caméra pour le culling
-    const { camera } = useThree();
-
-    // 🆕 Uniform pour la position de la caméra (culling GPU)
-    const cameraPositionUniform = useRef({ value: new Vector3(0, 20, 0) }); // Position initiale raisonnable
-    const cullingDistanceUniform = useRef({ value: config.cullingDistance });
-    const [isCameraReady, setIsCameraReady] = useState(false);
 
     // Constants basées sur la config
     const BLADE_COUNT = config.bladeCount;
@@ -114,27 +107,10 @@ const GrassField = ({
     const weightMapCanvas = useRef(null);
     const weightMapImageData = useRef(null);
 
-    // Optimisation : Cache pour les calculs coûteux
-    const calculationCache = useRef(new Map());
-
-    // Throttling pour les updates
-    const lastUpdateTime = useRef(0);
-    const UPDATE_INTERVAL = 16; // ~60fps max
-
-    // Mise à jour de la distance de culling
-    useEffect(() => {
-        cullingDistanceUniform.current.value = config.cullingDistance;
-    }, [config.cullingDistance]);
-
-    // Échantillonnage de la weightMap (optimisé)
+    // Échantillonnage de la weightMap
     const sampleWeightMap = useCallback((u, v) => {
         if (!config.enableWeightMap || !weightMapImageData.current) {
             return 1.0;
-        }
-
-        const cacheKey = `${Math.floor(u * 100)}_${Math.floor(v * 100)}`;
-        if (calculationCache.current.has(cacheKey)) {
-            return calculationCache.current.get(cacheKey);
         }
 
         const { width, height, data } = weightMapImageData.current;
@@ -144,18 +120,12 @@ const GrassField = ({
         const pixelIndex = (y * width + x) * 4;
         const grayscaleValue = data[pixelIndex] / 255.0;
 
+        // INVERSER : Noir = herbe maximale, Blanc = pas d'herbe
         const invertedValue = 1.0 - grayscaleValue;
         const smoothed = Math.max(0, (invertedValue - weightMapThreshold) / (1 - weightMapThreshold));
-        const finalValue = Math.min(1.0, Math.pow(smoothed, 1 / (weightMapSmoothing + 0.1)) * weightMapIntensity);
+        const finalValue = Math.pow(smoothed, 1 / (weightMapSmoothing + 0.1));
 
-        calculationCache.current.set(cacheKey, finalValue);
-
-        if (calculationCache.current.size > 1000) {
-            const firstKey = calculationCache.current.keys().next().value;
-            calculationCache.current.delete(firstKey);
-        }
-
-        return finalValue;
+        return Math.min(1.0, finalValue * weightMapIntensity);
     }, [config.enableWeightMap, weightMapThreshold, weightMapSmoothing, weightMapIntensity]);
 
     // Création du canvas pour lire les pixels de la weightMap
@@ -167,14 +137,13 @@ const GrassField = ({
         weightMapCanvas.current = canvas;
 
         const img = weightMapTexture.image;
-        const scaleFactor = 0.5;
-        canvas.width = img.width * scaleFactor;
-        canvas.height = img.height * scaleFactor;
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
         weightMapImageData.current = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        console.log('✅ WeightMap chargée (optimisée):', canvas.width, 'x', canvas.height);
+        console.log('✅ WeightMap chargée:', canvas.width, 'x', canvas.height);
     }, [weightMapTexture, config.enableWeightMap]);
 
     const getGrassTexture = () => {
@@ -189,7 +158,7 @@ const GrassField = ({
         useGLTF('/models/Ground.glb') : { nodes: null };
     const targetMesh = nodes?.Retopo_Plane002;
 
-    // Génération de brin simple (optimisée)
+    // Génération de brin simple (LOW/MEDIUM quality)
     const generateSimpleBlade = useCallback((center, vArrOffset, uv, heightMultiplier = 1.0) => {
         const height = (BLADE_HEIGHT + Math.random() * BLADE_HEIGHT_VARIATION) * heightMultiplier;
         const yaw = Math.random() * Math.PI * 2;
@@ -199,13 +168,15 @@ const GrassField = ({
         const br = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(-BLADE_WIDTH / 2));
         const tc = new Vector3().copy(center).setY(center.y + height);
 
-        const black = [0, 0, 0];
-        const white = [1.0, 1.0, 1.0];
+        // Système de couleurs simplifié : 3 variants comme dans paste.txt
+        const black = new Color(0, 0, 0);      // Base
+        const gray = new Color(0.5, 0.5, 0.5); // Milieu
+        const white = new Color(1.0, 1.0, 1.0); // Pointe
 
         const verts = [
-            { pos: bl.toArray(), uvArray: uv, color: black },
-            { pos: br.toArray(), uvArray: uv, color: black },
-            { pos: tc.toArray(), uvArray: uv, color: white },
+            { pos: bl.toArray(), uvArray: uv, color: black.toArray() },  // Base gauche
+            { pos: br.toArray(), uvArray: uv, color: black.toArray() },  // Base droite
+            { pos: tc.toArray(), uvArray: uv, color: white.toArray() },  // Pointe
         ];
 
         const indices = [vArrOffset, vArrOffset + 1, vArrOffset + 2];
@@ -213,7 +184,7 @@ const GrassField = ({
         return { verts, indices };
     }, [BLADE_HEIGHT, BLADE_HEIGHT_VARIATION, BLADE_WIDTH]);
 
-    // Génération de brin complexe (optimisée)
+    // Génération de brin complexe (HIGH/ULTRA quality) - comme dans paste.txt
     const generateComplexBlade = useCallback((center, vArrOffset, uv, heightMultiplier = 1.0) => {
         const MID_WIDTH = BLADE_WIDTH * 0.5;
         const TIP_OFFSET = 0.1;
@@ -230,16 +201,17 @@ const GrassField = ({
         const tr = new Vector3().addVectors(center, yawUnitVec.clone().multiplyScalar(-MID_WIDTH / 2)).setY(center.y + height / 2);
         const tc = new Vector3().addVectors(center, tipBendUnitVec.clone().multiplyScalar(TIP_OFFSET)).setY(center.y + height);
 
-        const black = [0, 0, 0];
-        const gray = [0.5, 0.5, 0.5];
-        const white = [1.0, 1.0, 1.0];
+        // Système de couleurs simplifié : exactement comme dans paste.txt
+        const black = new Color(0, 0, 0);      // Base
+        const gray = new Color(0.5, 0.5, 0.5); // Milieu
+        const white = new Color(1.0, 1.0, 1.0); // Pointe
 
         const verts = [
-            { pos: bl.toArray(), uvArray: uv, color: black },
-            { pos: br.toArray(), uvArray: uv, color: black },
-            { pos: tr.toArray(), uvArray: uv, color: gray },
-            { pos: tl.toArray(), uvArray: uv, color: gray },
-            { pos: tc.toArray(), uvArray: uv, color: white },
+            { pos: bl.toArray(), uvArray: uv, color: black.toArray() },  // Base gauche
+            { pos: br.toArray(), uvArray: uv, color: black.toArray() },  // Base droite
+            { pos: tr.toArray(), uvArray: uv, color: gray.toArray() },   // Milieu droite
+            { pos: tl.toArray(), uvArray: uv, color: gray.toArray() },   // Milieu gauche
+            { pos: tc.toArray(), uvArray: uv, color: white.toArray() },  // Pointe
         ];
 
         const indices = [
@@ -251,24 +223,21 @@ const GrassField = ({
         return { verts, indices };
     }, [BLADE_HEIGHT, BLADE_HEIGHT_VARIATION, BLADE_WIDTH]);
 
-    // Shader material avec culling GPU OPTIMISÉ
+    // Sélection de la fonction de génération selon la qualité
+    const generateBlade = config.enableComplexGeometry ? generateComplexBlade : generateSimpleBlade;
+
+    // Shader material avec contrôle de couleur et saturation
     const grassMaterial = useMemo(() => {
         const vertexShader = /* glsl */`
             varying vec2 vUv;
             ${config.enableClouds ? 'varying vec2 cloudUV;' : ''}
             varying vec3 vColor;
-            varying float vCulled; // 🆕 Variable pour indiquer si le vertex est culled
             ${config.enableWind ? 'uniform float iTime;' : ''}
-            
-            // 🎯 Uniforms pour le culling GPU
-            uniform vec3 uCameraPosition;
-            uniform float uCullingDistance;
 
             void main() {
                 vUv = uv;
                 ${config.enableClouds ? 'cloudUV = uv;' : ''}
                 vColor = color;
-                vCulled = 0.0; // Par défaut, pas culled
                 vec3 cpos = position;
 
                 ${config.enableWind ? `
@@ -288,21 +257,7 @@ const GrassField = ({
                     cloudUV.y += ${config.enableWind ? 'iTime / 10000.0' : '0.0'};
                 ` : ''}
 
-                // 🎯 Culling GPU : calculer la distance à la caméra
-                vec3 worldPosition = (modelMatrix * vec4(cpos, 1.0)).xyz;
-                float distanceToCamera = distance(worldPosition, uCameraPosition);
-                
-                // Vérifier que la caméra est initialisée
-                float cameraDistanceFromOrigin = distance(uCameraPosition, vec3(0.0, 0.0, 0.0));
-                
-                // 🚨 FIX : Au lieu de déplacer à l'infini, marquer comme culled
-                if (distanceToCamera > uCullingDistance && cameraDistanceFromOrigin > 1.0) {
-                    vCulled = 1.0;
-                    // Déplacer hors de l'écran de manière propre (derrière la caméra)
-                    gl_Position = vec4(0.0, -2.0, -1.0, -1.0);
-                } else {
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(cpos, 1.0);
-                }
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(cpos, 1.0);
             }`;
 
         const fragmentShader = /* glsl */`
@@ -314,9 +269,24 @@ const GrassField = ({
             ${config.enableClouds ? 'uniform sampler2D uCloudTexture;' : ''}
             ${config.enableTextureTransitions ? 'uniform float uProgress;' : ''}
             
-            uniform vec3 uGrassColorBase;
-            uniform vec3 uGrassColorTip;
+            // Paramètres de couleur
+            uniform float uGrassHue;
+            uniform float uGrassSaturation;
+            uniform float uGrassBrightness;
             uniform float uColorVariation;
+
+            // Fonction HSV vers RGB
+            vec3 hsv2rgb(vec3 c) {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+
+            // Fonction pour ajouter de la saturation à une couleur existante
+            vec3 adjustSaturation(vec3 color, float saturation) {
+                float gray = dot(color, vec3(1.5, 1.5, 1.5));
+                return mix(vec3(gray), color, saturation);
+            }
 
             void main() {
                 float contrast = 0.05;
@@ -343,42 +313,37 @@ const GrassField = ({
                     vec3 blendedColor = finalTexture;
                 `}
 
-                float heightFactor = vColor.r;
-                float hueVariation = sin(vUv.x * 10.0) * sin(vUv.y * 10.0) * uColorVariation * 0.1;
-                vec3 grassColor = mix(uGrassColorBase, uGrassColorTip, heightFactor);
-                grassColor.rgb += hueVariation;
-                vec3 finalColor = mix(blendedColor, blendedColor * grassColor * 2.0, 0.8);
+                // Génération de la couleur de base de l'herbe
+                // Variation de teinte basée sur la position pour plus de naturel
+                float hueVariation = (sin(vUv.x * 10.0) * sin(vUv.y * 10.0)) * uColorVariation * 0.1;
+                float finalHue = uGrassHue + hueVariation;
+                
+                // Variation de saturation basée sur vColor (noir=base, gris=milieu, blanc=pointe)
+                float heightFactor = vColor.r; // 0=base, 0.5=milieu, 1=pointe
+                float saturationMultiplier = 0.7 + (heightFactor * 0.6); // Plus saturé vers la pointe
+                
+                // Variation de luminosité
+                float brightnessMultiplier = uGrassBrightness * (0.3 + heightFactor * 0.7);
+                
+                // Création de la couleur HSV
+                vec3 grassColorHSV = vec3(finalHue, uGrassSaturation * saturationMultiplier, brightnessMultiplier);
+                vec3 grassColorRGB = hsv2rgb(grassColorHSV);
+                
+                // Mélange avec la texture
+                vec3 finalColor = mix(blendedColor, blendedColor * grassColorRGB * 2.0, 0.8);
+                
+                // Augmentation globale de la saturation
+                finalColor = adjustSaturation(finalColor, 1.4);
                 
                 gl_FragColor = vec4(finalColor, 1.0);
             }`;
 
-        const hsvToRgb = (h, s, v) => {
-            const c = v * s;
-            const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
-            const m = v - c;
-            let r = 0, g = 0, b = 0;
-
-            if (0 <= h && h < 1/6) { r = c; g = x; b = 0; }
-            else if (1/6 <= h && h < 2/6) { r = x; g = c; b = 0; }
-            else if (2/6 <= h && h < 3/6) { r = 0; g = c; b = x; }
-            else if (3/6 <= h && h < 4/6) { r = 0; g = x; b = c; }
-            else if (4/6 <= h && h < 5/6) { r = x; g = 0; b = c; }
-            else if (5/6 <= h && h < 1) { r = c; g = 0; b = x; }
-
-            return [r + m, g + m, b + m];
-        };
-
-        const baseColor = hsvToRgb(grassHue, grassSaturation * 0.7, grassBrightness * 0.3);
-        const tipColor = hsvToRgb(grassHue, grassSaturation, grassBrightness);
-
         const uniforms = {
             uGrassTextures: { value: [grassTextures[0], grassTextures[0]] },
-            uGrassColorBase: { value: baseColor },
-            uGrassColorTip: { value: tipColor },
+            uGrassHue: { value: grassHue },
+            uGrassSaturation: { value: grassSaturation },
+            uGrassBrightness: { value: grassBrightness },
             uColorVariation: { value: colorVariation },
-            // 🎯 Uniforms pour le culling GPU
-            uCameraPosition: cameraPositionUniform.current,
-            uCullingDistance: cullingDistanceUniform.current,
             ...(config.enableWind && { iTime: timeUniform.current }),
             ...(config.enableClouds && { uCloudTexture: { value: cloudTexture } }),
             ...(config.enableTextureTransitions && { uProgress: progress.current }),
@@ -393,7 +358,7 @@ const GrassField = ({
         });
     }, [cloudTexture, grassTextures, quality, config, grassHue, grassSaturation, grassBrightness, colorVariation]);
 
-    // Placement sur surface 3D (optimisé)
+    // Placement sur surface 3D
     const generateSurfacePlacement = useCallback(() => {
         if (!targetMesh?.geometry) {
             console.error('❌ Aucune géométrie trouvée sur le mesh cible.');
@@ -403,16 +368,13 @@ const GrassField = ({
         const positions = [];
         const geom = targetMesh.geometry.clone();
         geom.computeBoundingBox();
-
-        if (!geom.attributes.normal) {
-            geom.computeVertexNormals();
-        }
+        geom.computeVertexNormals();
 
         const positionAttr = geom.attributes.position;
         const surfaceMin = geom.boundingBox.min;
         const surfaceMax = geom.boundingBox.max;
 
-        const candidateCount = config.enableWeightMap ? BLADE_COUNT * 1.5 : BLADE_COUNT;
+        const candidateCount = config.enableWeightMap ? BLADE_COUNT * 3 : BLADE_COUNT;
         let placedCount = 0;
 
         for (let i = 0; i < candidateCount && placedCount < BLADE_COUNT; i++) {
@@ -450,12 +412,12 @@ const GrassField = ({
         return positions;
     }, [targetMesh, BLADE_COUNT, config.enableWeightMap, sampleWeightMap]);
 
-    // Placement plat (optimisé)
+    // Placement plat
     const generateFlatPlacement = useCallback(() => {
         const positions = [];
         const fieldSize = 50;
 
-        const candidateCount = config.enableWeightMap ? BLADE_COUNT * 1.5 : BLADE_COUNT;
+        const candidateCount = config.enableWeightMap ? BLADE_COUNT * 3 : BLADE_COUNT;
         let placedCount = 0;
 
         for (let i = 0; i < candidateCount && placedCount < BLADE_COUNT; i++) {
@@ -476,26 +438,19 @@ const GrassField = ({
         return positions;
     }, [BLADE_COUNT, config.enableWeightMap, sampleWeightMap]);
 
-    // Génération du champ (version standard optimisée)
+    // Génération du champ
     const generateField = useCallback(() => {
-        console.log('🌱 Génération de', BLADE_COUNT, 'brins avec qualité', quality, '(avec culling GPU)');
+        console.log('🌱 Génération de', BLADE_COUNT, 'brins avec qualité', quality);
+
+        const positions = [], uvs = [], indices = [], colors = [];
 
         const bladePositions = config.enableSurfacePlacement ?
             generateSurfacePlacement() : generateFlatPlacement();
 
         if (bladePositions.length === 0) return;
 
-        const positions = [];
-        const uvs = [];
-        const colors = [];
-        const indices = [];
-
-        // Choisir la fonction de génération selon la config globale
-        const generateBlade = config.enableComplexGeometry ? generateComplexBlade : generateSimpleBlade;
-        const verticesPerBlade = config.enableComplexGeometry ? 5 : 3;
-
         bladePositions.forEach(({ pos, uv, weight = 1.0 }, i) => {
-            const vArrOffset = i * verticesPerBlade;
+            const vArrOffset = i * config.bladeComplexity;
             const heightMultiplier = config.enableWeightMap ? 0.5 + (weight * 0.5) : 1.0;
 
             const blade = generateBlade(pos, vArrOffset, uv, heightMultiplier);
@@ -505,62 +460,35 @@ const GrassField = ({
                 uvs.push(...v.uvArray);
                 colors.push(...v.color);
             });
-
             indices.push(...blade.indices);
         });
 
-        const positionsArray = new Float32Array(positions);
-        const uvsArray = new Float32Array(uvs);
-        const colorsArray = new Float32Array(colors);
-
         const grassGeometry = new BufferGeometry();
-        grassGeometry.setAttribute('position', new BufferAttribute(positionsArray, 3));
-        grassGeometry.setAttribute('uv', new BufferAttribute(uvsArray, 2));
-        grassGeometry.setAttribute('color', new BufferAttribute(colorsArray, 3));
+        grassGeometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
+        grassGeometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
+        grassGeometry.setAttribute('color', new BufferAttribute(new Float32Array(colors), 3));
         grassGeometry.setIndex(indices);
         grassGeometry.computeVertexNormals();
 
         if (meshRef.current) {
             meshRef.current.geometry = grassGeometry;
             meshRef.current.material = grassMaterial;
-            console.log('✅ Champ d\'herbe avec culling GPU appliqué avec', bladePositions.length, 'brins');
+            console.log('✅ Champ d\'herbe appliqué avec', bladePositions.length, 'brins');
         }
-    }, [generateSurfacePlacement, generateFlatPlacement, generateComplexBlade, generateSimpleBlade, config, grassMaterial, BLADE_COUNT, quality]);
+    }, [generateBlade, grassMaterial, config, quality, generateSurfacePlacement, generateFlatPlacement]);
 
-    // Initialisation
     useEffect(() => {
         generateField();
         if (onLoaded) onLoaded();
     }, [generateField, onLoaded]);
 
-    // Transitions de textures et mise à jour des uniforms (throttlé)
+    // Transitions de textures et mise à jour des uniforms
     useEffect(() => {
-        const now = Date.now();
-        if (now - lastUpdateTime.current < UPDATE_INTERVAL) return;
-        lastUpdateTime.current = now;
-
-        if (grassMaterial.uniforms.uGrassColorBase) {
-            const hsvToRgb = (h, s, v) => {
-                const c = v * s;
-                const x = c * (1 - Math.abs(((h * 6) % 2) - 1));
-                const m = v - c;
-                let r = 0, g = 0, b = 0;
-
-                if (0 <= h && h < 1/6) { r = c; g = x; b = 0; }
-                else if (1/6 <= h && h < 2/6) { r = x; g = c; b = 0; }
-                else if (2/6 <= h && h < 3/6) { r = 0; g = c; b = x; }
-                else if (3/6 <= h && h < 4/6) { r = 0; g = x; b = c; }
-                else if (4/6 <= h && h < 5/6) { r = x; g = 0; b = c; }
-                else if (5/6 <= h && h < 1) { r = c; g = 0; b = x; }
-
-                return [r + m, g + m, b + m];
-            };
-
-            const baseColor = hsvToRgb(grassHue, grassSaturation * 0.7, grassBrightness * 0.3);
-            const tipColor = hsvToRgb(grassHue, grassSaturation, grassBrightness);
-
-            grassMaterial.uniforms.uGrassColorBase.value = baseColor;
-            grassMaterial.uniforms.uGrassColorTip.value = tipColor;
+        // Mise à jour des uniforms de couleur
+        if (grassMaterial.uniforms.uGrassHue) {
+            grassMaterial.uniforms.uGrassHue.value = grassHue;
+            grassMaterial.uniforms.uGrassSaturation.value = grassSaturation;
+            grassMaterial.uniforms.uGrassBrightness.value = grassBrightness;
             grassMaterial.uniforms.uColorVariation.value = colorVariation;
         }
 
@@ -581,29 +509,11 @@ const GrassField = ({
         });
     }, [grassTextureIndex, getGrassTexture, grassMaterial, config.enableTextureTransitions, grassHue, grassSaturation, grassBrightness, colorVariation]);
 
-    // Animation avec mise à jour de la position caméra pour culling GPU
+    // Animation
     useFrame(() => {
-        // Animation du vent
         if (config.enableWind && config.animationQuality !== 'none') {
-            const now = Date.now();
-            if (now - lastUpdateTime.current >= UPDATE_INTERVAL) {
-                const elapsedTime = (now - startTime.current) * 0.3;
-                timeUniform.current.value = elapsedTime;
-                lastUpdateTime.current = now;
-            }
-        }
-
-        // 🎯 Mise à jour de la position caméra pour le culling GPU
-        if (camera && camera.position) {
-            // Vérifier que la caméra a une position valide
-            const camPos = camera.position;
-            if (camPos.x !== 0 || camPos.y !== 0 || camPos.z !== 0) {
-                cameraPositionUniform.current.value.copy(camPos);
-                if (!isCameraReady) {
-                    setIsCameraReady(true);
-                    console.log('📷 Caméra initialisée pour le culling:', camPos.x.toFixed(2), camPos.y.toFixed(2), camPos.z.toFixed(2));
-                }
-            }
+            const elapsedTime = (Date.now() - startTime.current) * 0.3;
+            timeUniform.current.value = elapsedTime;
         }
     });
 
