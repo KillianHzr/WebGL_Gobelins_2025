@@ -662,8 +662,8 @@ const GrassField = ({
                 
                 
                 // VALOU
-                const float contrast = 0.05;
-                const float brightness = 0.01;
+                const float contrast = 0.1;
+                const float brightness = 0.03;
 
                 ${config.enableTextureTransitions ? `
                     vec3 tex1 = texture2D(uGrassTextures[0], vUv).rgb;
@@ -687,14 +687,14 @@ const GrassField = ({
                 float heightFactor = vColor.r;
                 
                 // VALOU
-                float satMult = 0.75 + heightFactor * 0.5;
+                float satMult = 0.3  + heightFactor * 0.75;
                 float brightMult = uGrassBrightness * (0.4 + heightFactor * 0.6);
                 
                 vec3 grassHSV = vec3(finalHue, uGrassSaturation * satMult, brightMult);
                 vec3 grassRGB = hsv2rgb(grassHSV);
                 
                 // VALOU
-                vec3 finalColor = mix(blendedColor, blendedColor * grassRGB * 0.8, 0.85);
+                vec3 finalColor = mix(blendedColor, blendedColor * grassRGB * 0.5, 0.85);
                 
                 // Simple saturation boost
                 float lum = dot(finalColor, vec3(0.299, 0.587, 0.114));

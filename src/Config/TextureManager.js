@@ -489,7 +489,7 @@ class TextureManager {
     initializeTextures() {
         // Arbres
         this.addTextureMapping('TreeNaked', 'forest/tree', null, {
-            roughness: 1.0, metalness: 0.59, envMapIntensity: 0.08, color: '#765419', useTextures: {
+            roughness: 1.0, metalness: 0.59, envMapIntensity: 0.08, color: '#4d4232', useTextures: {
                 baseColor: false,
             }
         });
@@ -499,7 +499,7 @@ class TextureManager {
             roughness: 0.78,
             metalness: 0.71,
             envMapIntensity: 0.08,
-            color: '#342909',
+            color: '#3a322d',
             useTextures: {
                 baseColor: false,
             }
@@ -519,7 +519,7 @@ class TextureManager {
             roughness: 0.81,
             metalness: 0.7,
             envMapIntensity: 0.08,
-            color: '#3c2d0b',
+            color: '#463c35',
             normalScale: new Vector2(1.0, 1.0),
             useTextures: {
                 baseColor: false,
@@ -573,7 +573,7 @@ class TextureManager {
 
         this.addPlantTexture('TreeRoof', 'forest/tree', {
             roughness: 1.0, metalness: 0.0, envMapIntensity: 0.4, // castShadow: false,
-            color: '#1d6d35', useTextures: {
+            color: '#1b5b2f', useTextures: {
                 metalness: false, roughness: false,
 
                 // baseColor: false,
@@ -590,7 +590,7 @@ class TextureManager {
             metalness: 0.0,
             castShadow: true,
             receivedShadow: true,
-            color: '#37c876',
+            color: '#6c917b',
             alphaTest: 0.1,
             transparent: false
         });
@@ -604,7 +604,7 @@ class TextureManager {
 
         this.addPlantTexture('BranchFig', 'forest/branch', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.46,
-            castShadow: true, receivedShadow: true, color: '#48a735', useTextures: {
+            castShadow: true, receivedShadow: true, color: '#2a9a15', useTextures: {
                 // baseColor: false,
             }
         });
@@ -635,7 +635,7 @@ class TextureManager {
         this.addPlantTexture('Bush', 'forest/bush', {
             roughness: 1.0, // metalness: 1.0,
             // envMapIntensity: 0.46
-            color: '#366d31', useTextures: {
+            color: '#6dd563', useTextures: {
                 // baseColor: false,
             }
         });
@@ -655,14 +655,14 @@ class TextureManager {
         this.addPlantTexture('BushStrawberry', 'forest/bush', {
             roughness: 1.0, // metalness: 1.0,
             // envMapIntensity: 0.46
-            color: '#9baba2',
+            color: '#619b7a',
         });
 
         this.addPlantTexture('BushTrunk', 'forest/bush', {
             roughness: 0.7, metalness: 0.0, // envMapIntensity: 0.10,
             // castShadow: true,
             // receivedShadow: false,
-            color: '#7a7a7a',
+            color: '#51912c',
         });
 
         // Buissons - Groupe END
