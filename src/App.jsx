@@ -7,6 +7,7 @@ import CaptureInterface from './Utils/CaptureInterface.jsx'
 import ScannerInterface from './Utils/ScannerInterface.jsx'
 import BlackscreenInterface from "./Utils/BlackscreenInterface.jsx";
 import ImageInterface from "./Utils/ImageInterface.jsx"
+import VideoInterface from './Utils/VideoInterface.jsx'
 import AssetManager from './Assets/AssetManager'
 import { EventBus, EventEmitterProvider, MARKER_EVENTS } from './Utils/EventEmitter'
 import ResponsiveLanding from './Utils/ResponsiveLanding'
@@ -28,6 +29,7 @@ export default function App() {
     const [showExperience, setShowExperience] = useState(false)
     const [showMainLayout, setShowMainLayout] = useState(false)
     const [showEndingLanding, setShowEndingLanding] = useState(false)
+    const [showVideoInterface, setShowVideoInterface] = useState(false)
     const [scene3DDisabled, setScene3DDisabled] = useState(false) // NOUVEAU: État pour désactiver complètement la 3D
     const canvasRef = useRef(null)
     const experienceRef = useRef(null) // NOUVEAU: Référence vers Experience
@@ -435,93 +437,55 @@ export default function App() {
     };
 
     const handleEnterExperience = () => {
-        console.log("User entered experience - preparing transition");
+        console.log("User entered experience - preparing video transition");
         narrationEndedRef.current = false;
 
         setShowExperience(false);
+        setShowVideoInterface(true);
+
+        // Jouer le son radio-on au début de la vidéo
+        if (window.audioManager && typeof window.audioManager.playSound === 'function') {
+            window.audioManager.playSound('radio-on');
+            console.log("Playing radio on sound before video");
+        }
+    };
+
+    const handleVideoEnd = () => {
+        console.log("Video ended, proceeding to 3D scene");
+
+        setShowVideoInterface(false);
+        narrationEndedRef.current = true;
+
+        // Jouer le son radio-off à la fin de la vidéo
+        if (window.audioManager && typeof window.audioManager.playSound === 'function') {
+            window.audioManager.playSound('radio-off');
+            console.log("Playing radio off sound after video");
+        }
 
         setTimeout(() => {
-            console.log("Black screen transition in progress - preparing to play radio on sound");
+            console.log("Radio off sound complete, proceeding to 3D scene");
 
-            if (window.audioManager && typeof window.audioManager.playSound === 'function') {
-                window.audioManager.playSound('radio-on');
-                console.log("Playing radio on sound");
+            console.log("🎥 FORCING CAMERA RELOAD BEFORE SHOWING 3D SCENE");
+            forceReloadCamera();
+
+            setShowExperience(true);
+
+            if (canvasRef.current) {
+                canvasRef.current.focus();
             }
 
             setTimeout(() => {
-                console.log("Delay complete, playing Scene00_Radio1 narration");
+                if (window.audioManager && typeof window.audioManager.playNatureAmbience === 'function') {
+                    console.log("Starting nature ambience after camera reload and video");
+                    window.audioManager.playNatureAmbience(3000);
+                }
 
-                const narrationEndedListener = EventBus.on('narration-ended', (data) => {
-                    if (data && data.narrationId === 'Scene00_Radio1') {
-                        console.log("Scene00_Radio1 narration completed, playing Scene00_Radio2 after delay");
-
-                        setTimeout(() => {
-                            narrationManager.playNarration('Scene00_Radio2');
-                            console.log("Lecture de la narration Scene00_Radio2");
-                        }, 500);
-                    }
-                    else if (data && data.narrationId === 'Scene00_Radio2') {
-                        console.log("Scene00_Radio2 narration completed, playing radio off sound");
-
-                        if (window.audioManager && typeof window.audioManager.playSound === 'function') {
-                            window.audioManager.playSound('radio-off');
-                            console.log("Playing radio off sound");
-                        }
-
-                        setTimeout(() => {
-                            console.log("Radio off sound complete, proceeding to 3D scene");
-                            narrationEndedRef.current = true;
-
-                            console.log("🎥 FORCING CAMERA RELOAD BEFORE SHOWING 3D SCENE");
-                            forceReloadCamera();
-
-                            setShowExperience(true);
-
-                            if (canvasRef.current) {
-                                canvasRef.current.focus();
-                            }
-
-                            setTimeout(() => {
-                                if (window.audioManager && typeof window.audioManager.playNatureAmbience === 'function') {
-                                    console.log("Starting nature ambience after camera reload and radio narrations");
-                                    window.audioManager.playNatureAmbience(3000);
-                                }
-
-                                setTimeout(() => {
-                                    narrationManager.playNarration('Scene01_Mission');
-                                    console.log("Lecture de la narration Scene01_Mission après transition et camera reload");
-                                }, 2000);
-                            }, 1500);
-                        }, 1000);
-                    }
-                });
-
-                narrationManager.playNarration('Scene00_Radio1');
-                console.log("Lecture de la narration Scene00_Radio1 pendant l'écran noir");
-
-                const defaultDuration = 60000;
                 setTimeout(() => {
-                    if (!narrationEndedRef.current) {
-                        console.log("Fallback: Scene00_Radio narrations didn't fire ended events, proceeding anyway");
-                        narrationEndedRef.current = true;
-
-                        console.log("🎥 FORCING CAMERA RELOAD IN FALLBACK");
-                        forceReloadCamera();
-
-                        setShowExperience(true);
-
-                        if (canvasRef.current) {
-                            canvasRef.current.focus();
-                        }
-
-                        setTimeout(() => {
-                            narrationManager.playNarration('Scene01_Mission');
-                            console.log("Lecture de la narration Scene01_Mission après transition (fallback)");
-                        }, 2000);
-                    }
-                }, defaultDuration);
-            }, 1000);
-        }, 800);
+                    narrationManager.playNarration('Scene01_Mission');
+                    console.log("Lecture de la narration Scene01_Mission après transition et camera reload");
+                }, 2000);
+            }, 1500);
+        }, 1000);
     };
 
     const handleLearnMore = () => {
@@ -550,6 +514,16 @@ export default function App() {
 
             {!showExperience && !debug?.skipIntro && (
                 <LoadingScreen onComplete={handleEnterExperience} />
+            )}
+
+            {showVideoInterface && (
+                <VideoInterface
+                    isVisible={showVideoInterface}
+                    videoSrc="/videos/Scene00_Intro.mov"
+                    onVideoEnd={handleVideoEnd}
+                    autoPlay={true}
+                    muted={false}
+                />
             )}
 
             {showMainLayout && <MainLayout />}
