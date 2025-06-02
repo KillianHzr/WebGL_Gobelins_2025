@@ -63,7 +63,7 @@ export const ModelMarker = React.memo(function ModelMarker({
         // Ne pas montrer si l'étape a déjà été complétée
         !interactionCompleted && (
             // Cas spécial pour le type DISABLE : toujours afficher quand l'interaction est disponible
-            (effectiveMarkerType === INTERACTION_TYPES.CONFIRM &&
+            (effectiveMarkerType === INTERACTION_TYPES.DISABLE &&
                 (!requiredStep || (interaction?.waitingForInteraction && interaction.currentStep === requiredStep))) ||
 
             // Condition standard pour les autres types (basée sur le hover)
