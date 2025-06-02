@@ -463,6 +463,14 @@ export default function Lights() {
                 directionalLightRef.current.intensity = current.intensity;
                 directionalLightRef.current.color.set(current.color);
                 directionalLightRef.current.position.set(...current.position);
+
+                EventBus.trigger('main-light-updated', {
+                    position: current.position,
+                    intensity: current.intensity,
+                    color: current.color,
+                    lightType: 'pointLight',
+                    isMainLight: true
+                });
             }
 
             if (ambientLightRef.current) {
@@ -669,6 +677,26 @@ export default function Lights() {
             });
         };
     }, [debug, normalizedPosition, lightsInitialized]);
+
+    useEffect(() => {
+        if (directionalLightRef.current) {
+            directionalLightRef.current.name = 'MainLight';
+            directionalLightRef.current.userData = {
+                ...directionalLightRef.current.userData,
+                isMainLight: true,
+                godRaysSource: true
+            };
+        }
+
+        if (ambientLightRef.current) {
+            ambientLightRef.current.name = 'AmbientLight';
+            ambientLightRef.current.userData = {
+                ...ambientLightRef.current.userData,
+                isMainLight: false,
+                godRaysSource: false
+            };
+        }
+    }, [lightsInitialized]);
 
     // Ajouter aussi cet useEffect pour envoyer les valeurs actuelles au GUI
     useEffect(() => {

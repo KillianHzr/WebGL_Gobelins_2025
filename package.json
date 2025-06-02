@@ -23,6 +23,7 @@
     "@gltf-transform/functions": "^4.1.4",
     "@react-three/drei": "^10.0.8",
     "@react-three/fiber": "^9.1.2",
+    "@react-three/postprocessing": "^3.0.4",
     "gsap": "^3.13.0",
     "howler": "^2.2.4",
     "lil-gui": "^0.20.0",
