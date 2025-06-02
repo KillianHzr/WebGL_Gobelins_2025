@@ -146,6 +146,30 @@ const SceneFog = () => {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        // Écouter la position normalisée du scroll comme SkySphere
+        const handleTimelinePosition = (data) => {
+            if (!scene.fog || !data || typeof data.position !== 'number') return;
+
+            const scrollProgress = Math.max(0, Math.min(1, data.position));
+
+            // Changer la couleur du brouillard à 33%
+            const targetColor = scrollProgress >= 0.33 ? '#00001F' : '#ffffff';
+            scene.fog.color.set(targetColor);
+
+            // Debug
+            console.log(`🌫️ EventBus Fog: ${(scrollProgress * 100).toFixed(1)}% - Couleur: ${targetColor}`);
+        };
+
+        const unsubscribe = EventBus.on('timeline-position-normalized', handleTimelinePosition);
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
+    }, [scene]);
+
 
     // Ce composant ne rend rien visuellement, il modifie uniquement scene.fog
     return null;
