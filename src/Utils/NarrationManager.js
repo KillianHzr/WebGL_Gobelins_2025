@@ -18,8 +18,66 @@ class NarrationManager {
         this.subtitleTimer = null;
         this.subtitleElement = null;
 
+        // Configuration des volumes spécifiques par narration
+        this.narrationVolumes = {
+            // Narrations avec volume plus élevé (0.3)
+            'Scene01_Mission': 1.0,
+            'Scene02_PanneauInformation': 1.0,
+            'Scene03_SautAuDessusDeLArbre': 1.0,
+            'Scene04_RechercheDesIndices': 1.0,
+            'Scene04_RechercheDesIndices_part1': 1.0,
+            'Scene04_RechercheDesIndices_part2': 1.0,
+            'Scene04_RechercheDesIndices_part3': 1.0,
+            'Scene05_SautAu-DessusDeLaRiviere': 1.0,
+            'Scene06_PassageEn-DessousDeLaBranche': 1.0,
+            'Scene07_RemplissageDeLaGourde': 1.0,
+            'Scene08_DecouverteDuVisonMort': 1.0,
+            'Scene08_DecouverteDuVisonMort_Success': 1.0,
+            'Scene09_ClairiereDigitalisee': 1.0,
+            'Scene10_Photo1': 1.0,
+            'Scene10_Photo2': 1.0,
+            'Scene10_Photo3': 1.0,
+
+            'Scene00_Radio1': 0.15,
+            'Scene00_Radio2': 0.15,
+            'SceneGenerique': 0.2,
+            'Scene99_Message1': 0.3,
+            'Scene99_Message2': 0.3,
+            'Scene99_Message3': 0.3,
+        };
+
+        // Volume par défaut pour les narrations non spécifiées
+        this.defaultNarrationVolume = 0.1;
+
         // Créer l'élément DOM des sous-titres dès le début
         this.createSubtitleElement();
+    }
+
+    /**
+     * Obtient le volume configuré pour une narration spécifique
+     * @param {string} narrationId - Identifiant de la narration
+     * @returns {number} - Volume configuré (entre 0 et 1)
+     */
+    getNarrationVolume(narrationId) {
+        const volume = this.narrationVolumes[narrationId] || this.defaultNarrationVolume;
+        console.log(`🔊 NarrationManager: Volume pour ${narrationId}: ${volume}`);
+        return volume;
+    }
+
+    /**
+     * Met à jour le volume d'une narration spécifique
+     * @param {string} narrationId - Identifiant de la narration
+     * @param {number} volume - Nouveau volume (entre 0 et 1)
+     */
+    setNarrationVolume(narrationId, volume) {
+        this.narrationVolumes[narrationId] = Math.max(0, Math.min(1, volume));
+        console.log(`🔊 NarrationManager: Volume mis à jour pour ${narrationId}: ${this.narrationVolumes[narrationId]}`);
+
+        // Si cette narration est actuellement en lecture, mettre à jour son volume
+        const audio = this.narrationAudios.get(narrationId);
+        if (audio && audio.playing()) {
+            audio.volume(this.narrationVolumes[narrationId]);
+        }
     }
 
     /**
@@ -244,19 +302,25 @@ class NarrationManager {
      * @param {string} narrationId - Identifiant de la narration (sans extension)
      */
     async playNarration(narrationId) {
-        console.log(`Playing narration: ${narrationId}`);
+        console.log(`🎵 Playing narration: ${narrationId}`);
 
         // Charger les sous-titres d'abord
         const subtitles = await this.loadSubtitles(narrationId);
+
+        // Obtenir le volume configuré pour cette narration
+        const narrationVolume = this.getNarrationVolume(narrationId);
 
         // Chercher l'audio dans le cache ou le créer
         let narrationAudio = this.narrationAudios.get(narrationId);
 
         if (!narrationAudio) {
+            console.log(`🎵 Creating new Howl for ${narrationId} with volume ${narrationVolume}`);
+
             narrationAudio = new Howl({
                 src: [`/audios/narration/${narrationId}.m4a`],
                 html5: true,
                 preload: true,
+                volume: narrationVolume, // Appliquer le volume configuré
                 onend: () => {
                     EventBus.trigger('narration-ended', { narrationId });
                 },
@@ -267,6 +331,10 @@ class NarrationManager {
 
             // Mettre en cache
             this.narrationAudios.set(narrationId, narrationAudio);
+        } else {
+            // Si l'audio existe déjà, s'assurer qu'il a le bon volume
+            console.log(`🎵 Using cached Howl for ${narrationId}, updating volume to ${narrationVolume}`);
+            narrationAudio.volume(narrationVolume);
         }
 
         // Jouer l'audio
@@ -281,7 +349,8 @@ class NarrationManager {
         // Notifier que la narration a commencé
         EventBus.trigger('narration-started', {
             narrationId,
-            subtitles: subtitles
+            subtitles: subtitles,
+            volume: narrationVolume
         });
 
         // Programmer les sous-titres en fonction de leur timestamp
@@ -388,6 +457,16 @@ class NarrationManager {
             }, index * 2000);
         });
     }
+
+    /**
+     * Méthode de debug pour afficher les volumes configurés
+     */
+    getVolumeConfiguration() {
+        console.log('🔊 Configuration des volumes de narration:');
+        console.table(this.narrationVolumes);
+        console.log(`🔊 Volume par défaut: ${this.defaultNarrationVolume}`);
+        return this.narrationVolumes;
+    }
 }
 
 // Export d'une instance unique (singleton)
@@ -396,6 +475,15 @@ export const narrationManager = new NarrationManager();
 // Ajouter l'instance à window pour pouvoir y accéder facilement depuis la console
 if (typeof window !== 'undefined') {
     window.narrationManager = narrationManager;
+
+    // Exposer les fonctions de configuration de volume pour le debug
+    window.setNarrationVolume = (narrationId, volume) => {
+        narrationManager.setNarrationVolume(narrationId, volume);
+    };
+
+    window.getNarrationVolumes = () => {
+        return narrationManager.getVolumeConfiguration();
+    };
 }
 
 export default narrationManager;

@@ -865,12 +865,6 @@ const EnhancedObjectMarker = React.memo(function EnhancedObjectMarker({
             }
 
             if (success) {
-                if (audioManager) {
-                    audioManager.playSound('drag', {
-                        volume: 0.8, fade: true, fadeTime: 800
-                    });
-                }
-
                 if (onClick) {
                     onClick({
                         type: markerType, direction, distance
