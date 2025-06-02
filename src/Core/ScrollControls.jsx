@@ -45,7 +45,7 @@ const CHAPTERS = getChaptersWithDistances();
 const ACTIVE_CHAPTERS = CHAPTERS.filter(chapter => chapter.distance !== 0 && chapter.distance !== "none" && chapter.distance !== undefined);
 
 // Paramètres de défilement
-const MAX_SCROLL_SPEED = 2.2;
+const MAX_SCROLL_SPEED = 0.02;
 const DECELERATION = 0.95;
 const MIN_VELOCITY = 0.005;
 const BASE_SENSITIVITY = 0.05;
@@ -179,7 +179,7 @@ function CameraController({children}) {
 
                     camera.fov = glbCamera.fov || 24; // Valeur par défaut si pas de FOV
                     camera.near = glbCamera.near || 0.1;
-                    camera.far = glbCamera.far || 1000;
+                    camera.far = 55;
                     camera.aspect = glbCamera.aspect || camera.aspect;
                     camera.zoom = glbCamera.zoom || 1;
 

@@ -119,7 +119,7 @@
   width: 100%;
   height: 100%;
   background-color: v.color(background);
-  background-image: url('/images/Landing_Background.jpg');
+  background-image: url('/images/Landing_Background.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -175,7 +175,7 @@
 
   &-project-logo {
     width: 100%;
-    max-width: 496px;
+    max-width: 596px;
     margin-bottom: 64px;
 
     img {

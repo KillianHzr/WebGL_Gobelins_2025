@@ -20,6 +20,8 @@ const VideoInterface = ({
 
         const video = videoRef.current;
 
+        video.volume = 0.2;
+
         const handleLoadStart = () => {
             console.log('📹 VideoInterface: Video loading started');
             setIsLoading(true);
@@ -143,7 +145,7 @@ const VideoInterface = ({
                 )}
             </div>
 
-            <style jsx>{`
+            <style jsx="true">{`
                 .video-interface {
                     position: fixed;
                     top: 0;

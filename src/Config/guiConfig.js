@@ -542,14 +542,14 @@ const guiConfig = {
                     max: 200,
                     step: 1,
                     name: "Initial Near",
-                    default: 30
+                    default: 25
                 },
                 initialFar: {
                     min: 30,
                     max: 250,
                     step: 1,
                     name: "Initial Far",
-                    default: 45
+                    default: 55
                 }
             }
         }

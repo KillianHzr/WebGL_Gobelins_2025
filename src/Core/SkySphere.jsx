@@ -15,6 +15,22 @@ const SkySphere = () => {
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [transitionProgress, setTransitionProgress] = useState(0);
 
+    // NOUVEAU: Configuration de la rotation
+    const rotationConfig = useRef({
+        day: {
+            speed: 0.0001,    // Rotation très lente pour le jour
+            axis: { x: 0, y: 1, z: 0 }  // Rotation autour de l'axe Y
+        },
+        goddess: {
+            speed: 0.00015,   // Légèrement plus rapide pour l'environnement goddess
+            axis: { x: 0, y: 1, z: 0.1 }  // Légère inclinaison
+        },
+        night: {
+            speed: 0.00008,   // Plus lent pour la nuit (effet paisible)
+            axis: { x: 0, y: 1, z: 0 }
+        }
+    });
+
     // NOUVEAU: Facteurs de luminosité pour chaque environnement
     const BRIGHTNESS_FACTORS = {
         day: 1.0,        // Luminosité normale
@@ -61,11 +77,11 @@ const SkySphere = () => {
         Object.values(textures).forEach(texture => {
             if (texture) {
                 texture.mapping = EquirectangularReflectionMapping;
-                texture.flipY = false;
+                texture.flipY = true;
                 texture.needsUpdate = true;
             }
         });
-        console.log('🌌 SkySphere: Textures configurées avec contrôle de luminosité');
+        console.log('🌌 SkySphere: Textures configurées avec contrôle de luminosité et rotation');
     }, [textures]);
 
     // ✅ CORRECTION: Fonction pour analyser l'état basé sur la progression du scroll (useCallback stable)
@@ -335,7 +351,7 @@ const SkySphere = () => {
                 syncTimeout = setTimeout(() => {
                     clearInterval(syncInterval);
                     if (!isInitialized.current) {
-                        console.warn('🌌 SkySphere: Timeout de synchronisation');
+                        // console.warn('🌌 SkySphere: Timeout de synchronisation');
                         isInitialized.current = true;
                     }
                 }, 10000);
@@ -348,13 +364,43 @@ const SkySphere = () => {
         }
     }, [currentEnvironment]);
 
-    // Mettre à jour la position des sphères
-    useFrame(() => {
+    // NOUVEAU: Mettre à jour la position et la rotation des sphères
+    useFrame((state, delta) => {
         if (meshRef.current && camera) {
+            // Position suit la caméra
             meshRef.current.position.copy(camera.position);
+
+            // Rotation basée sur l'environnement actuel
+            const config = rotationConfig.current[currentEnvironment];
+            if (config) {
+                meshRef.current.rotation.x += config.axis.x * config.speed * delta * 60;
+                meshRef.current.rotation.y += config.axis.y * config.speed * delta * 60;
+                meshRef.current.rotation.z += config.axis.z * config.speed * delta * 60;
+            }
         }
+
         if (transitionMeshRef.current && camera) {
+            // Position suit la caméra
             transitionMeshRef.current.position.copy(camera.position);
+
+            // Rotation basée sur l'environnement cible
+            if (isTransitioning) {
+                const config = rotationConfig.current[targetEnvironment];
+                if (config) {
+                    // Interpolation entre les vitesses de rotation pendant la transition
+                    const currentConfig = rotationConfig.current[currentEnvironment];
+                    const blendFactor = smoothStep(transitionProgress);
+
+                    const blendedSpeed = currentConfig.speed * (1 - blendFactor) + config.speed * blendFactor;
+                    const blendedAxisX = currentConfig.axis.x * (1 - blendFactor) + config.axis.x * blendFactor;
+                    const blendedAxisY = currentConfig.axis.y * (1 - blendFactor) + config.axis.y * blendFactor;
+                    const blendedAxisZ = currentConfig.axis.z * (1 - blendFactor) + config.axis.z * blendFactor;
+
+                    transitionMeshRef.current.rotation.x += blendedAxisX * blendedSpeed * delta * 60;
+                    transitionMeshRef.current.rotation.y += blendedAxisY * blendedSpeed * delta * 60;
+                    transitionMeshRef.current.rotation.z += blendedAxisZ * blendedSpeed * delta * 60;
+                }
+            }
         }
     });
 
@@ -396,6 +442,31 @@ const SkySphere = () => {
                 },
                 getCurrentOpacity: () => meshRef.current?.material?.opacity || 0,
                 getTransitionOpacity: () => transitionMeshRef.current?.material?.opacity || 0,
+
+                // NOUVELLES FONCTIONS DE DEBUG POUR LA ROTATION
+                getRotationConfig: () => rotationConfig.current,
+                setRotationSpeed: (env, speed) => {
+                    if (rotationConfig.current[env]) {
+                        rotationConfig.current[env].speed = speed;
+                        console.log(`🌌 SkySphere: Vitesse de rotation ${env} définie à ${speed}`);
+                    }
+                },
+                setRotationAxis: (env, axis) => {
+                    if (rotationConfig.current[env]) {
+                        rotationConfig.current[env].axis = { ...axis };
+                        console.log(`🌌 SkySphere: Axe de rotation ${env} défini à`, axis);
+                    }
+                },
+                getCurrentRotation: () => ({
+                    x: meshRef.current?.rotation.x || 0,
+                    y: meshRef.current?.rotation.y || 0,
+                    z: meshRef.current?.rotation.z || 0
+                }),
+                getTransitionRotation: () => ({
+                    x: transitionMeshRef.current?.rotation.x || 0,
+                    y: transitionMeshRef.current?.rotation.y || 0,
+                    z: transitionMeshRef.current?.rotation.z || 0
+                }),
 
                 testScrollPosition: (progress) => {
                     try {
@@ -443,7 +514,13 @@ const SkySphere = () => {
                     currentOpacity: meshRef.current?.material?.opacity || 0,
                     targetOpacity: transitionMeshRef.current?.material?.opacity || 0,
                     brightnessFactor: BRIGHTNESS_FACTORS[currentEnvironment] || 1.0,
-                    targetBrightnessFactor: BRIGHTNESS_FACTORS[targetEnvironment] || 1.0
+                    targetBrightnessFactor: BRIGHTNESS_FACTORS[targetEnvironment] || 1.0,
+                    currentRotation: {
+                        x: meshRef.current?.rotation.x || 0,
+                        y: meshRef.current?.rotation.y || 0,
+                        z: meshRef.current?.rotation.z || 0
+                    },
+                    rotationConfig: rotationConfig.current[currentEnvironment]
                 }),
 
                 // ✅ NOUVELLES FONCTIONS DE DEBUG POUR LES LISTENERS

@@ -173,7 +173,7 @@ export default function Experience() {
 
         // 5. Restaurer la distance de vue de la caméra
         if (camera && camera.userData && camera.userData.originalFar) {
-            camera.far = camera.userData.originalFar;
+            camera.far = 55;
             camera.updateProjectionMatrix();
         }
 

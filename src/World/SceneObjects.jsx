@@ -7,6 +7,7 @@ import {textureManager} from '../Config/TextureManager';
 import useStore from '../Store/useStore';
 import MARKER_EVENTS, {EventBus} from '../Utils/EventEmitter';
 import {FrontSide, LoopOnce, LoopRepeat} from 'three';
+import GrassField from "./GrassField.jsx";
 
 // Activer ou désactiver les logs pour le débogage
 const DEBUG_SCENE_OBJECTS = false;
@@ -34,7 +35,8 @@ export const StaticObject = React.memo(function StaticObject({
                                                                  animationTimeScale = 1.0,
                                                                  onAnimationComplete = null,
                                                                  placementIndex = null, // NOUVEAU: pour identification
-                                                                 animationId = null     // NOUVEAU: pour identification
+                                                                 animationId = null,     // NOUVEAU: pour identification
+                                                                 onModelLoaded = null    // NOUVEAU: callback pour quand le modèle est chargé
                                                              }) {
     const objectRef = useRef();
     const isComponentMounted = useRef(true);
@@ -98,6 +100,16 @@ export const StaticObject = React.memo(function StaticObject({
 
         return clonedModel;
     }, [modelScene, path, textureModelId, castShadow, receiveShadow]);
+
+    // Effet pour notifier le parent quand le modèle est chargé (pour les objets Ground)
+    useEffect(() => {
+        if (objectRef.current && onModelLoaded && isGroundObjectRef.current) {
+            // Attendre le prochain tick pour s'assurer que l'objet est bien positionné
+            setTimeout(() => {
+                onModelLoaded(objectRef.current);
+            }, 0);
+        }
+    }, [model, onModelLoaded]);
 
     // Utiliser useAnimations pour gérer les animations
     const {actions, mixer} = useAnimations(animations, objectRef);
@@ -826,7 +838,7 @@ export const StaticObject = React.memo(function StaticObject({
     }, [textureModelId, path, actions, mixer]);
 
 
-        return (
+    return (
         <primitive
             ref={objectRef}
             object={model}
@@ -846,7 +858,7 @@ export const StaticObject = React.memo(function StaticObject({
  * Composant pour afficher les objets statiques (non-interactifs) dans la scène
  * Version optimisée avec support des animations
  */
-export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
+export const StaticObjects = React.memo(function StaticObjects({filter = {}, onGroundLoaded = null}) {
     const [placements, setPlacements] = useState([]);
     const {scene} = useThree();
     const lastFilter = useRef(filter);
@@ -856,6 +868,14 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
         const staticPlacements = sceneObjectManager.getStaticPlacements(filter);
         setPlacements(staticPlacements);
     }, [filter]);
+
+    // Callback pour quand un objet Ground est chargé
+    const handleGroundLoaded = useCallback((groundObject) => {
+        console.log('🌍 Ground.glb chargé et référence disponible:', groundObject);
+        if (onGroundLoaded) {
+            onGroundLoaded(groundObject);
+        }
+    }, [onGroundLoaded]);
 
     // Récupérer les placements au chargement et lorsque le filtre change
     useEffect(() => {
@@ -977,6 +997,11 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                 });
             }
 
+            // NOUVEAU: Ajouter callback pour les objets Ground
+            const isGroundObject = placement.objectKey?.toLowerCase().includes('ground') ||
+                textureModelId?.toLowerCase().includes('ground') ||
+                objectConfig.path?.toLowerCase().includes('ground');
+
             return (
                 <StaticObject
                     key={key}
@@ -992,11 +1017,12 @@ export const StaticObjects = React.memo(function StaticObjects({filter = {}}) {
                     useTextures={useTextures}
                     placementIndex={index} // NOUVEAU: Passer l'index pour identification
                     animationId={placement.animationId} // NOUVEAU: Passer l'ID d'animation si disponible
+                    onModelLoaded={isGroundObject ? handleGroundLoaded : null} // NOUVEAU: Callback pour Ground
                     {...animationProps}
                 />
             );
         });
-    }, [placements, setPlacements]);
+    }, [placements, setPlacements, handleGroundLoaded]);
 
     return (
         <group name="static-objects">
@@ -1312,16 +1338,39 @@ export const SingleStaticObject = React.memo(function SingleStaticObject({
 /**
  * Composant principal qui affiche tous les objets de scène
  * Utilise les deux sous-composants pour objets statiques et interactifs
- * Version optimisée
+ * Version optimisée avec référence Ground
  */
 const SceneObjects = React.memo(function SceneObjects({
                                                           staticFilter = {},
-                                                          interactiveFilter = {}
+                                                          interactiveFilter = {},
+                                                          timeItemsObject = {}
                                                       }) {
+    // Référence pour le sol (Ground.glb)
+    const groundRef = useRef(null);
+    const [isGroundLoaded, setIsGroundLoaded] = useState(false);
+    const [isGrassLoaded, setIsGrassLoaded] = useState(false);
+
+    // Callback quand l'objet Ground est chargé
+    const handleGroundLoaded = useCallback((groundObject) => {
+        console.log('🌍 Ground.glb est maintenant la référence du sol');
+        groundRef.current = groundObject;
+        setIsGroundLoaded(true);
+    }, []);
+
     return (
         <group name="scene-objects">
-            <StaticObjects filter={staticFilter}/>
+            <StaticObjects
+                filter={staticFilter}
+                onGroundLoaded={handleGroundLoaded}
+            />
             <InteractiveObjects filter={interactiveFilter}/>
+            {/*{isGroundLoaded && (*/}
+            {/*    <GrassField*/}
+            {/*        groundRef={groundRef}*/}
+            {/*        grassTextureIndex={timeItemsObject.grassTextureIndex || 0}*/}
+            {/*        onLoaded={() => setIsGrassLoaded(true)}*/}
+            {/*    />*/}
+            {/*)}*/}
         </group>
     );
 });
