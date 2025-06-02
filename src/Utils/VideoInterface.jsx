@@ -143,7 +143,7 @@ const VideoInterface = ({
                 )}
             </div>
 
-            <style jsx>{`
+            <style jsx="true">{`
                 .video-interface {
                     position: fixed;
                     top: 0;

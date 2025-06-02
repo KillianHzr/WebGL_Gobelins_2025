@@ -2294,7 +2294,7 @@ class TextureManager {
             if (baseModelId && baseModelId !== modelId && this.hasTextures(baseModelId)) {
                 modelId = baseModelId;
             } else {
-                console.warn(`Aucune texture trouvée pour le modèle ${modelId} ou un modèle similaire`);
+                // console.warn(`Aucune texture trouvée pour le modèle ${modelId} ou un modèle similaire`);
                 return;
             }
         }
