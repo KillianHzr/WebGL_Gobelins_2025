@@ -33,13 +33,27 @@ class BonusSoundsManager {
             digital: []
         };
 
-        // Configuration des sons disponibles
+        // Configuration des sons disponibles - NOUVEAUTÉ: sons de test intégrés
         this.availableSounds = {
-            nature: ['nature01', 'nature02', 'nature03', 'nature04'],
+            nature: ['nature_test_01', 'nature_test_02'], // Sons réduits pour test
+            digital: ['digital_test_01', 'digital_test_02'] // Sons réduits pour test
+        };
+
+        // NOUVEAUTÉ: Tracking des fichiers qui ont échoué au chargement
+        this.failedSounds = {
+            nature: [],
+            digital: []
+        };
+
+        // NOUVEAUTÉ: Utiliser des sons alternatifs si les fichiers bonus ne sont pas trouvés
+        this.fallbackSounds = {
+            nature: [
+                '/audios/randoms/bird_voices.mp3',
+                '/audios/randoms/soft_wind_1.mp3'
+            ],
             digital: [
-                'digital01', 'digital02', 'digital03', 'digital04',
-                'digital05', 'digital06', 'digital07', 'digital08',
-                'digital09', 'digital10', 'digital11', 'digital12'
+                '/audios/randoms/3_beeps.mp3',
+                '/audios/randoms/beep.mp3'
             ]
         };
 
@@ -51,17 +65,20 @@ class BonusSoundsManager {
         this.isInInteraction = false;
         this.isInterfaceOpen = false;
 
-        console.log('BonusSoundsManager: Initialized');
+        // NOUVEAUTÉ: Flag pour indiquer si le système doit utiliser les sons de fallback
+        this.useFallbackSounds = false;
+
+        console.log('BonusSoundsManager: Initialized with error handling');
     }
 
     /**
      * Initialise le système
      */
     init() {
-        console.log('BonusSoundsManager: Starting initialization');
+        console.log('BonusSoundsManager: Starting initialization with robust error handling');
 
-        // Charger tous les sons
-        this.loadAllSounds();
+        // Vérifier d'abord si les sons bonus existent, sinon utiliser les fallbacks
+        this.checkAndLoadSounds();
 
         // Initialiser les files d'attente
         this.initializeSoundQueues();
@@ -79,10 +96,140 @@ class BonusSoundsManager {
     }
 
     /**
-     * Charge tous les sons bonus
+     * NOUVEAUTÉ: Vérifie et charge les sons avec gestion des erreurs
+     */
+    async checkAndLoadSounds() {
+        console.log('BonusSoundsManager: Checking for available bonus sounds...');
+
+        // Tenter de charger les sons bonus originaux
+        const originalSounds = {
+            nature: ['nature01', 'nature02', 'nature03', 'nature04'],
+            digital: [
+                'digital01', 'digital02', 'digital03', 'digital04',
+                'digital05', 'digital06', 'digital07', 'digital08',
+                'digital09', 'digital10', 'digital11', 'digital12'
+            ]
+        };
+
+        let loadedNature = 0;
+        let loadedDigital = 0;
+
+        // Essayer de charger quelques sons tests pour vérifier la disponibilité
+        const testPromises = [];
+
+        // Test nature sounds
+        testPromises.push(
+            this.testSoundLoad('nature01', 'nature').then(success => {
+                if (success) loadedNature++;
+            })
+        );
+
+        // Test digital sounds
+        testPromises.push(
+            this.testSoundLoad('digital01', 'digital').then(success => {
+                if (success) loadedDigital++;
+            })
+        );
+
+        // Attendre les tests
+        await Promise.all(testPromises);
+
+        // Décider quelle stratégie utiliser
+        if (loadedNature === 0 && loadedDigital === 0) {
+            console.warn('BonusSoundsManager: No bonus sounds found, switching to fallback sounds');
+            this.useFallbackSounds = true;
+            this.loadFallbackSounds();
+        } else {
+            console.log('BonusSoundsManager: Bonus sounds available, loading original set');
+            this.availableSounds = originalSounds;
+            this.loadAllSounds();
+        }
+    }
+
+    /**
+     * NOUVEAUTÉ: Teste le chargement d'un son individuel
+     */
+    testSoundLoad(soundId, type) {
+        return new Promise((resolve) => {
+            const testSound = new Howl({
+                src: [`/audios/narration/bonus/${soundId}.mp3`],
+                volume: 0,
+                preload: true,
+                onload: () => {
+                    console.log(`BonusSoundsManager: Test load successful for ${soundId}`);
+                    testSound.unload(); // Nettoyer immédiatement
+                    resolve(true);
+                },
+                onloaderror: () => {
+                    console.log(`BonusSoundsManager: Test load failed for ${soundId}`);
+                    testSound.unload(); // Nettoyer même en cas d'erreur
+                    resolve(false);
+                }
+            });
+
+            // Timeout de sécurité
+            setTimeout(() => {
+                testSound.unload();
+                resolve(false);
+            }, 5000);
+        });
+    }
+
+    /**
+     * NOUVEAUTÉ: Charge les sons de fallback depuis les sons existants
+     */
+    loadFallbackSounds() {
+        console.log('BonusSoundsManager: Loading fallback sounds from existing audio files');
+
+        // Charger les sons nature de fallback
+        this.fallbackSounds.nature.forEach((src, index) => {
+            const soundId = `nature_fallback_${index + 1}`;
+            this.sounds.nature[soundId] = new Howl({
+                src: [src],
+                loop: false,
+                volume: 0.5, // Volume plus bas pour les sons de fallback
+                preload: true,
+                onload: () => console.log(`BonusSoundsManager: Loaded fallback nature sound ${soundId}`),
+                onloaderror: (id, error) => {
+                    console.warn(`BonusSoundsManager: Error loading fallback nature sound ${soundId}:`, error);
+                    this.failedSounds.nature.push(soundId);
+                }
+            });
+        });
+
+        // Charger les sons digital de fallback
+        this.fallbackSounds.digital.forEach((src, index) => {
+            const soundId = `digital_fallback_${index + 1}`;
+            this.sounds.digital[soundId] = new Howl({
+                src: [src],
+                loop: false,
+                volume: 0.5, // Volume plus bas pour les sons de fallback
+                preload: true,
+                onload: () => console.log(`BonusSoundsManager: Loaded fallback digital sound ${soundId}`),
+                onloaderror: (id, error) => {
+                    console.warn(`BonusSoundsManager: Error loading fallback digital sound ${soundId}:`, error);
+                    this.failedSounds.digital.push(soundId);
+                }
+            });
+        });
+
+        // Mettre à jour la liste des sons disponibles
+        this.availableSounds = {
+            nature: Object.keys(this.sounds.nature),
+            digital: Object.keys(this.sounds.digital)
+        };
+
+        console.log('BonusSoundsManager: Fallback sounds loaded', {
+            nature: this.availableSounds.nature.length,
+            digital: this.availableSounds.digital.length
+        });
+    }
+
+    /**
+     * Charge tous les sons bonus (version originale avec gestion d'erreurs améliorée)
      */
     loadAllSounds() {
-        console.log('BonusSoundsManager: Loading all bonus sounds');
+        console.log('BonusSoundsManager: Loading all bonus sounds with error handling');
 
         // Charger les sons nature
         this.availableSounds.nature.forEach(soundId => {
@@ -92,7 +239,13 @@ class BonusSoundsManager {
                 volume: 0.7,
                 preload: true,
                 onload: () => console.log(`BonusSoundsManager: Loaded ${soundId}`),
-                onloaderror: (id, error) => console.error(`BonusSoundsManager: Error loading ${soundId}:`, error)
+                onloaderror: (id, error) => {
+                    console.warn(`BonusSoundsManager: Error loading ${soundId}:`, error);
+                    this.failedSounds.nature.push(soundId);
+                    // Supprimer le son défaillant de la liste disponible
+                    this.availableSounds.nature = this.availableSounds.nature.filter(s => s !== soundId);
+                    delete this.sounds.nature[soundId];
+                }
             });
         });
 
@@ -104,9 +257,45 @@ class BonusSoundsManager {
                 volume: 0.7,
                 preload: true,
                 onload: () => console.log(`BonusSoundsManager: Loaded ${soundId}`),
-                onloaderror: (id, error) => console.error(`BonusSoundsManager: Error loading ${soundId}:`, error)
+                onloaderror: (id, error) => {
+                    console.warn(`BonusSoundsManager: Error loading ${soundId}:`, error);
+                    this.failedSounds.digital.push(soundId);
+                    // Supprimer le son défaillant de la liste disponible
+                    this.availableSounds.digital = this.availableSounds.digital.filter(s => s !== soundId);
+                    delete this.sounds.digital[soundId];
+                }
             });
         });
+
+        // Nettoyer les listes après un délai pour permettre le chargement
+        setTimeout(() => {
+            this.cleanupFailedSounds();
+        }, 3000);
+    }
+
+    /**
+     * NOUVEAUTÉ: Nettoie les sons qui ont échoué au chargement
+     */
+    cleanupFailedSounds() {
+        const natureCount = this.availableSounds.nature.length;
+        const digitalCount = this.availableSounds.digital.length;
+
+        console.log(`BonusSoundsManager: Cleanup complete. Available sounds: ${natureCount} nature, ${digitalCount} digital`);
+
+        if (this.failedSounds.nature.length > 0) {
+            console.warn(`BonusSoundsManager: ${this.failedSounds.nature.length} nature sounds failed to load:`, this.failedSounds.nature);
+        }
+
+        if (this.failedSounds.digital.length > 0) {
+            console.warn(`BonusSoundsManager: ${this.failedSounds.digital.length} digital sounds failed to load:`, this.failedSounds.digital);
+        }
+
+        // Si aucun son n'a pu être chargé, essayer les fallbacks
+        if (natureCount === 0 && digitalCount === 0 && !this.useFallbackSounds) {
+            console.warn('BonusSoundsManager: No sounds loaded successfully, switching to fallback mode');
+            this.useFallbackSounds = true;
+            this.loadFallbackSounds();
+        }
     }
 
     /**
@@ -214,9 +403,6 @@ class BonusSoundsManager {
     handleScrollActivity(normalizedPosition) {
         this.lastScrollTime = Date.now();
         this.currentScrollProgress = normalizedPosition;
-
-        // Pas besoin de log à chaque scroll, trop verbeux
-        // console.log(`BonusSoundsManager: Scroll activity at ${(normalizedPosition * 100).toFixed(1)}%`);
     }
 
     /**
@@ -310,11 +496,17 @@ class BonusSoundsManager {
     }
 
     /**
-     * Joue le prochain son bonus approprié
+     * Joue le prochain son bonus approprié (avec gestion d'erreurs)
      */
     playNextBonusSound() {
         // Déterminer le type de son à jouer selon la progression
         const soundType = this.currentScrollProgress < this.NATURE_DIGITAL_THRESHOLD ? 'nature' : 'digital';
+
+        // Vérifier qu'il y a des sons disponibles pour ce type
+        if (this.availableSounds[soundType].length === 0) {
+            console.warn(`BonusSoundsManager: No ${soundType} sounds available`);
+            return;
+        }
 
         // Obtenir le prochain son de la file
         let soundId = this.getNextSoundFromQueue(soundType);
@@ -327,17 +519,22 @@ class BonusSoundsManager {
         // Jouer le son
         const sound = this.sounds[soundType][soundId];
         if (sound) {
-            console.log(`BonusSoundsManager: Playing bonus sound ${soundId} (type: ${soundType}, progress: ${(this.currentScrollProgress * 100).toFixed(1)}%)`);
+            console.log(`BonusSoundsManager: Playing bonus sound ${soundId} (type: ${soundType}, progress: ${(this.currentScrollProgress * 100).toFixed(1)}%) ${this.useFallbackSounds ? '[FALLBACK]' : ''}`);
 
-            sound.play();
-            this.lastSoundPlayedTime = Date.now();
+            try {
+                sound.play();
+                this.lastSoundPlayedTime = Date.now();
 
-            // Émettre un événement pour notifier qu'un son bonus est joué
-            EventBus.trigger('bonus-sound-played', {
-                soundId,
-                soundType,
-                scrollProgress: this.currentScrollProgress
-            });
+                // Émettre un événement pour notifier qu'un son bonus est joué
+                EventBus.trigger('bonus-sound-played', {
+                    soundId,
+                    soundType,
+                    scrollProgress: this.currentScrollProgress,
+                    usingFallback: this.useFallbackSounds
+                });
+            } catch (error) {
+                console.error(`BonusSoundsManager: Error playing sound ${soundId}:`, error);
+            }
         } else {
             console.error(`BonusSoundsManager: Sound ${soundId} not found in ${soundType} category`);
         }
@@ -367,19 +564,27 @@ class BonusSoundsManager {
 
         console.log(`BonusSoundsManager: Force triggering ${type} sound`);
 
+        if (this.availableSounds[type].length === 0) {
+            return `No ${type} sounds available`;
+        }
+
         const soundId = this.getNextSoundFromQueue(type);
         if (soundId && this.sounds[type][soundId]) {
-            this.sounds[type][soundId].play();
-            this.lastSoundPlayedTime = Date.now();
-
-            return `Played ${soundId} (${type})`;
+            try {
+                this.sounds[type][soundId].play();
+                this.lastSoundPlayedTime = Date.now();
+                return `Played ${soundId} (${type}) ${this.useFallbackSounds ? '[FALLBACK]' : ''}`;
+            } catch (error) {
+                console.error(`BonusSoundsManager: Error force playing ${soundId}:`, error);
+                return `Error playing ${soundId}`;
+            }
         }
 
         return `No ${type} sound available`;
     }
 
     /**
-     * Obtient l'état de debug du système
+     * Obtient l'état de debug du système (avec infos sur les erreurs)
      */
     getDebugState() {
         const now = Date.now();
@@ -404,6 +609,12 @@ class BonusSoundsManager {
                 notInInteraction: !this.isInInteraction && !this.isInterfaceOpen,
                 timeSinceInteraction: this.lastInteractionTime ? (now - this.lastInteractionTime) >= this.MIN_TIME_AFTER_INTERACTION : true,
                 soundInterval: this.lastSoundPlayedTime ? (now - this.lastSoundPlayedTime) >= this.MIN_SOUND_INTERVAL : true
+            },
+            usingFallbackSounds: this.useFallbackSounds,
+            failedSounds: this.failedSounds,
+            availableSoundsCount: {
+                nature: this.availableSounds.nature.length,
+                digital: this.availableSounds.digital.length
             }
         };
     }
