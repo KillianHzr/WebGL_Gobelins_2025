@@ -129,6 +129,16 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
 
         console.log("Clic sur bouton d'action - ouverture interface");
 
+        // NOUVEAU : Réduire la puissance de la flashlight progressivement
+        console.log("📸 Réduction progressive de l'intensité de la flashlight pour la prise de photo");
+        EventBus.trigger('flashlight-photo-taken', {
+            action: 'reduce-intensity',
+            reductionFactor: 0.15, // Réduction plus importante (85% de réduction)
+            duration: 3000, // 3 secondes pour la transition
+            reason: 'photo-capture',
+            markerId: id
+        });
+
         // Marquer comme complété dans l'état persistant
         setIsCompleted(true);
         updatePersistentState({ isCompleted: true });
