@@ -9,7 +9,7 @@ import {EventBus} from "../Utils/EventEmitter.jsx";
 /**
  * Flashlight Component - World/Flashlight.jsx
  * Version avec clignottement réaliste, activation directe à 70% du scroll (0 → 15) et clignottement automatique à 80%
- * NOUVEAU: Réduction d'intensité pour la prise de photo
+ * Réduction d'intensité pour la prise de photo
  */
 
 export default function Flashlight() {
@@ -50,7 +50,7 @@ export default function Flashlight() {
         flickerActivationThreshold: 0.8  // Déclenchement du clignottement à 80%
     });
 
-    // *** NOUVEAU: Références pour le clignottement avec pattern binaire naturel ***
+    // *** Références pour le clignottement avec pattern binaire naturel ***
     const flickerRef = useRef({
         enabled: false,
         intensity: 1.0,
@@ -120,7 +120,7 @@ export default function Flashlight() {
         // Pas d'interpolation - changements brutaux instantanés
         let smoothValue = patternValue; // Utilise directement la valeur du pattern sans transition
 
-        // NOUVEAU: Ajouter un long moment d'extinction avant la dernière répétition
+        // Ajouter un long moment d'extinction avant la dernière répétition
         const cycleProgress = (timeSinceStart * patternSpeed) / pattern.length;
         const nextCycleWillBeLast = Math.floor(cycleProgress + 1) >= flicker.repeatCount;
 
@@ -195,14 +195,14 @@ export default function Flashlight() {
             flicker.duration = duration;
         }
 
-        // Nouveau offset de bruit pour la variabilité
+        // Offset de bruit pour la variabilité
         flicker.noiseOffset = Math.random() * 1000;
 
         console.log(`Flashlight: Clignottement déclenché (pattern: ${flicker.patternIndex}, répétitions: ${repeatCount})`);
     };
 
-    // NOUVEAU: Fonction pour réduire l'intensité pour la prise de photo avec animation progressive
-    const reduceIntensityForPhoto = (reductionFactor = 0.15, duration = 3000) => {
+    // Fonction pour réduire l'intensité pour la prise de photo avec animation progressive
+    const reduceIntensityForPhoto = (reductionFactor = 0.15, duration = 2000) => {
         const photoReduction = photoReductionRef.current;
 
         if (photoReduction.isAnimating) {
@@ -234,7 +234,7 @@ export default function Flashlight() {
         console.log(`📸 Flashlight: Animation configurée - de ${photoReduction.startIntensity} vers ${photoReduction.targetIntensity}`);
     };
 
-    // NOUVEAU: Fonction pour animer progressivement la réduction
+    // Fonction pour animer progressivement la réduction
     const animatePhotoReduction = (currentTime) => {
         const photoReduction = photoReductionRef.current;
 
@@ -269,7 +269,7 @@ export default function Flashlight() {
         }
     };
 
-    // NOUVEAU: Fonction pour restaurer l'intensité originale
+    // Fonction pour restaurer l'intensité originale
     const restoreOriginalIntensity = () => {
         const photoReduction = photoReductionRef.current;
 
@@ -394,14 +394,14 @@ export default function Flashlight() {
 
         // Écouter tous les événements de contrôle de la flashlight
         const subscriptions = [
-            // NOUVEAU: Écouter l'événement de prise de photo
+            // Écouter l'événement de prise de photo
             EventBus.on('flashlight-photo-taken', (data) => {
                 console.log('📸 Flashlight: Événement de prise de photo reçu:', data);
 
                 if (data.action === 'reduce-intensity') {
-                    const reductionFactor = data.reductionFactor || 0.15;
-                    const duration = data.duration || 3000;
-                    reduceIntensityForPhoto(reductionFactor, duration);
+                    // const reductionFactor = data.reductionFactor || 0.15;
+                    // const duration = data.duration || 3000;
+                    // reduceIntensityForPhoto(reductionFactor, duration);
                 } else if (data.action === 'restore-intensity') {
                     restoreOriginalIntensity();
                 }
@@ -610,7 +610,7 @@ export default function Flashlight() {
                 // Dès qu'on atteint 70%, passer directement à l'intensité cible (15)
                 let targetIntensity = thresholds.targetIntensity;
 
-                // NOUVEAU: Appliquer la réduction de photo si active, mais seulement si pas en cours d'animation
+                // Appliquer la réduction de photo si active, mais seulement si pas en cours d'animation
                 const photoReduction = photoReductionRef.current;
                 if (photoReduction.isReduced && !photoReduction.isAnimating) {
                     targetIntensity = photoReduction.originalIntensity * photoReduction.reductionFactor;
@@ -621,7 +621,7 @@ export default function Flashlight() {
                     console.log(`Flashlight: Activation directe à ${targetIntensity} (position: ${(position * 100).toFixed(1)}%)`);
                     updateFlashlightState({intensity: targetIntensity});
 
-                    // NOUVEAU: Émettre un événement la première fois que la flashlight s'allume
+                    // Émettre un événement la première fois que la flashlight s'allume
                     if (!firstActivationRef.current) {
                         firstActivationRef.current = true;
 
@@ -664,7 +664,7 @@ export default function Flashlight() {
             currentIntensityRef.current = targetIntensityRef.current;
         }
 
-        // NOUVEAU: Animer la réduction progressive pour la prise de photo
+        // Animer la réduction progressive pour la prise de photo
         animatePhotoReduction(currentTime * 1000); // Convertir en millisecondes
 
         // Appliquer le clignottement
