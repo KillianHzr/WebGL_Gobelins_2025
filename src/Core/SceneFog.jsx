@@ -3,6 +3,7 @@ import {useThree} from '@react-three/fiber';
 import {Color, Fog} from 'three';
 import useStore from '../Store/useStore';
 import guiConfig from '../Config/guiConfig';
+import { EventBus } from '../Utils/EventEmitter';
 
 /**
  * Composant qui gère uniquement le brouillard (fog) dans la scène
@@ -43,7 +44,6 @@ const SceneFog = () => {
             fogConfigRef.current.initialNear,
             fogConfigRef.current.initialFar
         );
-        // scene.background = fogColorRef.current;
 
         console.log(`Brouillard initialisé avec la couleur ${fogColorRef.current.getHexString()}`);
 
@@ -117,7 +117,7 @@ const SceneFog = () => {
         }
     }, [debug, gui, scene.fog]);
 
-    // Mettre à jour le brouillard en fonction de la position de défilement
+    // 🚀 CONSERVÉ : Mettre à jour le brouillard en fonction de la position de défilement (système original)
     useEffect(() => {
         const interval = setInterval(() => {
             if (!scene.fog || sequenceLength <= 0) return;
@@ -144,21 +144,40 @@ const SceneFog = () => {
         }, 100); // 10 FPS au lieu de 60 FPS
 
         return () => clearInterval(interval);
-    }, []);
+    }, [timelinePosition, sequenceLength]);
 
+    // 🚀 CONSERVÉ + NOUVEAU : Écouter la position normalisée ET émettre pour l'herbe
     useEffect(() => {
-        // Écouter la position normalisée du scroll comme SkySphere
         const handleTimelinePosition = (data) => {
             if (!scene.fog || !data || typeof data.position !== 'number') return;
 
             const scrollProgress = Math.max(0, Math.min(1, data.position));
 
-            // Changer la couleur du brouillard à 33%
+            // 🚀 CONSERVÉ : Changer la couleur du brouillard à 33%
             const targetColor = scrollProgress >= 0.33 ? '#00001F' : '#ffffff';
             scene.fog.color.set(targetColor);
 
+            // 🆕 NOUVEAU : Calculer et émettre l'assombrissement pour l'herbe
+            const darkeningTransitionPoint = 0.33; // Début à 33%
+            const darkeningEndPoint = 0.8; // Fin à 80%
+
+            let darkeningProgress = 0;
+            if (scrollProgress >= darkeningTransitionPoint) {
+                darkeningProgress = Math.min(1, (scrollProgress - darkeningTransitionPoint) / (darkeningEndPoint - darkeningTransitionPoint));
+            }
+            // Pas de multiplication par darkeningIntensity pour atteindre 100% à 80%
+
+            // Émettre un événement spécifique pour l'herbe
+            EventBus.trigger('grass-darkening-update', {
+                progress: darkeningProgress,
+                scrollProgress: scrollProgress,
+                targetColor: '#12f322'
+            });
+
             // Debug
-            console.log(`🌫️ EventBus Fog: ${(scrollProgress * 100).toFixed(1)}% - Couleur: ${targetColor}`);
+            if (window.location.search.includes('debug')) {
+                console.log(`🌫️ EventBus Fog: ${(scrollProgress * 100).toFixed(1)}% - Couleur: ${targetColor} - Grass: ${(darkeningProgress * 100).toFixed(1)}%`);
+            }
         };
 
         const unsubscribe = EventBus.on('timeline-position-normalized', handleTimelinePosition);
@@ -169,7 +188,6 @@ const SceneFog = () => {
             }
         };
     }, [scene]);
-
 
     // Ce composant ne rend rien visuellement, il modifie uniquement scene.fog
     return null;

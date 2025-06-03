@@ -1,4 +1,4 @@
-// File: GrassField.jsx - Version ULTRA-OPTIMISÉE avec Frustum Culling + LOD + Memory Management
+// File: GrassField.jsx - Version avec assombrissement progressif
 
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLoader, useFrame, useThree } from '@react-three/fiber';
@@ -6,6 +6,7 @@ import { TextureLoader, RepeatWrapping, ShaderMaterial, DoubleSide, Vector3, Col
 import { useGLTF } from '@react-three/drei';
 import { gsap } from 'gsap';
 import { useAnimationFrame, animationManager } from '../Utils/AnimationManager';
+import { EventBus } from '../Utils/EventEmitter';
 
 // 🚀 NOUVEAU : Cache global pour les géométries avec TTL
 const GEOMETRY_CACHE = new Map();
@@ -432,7 +433,11 @@ const GrassField = ({
                         grassBrightness = 1.0,
                         colorVariation = 0.0,
                         enablePerformanceOptimization = true,
-                        customThrottling = {}
+                        customThrottling = {},
+                        // 🆕 NOUVEAU : Paramètres pour l'assombrissement progressif
+                        enableDarkening = true,
+                            // darkeningTransitionPoint et darkeningIntensity sont maintenant gérés par SceneFog
+                        darkeningTargetColor = '#00280e' // Couleur cible pour l'assombrissement
                     }) => {
     const instancedMeshRef = useRef();
     const cullingManagerRef = useRef();
@@ -440,6 +445,10 @@ const GrassField = ({
     const [visibleInstanceCount, setVisibleInstanceCount] = useState(0);
 
     const { camera, scene } = useThree();
+
+    // 🆕 NOUVEAU : Références pour l'assombrissement progressif
+    const darkeningProgressRef = useRef({ value: 0.0 });
+    const scrollProgressRef = useRef(0.0);
 
     // Merge preset avec config custom
     const config = useMemo(() => ({
@@ -456,6 +465,32 @@ const GrassField = ({
             }
         };
     }, [camera, scene]);
+
+    // 🆕 NOUVEAU : Écouter l'événement spécifique émis par SceneFog
+    useEffect(() => {
+        if (!enableDarkening) return;
+
+        const handleGrassDarkening = (data) => {
+            if (!data || typeof data.progress !== 'number') return;
+
+            // Utiliser directement la progression calculée par SceneFog
+            darkeningProgressRef.current.value = data.progress;
+            scrollProgressRef.current = data.scrollProgress;
+
+            // Debug
+            if (window.location.search.includes('debug')) {
+                console.log(`🌱 Grass Darkening: ${(data.scrollProgress * 100).toFixed(1)}% - Assombrissement: ${(data.progress * 100).toFixed(1)}%`);
+            }
+        };
+
+        const unsubscribe = EventBus.on('grass-darkening-update', handleGrassDarkening);
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe();
+            }
+        };
+    }, [enableDarkening]);
 
     // Configuration du système d'animation centralisé
     useEffect(() => {
@@ -583,7 +618,7 @@ const GrassField = ({
         useGLTF('/models/Ground.glb') : { nodes: null };
     const targetMesh = nodes?.Retopo_Plane002;
 
-    // 🚀 NOUVEAU : Shader material ultra-optimisé
+    // 🆕 NOUVEAU : Shader material ultra-optimisé avec support de l'assombrissement
     const grassMaterial = useMemo(() => {
         const vertexShader = /* glsl */`
             varying vec2 vUv;
@@ -643,6 +678,8 @@ const GrassField = ({
             uniform sampler2D uGrassTextures[2];
             ${config.enableClouds ? 'uniform sampler2D uCloudTexture;' : ''}
             ${config.enableTextureTransitions ? 'uniform float uProgress;' : ''}
+            ${enableDarkening ? 'uniform float uDarkeningProgress;' : ''}
+            ${enableDarkening ? 'uniform vec3 uDarkeningColor;' : ''}
             
             uniform float uGrassHue;
             uniform float uGrassSaturation;
@@ -659,7 +696,6 @@ const GrassField = ({
             void main() {
                 // Early alpha test for LOD
                 if (vOpacity < 0.01) discard;
-                
                 
                 // VALOU
                 const float contrast = 0.1;
@@ -700,6 +736,12 @@ const GrassField = ({
                 float lum = dot(finalColor, vec3(0.299, 0.587, 0.114));
                 finalColor = mix(vec3(lum), finalColor, 1.3);
                 
+                ${enableDarkening ? `
+                    // 🆕 NOUVEAU : Application de l'assombrissement progressif
+                    // Mélanger avec la couleur d'assombrissement basée sur la progression
+                    finalColor = mix(finalColor, finalColor * uDarkeningColor, uDarkeningProgress);
+                ` : ''}
+                
                 gl_FragColor = vec4(finalColor, vOpacity);
             }`;
 
@@ -712,6 +754,11 @@ const GrassField = ({
             ...(config.enableWind && { iTime: timeUniform.current }),
             ...(config.enableClouds && cloudTexture && { uCloudTexture: { value: cloudTexture } }),
             ...(config.enableTextureTransitions && { uProgress: progress.current }),
+            // 🆕 NOUVEAU : Uniforms pour l'assombrissement
+            ...(enableDarkening && {
+                uDarkeningProgress: darkeningProgressRef.current,
+                uDarkeningColor: { value: new Color(darkeningTargetColor) }
+            }),
         };
 
         return new ShaderMaterial({
@@ -723,7 +770,18 @@ const GrassField = ({
             transparent: config.enableLOD,
             depthWrite: !config.enableLOD,
         });
-    }, [cloudTexture, grassTextures, quality, config, grassHue, grassSaturation, grassBrightness, colorVariation]);
+    }, [
+        cloudTexture,
+        grassTextures,
+        quality,
+        config,
+        grassHue,
+        grassSaturation,
+        grassBrightness,
+        colorVariation,
+        enableDarkening,
+        darkeningTargetColor
+    ]);
 
     // 🚀 NOUVEAU : Génération des instances avec cache et culling data
     const generateInstances = useCallback(() => {
@@ -1007,7 +1065,8 @@ const GrassField = ({
                     geometry: GEOMETRY_CACHE.size,
                     weightmap: WEIGHTMAP_CACHE.size,
                     texture: TEXTURE_CACHE.size
-                }
+                },
+                darkeningProgress: enableDarkening ? darkeningProgressRef.current.value : 'disabled'
             });
         }
     }, 'analytics');
