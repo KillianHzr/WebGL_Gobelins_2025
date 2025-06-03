@@ -615,7 +615,7 @@ const GrassField = ({
 
     // Chargement du modèle 3D
     const { nodes } = config.enableSurfacePlacement ?
-        useGLTF('/models/Ground.glb') : { nodes: null };
+        useGLTF('/models/GrassGround.glb') : { nodes: null };
     const targetMesh = nodes?.Retopo_Plane002;
 
     // 🆕 NOUVEAU : Shader material ultra-optimisé avec support de l'assombrissement
