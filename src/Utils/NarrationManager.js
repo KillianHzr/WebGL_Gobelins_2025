@@ -41,9 +41,10 @@ class NarrationManager {
             'Scene00_Radio1': 0.15,
             'Scene00_Radio2': 0.15,
             'SceneGenerique': 0.2,
-            'Scene99_Message1': 0.3,
-            'Scene99_Message2': 0.3,
-            'Scene99_Message3': 0.3,
+            'Scene99_Message1': 0.4,
+            'Scene99_Message2': 0.4,
+            'Scene99_Message3': 0.4,
+            'Scene99_Message4': 0.4,
         };
 
         // Volume par défaut pour les narrations non spécifiées
