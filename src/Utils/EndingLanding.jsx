@@ -362,9 +362,10 @@ const EndingLanding = ({ onLearnMore }) => {
                         <span className="ending-credits-name">MELISSE CLIVAZ</span>
                     </div>
                     <div className="ending-credits-names line-2">
+                        <span className="ending-credits-name">LAURENT BLANPAIN</span>
+                        <span className="ending-credits-name">PASCALE CHEMIN</span>
                         <span className="ending-credits-name">LUCAS BENEVAUT</span>
                         <span className="ending-credits-name">ALEXANDRE LHOSTE</span>
-                        <span className="ending-credits-name">VICTOR LETISSE–PILLON</span>
                     </div>
                 </div>
             </div>
@@ -385,9 +386,10 @@ const EndingLanding = ({ onLearnMore }) => {
                                 <span className="ending-credits-name">MELISSE CLIVAZ</span>
                             </div>
                             <div className="ending-credits-names line-2">
+                                <span className="ending-credits-name">LAURENT BLANPAIN</span>
+                                <span className="ending-credits-name">PASCALE CHEMIN</span>
                                 <span className="ending-credits-name">LUCAS BENEVAUT</span>
                                 <span className="ending-credits-name">ALEXANDRE LHOSTE</span>
-                                <span className="ending-credits-name">VICTOR LETISSE–PILLON</span>
                             </div>
                         </div>
                         <div className="ending-logos">
