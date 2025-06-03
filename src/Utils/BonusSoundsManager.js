@@ -107,7 +107,7 @@ class BonusSoundsManager {
             digital: [
                 'digital01', 'digital02', 'digital03', 'digital04',
                 'digital05', 'digital06', 'digital07', 'digital08',
-                'digital09', 'digital10', 'digital11', 'digital12'
+                'digital09', 'digital10', 'digital11', 'digital12', 'digital13',
             ]
         };
 

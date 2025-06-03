@@ -124,8 +124,8 @@ export default function CaptureInterface() {
         // Jouer le son de capture
         audioManager.playSound('capture');
         setTimeout(() => {
-            audioManager.playSound('ultrasound', {fade:true,fadeTime:2});
-        }, 1000); // Attendre 1 seconde avant d'afficher la notification
+            narrationManager.playNarration('Scene09_ClairiereDigitalisee');
+        }, 1000);
         setIsButtonPressed(true);
 
         // Réinitialiser le zoom

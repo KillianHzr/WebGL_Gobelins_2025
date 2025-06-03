@@ -169,13 +169,13 @@ class AudioManager {
 
         this.addSound('capture', {
             src: ['/audios/camera_shutter.wav'],
-            volume: 0.8,
+            volume: 0.5,
             preload: true,
             onloaderror: (id, error) => console.error('Error loading camera sound:', error)
         });
         this.addSound('ultrasound', {
             src: ['/audios/ultrasound.mp3'],
-            volume: 0.9,
+            volume: 0.1,
             preload: true,
             onloaderror: (id, error) => console.error('Error loading camera sound:', error)
         });
