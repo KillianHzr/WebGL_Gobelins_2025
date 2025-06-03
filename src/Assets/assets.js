@@ -290,6 +290,14 @@ const baseAssets = [
         author: 'Author',
         url: ''
     },
+    {
+        name: 'DataCenterPanel',
+        type: 'gltf',
+        path: '/models/digital/DataCenterPanel.glb',
+        license: 'CC-BY',
+        author: 'Author',
+        url: ''
+    },
     // {
     //     name: 'PlantIvy',
     //     type: 'gltf',

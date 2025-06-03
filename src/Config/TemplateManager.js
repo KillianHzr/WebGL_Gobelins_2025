@@ -408,6 +408,14 @@ class TemplateManager {
                 useTextures: true,
                 group: 'screen'
             },
+            // DataCenter Panel
+            'DataCenterPanel_1': {
+                id: 'DataCenterPanel',
+                path: '/models/digital/DataCenterPanel.glb',
+                priority: 23,
+                useTextures: true,
+                group: 'screen'
+            },
             // // 'BranchEucalyptus_2': {
             // //     id: 'BranchEucalyptusScreen',
             // //     path: '/models/forest/branch/BranchEucalyptus.glb',

@@ -493,7 +493,29 @@ class SceneObjectManager {
                     rotation: [0, 3.14 / 4, 0],
                     scale: [0.62521, 0.6252, 0.62521],
                 }]
-            }, 'VisonDead': {
+            },
+
+            'DataCenterPanel': {
+                id: 'DataCenterPanel',
+                path: '/models/digital/DataCenterPanel.glb',
+                interactive: false,
+                useTextures: true,
+                defaultPlacements: [{
+                    position: [-3.055, -0.251, -135.134],
+                    rotation: [0, -126.78, 0],
+                    scale: [1, 1, 1],
+                }, {
+                    position: [15.931, 0.000, -134.524],
+                    rotation: [0, -70.69, 0],
+                    scale: [0.82521, 0.82521, 0.82521],
+                }, {
+                    position: [11.700, 0.000, -126.457],
+                    rotation: [0, 29.32, 0],
+                    scale: [0.82521, 0.82521, 0.82521],
+                }]
+            },
+
+            'VisonDead': {
                 id: 'VisonDead',
                 path: '/models/primary/AnimalVisonDead.glb',
                 scale: [1.05783, 1.05783, 1.05783],
