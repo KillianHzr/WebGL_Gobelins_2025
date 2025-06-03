@@ -414,9 +414,9 @@ export default function Flashlight() {
 
     // Écouter les événements du GUI au lieu de créer le GUI directement
     useEffect(() => {
-        if (!debug?.active) return;
+        // if (!debug?.active) return;
 
-        console.log('Flashlight: Écoute des événements GUI démarrée');
+        // console.log('Flashlight: Écoute des événements GUI démarrée');
 
         // Écouter tous les événements de contrôle de la flashlight
         const subscriptions = [
