@@ -40,6 +40,7 @@ const EndingLanding = ({ onLearnMore }) => {
         {
             id: 'Scene99_Message3',
             texts: [
+                'Cette fois, c\'était le <strong>vison d\'Europe</strong>. Demain, une <strong>autre espèce</strong>. Et un jour, <strong>ce sera nous</strong>.',
                 'La réalité est là. <strong>L\'intelligence Artificielle</strong> n\'est plus un fantasme. ',
             ]
         },
