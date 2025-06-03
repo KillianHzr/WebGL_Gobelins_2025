@@ -27,7 +27,7 @@ class RandomAmbientSounds {
                 minInterval: 30,
                 maxInterval: 60,
                 minVolume: 0.05,
-                maxVolume: 0.15,
+                maxVolume: 0.08,
                 preload: true
             },
             insectes: {
