@@ -46,7 +46,7 @@ export default function Flashlight() {
     // Configuration des seuils d'activation de la lampe torche
     const flashlightThresholdsRef = useRef({
         activationThreshold: 0.66,        // Activation directe à 70% du scroll
-        targetIntensity: 15,             // Intensité cible (passage direct de 0 à 15)
+        targetIntensity: 30,             // Intensité cible (passage direct de 0 à 15)
         flickerActivationThreshold: 0.8  // Déclenchement du clignottement à 80%
     });
 
@@ -202,7 +202,7 @@ export default function Flashlight() {
     };
 
     // Fonction pour réduire l'intensité pour la prise de photo avec animation progressive
-    const reduceIntensityForPhoto = (reductionFactor = 0.15, duration = 2000) => {
+    const reduceIntensityForPhoto = (reductionFactor = 0.15, duration = 1200, immediate = false) => {
         const photoReduction = photoReductionRef.current;
 
         if (photoReduction.isAnimating) {
@@ -216,7 +216,7 @@ export default function Flashlight() {
             photoReduction.isReduced = true;
             photoReduction.reductionFactor = reductionFactor;
 
-            console.log(`📸 Flashlight: Début de la réduction progressive d'intensité sur ${duration}ms`);
+            console.log(`📸 Flashlight: Début de la réduction ${immediate ? 'IMMÉDIATE' : 'progressive'} d'intensité sur ${duration}ms`);
             console.log(`📸 Intensité: ${photoReduction.originalIntensity} → ${photoReduction.originalIntensity * reductionFactor}`);
         } else {
             // Réduction supplémentaire - appliquer sur l'intensité actuelle
@@ -224,14 +224,40 @@ export default function Flashlight() {
             console.log(`📸 Flashlight: Réduction supplémentaire - nouveau facteur: ${photoReduction.reductionFactor}`);
         }
 
-        // Configurer l'animation progressive
+        let startIntensity = targetIntensityRef.current;
+
+        // CORRECTION PRINCIPALE : Réduction immédiate au clic
+        if (immediate) {
+            const immediateReductionFactor = 0.3; // Réduction immédiate à 30%
+            const immediateIntensity = targetIntensityRef.current * immediateReductionFactor;
+
+            // Appliquer IMMÉDIATEMENT sans animation
+            targetIntensityRef.current = immediateIntensity;
+            currentIntensityRef.current = immediateIntensity;
+            startIntensity = immediateIntensity;
+
+            console.log(`📸 Flashlight: ⚡ RÉDUCTION IMMÉDIATE APPLIQUÉE - intensité: ${immediateIntensity}`);
+
+            // Mettre à jour le store immédiatement
+            updateFlashlightState({
+                intensity: immediateIntensity
+            });
+
+            // Forcer la mise à jour de la lumière THREE.js immédiatement
+            if (flashlightRef.current) {
+                flashlightRef.current.intensity = immediateIntensity;
+                console.log(`📸 Flashlight: ⚡ Intensité THREE.js mise à jour immédiatement: ${immediateIntensity}`);
+            }
+        }
+
+        // Animation progressive vers l'intensité finale (plus basse)
         photoReduction.isAnimating = true;
         photoReduction.animationStartTime = performance.now();
         photoReduction.animationDuration = duration;
-        photoReduction.startIntensity = targetIntensityRef.current;
+        photoReduction.startIntensity = startIntensity;
         photoReduction.targetIntensity = photoReduction.originalIntensity * photoReduction.reductionFactor;
 
-        console.log(`📸 Flashlight: Animation configurée - de ${photoReduction.startIntensity} vers ${photoReduction.targetIntensity}`);
+        console.log(`📸 Flashlight: Animation progressive configurée - de ${photoReduction.startIntensity} vers ${photoReduction.targetIntensity}`);
     };
 
     // Fonction pour animer progressivement la réduction
@@ -399,9 +425,12 @@ export default function Flashlight() {
                 console.log('📸 Flashlight: Événement de prise de photo reçu:', data);
 
                 if (data.action === 'reduce-intensity') {
-                    // const reductionFactor = data.reductionFactor || 0.15;
-                    // const duration = data.duration || 3000;
-                    // reduceIntensityForPhoto(reductionFactor, duration);
+                    const reductionFactor = data.reductionFactor || 0.1; // Plus agressif par défaut
+                    const duration = data.duration || 1200; // Plus rapide par défaut
+                    const immediate = data.immediate !== undefined ? data.immediate : true; // Immédiat par défaut
+
+                    console.log(`📸 Flashlight: Paramètres - facteur: ${reductionFactor}, durée: ${duration}, immédiat: ${immediate}`);
+                    reduceIntensityForPhoto(reductionFactor, duration, immediate);
                 } else if (data.action === 'restore-intensity') {
                     restoreOriginalIntensity();
                 }

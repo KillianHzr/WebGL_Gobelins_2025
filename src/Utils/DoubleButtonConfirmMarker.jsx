@@ -127,17 +127,19 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
     const handleActionClick = useCallback((e) => {
         stopAllPropagation(e);
 
-        console.log("Clic sur bouton d'action - ouverture interface");
+        console.log("📸 Clic sur bouton d'action - DÉCLENCHEMENT IMMÉDIAT de la réduction flashlight");
 
-        // NOUVEAU : Réduire la puissance de la flashlight progressivement
-        console.log("📸 Réduction progressive de l'intensité de la flashlight pour la prise de photo");
+        // CORRECTION : Réduction IMMÉDIATE de la flashlight au moment exact du clic
         EventBus.trigger('flashlight-photo-taken', {
             action: 'reduce-intensity',
-            reductionFactor: 0.15, // Réduction plus importante (85% de réduction)
-            duration: 3000, // 3 secondes pour la transition
-            reason: 'photo-capture',
+            reductionFactor: 0.50, // Réduction finale drastique (92% de réduction)
+            duration: 2000, // Animation rapide de 0.8 secondes
+            immediate: false, // CRITIQUE : déclencher la réduction immédiate
+            reason: 'photo-capture-immediate',
             markerId: id
         });
+
+        console.log("📸 ⚡ Événement de réduction immédiate envoyé !");
 
         // Marquer comme complété dans l'état persistant
         setIsCompleted(true);
@@ -154,6 +156,8 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
             id,
             type: 'confirm'
         });
+
+        console.log("📸 ✅ Séquence de prise de photo déclenchée avec réduction immédiate");
     }, [onClick, id, stopAllPropagation, EventBus, MARKER_EVENTS, updatePersistentState]);
 
     // Écouter les événements de réinitialisation si nécessaire
