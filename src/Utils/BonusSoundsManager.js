@@ -187,7 +187,7 @@ class BonusSoundsManager {
             this.sounds.nature[soundId] = new Howl({
                 src: [src],
                 loop: false,
-                volume: 0.5, // Volume plus bas pour les sons de fallback
+                volume: 0.8, // Volume plus bas pour les sons de fallback
                 preload: true,
                 onload: () => console.log(`BonusSoundsManager: Loaded fallback nature sound ${soundId}`),
                 onloaderror: (id, error) => {
@@ -203,7 +203,7 @@ class BonusSoundsManager {
             this.sounds.digital[soundId] = new Howl({
                 src: [src],
                 loop: false,
-                volume: 0.5, // Volume plus bas pour les sons de fallback
+                volume: 0.8, // Volume plus bas pour les sons de fallback
                 preload: true,
                 onload: () => console.log(`BonusSoundsManager: Loaded fallback digital sound ${soundId}`),
                 onloaderror: (id, error) => {

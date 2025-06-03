@@ -1,6 +1,9 @@
-import React, {useCallback, useState} from "react";
+import React, {useCallback, useState, useEffect} from "react";
 import {Html} from "@react-three/drei";
 import {narrationManager} from "./NarrationManager";
+
+// Stockage global pour persister l'état des interactions CONFIRM
+const confirmInteractionStates = new Map();
 
 const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker({
                                                                                     id,
@@ -14,12 +17,46 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                                                                                     EventBus,
                                                                                     MARKER_EVENTS
                                                                                 }) {
-    const [clickCount, setClickCount] = useState(0);
+
+    // Fonction pour obtenir l'état persistant
+    const getPersistentState = useCallback(() => {
+        if (!confirmInteractionStates.has(id)) {
+            confirmInteractionStates.set(id, {
+                clickCount: 0,
+                showActionState: false,
+                isCompleted: false
+            });
+        }
+        return confirmInteractionStates.get(id);
+    }, [id]);
+
+    // Fonction pour mettre à jour l'état persistant
+    const updatePersistentState = useCallback((updates) => {
+        const currentState = getPersistentState();
+        const newState = { ...currentState, ...updates };
+        confirmInteractionStates.set(id, newState);
+        return newState;
+    }, [id, getPersistentState]);
+
+    // États locaux basés sur l'état persistant
+    const persistentState = getPersistentState();
+    const [clickCount, setClickCount] = useState(persistentState.clickCount);
+    const [showActionState, setShowActionState] = useState(persistentState.showActionState);
+    const [isCompleted, setIsCompleted] = useState(persistentState.isCompleted);
+
+    // États locaux pour l'UI
     const [buttonsOpacity, setButtonsOpacity] = useState(1);
     const [leftHovered, setLeftHovered] = useState(false);
     const [rightHovered, setRightHovered] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
-    const [showActionState, setShowActionState] = useState(false); // Nouvel état pour contrôler l'affichage
+
+    // Synchroniser l'état local avec l'état persistant au montage
+    useEffect(() => {
+        const state = getPersistentState();
+        setClickCount(state.clickCount);
+        setShowActionState(state.showActionState);
+        setIsCompleted(state.isCompleted);
+    }, [getPersistentState]);
 
     // Animation de disparition/réapparition des boutons avec opacité
     const animateButtons = useCallback((isThirdClick = false) => {
@@ -33,18 +70,25 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
             // Si c'est le 3ème clic, changer l'état d'affichage maintenant
             if (isThirdClick) {
                 setShowActionState(true);
+                updatePersistentState({ showActionState: true });
             }
             setButtonsOpacity(1);
             setIsAnimating(false);
         }, 2000);
-    }, [isAnimating]);
+    }, [isAnimating, updatePersistentState]);
 
     // Gestion du clic sur "arrête le massacre"
     const handleMassacreClick = useCallback((e) => {
         stopAllPropagation(e);
 
+        // Si déjà complété, ne pas permettre de nouvelles interactions
+        if (isCompleted) return;
+
         const newClickCount = clickCount + 1;
         setClickCount(newClickCount);
+
+        // Mettre à jour l'état persistant
+        updatePersistentState({ clickCount: newClickCount });
 
         console.log(`Clic sur "Arrête le massacre" - ${newClickCount}/3`);
 
@@ -77,13 +121,17 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
         if (isThirdClick) {
             console.log("Transformation en boutons d'action !");
         }
-    }, [clickCount, animateButtons, stopAllPropagation]);
+    }, [clickCount, animateButtons, stopAllPropagation, isCompleted, updatePersistentState]);
 
     // Gestion du clic sur les boutons d'action (après 3 clics)
     const handleActionClick = useCallback((e) => {
         stopAllPropagation(e);
 
         console.log("Clic sur bouton d'action - ouverture interface");
+
+        // Marquer comme complété dans l'état persistant
+        setIsCompleted(true);
+        updatePersistentState({ isCompleted: true });
 
         if (onClick) {
             onClick({
@@ -96,7 +144,33 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
             id,
             type: 'confirm'
         });
-    }, [onClick, id, stopAllPropagation, EventBus, MARKER_EVENTS]);
+    }, [onClick, id, stopAllPropagation, EventBus, MARKER_EVENTS, updatePersistentState]);
+
+    // Écouter les événements de réinitialisation si nécessaire
+    useEffect(() => {
+        const handleReset = (data) => {
+            if (data.markerId === id) {
+                console.log(`Réinitialisation de l'état pour ${id}`);
+                setClickCount(0);
+                setShowActionState(false);
+                setIsCompleted(false);
+                updatePersistentState({
+                    clickCount: 0,
+                    showActionState: false,
+                    isCompleted: false
+                });
+            }
+        };
+
+        // Écouter un événement de réinitialisation si nécessaire
+        const cleanup = EventBus.on('reset-confirm-interaction', handleReset);
+        return cleanup;
+    }, [id, EventBus, updatePersistentState]);
+
+    // Si l'interaction est complétée, ne plus afficher le composant
+    if (isCompleted) {
+        return null;
+    }
 
     return (
         <Html
@@ -133,6 +207,7 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
                     >
                         <div className="marker-button-inner-text confirm">
                             {showActionState ? text : "Arrête le massacre"}
+                            {/* Afficher le compteur de clics en mode debug */}
                         </div>
                     </div>
                 </div>
@@ -171,5 +246,22 @@ const DoubleButtonConfirmMarker = React.memo(function DoubleButtonConfirmMarker(
         </Html>
     );
 });
+
+// Fonction utilitaire pour réinitialiser l'état d'un marqueur spécifique
+export const resetConfirmInteraction = (markerId) => {
+    if (confirmInteractionStates.has(markerId)) {
+        confirmInteractionStates.delete(markerId);
+        console.log(`État réinitialisé pour le marqueur ${markerId}`);
+    }
+};
+
+// Fonction utilitaire pour obtenir l'état actuel d'un marqueur
+export const getConfirmInteractionState = (markerId) => {
+    return confirmInteractionStates.get(markerId) || {
+        clickCount: 0,
+        showActionState: false,
+        isCompleted: false
+    };
+};
 
 export default DoubleButtonConfirmMarker;

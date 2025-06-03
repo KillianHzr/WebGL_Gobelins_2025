@@ -20,6 +20,8 @@ const VideoInterface = ({
 
         const video = videoRef.current;
 
+        video.volume = 0.2;
+
         const handleLoadStart = () => {
             console.log('📹 VideoInterface: Video loading started');
             setIsLoading(true);
